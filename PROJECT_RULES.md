@@ -4,7 +4,7 @@
 **Akti - Gestão em Produção**
 
 ## Visão Geral
-Este projeto é uma plataforma online para gráfica e produtos personalizados, focando inicialmente no Sistema de Gestão (ERP/CRM básico).
+Este projeto é um sistema de gestão focado na linha de produção (ERP/CRM operacional), adaptável para diferentes segmentos industriais e tipos de produção (gráfica, confecção, alimentos, metalurgia, marcenaria, serviços sob demanda etc.).
 
 ## Tecnologias e Versões
 - **Linguagem Backend:** PHP (Versão 7.4 ou 8.x)
@@ -48,6 +48,33 @@ O projeto segue a seguinte organização de diretórios:
 ### Banco de Dados
 - Tabelas devem usar nomes no singular ou plural (definir padrão: sugerido **snake_case** e plural, ex: `users`, `products`, `orders`).
 - Chaves primárias devem ser `id` (AUTO_INCREMENT).
+
+### Banco de Dados Multi-Tenant (Obrigatório)
+- O sistema deve operar em arquitetura **multi-tenant por subdomínio**.
+- Existe um banco **master** (`akti_master`) responsável por mapear cada cliente para seu banco dedicado.
+- Cada cliente deve possuir banco próprio com prefixo `akti_` (ex.: `akti_cliente1`, `akti_cliente2`).
+- A tabela de referência de tenants no master é `tenant_clients`.
+- O login e toda a sessão devem respeitar o tenant resolvido pelo subdomínio atual.
+
+#### Regras de Resolução de Tenant
+1. A aplicação lê o `HTTP_HOST` e extrai o subdomínio.
+2. O subdomínio é consultado em `akti_master.tenant_clients`.
+3. Se o cliente estiver ativo, a conexão usa `db_host`, `db_port`, `db_name`, `db_user`, `db_password`, `db_charset` desse tenant.
+4. Se o subdomínio for inválido/inativo, o login deve ser bloqueado.
+5. Se houver troca de subdomínio com sessão ativa, a sessão deve ser encerrada por segurança.
+
+#### Estrutura Esperada no Banco Master (`tenant_clients`)
+- Identificação: `id`, `client_name`, `subdomain`, `is_active`.
+- Conexão: `db_host`, `db_port`, `db_name`, `db_user`, `db_password`, `db_charset`.
+- Limites do cliente: `max_users`, `max_products`.
+- Auditoria: `created_at`, `updated_at`.
+
+#### Regras de Limites por Cliente
+- `max_users`: quantidade máxima de usuários cadastrados por tenant.
+- `max_products`: quantidade máxima de produtos cadastrados por tenant.
+- Valores `NULL` ou `<= 0` devem ser tratados como **sem limite**.
+- As validações devem ocorrer no backend antes de criar usuários/produtos, incluindo importação em lote.
+
 
 ## Fluxo de Desenvolvimento
 Ao realizar modificações:
@@ -126,12 +153,12 @@ O roteamento é baseado nos parâmetros `page` e `action` via GET.
 ## Módulo: Linha de Produção (Pipeline)
 
 ### Conceito
-O Pipeline controla o fluxo completo de cada pedido da gráfica, desde o primeiro contato com o cliente até a conclusão financeira. Cada pedido passa pelas seguintes etapas:
+O Pipeline controla o fluxo completo de cada pedido/ordem de produção, desde o primeiro contato com o cliente até a conclusão financeira. Cada pedido passa pelas seguintes etapas:
 
 1. **Contato** (📞) — Primeiro contato com cliente, entendimento da necessidade
 2. **Orçamento** (📄) — Elaboração e envio do orçamento ao cliente
 3. **Venda** (🤝) — Orçamento aprovado, venda confirmada
-4. **Produção** (🏭) — Pedido em produção na gráfica
+4. **Produção** (🏭) — Pedido em execução na linha de produção do cliente
 5. **Preparação** (📦) — Acabamento, corte, empacotamento
 6. **Envio/Entrega** (🚚) — Pronto para envio ou entrega ao cliente
 7. **Financeiro** (💰) — Cobrança, conferência de pagamento

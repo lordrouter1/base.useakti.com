@@ -46,6 +46,15 @@ class UserController {
              $this->userModel->password = $_POST['password'];
              $this->userModel->role = $_POST['role'];
              $this->userModel->group_id = !empty($_POST['group_id']) ? $_POST['group_id'] : null;
+
+             $maxUsers = TenantManager::getTenantLimit('max_users');
+             if ($maxUsers !== null) {
+                 $currentUsers = $this->userModel->countAll();
+                 if ($currentUsers >= $maxUsers) {
+                     header('Location: ?page=users&status=limit_users');
+                     exit;
+                 }
+             }
              
              if ($this->userModel->create()) {
                  $this->logger->log('CREATE_USER', 'Created user: ' . $this->userModel->email);
@@ -259,15 +268,31 @@ class UserController {
             exit;
         }
 
+        if (!empty($_SESSION['tenant']['has_error'])) {
+            $error = $_SESSION['tenant']['error_message'] ?: 'Não foi possível identificar o cliente pelo subdomínio.';
+            require 'app/views/auth/login.php';
+            return;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              $email = $_POST['email'];
              $password = $_POST['password'];
+             $postedTenant = $_POST['tenant_key'] ?? '';
+             $resolvedTenant = $_SESSION['tenant']['key'] ?? '';
+
+             if ($postedTenant !== $resolvedTenant) {
+                 $this->logger->log('LOGIN_FAIL', 'Tentativa de login com tenant divergente.');
+                 $error = 'Validação de cliente inválida. Atualize a página e tente novamente.';
+                 require 'app/views/auth/login.php';
+                 return;
+             }
 
              if ($this->userModel->login($email, $password)) {
                  $_SESSION['user_id'] = $this->userModel->id;
                  $_SESSION['user_name'] = $this->userModel->name;
                  $_SESSION['user_role'] = $this->userModel->role;
                  $_SESSION['group_id'] = $this->userModel->group_id;
+                 $_SESSION['user_tenant_key'] = $_SESSION['tenant']['key'] ?? null;
 
                  $this->logger->log('LOGIN', 'User logged in: ' . $email, $this->userModel->id);
                  
@@ -275,7 +300,7 @@ class UserController {
                  exit;
              } else {
                  $this->logger->log('LOGIN_FAIL', 'Failed login attempt for: ' . $email);
-                 $error = "Email ou senha inválidos.";
+                 $error = 'Email ou senha inválidos para o cliente selecionado.';
                  require 'app/views/auth/login.php';
              }
         } else {

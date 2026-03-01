@@ -249,6 +249,16 @@
             <p>Faça login para acessar sua conta.</p>
         </div>
 
+        <?php
+            $tenantInfo = $_SESSION['tenant'] ?? null;
+            $tenantLabel = (!empty($tenantInfo['key']) && empty($tenantInfo['has_error'])) ? $tenantInfo['key'] : 'ambiente padrão';
+            $tenantBlocked = !empty($tenantInfo['has_error']);
+        ?>
+        <div class="alert alert-info py-2" style="border-radius: 10px;">
+            <i class="fas fa-building me-2"></i>
+            Cliente detectado pelo subdomínio: <strong><?= htmlspecialchars($tenantLabel) ?></strong>
+        </div>
+
         <?php if (isset($error)): ?>
             <div class="alert alert-danger py-2 d-flex align-items-center" style="border-radius: 10px;">
                 <i class="fas fa-exclamation-circle me-2"></i>
@@ -256,6 +266,13 @@
             </div>
         <?php endif; ?>
         
+        <?php if (isset($_GET['tenant_changed'])): ?>
+            <div class="alert alert-warning py-2 d-flex align-items-center" style="border-radius: 10px;">
+                <i class="fas fa-shield-alt me-2"></i>
+                <div>Sessão encerrada por troca de subdomínio. Faça login novamente no cliente correto.</div>
+            </div>
+        <?php endif; ?>
+
         <?php if (isset($_GET['access_denied'])): ?>
             <div class="alert alert-warning py-2 d-flex align-items-center" style="border-radius: 10px;">
                 <i class="fas fa-exclamation-triangle me-2"></i>
@@ -264,20 +281,24 @@
         <?php endif; ?>
 
         <form method="POST" action="?page=login">
+            <input type="hidden" name="tenant_key" value="<?= htmlspecialchars($tenantInfo['key'] ?? '') ?>">
+            <?php if ($tenantBlocked): ?>
+                <input type="hidden" name="tenant_blocked" value="1">
+            <?php endif; ?>
             <div class="form-floating mb-3">
                 <i class="fas fa-envelope input-icon"></i>
-                <input type="email" class="form-control" id="email" name="email" required placeholder="seu@email.com" autocomplete="email">
+                <input type="email" class="form-control" id="email" name="email" required placeholder="seu@email.com" autocomplete="email" <?= $tenantBlocked ? "disabled" : ""; ?>>
                 <label for="email">E-mail</label>
             </div>
             
             <div class="form-floating mb-4">
                 <i class="fas fa-lock input-icon"></i>
-                <input type="password" class="form-control" id="password" name="password" required placeholder="Sua senha" autocomplete="current-password">
+                <input type="password" class="form-control" id="password" name="password" required placeholder="Sua senha" autocomplete="current-password" <?= $tenantBlocked ? "disabled" : ""; ?>>
                 <label for="password">Senha</label>
             </div>
 
             <div class="d-grid mb-3">
-                <button type="submit" class="btn btn-login btn-lg">
+                <button type="submit" class="btn btn-login btn-lg" <?= $tenantBlocked ? "disabled" : ""; ?>>
                     <i class="fas fa-sign-in-alt me-2"></i>ENTRAR
                 </button>
             </div>
