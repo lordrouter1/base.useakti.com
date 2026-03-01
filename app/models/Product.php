@@ -42,6 +42,13 @@ class Product {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    function countAll() {
+        $query = "SELECT COUNT(*) FROM " . $this->table_name;
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return (int) $stmt->fetchColumn();
+    }
+
     function create($data) {
         // Build fiscal columns dynamically
         $fiscalCols = '';

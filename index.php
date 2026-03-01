@@ -4,6 +4,7 @@ session_start();
 // Carregar configurações e banco de dados
 require_once 'app/config/database.php';
 require_once 'app/models/User.php';
+TenantManager::enforceTenantSession();
 
 // Sistema de Roteamento Simples
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';

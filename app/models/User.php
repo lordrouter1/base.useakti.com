@@ -43,6 +43,15 @@ class User {
         return $stmt;
     }
     
+
+
+    public function countAll() {
+        $query = "SELECT COUNT(*) FROM " . $this->table_name;
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return (int) $stmt->fetchColumn();
+    }
+
     public function create() {
         $query = "INSERT INTO " . $this->table_name . " 
                   (name, email, password, role, group_id, created_at) 

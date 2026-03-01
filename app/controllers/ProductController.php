@@ -65,7 +65,15 @@ class ProductController {
 
     public function store() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            
+            $maxProducts = TenantManager::getTenantLimit('max_products');
+            if ($maxProducts !== null) {
+                $currentProducts = $this->productModel->countAll();
+                if ($currentProducts >= $maxProducts) {
+                    header('Location: ?page=products&status=limit_products');
+                    exit;
+                }
+            }
+
             // Handle dynamically added category
             $category_id = $_POST['category_id'] ?? null;
             if ($category_id === 'new' && !empty($_POST['new_category_name'])) {
@@ -434,6 +442,13 @@ class ProductController {
             echo json_encode(['success' => false, 'message' => 'Arquivo vazio ou não foi possível ler os dados.']);
             exit;
         }
+
+        $maxProducts = TenantManager::getTenantLimit('max_products');
+        $currentProducts = $this->productModel->countAll();
+        if ($maxProducts !== null && $currentProducts >= $maxProducts) {
+            echo json_encode(['success' => false, 'message' => 'Limite de produtos do cliente atingido.']);
+            exit;
+        }
         
         $imported = 0;
         $errors = [];
@@ -537,6 +552,11 @@ class ProductController {
                 }
             }
             
+            if ($maxProducts !== null && ($currentProducts + $imported) >= $maxProducts) {
+                $errors[] = ['line' => $lineDisplay, 'message' => 'Limite de produtos atingido para este cliente.'];
+                continue;
+            }
+
             // Build product data
             $data = [
                 'name' => $mapped['name'],
