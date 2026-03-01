@@ -29,6 +29,8 @@ O projeto segue a seguinte organização de diretórios:
 |   |-- /css          # Estilos customizados
 |   |-- /js           # Scripts customizados
 |   |-- /img          # Imagens do sistema
+|   |-- /uploads      # Uploads por tenant: uploads/{db_name}/{modulo}/
+|-- /docs             # Documentação técnica e arquivos de configuração
 |-- /sql              # Scripts SQL para criação e migração do banco
 |-- index.php         # Ponto de entrada da aplicação (Router básico)
 ```
@@ -366,6 +368,89 @@ As colunas do kanban podiam desaparecer em telas menores, fazendo com que o usu�
 - **Mobile (≤576px):** Colunas com largura fixa de 240px + scroll horizontal + minimap de navegação.
 - **Minimap:** Barra com ícones das etapas abaixo do kanban. Ao clicar, rola suavemente até a coluna correspondente.
 - **Botões de navegação:** Setas laterais aparecem quando há scroll disponível.
+
+## Uploads de Arquivos (Multi-Tenant)
+
+### Regra de Pastas por Cliente
+Todo arquivo enviado pelo usuário (imagens de produtos, fotos de clientes, logo da empresa, anexos de logs de itens) deve ser armazenado em um subdiretório exclusivo do tenant dentro de `assets/uploads/`.
+
+O caminho base é fornecido pelo método estático `TenantManager::getTenantUploadBase()`, que retorna `assets/uploads/{db_name}/` onde `{db_name}` é o nome do banco do tenant (ex.: `akti_cliente1`).
+
+**Estrutura de diretórios:**
+```
+assets/uploads/
+  akti_cliente1/
+    products/          # Imagens de produtos
+    customers/         # Fotos de clientes
+    item_logs/         # Anexos de logs de itens de pedido
+                       #   └── {order_id}/{order_item_id}/
+    company_logo_*.ext # Logo da empresa
+  akti_cliente2/
+    ...
+```
+
+### Regras Obrigatórias
+- **Nunca** usar caminhos fixos como `assets/uploads/` diretamente. Sempre usar `TenantManager::getTenantUploadBase()`.
+- O caminho completo (relativo à raiz do projeto) é salvo no banco de dados e usado diretamente pela view para exibir o arquivo.
+- Ao criar novos módulos com upload, seguir o padrão: `TenantManager::getTenantUploadBase() . 'nome_do_modulo/'`.
+- O diretório deve ser criado com `mkdir($dir, 0755, true)` se não existir.
+- Arquivos de diferentes tenants jamais devem se misturar.
+
+### Exibição de Arquivos nas Views
+- As views exibem arquivos usando o caminho armazenado no banco de dados (`$product['image_path']`, `$customer['photo']`, `$settings['company_logo']`, `$log['file_path']`).
+- Como o caminho armazenado já inclui o subdiretório do tenant, não é necessário nenhum ajuste adicional na view.
+- Arquivos enviados antes da implementação do multi-tenant (sem prefixo do tenant no caminho) permanecem acessíveis nos caminhos antigos armazenados no banco.
+
+## Implantação (Deployment) — Nginx no VPS useakti.com
+
+### Requisitos do Servidor
+- Sistema operacional: Ubuntu 20.04 LTS ou superior (ou Debian equivalente)
+- Nginx instalado (`apt install nginx`)
+- PHP-FPM instalado (`apt install php8.1-fpm php8.1-mysql php8.1-mbstring php8.1-xml`)
+- MySQL/MariaDB (`apt install mariadb-server`)
+- Certbot/Let's Encrypt para certificado SSL wildcard
+
+### Estrutura de Arquivos no VPS
+```
+/var/www/useakti.com/public/   ← raiz da aplicação (DOCUMENT_ROOT)
+```
+
+### Configuração Nginx
+O arquivo de configuração de referência está em `docs/nginx.conf`.
+
+Passos para ativar:
+```bash
+cp docs/nginx.conf /etc/nginx/sites-available/useakti.com
+ln -s /etc/nginx/sites-available/useakti.com /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+```
+
+### Variáveis de Ambiente
+Configure no bloco `location ~ \.php$` do Nginx (via `fastcgi_param`) ou em um arquivo `.env` lido pela aplicação:
+
+| Variável | Descrição |
+|---|---|
+| `AKTI_BASE_DOMAIN` | `useakti.com` |
+| `AKTI_DB_HOST` | Host do banco padrão (fallback) |
+| `AKTI_DB_NAME` | Banco padrão (fallback) |
+| `AKTI_DB_USER` | Usuário do banco padrão |
+| `AKTI_DB_PASS` | Senha do banco padrão |
+| `AKTI_MASTER_DB_HOST` | Host do banco master |
+| `AKTI_MASTER_DB_NAME` | Nome do banco master (`akti_master`) |
+| `AKTI_MASTER_DB_USER` | Usuário do banco master |
+| `AKTI_MASTER_DB_PASS` | Senha do banco master |
+
+### DNS
+- Configure um registro `A` para `useakti.com` apontando para o IP do VPS.
+- Configure um registro `A` wildcard `*.useakti.com` apontando para o mesmo IP.
+- Isso garante que `cliente1.useakti.com`, `cliente2.useakti.com`, etc. cheguem ao mesmo servidor e sejam roteados pelo `TenantManager`.
+
+### Provisionamento de Novo Cliente
+1. Criar banco: `CREATE DATABASE akti_<cliente> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
+2. Criar usuário MySQL com acesso apenas ao banco do cliente.
+3. Rodar o schema completo (`sql/database.sql`) no banco do cliente.
+4. Inserir registro em `akti_master.tenant_clients` com os dados do banco e limites.
+5. Configurar DNS do subdomínio (propagação pode levar até 24h).
 
 ## Módulo: Dados Fiscais (NF-e)
 

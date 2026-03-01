@@ -143,10 +143,10 @@ class ProductController {
                 if(isset($_FILES['product_photos'])) {
                     $files = $_FILES['product_photos'];
                     $mainImageIndex = $_POST['main_image_index'] ?? 0;
-                    $uploadDir = 'assets/uploads/products/';
+                    $uploadDir = TenantManager::getTenantUploadBase() . 'products/';
                     
                     if (!is_dir($uploadDir)) {
-                        mkdir($uploadDir, 0777, true);
+                        mkdir($uploadDir, 0755, true);
                     }
                     
                     $maxSize = 5 * 1024 * 1024; // 5 MB
