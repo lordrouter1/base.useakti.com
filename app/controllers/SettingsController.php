@@ -59,7 +59,7 @@ class SettingsController {
 
         // Upload de logo
         if (isset($_FILES['company_logo']) && $_FILES['company_logo']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = 'assets/uploads/';
+            $uploadDir = TenantManager::getTenantUploadBase();
             if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
             
             $ext = pathinfo($_FILES['company_logo']['name'], PATHINFO_EXTENSION);

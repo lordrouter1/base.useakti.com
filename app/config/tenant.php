@@ -173,6 +173,19 @@ class TenantManager
         ];
     }
 
+    /**
+     * Returns the base upload directory for the current tenant.
+     * Example: "assets/uploads/akti_cliente1/"
+     * All file uploads must be stored under this path to isolate tenant data.
+     */
+    public static function getTenantUploadBase(): string
+    {
+        self::bootstrap();
+        $dbName = self::$tenantConfig['db_name'] ?? 'default';
+        $safe = preg_replace('/[^a-zA-Z0-9_]/', '_', $dbName);
+        return 'assets/uploads/' . $safe . '/';
+    }
+
     public static function getTenantLimit(string $limitKey): ?int
     {
         self::bootstrap();

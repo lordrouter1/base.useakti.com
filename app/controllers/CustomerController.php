@@ -129,9 +129,9 @@ class CustomerController {
                 return null;
             }
 
-            $uploadDir = 'assets/uploads/customers/';
+            $uploadDir = TenantManager::getTenantUploadBase() . 'customers/';
             if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
+                mkdir($uploadDir, 0755, true);
             }
             
             $fileExtension = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
