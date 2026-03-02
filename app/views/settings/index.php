@@ -193,14 +193,29 @@
 
     <?php elseif ($activeTab === 'prices'): ?>
     <!-- ══════════ ABA: TABELAS DE PREÇO ══════════ -->
+    <?php if (!empty($priceTableLimitReached)): ?>
+    <div class="alert alert-warning border-warning d-flex align-items-center mb-3" role="alert">
+        <i class="fas fa-exclamation-triangle fs-5 me-3 text-warning"></i>
+        <div>
+            <strong>Limite do plano atingido!</strong> Você possui <strong><?= $priceTableLimitInfo['current'] ?></strong> de <strong><?= $priceTableLimitInfo['max'] ?></strong> tabelas de preço permitidas.
+            <span class="text-muted">Para cadastrar mais tabelas, entre em contato com o suporte para fazer um upgrade do seu plano.</span>
+        </div>
+    </div>
+    <?php endif; ?>
     <div class="row">
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
                     <h5 class="mb-0 text-primary"><i class="fas fa-tags me-2"></i>Tabelas de Preço</h5>
-                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNewTable">
-                        <i class="fas fa-plus me-1"></i> Nova Tabela
-                    </button>
+                    <?php if (!empty($priceTableLimitReached)): ?>
+                        <button class="btn btn-primary btn-sm disabled" disabled title="Limite do plano atingido">
+                            <i class="fas fa-plus me-1"></i> Nova Tabela
+                        </button>
+                    <?php else: ?>
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNewTable">
+                            <i class="fas fa-plus me-1"></i> Nova Tabela
+                        </button>
+                    <?php endif; ?>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">

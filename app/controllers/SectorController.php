@@ -31,6 +31,12 @@ class SectorController {
             }
         }
 
+        // Verificar limite de setores do tenant
+        $maxSectors = TenantManager::getTenantLimit('max_sectors');
+        $currentSectors = $this->sectorModel->countAll();
+        $limitReached = ($maxSectors !== null && $currentSectors >= $maxSectors);
+        $limitInfo = $limitReached ? ['current' => $currentSectors, 'max' => $maxSectors] : null;
+
         $editSector = null;
         if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
             $editSector = $this->sectorModel->readOne($_GET['id']);
@@ -42,6 +48,16 @@ class SectorController {
 
     public function store() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['name'])) {
+            // Verificar limite de setores do tenant
+            $maxSectors = TenantManager::getTenantLimit('max_sectors');
+            if ($maxSectors !== null) {
+                $currentSectors = $this->sectorModel->countAll();
+                if ($currentSectors >= $maxSectors) {
+                    header('Location: ?page=sectors&status=limit_sectors');
+                    exit;
+                }
+            }
+
             $this->sectorModel->create($_POST);
             $this->logger->log('CREATE_SECTOR', 'Created sector: ' . $_POST['name']);
         }

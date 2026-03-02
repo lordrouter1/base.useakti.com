@@ -7,6 +7,15 @@ class ProductionSector {
         $this->conn = $db;
     }
 
+    /**
+     * Conta o total de setores de produção cadastrados
+     */
+    public function countAll() {
+        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM {$this->table}");
+        $stmt->execute();
+        return (int) $stmt->fetchColumn();
+    }
+
     public function readAll($onlyActive = false) {
         $where = $onlyActive ? " WHERE is_active = 1" : "";
         $stmt = $this->conn->query("SELECT * FROM {$this->table}{$where} ORDER BY sort_order ASC, name ASC");

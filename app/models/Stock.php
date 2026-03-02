@@ -14,6 +14,15 @@ class Stock {
     //  WAREHOUSES (Armazéns)
     // ═══════════════════════════════════════════════
 
+    /**
+     * Conta o total de armazéns cadastrados
+     */
+    public function countWarehouses() {
+        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM warehouses");
+        $stmt->execute();
+        return (int) $stmt->fetchColumn();
+    }
+
     public function getAllWarehouses($onlyActive = true) {
         $where = $onlyActive ? "WHERE is_active = 1" : "";
         $stmt = $this->conn->prepare("

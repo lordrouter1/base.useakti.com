@@ -23,6 +23,12 @@ class UserController {
         
         $stmt = $this->userModel->readAll();
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Verificar limite de usuários do tenant
+        $maxUsers = TenantManager::getTenantLimit('max_users');
+        $currentUsers = $this->userModel->countAll();
+        $limitReached = ($maxUsers !== null && $currentUsers >= $maxUsers);
+        $limitInfo = $limitReached ? ['current' => $currentUsers, 'max' => $maxUsers] : null;
         
         require 'app/views/layout/header.php';
         require 'app/views/users/index.php';

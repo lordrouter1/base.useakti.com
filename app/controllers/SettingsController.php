@@ -29,6 +29,12 @@ class SettingsController {
         $priceTables = $this->priceTable->readAll();
         $preparationSteps = $this->preparationStep->getAll();
 
+        // Verificar limite de tabelas de preço do tenant (para aba de tabelas)
+        $maxPriceTables = TenantManager::getTenantLimit('max_price_tables');
+        $currentPriceTables = $this->priceTable->countAll();
+        $priceTableLimitReached = ($maxPriceTables !== null && $currentPriceTables >= $maxPriceTables);
+        $priceTableLimitInfo = $priceTableLimitReached ? ['current' => $currentPriceTables, 'max' => $maxPriceTables] : null;
+
         require 'app/views/layout/header.php';
         require 'app/views/settings/index.php';
         require 'app/views/layout/footer.php';
@@ -136,6 +142,12 @@ class SettingsController {
     public function priceTablesIndex() {
         $priceTables = $this->priceTable->readAll();
 
+        // Verificar limite de tabelas de preço do tenant
+        $maxPriceTables = TenantManager::getTenantLimit('max_price_tables');
+        $currentPriceTables = $this->priceTable->countAll();
+        $limitReached = ($maxPriceTables !== null && $currentPriceTables >= $maxPriceTables);
+        $limitInfo = $limitReached ? ['current' => $currentPriceTables, 'max' => $maxPriceTables] : null;
+
         require 'app/views/layout/header.php';
         require 'app/views/settings/price_tables_index.php';
         require 'app/views/layout/footer.php';
@@ -149,6 +161,21 @@ class SettingsController {
             $name = $_POST['name'] ?? '';
             $description = $_POST['description'] ?? '';
             $refPage = $_POST['ref_page'] ?? 'settings';
+
+            // Verificar limite de tabelas de preço do tenant
+            $maxPriceTables = TenantManager::getTenantLimit('max_price_tables');
+            if ($maxPriceTables !== null) {
+                $currentPriceTables = $this->priceTable->countAll();
+                if ($currentPriceTables >= $maxPriceTables) {
+                    if ($refPage === 'price_tables') {
+                        header('Location: ?page=price_tables&status=limit_price_tables');
+                    } else {
+                        header('Location: ?page=settings&tab=prices&status=limit_price_tables');
+                    }
+                    exit;
+                }
+            }
+
             if ($name) {
                 $this->priceTable->create($name, $description);
             }

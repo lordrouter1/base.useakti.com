@@ -38,6 +38,12 @@ class StockController {
     public function warehouses() {
         $warehouses = $this->stockModel->getAllWarehouses(false);
 
+        // Verificar limite de armazéns do tenant
+        $maxWarehouses = TenantManager::getTenantLimit('max_warehouses');
+        $currentWarehouses = $this->stockModel->countWarehouses();
+        $limitReached = ($maxWarehouses !== null && $currentWarehouses >= $maxWarehouses);
+        $limitInfo = $limitReached ? ['current' => $currentWarehouses, 'max' => $maxWarehouses] : null;
+
         require 'app/views/layout/header.php';
         require 'app/views/stock/warehouses.php';
         require 'app/views/layout/footer.php';
@@ -45,6 +51,16 @@ class StockController {
 
     public function storeWarehouse() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verificar limite de armazéns do tenant
+            $maxWarehouses = TenantManager::getTenantLimit('max_warehouses');
+            if ($maxWarehouses !== null) {
+                $currentWarehouses = $this->stockModel->countWarehouses();
+                if ($currentWarehouses >= $maxWarehouses) {
+                    header('Location: ?page=stock&action=warehouses&status=limit_warehouses');
+                    exit;
+                }
+            }
+
             $data = [
                 'name'     => trim($_POST['name'] ?? ''),
                 'address'  => trim($_POST['address'] ?? ''),

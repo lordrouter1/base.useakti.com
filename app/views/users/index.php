@@ -4,11 +4,27 @@
         <a href="?page=users&action=groups" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-layer-group"></i> Grupos e Permissões
         </a>
-        <a href="?page=users&action=create" class="btn btn-sm btn-primary">
-            <i class="fas fa-user-plus"></i> Novo Usuário
-        </a>
+        <?php if (!empty($limitReached)): ?>
+            <button class="btn btn-sm btn-primary disabled" disabled title="Limite do plano atingido">
+                <i class="fas fa-user-plus"></i> Novo Usuário
+            </button>
+        <?php else: ?>
+            <a href="?page=users&action=create" class="btn btn-sm btn-primary">
+                <i class="fas fa-user-plus"></i> Novo Usuário
+            </a>
+        <?php endif; ?>
     </div>
 </div>
+
+<?php if (!empty($limitReached)): ?>
+<div class="alert alert-warning border-warning d-flex align-items-center mb-3" role="alert">
+    <i class="fas fa-exclamation-triangle fs-5 me-3 text-warning"></i>
+    <div>
+        <strong>Limite do plano atingido!</strong> Você possui <strong><?= $limitInfo['current'] ?></strong> de <strong><?= $limitInfo['max'] ?></strong> usuários permitidos.
+        <span class="text-muted">Para cadastrar mais usuários, entre em contato com o suporte para fazer um upgrade do seu plano.</span>
+    </div>
+</div>
+<?php endif; ?>
 
 <div class="table-responsive bg-white rounded shadow-sm">
     <table class="table table-hover align-middle mb-0">
@@ -72,6 +88,9 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php endif; ?>
     <?php if(isset($_GET['status']) && $_GET['status'] == 'success'): ?>
     Swal.fire({ icon: 'success', title: 'Sucesso!', text: 'Usuário salvo com sucesso!', timer: 2000, showConfirmButton: false });
+    <?php endif; ?>
+    <?php if(isset($_GET['status']) && $_GET['status'] == 'limit_users'): ?>
+    Swal.fire({ icon: 'warning', title: 'Limite atingido!', text: 'Você atingiu o limite de usuários do seu plano. Entre em contato com o suporte para fazer um upgrade.', confirmButtonColor: '#3498db' });
     <?php endif; ?>
 
     document.querySelectorAll('.btn-delete-user').forEach(btn => {

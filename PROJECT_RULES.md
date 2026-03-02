@@ -1,5 +1,9 @@
 # Akti - Gestão em Produção
 
+> ⚠️ **REGRA CRÍTICA — Atualização do Banco de Dados**
+> 
+> **Toda alteração que envolva o banco de dados** (criação, modificação ou remoção de tabelas, colunas, índices, constraints, dados de configuração etc.) **deve obrigatoriamente gerar um arquivo SQL de atualização** (ex: `update_YYYYMMDD_descricao.sql`) na pasta `/sql`. Esse arquivo deve conter **apenas os comandos necessários** para atualizar o banco de produção, garantindo que o deploy seja feito apenas subindo e executando os arquivos SQL de atualização. **Nunca altere diretamente o banco de produção sem o arquivo de migração correspondente.**
+
 ## Nome do Sistema
 **Akti - Gestão em Produção**
 
@@ -68,14 +72,19 @@ O projeto segue a seguinte organização de diretórios:
 #### Estrutura Esperada no Banco Master (`tenant_clients`)
 - Identificação: `id`, `client_name`, `subdomain`, `is_active`.
 - Conexão: `db_host`, `db_port`, `db_name`, `db_user`, `db_password`, `db_charset`.
-- Limites do cliente: `max_users`, `max_products`.
+- Limites do cliente: `max_users`, `max_products`, `max_warehouses`, `max_price_tables`, `max_sectors`.
 - Auditoria: `created_at`, `updated_at`.
 
 #### Regras de Limites por Cliente
 - `max_users`: quantidade máxima de usuários cadastrados por tenant.
 - `max_products`: quantidade máxima de produtos cadastrados por tenant.
+- `max_warehouses`: quantidade máxima de armazéns/locais de estoque por tenant.
+- `max_price_tables`: quantidade máxima de tabelas de preço por tenant.
+- `max_sectors`: quantidade máxima de setores de produção por tenant.
 - Valores `NULL` ou `<= 0` devem ser tratados como **sem limite**.
-- As validações devem ocorrer no backend antes de criar usuários/produtos, incluindo importação em lote.
+- As validações devem ocorrer no backend antes de criar o recurso, incluindo importação em lote.
+- Quando o limite é atingido, o botão de criação deve ser **desabilitado** na view e um **alerta visual** (alert Bootstrap + SweetAlert2) deve informar que o limite do plano foi atingido.
+- A mensagem de limite deve orientar o usuário a entrar em contato com o suporte para upgrade do plano.
 
 
 ## Fluxo de Desenvolvimento
@@ -515,3 +524,24 @@ Armazenados como pares chave-valor na tabela `company_settings` com prefixo `fis
 - Cor temática: `#8e44ad` (roxo)
 - Fieldsets: Identificação Fiscal, Endereço Fiscal, Certificado Digital, Configurações NF-e, Alíquotas Padrão, Informações Complementares
 - Painel lateral: Resumo fiscal, links úteis (IBGE, NCM, CEST, Portal NF-e)
+
+## Atualização do Banco de Dados
+Toda alteração que envolva o banco de dados (criação, modificação ou remoção de tabelas, colunas, índices, constraints, dados de configuração etc.) deve obrigatoriamente gerar um arquivo SQL de atualização (ex: `update_YYYYMMDD.sql`) na pasta `/sql`. Esse arquivo deve conter apenas os comandos necessários para atualizar o banco de produção, garantindo que o deploy seja feito apenas subindo e executando os arquivos SQL de atualização.
+
+### Exemplos de Atualizações
+- **Adicionar nova coluna:** `ALTER TABLE products ADD COLUMN new_column VARCHAR(255) DEFAULT NULL;`
+- **Criar nova tabela:** `CREATE TABLE logs (id INT AUTO_INCREMENT PRIMARY KEY, message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`
+- **Atualizar dados existentes:** `UPDATE users SET is_active = 1 WHERE last_login > '2023-01-01';`
+
+### Boas Práticas
+- Nomear arquivos de atualização com data e descrição resumida da mudança (ex: `update_20231010_add_column_new_feature.sql`).
+- Incluir sempre um `README.md` na pasta `/sql` explicando como aplicar as atualizações.
+- Testar as atualizações em um ambiente de staging antes de aplicar em produção.
+- Manter backup completo do banco de dados antes de qualquer atualização.
+
+### Aplicando Atualizações
+Para aplicar uma atualização:
+1. Fazer o upload do arquivo SQL para o servidor, na pasta `/sql`.
+2. Conectar ao banco de dados via linha de comando ou ferramenta de administração (ex: phpMyAdmin).
+3. Executar o comando: `SOURCE /caminho/para/o/arquivo/update_YYYYMMDD.sql;`
+4. Verificar se a atualização foi aplicada corretamente (conferir novas tabelas/colunas, testar funcionalidades relacionadas).

@@ -9,11 +9,27 @@
     <h1 class="h2"><i class="fas fa-building me-2"></i>Armazéns / Locais de Estoque</h1>
     <div class="btn-toolbar mb-2 mb-md-0 gap-2">
         <a href="?page=stock" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Voltar ao Estoque</a>
-        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#warehouseModal" onclick="openNewWarehouse()">
-            <i class="fas fa-plus me-1"></i> Novo Armazém
-        </button>
+        <?php if (!empty($limitReached)): ?>
+            <button type="button" class="btn btn-sm btn-primary disabled" disabled title="Limite do plano atingido">
+                <i class="fas fa-plus me-1"></i> Novo Armazém
+            </button>
+        <?php else: ?>
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#warehouseModal" onclick="openNewWarehouse()">
+                <i class="fas fa-plus me-1"></i> Novo Armazém
+            </button>
+        <?php endif; ?>
     </div>
 </div>
+
+<?php if (!empty($limitReached)): ?>
+<div class="alert alert-warning border-warning d-flex align-items-center mb-3" role="alert">
+    <i class="fas fa-exclamation-triangle fs-5 me-3 text-warning"></i>
+    <div>
+        <strong>Limite do plano atingido!</strong> Você possui <strong><?= $limitInfo['current'] ?></strong> de <strong><?= $limitInfo['max'] ?></strong> armazéns permitidos.
+        <span class="text-muted">Para cadastrar mais armazéns, entre em contato com o suporte para fazer um upgrade do seu plano.</span>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- ══════ Lista de Armazéns ══════ -->
 <div class="row g-3">
@@ -165,6 +181,8 @@ document.addEventListener('DOMContentLoaded', function() {
     Swal.fire({ icon:'success', title:'Armazém atualizado!', timer:2000, showConfirmButton:false });
     <?php elseif ($_GET['status'] == 'deleted'): ?>
     Swal.fire({ icon:'success', title:'Armazém removido!', timer:2000, showConfirmButton:false });
+    <?php elseif ($_GET['status'] == 'limit_warehouses'): ?>
+    Swal.fire({ icon:'warning', title:'Limite atingido!', text:'Você atingiu o limite de armazéns do seu plano. Entre em contato com o suporte para fazer um upgrade.', confirmButtonColor:'#3498db' });
     <?php endif; ?>
     <?php endif; ?>
 

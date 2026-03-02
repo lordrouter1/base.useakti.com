@@ -5,15 +5,37 @@
             <a href="?page=products&action=downloadImportTemplate" class="btn btn-sm btn-outline-success" title="Baixar modelo de planilha para importação">
                 <i class="fas fa-file-excel me-1"></i> Modelo Importação
             </a>
-            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#importModal" title="Importar produtos em massa via planilha">
-                <i class="fas fa-file-import me-1"></i> Importar Produtos
-            </button>
+            <?php if (!empty($limitReached)): ?>
+                <button type="button" class="btn btn-sm btn-outline-info disabled" disabled title="Limite do plano atingido">
+                    <i class="fas fa-file-import me-1"></i> Importar Produtos
+                </button>
+            <?php else: ?>
+                <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#importModal" title="Importar produtos em massa via planilha">
+                    <i class="fas fa-file-import me-1"></i> Importar Produtos
+                </button>
+            <?php endif; ?>
         </div>
-        <a href="?page=products&action=create" class="btn btn-sm btn-primary">
-            <i class="fas fa-plus me-1"></i> Novo Produto
-        </a>
+        <?php if (!empty($limitReached)): ?>
+            <button class="btn btn-sm btn-primary disabled" disabled title="Limite do plano atingido">
+                <i class="fas fa-plus me-1"></i> Novo Produto
+            </button>
+        <?php else: ?>
+            <a href="?page=products&action=create" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus me-1"></i> Novo Produto
+            </a>
+        <?php endif; ?>
     </div>
 </div>
+
+<?php if (!empty($limitReached)): ?>
+<div class="alert alert-warning border-warning d-flex align-items-center mb-3" role="alert">
+    <i class="fas fa-exclamation-triangle fs-5 me-3 text-warning"></i>
+    <div>
+        <strong>Limite do plano atingido!</strong> Você possui <strong><?= $limitInfo['current'] ?></strong> de <strong><?= $limitInfo['max'] ?></strong> produtos permitidos.
+        <span class="text-muted">Para cadastrar mais produtos, entre em contato com o suporte para fazer um upgrade do seu plano.</span>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- ══════ Modal de Importação de Produtos ══════ -->
 <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
@@ -168,6 +190,9 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php endif; ?>
     <?php if(isset($_GET['status']) && $_GET['status'] == 'success'): ?>
     Swal.fire({ icon: 'success', title: 'Sucesso!', text: 'Produto salvo com sucesso!', timer: 2000, showConfirmButton: false });
+    <?php endif; ?>
+    <?php if(isset($_GET['status']) && $_GET['status'] == 'limit_products'): ?>
+    Swal.fire({ icon: 'warning', title: 'Limite atingido!', text: 'Você atingiu o limite de produtos do seu plano. Entre em contato com o suporte para fazer um upgrade.', confirmButtonColor: '#3498db' });
     <?php endif; ?>
     <?php if(isset($_GET['status']) && $_GET['status'] == 'imported'): ?>
     Swal.fire({ 

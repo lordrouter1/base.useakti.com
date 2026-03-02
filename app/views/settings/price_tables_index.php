@@ -1,10 +1,26 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2"><i class="fas fa-tags me-2"></i>Tabelas de Preço</h1>
-        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNewTable">
-            <i class="fas fa-plus me-1"></i> Nova Tabela
-        </button>
+        <?php if (!empty($limitReached)): ?>
+            <button class="btn btn-primary btn-sm disabled" disabled title="Limite do plano atingido">
+                <i class="fas fa-plus me-1"></i> Nova Tabela
+            </button>
+        <?php else: ?>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNewTable">
+                <i class="fas fa-plus me-1"></i> Nova Tabela
+            </button>
+        <?php endif; ?>
     </div>
+
+    <?php if (!empty($limitReached)): ?>
+    <div class="alert alert-warning border-warning d-flex align-items-center mb-3" role="alert">
+        <i class="fas fa-exclamation-triangle fs-5 me-3 text-warning"></i>
+        <div>
+            <strong>Limite do plano atingido!</strong> Você possui <strong><?= $limitInfo['current'] ?></strong> de <strong><?= $limitInfo['max'] ?></strong> tabelas de preço permitidas.
+            <span class="text-muted">Para cadastrar mais tabelas, entre em contato com o suporte para fazer um upgrade do seu plano.</span>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <div class="row g-4">
         <div class="col-lg-8">
@@ -122,6 +138,9 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php endif; ?>
     <?php if(isset($_GET['status']) && $_GET['status'] === 'table_default_error'): ?>
     Swal.fire({ icon: 'error', title: 'Erro', text: 'Não é possível excluir a tabela padrão.', confirmButtonColor: '#3498db' });
+    <?php endif; ?>
+    <?php if(isset($_GET['status']) && $_GET['status'] === 'limit_price_tables'): ?>
+    Swal.fire({ icon: 'warning', title: 'Limite atingido!', text: 'Você atingiu o limite de tabelas de preço do seu plano. Entre em contato com o suporte para fazer um upgrade.', confirmButtonColor: '#3498db' });
     <?php endif; ?>
 
     // Confirmar exclusão de tabela

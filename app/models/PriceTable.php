@@ -11,6 +11,15 @@ class PriceTable {
     }
 
     /**
+     * Conta o total de tabelas de preço cadastradas
+     */
+    public function countAll() {
+        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM price_tables");
+        $stmt->execute();
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
      * Lista todas as tabelas de preço
      */
     public function readAll() {

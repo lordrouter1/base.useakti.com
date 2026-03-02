@@ -30,6 +30,12 @@ class ProductController {
         // Buscar produtos do banco
         $stmt = $this->productModel->readAll();
         $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Verificar limite de produtos do tenant
+        $maxProducts = TenantManager::getTenantLimit('max_products');
+        $currentProducts = $this->productModel->countAll();
+        $limitReached = ($maxProducts !== null && $currentProducts >= $maxProducts);
+        $limitInfo = $limitReached ? ['current' => $currentProducts, 'max' => $maxProducts] : null;
         
         require 'app/views/layout/header.php';
         require 'app/views/products/index.php';
@@ -140,45 +146,7 @@ class ProductController {
                 }
 
                 // Upload das fotos
-                if(isset($_FILES['product_photos'])) {
-                    $files = $_FILES['product_photos'];
-                    $mainImageIndex = $_POST['main_image_index'] ?? 0;
-                    $uploadDir = TenantManager::getTenantUploadBase() . 'products/';
-                    
-                    if (!is_dir($uploadDir)) {
-                        mkdir($uploadDir, 0755, true);
-                    }
-                    
-                    $maxSize = 5 * 1024 * 1024; // 5 MB
-                    $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
-
-                    for ($i = 0; $i < count($files['name']); $i++) {
-                        if ($files['error'][$i] === UPLOAD_ERR_OK) {
-                            
-                            // Validate Size
-                            if ($files['size'][$i] > $maxSize) {
-                                // Skip or log error could be an option, here we might skip silently or could echo errors
-                                // For simplicity/robustness, let's skip invalid files but continue others 
-                                continue; 
-                            }
-                            
-                            // Validate Type
-                            $fileType = mime_content_type($files['tmp_name'][$i]);
-                             if (!in_array($fileType, $allowedTypes)) {
-                                continue;
-                            }
-
-                            $fileExt = pathinfo($files['name'][$i], PATHINFO_EXTENSION);
-                            $newFileName = uniqid('prod_' . $productId . '_') . '.' . $fileExt;
-                            $targetPath = $uploadDir . $newFileName;
-
-                            if(move_uploaded_file($files['tmp_name'][$i], $targetPath)) {
-                                $isMain = ($i == $mainImageIndex) ? 1 : 0;
-                                $this->productModel->addImage($productId, $targetPath, $isMain);
-                            }
-                        }
-                    }
-                }
+                $this->handlePhotoUpload($productId, $_FILES['product_photos'] ?? null, $_POST['main_image_index'] ?? 0);
                 
                 header('Location: ?page=products&status=success');
                 exit;
@@ -300,6 +268,14 @@ class ProductController {
             if ($this->productModel->update($data)) {
                 $this->logger->log('UPDATE_PRODUCT', 'Updated product ID: ' . $data['id']);
 
+                // Atualizar imagem principal entre as existentes
+                if (!empty($_POST['main_image_id'])) {
+                    $this->productModel->setMainImage($data['id'], $_POST['main_image_id']);
+                }
+
+                // Upload de novas fotos
+                $this->handlePhotoUpload($data['id'], $_FILES['product_photos'] ?? null, $_POST['main_image_index'] ?? null);
+
                 // Salvar setores de produção vinculados (limpa se vazio)
                 $sectorIds = isset($_POST['sector_ids']) && is_array($_POST['sector_ids']) ? $_POST['sector_ids'] : [];
                 $this->sectorModel->saveProductSectors($data['id'], $sectorIds);
@@ -327,6 +303,91 @@ class ProductController {
 
                 header('Location: ?page=products&status=success');
                 exit;
+            }
+        }
+    }
+
+    /**
+     * Método privado para upload de fotos do produto.
+     * Reutilizado no store() e update().
+     */
+    private function handlePhotoUpload(int $productId, ?array $files, $mainImageIndex = 0): void
+    {
+        if (!$files || empty($files['name']) || !is_array($files['name'])) {
+            return;
+        }
+
+        // Verificar se há pelo menos um arquivo válido enviado
+        $hasValidFile = false;
+        for ($i = 0; $i < count($files['name']); $i++) {
+            if ($files['error'][$i] === UPLOAD_ERR_OK) {
+                $hasValidFile = true;
+                break;
+            }
+        }
+        if (!$hasValidFile) {
+            return;
+        }
+
+        $uploadDir = TenantManager::getTenantUploadBase() . 'products/';
+
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $maxSize = 5 * 1024 * 1024; // 5 MB
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'];
+
+        $uploadedCount = 0;
+        for ($i = 0; $i < count($files['name']); $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK) {
+                continue;
+            }
+
+            // Validar tamanho
+            if ($files['size'][$i] > $maxSize) {
+                continue;
+            }
+
+            // Validar tipo MIME
+            $fileType = mime_content_type($files['tmp_name'][$i]);
+            if (!in_array($fileType, $allowedTypes)) {
+                continue;
+            }
+
+            $fileExt = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
+            // Normalizar extensão
+            if ($fileExt === 'jpeg') {
+                $fileExt = 'jpg';
+            }
+            $newFileName = uniqid('prod_' . $productId . '_') . '.' . $fileExt;
+            $targetPath = $uploadDir . $newFileName;
+
+            if (move_uploaded_file($files['tmp_name'][$i], $targetPath)) {
+                $isMain = ($mainImageIndex !== null && $i == (int) $mainImageIndex) ? 1 : 0;
+
+                // Se definindo como principal, resetar as outras primeiro
+                if ($isMain) {
+                    $this->productModel->setMainImage($productId, 0); // Reset all
+                }
+
+                $this->productModel->addImage($productId, $targetPath, $isMain);
+                $uploadedCount++;
+            }
+        }
+
+        // Se enviou fotos mas nenhuma foi marcada como principal, e o produto não tem nenhuma principal, definir a primeira
+        if ($uploadedCount > 0) {
+            $images = $this->productModel->getImages($productId);
+            $hasMain = false;
+            foreach ($images as $img) {
+                if ($img['is_main']) {
+                    $hasMain = true;
+                    break;
+                }
+            }
+            if (!$hasMain && !empty($images)) {
+                $this->productModel->setMainImage($productId, $images[0]['id']);
             }
         }
     }

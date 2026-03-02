@@ -26,8 +26,12 @@ class Product {
 
     function readAll() {
         $query = "SELECT p.*, 
+                         c.name AS category_name,
+                         sc.name AS subcategory_name,
                          (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id AND pi.is_main = 1 LIMIT 1) as main_image_path
-                  FROM " . $this->table_name . " p 
+                  FROM " . $this->table_name . " p
+                  LEFT JOIN categories c ON p.category_id = c.id
+                  LEFT JOIN subcategories sc ON p.subcategory_id = sc.id
                   ORDER BY p.name ASC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();

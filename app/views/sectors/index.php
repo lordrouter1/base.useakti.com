@@ -3,6 +3,16 @@
         <h2 class="text-primary mb-0"><i class="fas fa-industry me-2"></i>Setores de Produção</h2>
     </div>
 
+    <?php if (!empty($limitReached)): ?>
+    <div class="alert alert-warning border-warning d-flex align-items-center mb-3" role="alert">
+        <i class="fas fa-exclamation-triangle fs-5 me-3 text-warning"></i>
+        <div>
+            <strong>Limite do plano atingido!</strong> Você possui <strong><?= $limitInfo['current'] ?></strong> de <strong><?= $limitInfo['max'] ?></strong> setores de produção permitidos.
+            <span class="text-muted">Para cadastrar mais setores, entre em contato com o suporte para fazer um upgrade do seu plano.</span>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div class="row">
         <!-- Form -->
         <div class="col-md-4 mb-4">
@@ -17,6 +27,12 @@
                     </h6>
                 </div>
                 <div class="card-body p-3">
+                    <?php if (!empty($limitReached) && !isset($editSector)): ?>
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-lock fa-2x mb-2 d-block text-warning"></i>
+                            <p class="mb-0">Limite de setores atingido.<br><small>Não é possível criar novos setores.</small></p>
+                        </div>
+                    <?php else: ?>
                     <form method="POST" action="?page=sectors&action=<?= isset($editSector) ? 'update' : 'store' ?>">
                         <?php if(isset($editSector)): ?>
                             <input type="hidden" name="id" value="<?= $editSector['id'] ?>">
@@ -86,6 +102,7 @@
                             <?php endif; ?>
                         </div>
                     </form>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -159,6 +176,9 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php endif; ?>
     <?php if(isset($_GET['status']) && $_GET['status'] == 'success'): ?>
     Swal.fire({ icon: 'success', title: 'Sucesso!', text: 'Operação realizada!', timer: 2000, showConfirmButton: false });
+    <?php endif; ?>
+    <?php if(isset($_GET['status']) && $_GET['status'] == 'limit_sectors'): ?>
+    Swal.fire({ icon: 'warning', title: 'Limite atingido!', text: 'Você atingiu o limite de setores de produção do seu plano. Entre em contato com o suporte para fazer um upgrade.', confirmButtonColor: '#3498db' });
     <?php endif; ?>
 
     document.querySelectorAll('.btn-delete-sector').forEach(btn => {
