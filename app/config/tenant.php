@@ -62,8 +62,8 @@ class TenantManager
             'host' => getenv('AKTI_DB_HOST') ?: 'localhost',
             'port' => (int) (getenv('AKTI_DB_PORT') ?: 3306),
             'db_name' => getenv('AKTI_DB_NAME') ?: 'akti_teste',
-            'username' => getenv('AKTI_DB_USER') ?: 'root',
-            'password' => getenv('AKTI_DB_PASS') ?: '',
+            'username' => getenv('AKTI_DB_USER') ?: 'akti_sis_usr',
+            'password' => getenv('AKTI_DB_PASS') ?: 'kP9!vR2@mX6#zL5$',
             'charset' => getenv('AKTI_DB_CHARSET') ?: 'utf8mb4',
             'max_users' => null,
             'max_products' => null,
@@ -79,8 +79,8 @@ class TenantManager
             'host' => getenv('AKTI_MASTER_DB_HOST') ?: getenv('AKTI_DB_HOST') ?: 'localhost',
             'port' => (int) (getenv('AKTI_MASTER_DB_PORT') ?: getenv('AKTI_DB_PORT') ?: 3306),
             'db_name' => getenv('AKTI_MASTER_DB_NAME') ?: 'akti_master',
-            'username' => getenv('AKTI_MASTER_DB_USER') ?: getenv('AKTI_DB_USER') ?: 'root',
-            'password' => getenv('AKTI_MASTER_DB_PASS') ?: getenv('AKTI_DB_PASS') ?: '',
+            'username' => getenv('AKTI_MASTER_DB_USER') ?: getenv('AKTI_DB_USER') ?: 'akti_sis_usr',
+            'password' => getenv('AKTI_MASTER_DB_PASS') ?: getenv('AKTI_DB_PASS') ?: 'kP9!vR2@mX6#zL5$',
             'charset' => getenv('AKTI_MASTER_DB_CHARSET') ?: 'utf8mb4',
         ];
     }

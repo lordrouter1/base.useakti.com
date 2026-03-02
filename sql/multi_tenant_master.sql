@@ -24,10 +24,3 @@ CREATE TABLE IF NOT EXISTS tenant_clients (
     CONSTRAINT chk_db_name_prefix CHECK (db_name LIKE 'akti\\_%')
 );
 
--- Exemplo de cliente cadastrado
-INSERT INTO tenant_clients (client_name, subdomain, db_name, db_user, db_password, max_users, max_products, max_warehouses, max_price_tables, max_sectors)
-VALUES ('Cliente teste', 'teste', 'akti_teste', 'akti_demo_user', 'vf(uiupPGiK3[o*w', 1, 20, 3, 5, 10)
-ON DUPLICATE KEY UPDATE
-    client_name = VALUES(client_name),
-    db_user = VALUES(db_user),
-    db_password = VALUES(db_password);
