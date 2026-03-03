@@ -523,7 +523,6 @@ Armazenados como pares chave-valor na tabela `company_settings` com prefixo `fis
 - Acessível em `?page=settings&tab=fiscal`
 - Cor temática: `#8e44ad` (roxo)
 - Fieldsets: Identificação Fiscal, Endereço Fiscal, Certificado Digital, Configurações NF-e, Alíquotas Padrão, Informações Complementares
-- Painel lateral: Resumo fiscal, links úteis (IBGE, NCM, CEST, Portal NF-e)
 
 ## Atualização do Banco de Dados
 Toda alteração que envolva o banco de dados (criação, modificação ou remoção de tabelas, colunas, índices, constraints, dados de configuração etc.) deve obrigatoriamente gerar um arquivo SQL de atualização (ex: `update_YYYYMMDD.sql`) na pasta `/sql`. Esse arquivo deve conter apenas os comandos necessários para atualizar o banco de produção, garantindo que o deploy seja feito apenas subindo e executando os arquivos SQL de atualização.
@@ -545,3 +544,10 @@ Para aplicar uma atualização:
 2. Conectar ao banco de dados via linha de comando ou ferramenta de administração (ex: phpMyAdmin).
 3. Executar o comando: `SOURCE /caminho/para/o/arquivo/update_YYYYMMDD.sql;`
 4. Verificar se a atualização foi aplicada corretamente (conferir novas tabelas/colunas, testar funcionalidades relacionadas).
+
+### Registro de Atualizações
+
+| Data | Arquivo | Descrição |
+|------|---------|-----------|
+| 02/03/2026 | `update_20260302_tenant_limits.sql` | Adição de colunas de limite no banco master |
+| 03/03/2026 | `update_20260303_walkthrough.sql` | Tabela `user_walkthrough` para tour guiado de primeiro acesso |

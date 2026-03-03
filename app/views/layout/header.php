@@ -18,8 +18,7 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="assets/css/theme.css">
     <link rel="stylesheet" href="assets/css/style.css">
-    <!-- SweetAlert2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link href="assets/css/walkthrough.css" rel="stylesheet">
     <style>
         /* ── Bell dropdown override (fundo branco) ── */
         #bellDropdownMenu {
@@ -186,12 +185,13 @@
           <?php if (isset($pageInfo['children'])): ?>
             <?php // ── DROPDOWN (submenu) ── ?>
             <?php if (!hasVisibleChild($pageInfo['children'], $isAdmin, $userPermissions)) continue; ?>
-            <li class="nav-item me-1 dropdown">
+            <li class="nav-item me-1 dropdown" data-wt-group="<?= $pageKey ?>">
               <a class="nav-link dropdown-toggle <?= isChildActive($pageInfo['children'], $currentPage) ? 'active' : '' ?>"
-                 href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                 href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                 data-wt-toggle="<?= $pageKey ?>">
                 <i class="<?= $pageInfo['icon'] ?> me-1"></i><?= $pageInfo['label'] ?>
               </a>
-              <ul class="dropdown-menu">
+              <ul class="dropdown-menu" data-wt-menu="<?= $pageKey ?>">
                 <?php foreach ($pageInfo['children'] as $childKey => $childInfo): ?>
                   <?php if (empty($childInfo['menu'])) continue; ?>
                   <?php if (!canShowInMenu($childKey, $childInfo, $isAdmin, $userPermissions)) continue; ?>
@@ -391,10 +391,29 @@
           </a>
         </li>
         <?php endif; ?>
-        <li class="nav-item">
-          <a class="nav-link btn-logout" href="?page=login&action=logout" title="Sair do sistema">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle btn-logout" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
             <i class="fas fa-sign-out-alt"></i><span class="d-none d-lg-inline">Sair</span>
           </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+              <a class="dropdown-item" href="?page=login&action=logout">
+                <i class="fas fa-sign-out-alt me-2"></i>Sair do sistema
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <a class="dropdown-item wt-help-trigger" href="javascript:void(0);" onclick="window.aktiWalkthrough.start(0);">
+                    <i class="fas fa-question-circle me-2 text-info"></i>Tour Guiado
+                </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <a class="dropdown-item text-danger" href="?page=logout">
+                    <i class="fas fa-sign-out-alt me-2"></i>Sair
+                </a>
+            </li>
+          </ul>
         </li>
       </ul>
 

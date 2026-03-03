@@ -418,6 +418,18 @@ switch ($page) {
         }
         break;
 
+    // ── Walkthrough ──
+    case 'walkthrough':
+        require_once 'app/controllers/WalkthroughController.php';
+        $controller = new WalkthroughController();
+        $action = $_GET['action'] ?? 'checkStatus';            $allowed = ['checkStatus', 'start', 'complete', 'skip', 'saveStep', 'reset', 'getSteps', 'manual'];
+        if (in_array($action, $allowed)) {
+            $controller->$action();
+        } else {
+            $controller->checkStatus();
+        }
+        break;
+
     default:
         http_response_code(404);
         require 'app/views/layout/header.php';

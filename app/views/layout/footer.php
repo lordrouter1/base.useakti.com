@@ -2,31 +2,51 @@
     </div>
 </div>
 
-<!-- Footer Profissional -->
-<footer class="footer-akti">
+<!-- Footer do sistema -->
+<footer class="app-footer mt-auto">
     <div class="container-fluid">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div class="m-auto">
-                <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti" height="100">
-                <span class="footer-divider"></span>
-                <span>&copy; <?= date('Y') ?> Akti - Gestão em Produção</span>
+        <div class="d-flex flex-wrap justify-content-between align-items-center py-3">
+            <div class="d-flex align-items-center">
+                <img src="assets/logos/akti-logo-dark.svg" alt="Akti" height="22" class="me-2 opacity-50">
+                <span class="text-muted small">&copy; <?= date('Y') ?> Akti - Gestão em Produção</span>
             </div>
             <div class="d-flex align-items-center gap-3">
-                <span class="d-none d-md-inline"><i class="fas fa-code me-1" style="opacity:0.4;"></i>v1.0</span>
+                <?php if (isset($_SESSION['user_id'])): ?>
+                <a href="?page=walkthrough&action=manual" class="text-muted small text-decoration-none" title="Manual do Sistema">
+                    <i class="fas fa-book me-1"></i>Manual
+                </a>
+                <button type="button" class="wt-footer-help" id="wtFooterHelp" title="Refazer o Tour Guiado do Sistema">
+                    <i class="fas fa-question-circle wt-pulse-icon"></i>
+                    <span>Tutorial</span>
+                </button>
+                <?php endif; ?>
+                <span class="text-muted small">v1.0</span>
             </div>
         </div>
     </div>
 </footer>
 
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<!-- jQuery Mask Plugin -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
-<!-- SweetAlert2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<!-- Bootstrap 5 JS Bundle -->
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Custom JS -->
-<script src="assets/js/script.js"></script>
+
+<!-- Walkthrough -->
+<script src="assets/js/walkthrough.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Botão de tutorial no rodapé
+        var wtBtn = document.getElementById('wtFooterHelp');
+        if (wtBtn) {
+            wtBtn.addEventListener('click', function() {
+                if (window.aktiWalkthrough) {
+                    window.aktiWalkthrough.start(0);
+                }
+            });
+        }
+        // Auto-start do tour para novos usuários
+        if (window.aktiWalkthrough) {
+            window.aktiWalkthrough.autoStart();
+        }
+    });
+</script>
 </body>
 </html>
