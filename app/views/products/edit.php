@@ -40,15 +40,14 @@
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <label for="stock_quantity" class="form-label fw-bold">Estoque</label>
-                        <input type="number" class="form-control form-control-lg" id="stock_quantity" name="stock_quantity" value="<?= $product['stock_quantity'] ?>">
+                        <label class="form-label fw-bold">Controle de Estoque</label>
                         <div class="form-check form-switch mt-2">
                             <input class="form-check-input" type="checkbox" id="use_stock_control" name="use_stock_control" value="1" <?= !empty($product['use_stock_control']) ? 'checked' : '' ?>>
                             <label class="form-check-label small text-muted" for="use_stock_control">
                                 <i class="fas fa-boxes-stacked me-1"></i>Usar controle de estoque
                             </label>
                         </div>
-                        <div class="form-text"><i class="fas fa-info-circle me-1"></i>Se ativado e houver estoque, o pedido não vai para produção.</div>
+                        <div class="form-text"><i class="fas fa-info-circle me-1"></i>Se ativado e houver estoque no armazém, o pedido pode pular a produção.</div>
                     </div>
 
                     <!-- Categoria e Subcategoria -->

@@ -96,7 +96,10 @@
                     <!-- Botão retroceder -->
                     <?php if ($currentIdx > 0): ?>
                     <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $stageKeys[$currentIdx - 1] ?>" 
-                       class="btn btn-sm btn-outline-secondary btn-move-stage" data-dir="Retroceder" data-stage="<?= $stages[$stageKeys[$currentIdx - 1]]['label'] ?>">
+                       class="btn btn-sm btn-outline-secondary btn-move-stage" 
+                       data-dir="Retroceder" data-stage="<?= $stages[$stageKeys[$currentIdx - 1]]['label'] ?>"
+                       data-target-stage="<?= $stageKeys[$currentIdx - 1] ?>"
+                       data-order-id="<?= $order['id'] ?>">
                         <i class="fas fa-arrow-left me-1"></i> <?= $stages[$stageKeys[$currentIdx - 1]]['label'] ?>
                     </a>
                     <?php endif; ?>
@@ -104,7 +107,10 @@
                     <!-- Botão avançar -->
                     <?php if ($currentIdx < $totalStages - 1): ?>
                     <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $stageKeys[$currentIdx + 1] ?>" 
-                       class="btn btn-sm btn-success btn-move-stage" data-dir="Avançar" data-stage="<?= $stages[$stageKeys[$currentIdx + 1]]['label'] ?>">
+                       class="btn btn-sm btn-success btn-move-stage" 
+                       data-dir="Avançar" data-stage="<?= $stages[$stageKeys[$currentIdx + 1]]['label'] ?>"
+                       data-target-stage="<?= $stageKeys[$currentIdx + 1] ?>"
+                       data-order-id="<?= $order['id'] ?>">
                         <?= $stages[$stageKeys[$currentIdx + 1]]['label'] ?> <i class="fas fa-arrow-right ms-1"></i>
                     </a>
                     <?php endif; ?>
@@ -119,7 +125,10 @@
                             <?php foreach ($stages as $sKey => $sInfo): ?>
                             <?php if ($sKey !== $currentStage): ?>
                             <li>
-                                <a class="dropdown-item btn-move-stage" href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $sKey ?>" data-dir="Mover" data-stage="<?= $sInfo['label'] ?>">
+                                <a class="dropdown-item btn-move-stage" href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $sKey ?>" 
+                                   data-dir="Mover" data-stage="<?= $sInfo['label'] ?>"
+                                   data-target-stage="<?= $sKey ?>"
+                                   data-order-id="<?= $order['id'] ?>">
                                     <i class="<?= $sInfo['icon'] ?> me-2" style="color:<?= $sInfo['color'] ?>;"></i> <?= $sInfo['label'] ?>
                                 </a>
                             </li>
@@ -776,6 +785,51 @@
                 <?php endif; ?>
 
                 <?php
+                // ═══════════════════════════════════════════════════════════════
+                // ═══ CARD DE DEDUÇÕES DE ESTOQUE — Exibido em "preparacao" ═══
+                // ═══════════════════════════════════════════════════════════════
+                if ($currentStage === 'preparacao' && !empty($activeDeductions)):
+                    $warehouseName = $activeDeductions[0]['warehouse_name'] ?? 'N/D';
+                ?>
+                <fieldset class="p-4 mb-4" style="border: 2px solid #e67e22; border-radius: 8px;">
+                    <legend class="float-none w-auto px-3 fs-5" style="color: #e67e22;">
+                        <i class="fas fa-warehouse me-2"></i>Estoque Deduzido
+                        <span class="badge bg-opacity-75 ms-2" style="font-size:0.7rem;background:#e67e22;">
+                            <?= count($activeDeductions) ?> item(ns)
+                        </span>
+                    </legend>
+                    <div class="alert alert-info py-2 mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <small>Os itens abaixo foram deduzidos do armazém <strong><?= htmlspecialchars($warehouseName) ?></strong> ao entrar em preparação. Se o pedido for retrocedido, o estoque será automaticamente devolvido.</small>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Variação</th>
+                                    <th class="text-center">Qtd Deduzida</th>
+                                    <th>Armazém</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($activeDeductions as $ded): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($ded['product_name']) ?></td>
+                                    <td><?= $ded['combination_label'] ? htmlspecialchars($ded['combination_label']) : '<span class="text-muted">—</span>' ?></td>
+                                    <td class="text-center fw-bold text-danger"><?= number_format($ded['quantity'], 0, ',', '.') ?></td>
+                                    <td><i class="fas fa-warehouse me-1 text-muted"></i><?= htmlspecialchars($ded['warehouse_name']) ?></td>
+                                    <td class="text-muted small"><?= date('d/m/Y H:i', strtotime($ded['deducted_at'])) ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </fieldset>
+                <?php endif; ?>
+
+                <?php
                 // ═══════════════════════════════════════════════════════════
                 // ═══ CARD DE PREPARO — Exibido na etapa "preparacao" ═══
                 // ═══════════════════════════════════════════════════════════
@@ -878,7 +932,8 @@
                                 <strong>Preparo concluído!</strong> O pedido está pronto para avançar para Envio/Entrega.
                             </div>
                             <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=envio" 
-                               class="btn btn-sm btn-success btn-move-stage" data-dir="Avançar" data-stage="Envio/Entrega">
+                               class="btn btn-sm btn-success btn-move-stage" data-dir="Avançar" data-stage="Envio/Entrega"
+                               data-target-stage="envio" data-order-id="<?= $order['id'] ?>">
                                 <i class="fas fa-truck me-1"></i> Avançar para Envio
                             </a>
                         </div>
@@ -1638,26 +1693,185 @@ document.addEventListener('DOMContentLoaded', function() {
     Swal.fire({ icon: 'success', title: 'Produto removido!', timer: 1500, showConfirmButton: false });
     <?php endif; ?>
 
-    // Confirmação ao mover etapa
+    // Confirmação ao mover etapa — com seleção de armazém para preparação/produção
+    const currentStageKey = '<?= $currentStage ?>';
+    
     document.querySelectorAll('.btn-move-stage').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             const href = this.href;
             const dir = this.dataset.dir;
             const stage = this.dataset.stage;
-            Swal.fire({
-                title: dir + ' pedido?',
-                html: `${dir} para <strong>${stage}</strong>?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-check me-1"></i> Confirmar',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#27ae60'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = href;
-                }
-            });
+            const targetStage = this.dataset.targetStage || '';
+            const orderId = this.dataset.orderId || '<?= $order['id'] ?>';
+            
+            // Se está movendo para preparação ou produção, mostrar modal com seleção de armazém e info de estoque
+            if (targetStage === 'preparacao' || targetStage === 'producao') {
+                // Buscar dados de estoque via AJAX
+                Swal.fire({
+                    title: `<i class="fas fa-warehouse me-2"></i>${dir} para ${stage}`,
+                    html: '<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><br><small class="text-muted mt-2 d-block">Verificando estoque...</small></div>',
+                    showConfirmButton: false,
+                    showCancelButton: false,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        fetch(`?page=pipeline&action=checkOrderStock&order_id=${orderId}`)
+                            .then(r => r.json())
+                            .then(data => {
+                                if (!data.success) {
+                                    Swal.fire({ icon: 'error', title: 'Erro', text: data.message || 'Erro ao verificar estoque.' });
+                                    return;
+                                }
+                                
+                                let warehouseOptions = '';
+                                if (data.warehouses && data.warehouses.length > 0) {
+                                    data.warehouses.forEach(w => {
+                                        const isDefault = (w.id == data.default_warehouse_id);
+                                        const selected = isDefault ? 'selected' : '';
+                                        const badge = isDefault ? ' ★ Padrão' : '';
+                                        warehouseOptions += `<option value="${w.id}" ${selected}>${w.name}${badge}</option>`;
+                                    });
+                                }
+                                
+                                let itemsHtml = '';
+                                let hasStockItems = false;
+                                if (data.items && data.items.length > 0) {
+                                    data.items.forEach(item => {
+                                        if (item.use_stock_control) {
+                                            hasStockItems = true;
+                                            const icon = item.sufficient 
+                                                ? '<i class="fas fa-check-circle text-success"></i>' 
+                                                : '<i class="fas fa-exclamation-triangle text-danger"></i>';
+                                            const label = item.combination_label ? `${item.product_name} — ${item.combination_label}` : item.product_name;
+                                            const stockClass = item.sufficient ? 'text-success' : 'text-danger fw-bold';
+                                            itemsHtml += `<tr>
+                                                <td class="small">${icon} ${label}</td>
+                                                <td class="text-center small">${item.quantity}</td>
+                                                <td class="text-center small ${stockClass}">${item.stock_available}</td>
+                                            </tr>`;
+                                        }
+                                    });
+                                }
+                                
+                                let html = '';
+                                
+                                if (warehouseOptions && (targetStage === 'preparacao' || targetStage === 'producao' || hasStockItems)) {
+                                    html += `<div class="mb-3 text-start">
+                                        <label class="form-label small fw-bold"><i class="fas fa-warehouse me-1"></i>Armazém para dedução de estoque:</label>
+                                        <select id="swalWarehouseSelect" class="form-select form-select-sm">${warehouseOptions}</select>
+                                    </div>`;
+                                }
+                                
+                                if (hasStockItems) {
+                                    html += `<div class="text-start mb-2">
+                                        <small class="fw-bold text-muted"><i class="fas fa-boxes me-1"></i>Itens com controle de estoque:</small>
+                                    </div>
+                                    <table class="table table-sm table-bordered mb-2" style="font-size:0.85rem;">
+                                        <thead class="table-light"><tr><th>Produto</th><th class="text-center">Necessário</th><th class="text-center">Disponível</th></tr></thead>
+                                        <tbody id="swalStockTableBody">${itemsHtml}</tbody>
+                                    </table>`;
+                                    
+                                    if (data.all_from_stock && targetStage === 'producao') {
+                                        html += `<div class="alert alert-success py-2 small mb-2">
+                                            <i class="fas fa-magic me-1"></i>
+                                            <strong>Todos os itens em estoque!</strong> O pedido poderá pular a produção e ir direto para preparação.
+                                        </div>`;
+                                    } else if (!data.all_from_stock && targetStage === 'preparacao') {
+                                        html += `<div class="alert alert-warning py-2 small mb-2">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            <small>Alguns itens não possuem estoque suficiente. A dedução será parcial (apenas itens com controle ativo e estoque).</small>
+                                        </div>`;
+                                    }
+                                } else if (targetStage === 'preparacao') {
+                                    html += `<div class="alert alert-light py-2 small mb-0">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        <small>Nenhum item deste pedido possui controle de estoque ativo.</small>
+                                    </div>`;
+                                }
+                                
+                                if (!html) {
+                                    html = `<p>${dir} para <strong>${stage}</strong>?</p>`;
+                                }
+                                
+                                Swal.fire({
+                                    title: `<i class="fas fa-warehouse me-2"></i>${dir} para ${stage}`,
+                                    html: html,
+                                    icon: hasStockItems ? undefined : 'question',
+                                    showCancelButton: true,
+                                    confirmButtonText: '<i class="fas fa-check me-1"></i> Confirmar',
+                                    cancelButtonText: 'Cancelar',
+                                    confirmButtonColor: '#27ae60',
+                                    width: (hasStockItems || warehouseOptions) ? '550px' : undefined,
+                                    preConfirm: () => {
+                                        const whSelect = document.getElementById('swalWarehouseSelect');
+                                        return whSelect ? whSelect.value : null;
+                                    }
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        let url = new URL(href, window.location.origin);
+                                        if (result.value) {
+                                            url.searchParams.set('warehouse_id', result.value);
+                                        }
+                                        window.location.href = url.toString();
+                                    }
+                                });
+                                
+                                // Atualizar estoque ao mudar armazém
+                                setTimeout(() => {
+                                    const whSelect = document.getElementById('swalWarehouseSelect');
+                                    if (whSelect) {
+                                        whSelect.addEventListener('change', function() {
+                                            const wid = this.value;
+                                            fetch(`?page=pipeline&action=checkOrderStock&order_id=${orderId}&warehouse_id=${wid}`)
+                                                .then(r => r.json())
+                                                .then(d => {
+                                                    if (d.success && d.items) {
+                                                        const tbody = document.getElementById('swalStockTableBody');
+                                                        if (tbody) {
+                                                            let rows = '';
+                                                            d.items.forEach(item => {
+                                                                if (item.use_stock_control) {
+                                                                    const icon = item.sufficient 
+                                                                        ? '<i class="fas fa-check-circle text-success"></i>' 
+                                                                        : '<i class="fas fa-exclamation-triangle text-danger"></i>';
+                                                                    const label = item.combination_label ? `${item.product_name} — ${item.combination_label}` : item.product_name;
+                                                                    const stockClass = item.sufficient ? 'text-success' : 'text-danger fw-bold';
+                                                                    rows += `<tr>
+                                                                        <td class="small">${icon} ${label}</td>
+                                                                        <td class="text-center small">${item.quantity}</td>
+                                                                        <td class="text-center small ${stockClass}">${item.stock_available}</td>
+                                                                    </tr>`;
+                                                                }
+                                                            });
+                                                            tbody.innerHTML = rows;
+                                                        }
+                                                    }
+                                                });
+                                        });
+                                    }
+                                }, 100);
+                            })
+                            .catch(err => {
+                                Swal.fire({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar o estoque.' });
+                            });
+                    }
+                });
+            } else {
+                // Movimentação simples (sem lógica de estoque)
+                Swal.fire({
+                    title: dir + ' pedido?',
+                    html: `${dir} para <strong>${stage}</strong>?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-check me-1"></i> Confirmar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#27ae60'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = href;
+                    }
+                });
+            }
         });
     });
 

@@ -215,14 +215,13 @@ class ProductGrade {
     public function saveCombination($productId, $combinationKey, $combinationLabel, $sku = null, $priceOverride = null, $stockQuantity = 0) {
         $stmt = $this->conn->prepare("
             INSERT INTO product_grade_combinations 
-                (product_id, combination_key, combination_label, sku, price_override, stock_quantity)
+                (product_id, combination_key, combination_label, sku, price_override)
             VALUES 
-                (:pid, :ckey, :clabel, :sku, :price, :stock)
+                (:pid, :ckey, :clabel, :sku, :price)
             ON DUPLICATE KEY UPDATE
                 combination_label = VALUES(combination_label),
                 sku = VALUES(sku),
                 price_override = VALUES(price_override),
-                stock_quantity = VALUES(stock_quantity),
                 is_active = 1
         ");
         $stmt->bindParam(':pid', $productId);
@@ -230,7 +229,6 @@ class ProductGrade {
         $stmt->bindParam(':clabel', $combinationLabel);
         $stmt->bindParam(':sku', $sku);
         $stmt->bindParam(':price', $priceOverride);
-        $stmt->bindParam(':stock', $stockQuantity);
         return $stmt->execute();
     }
 
@@ -289,10 +287,9 @@ class ProductGrade {
             $existingData = $existing[$key] ?? null;
             $sku = $existingData ? $existingData['sku'] : null;
             $price = $existingData ? $existingData['price_override'] : null;
-            $stock = $existingData ? (int)$existingData['stock_quantity'] : 0;
 
-            $this->saveCombination($productId, $key, $label, $sku, $price, $stock);
-            $results[] = ['key' => $key, 'label' => $label, 'sku' => $sku, 'price' => $price, 'stock' => $stock];
+            $this->saveCombination($productId, $key, $label, $sku, $price);
+            $results[] = ['key' => $key, 'label' => $label, 'sku' => $sku, 'price' => $price];
         }
 
         // Deactivate combinations that are no longer valid
@@ -382,18 +379,16 @@ class ProductGrade {
     public function saveCombinationsData($productId, $combosData) {
         foreach ($combosData as $key => $data) {
             $price = isset($data['price']) && $data['price'] !== '' ? $data['price'] : null;
-            $stock = isset($data['stock']) ? (int)$data['stock'] : 0;
             $sku = $data['sku'] ?? null;
             $isActive = isset($data['is_active']) ? (int)$data['is_active'] : 1;
 
             $stmt = $this->conn->prepare("
                 UPDATE product_grade_combinations 
-                SET price_override = :price, stock_quantity = :stock, sku = :sku, is_active = :active
+                SET price_override = :price, sku = :sku, is_active = :active
                 WHERE product_id = :pid AND combination_key = :ckey
             ");
             $stmt->execute([
                 ':price' => $price,
-                ':stock' => $stock,
                 ':sku' => $sku,
                 ':active' => $isActive,
                 ':pid' => $productId,

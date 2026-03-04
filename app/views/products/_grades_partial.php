@@ -126,7 +126,7 @@
     </legend>
     <p class="text-muted small mb-3">
         <i class="fas fa-info-circle me-1"></i>
-        Combinações geradas a partir das grades. Defina preço e estoque específicos por combinação, ou deixe em branco para usar o preço padrão do produto.
+        Combinações geradas a partir das grades. Defina preço específico por combinação, ou deixe em branco para usar o preço padrão do produto.
         <strong>Desative combinações que não devem estar disponíveis.</strong>
     </p>
     <div class="table-responsive" style="border:none; box-shadow:none;">
@@ -137,7 +137,6 @@
                     <th style="font-size:0.8rem;">Combinação</th>
                     <th style="font-size:0.8rem; width:130px;">SKU</th>
                     <th style="font-size:0.8rem; width:130px;">Preço (R$)</th>
-                    <th style="font-size:0.8rem; width:100px;">Estoque</th>
                 </tr>
             </thead>
             <tbody>
@@ -171,11 +170,6 @@
                                    placeholder="Padrão">
                         </div>
                     </td>
-                    <td>
-                        <input type="number" class="form-control form-control-sm" 
-                               name="combinations[<?= htmlspecialchars($combo['combination_key']) ?>][stock]" 
-                               value="<?= (int)$combo['stock_quantity'] ?>">
-                    </td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -204,7 +198,6 @@
                     <th style="font-size:0.8rem;">Combinação</th>
                     <th style="font-size:0.8rem; width:130px;">SKU</th>
                     <th style="font-size:0.8rem; width:130px;">Preço (R$)</th>
-                    <th style="font-size:0.8rem; width:100px;">Estoque</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -501,7 +494,6 @@
                         <i class="fas fa-cube text-muted me-1"></i>
                         ${label}
                     </td>
-                    <td><span class="text-muted small">Após salvar</span></td>
                     <td><span class="text-muted small">Após salvar</span></td>
                     <td><span class="text-muted small">Após salvar</span></td>
                 `;

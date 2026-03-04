@@ -39,11 +39,21 @@
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
                 <h5 class="mb-0">
                     <i class="fas fa-warehouse me-2 text-primary"></i><?= htmlspecialchars($wh['name']) ?>
+                    <?php if (!empty($wh['is_default'])): ?>
+                        <span class="badge bg-success ms-1"><i class="fas fa-star me-1"></i>Padrão</span>
+                    <?php endif; ?>
                     <?php if (!$wh['is_active']): ?>
                         <span class="badge bg-secondary ms-1">Inativo</span>
                     <?php endif; ?>
                 </h5>
                 <div class="btn-group btn-group-sm">
+                    <?php if (empty($wh['is_default']) && $wh['is_active']): ?>
+                    <button type="button" class="btn btn-outline-success btn-set-default-wh"
+                            data-id="<?= $wh['id'] ?>" data-name="<?= htmlspecialchars($wh['name']) ?>"
+                            title="Definir como padrão">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    <?php endif; ?>
                     <button type="button" class="btn btn-outline-primary btn-edit-wh"
                             data-id="<?= $wh['id'] ?>"
                             data-name="<?= htmlspecialchars($wh['name']) ?>"
@@ -54,6 +64,7 @@
                             data-phone="<?= htmlspecialchars($wh['phone'] ?? '') ?>"
                             data-notes="<?= htmlspecialchars($wh['notes'] ?? '') ?>"
                             data-active="<?= $wh['is_active'] ?>"
+                            data-default="<?= $wh['is_default'] ?? 0 ?>"
                             title="Editar">
                         <i class="fas fa-edit"></i>
                     </button>
@@ -139,9 +150,16 @@
                         <label class="form-label small fw-bold">Observações</label>
                         <textarea class="form-control" name="notes" id="wh_notes" rows="2"></textarea>
                     </div>
-                    <div class="form-check mb-0" id="wh_active_wrap" style="display:none;">
+                    <div class="form-check mb-2" id="wh_active_wrap" style="display:none;">
                         <input type="checkbox" class="form-check-input" name="is_active" id="wh_active" checked>
                         <label class="form-check-label" for="wh_active">Armazém ativo</label>
+                    </div>
+                    <div class="form-check mb-0">
+                        <input type="checkbox" class="form-check-input" name="is_default" id="wh_default">
+                        <label class="form-check-label" for="wh_default">
+                            <i class="fas fa-star text-warning me-1"></i>Armazém padrão
+                            <small class="text-muted d-block">O armazém padrão será usado automaticamente nas movimentações de estoque pelo pipeline.</small>
+                        </label>
                     </div>
                 </div>
                 <div class="modal-footer py-2">
@@ -166,6 +184,7 @@ function openNewWarehouse() {
     document.getElementById('wh_phone').value = '';
     document.getElementById('wh_notes').value = '';
     document.getElementById('wh_active_wrap').style.display = 'none';
+    document.getElementById('wh_default').checked = false;
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -201,6 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('wh_notes').value = this.dataset.notes;
             document.getElementById('wh_active').checked = this.dataset.active == '1';
             document.getElementById('wh_active_wrap').style.display = 'block';
+            document.getElementById('wh_default').checked = this.dataset.default == '1';
             new bootstrap.Modal(document.getElementById('warehouseModal')).show();
         });
     });
@@ -221,6 +241,36 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then(result => {
                 if (result.isConfirmed) {
                     window.location.href = `?page=stock&action=deleteWarehouse&id=${id}`;
+                }
+            });
+        });
+    });
+
+    // Set as default warehouse
+    document.querySelectorAll('.btn-set-default-wh').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const name = this.dataset.name;
+            Swal.fire({
+                title: 'Definir como padrão?',
+                html: `Deseja definir <strong>${name}</strong> como o armazém padrão?<br><small class="text-muted">O estoque será movimentado automaticamente por este armazém no pipeline.</small>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#27ae60',
+                confirmButtonText: '<i class="fas fa-star me-1"></i>Definir Padrão',
+                cancelButtonText: 'Cancelar'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    const fd = new FormData();
+                    fd.append('id', id);
+                    fetch('?page=stock&action=setDefault', { method: 'POST', body: fd })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({ icon:'success', title:'Armazém padrão definido!', timer:1500, showConfirmButton:false })
+                                    .then(() => location.reload());
+                            }
+                        });
                 }
             });
         });

@@ -278,6 +278,8 @@ switch ($page) {
             $controller->deleteItemLog();
         } elseif ($action == 'togglePreparation') {
             $controller->togglePreparation();
+        } elseif ($action == 'checkOrderStock') {
+            $controller->checkOrderStock();
         } elseif ($action == 'productionBoard') {
             $controller->productionBoard();
         } elseif ($action == 'printProductionOrder') {
@@ -413,6 +415,12 @@ switch ($page) {
             $controller->updateItemMeta();
         } elseif ($action == 'getProductStock') {
             $controller->getProductStock();
+        } elseif ($action == 'setDefault') {
+            $controller->setDefault();
+        } elseif ($action == 'getDefaultWarehouse') {
+            $controller->getDefaultWarehouse();
+        } elseif ($action == 'checkOrderStock') {
+            $controller->checkOrderStock();
         } else {
             $controller->index();
         }

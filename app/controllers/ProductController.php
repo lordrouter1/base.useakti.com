@@ -105,7 +105,6 @@ class ProductController {
                 'category_id' => $category_id ? $category_id : null,
                 'subcategory_id' => $subcategory_id ? $subcategory_id : null,
                 'price' => $_POST['price'],
-                'stock_quantity' => $_POST['stock_quantity'],
                 'use_stock_control' => isset($_POST['use_stock_control']) ? 1 : 0
             ];
 
@@ -254,7 +253,6 @@ class ProductController {
                  'category_id' => $_POST['category_id'],
                  'subcategory_id' => $_POST['subcategory_id'] ?? null,
                  'price' => $_POST['price'],
-                 'stock_quantity' => $_POST['stock_quantity'],
                  'use_stock_control' => isset($_POST['use_stock_control']) ? 1 : 0
             ];
 
@@ -519,7 +517,7 @@ class ProductController {
             'nome' => 'name', 'name' => 'name', 'produto' => 'name',
             'preco' => 'price', 'preço' => 'price', 'price' => 'price', 'valor' => 'price',
             'preco_custo' => 'cost_price', 'preço_custo' => 'cost_price', 'custo' => 'cost_price', 'cost_price' => 'cost_price',
-            'estoque' => 'stock_quantity', 'stock' => 'stock_quantity', 'quantidade' => 'stock_quantity', 'stock_quantity' => 'stock_quantity',
+            'estoque' => 'stock_quantity_legacy', 'stock' => 'stock_quantity_legacy', 'quantidade' => 'stock_quantity_legacy', 'stock_quantity' => 'stock_quantity_legacy',
             'categoria' => 'category', 'category' => 'category',
             'subcategoria' => 'subcategory', 'subcategory' => 'subcategory',
             'descricao' => 'description', 'descrição' => 'description', 'description' => 'description',
@@ -625,7 +623,6 @@ class ProductController {
                 'category_id' => $categoryId,
                 'subcategory_id' => $subcategoryId,
                 'price' => floatval($price),
-                'stock_quantity' => isset($mapped['stock_quantity']) && is_numeric($mapped['stock_quantity']) ? intval($mapped['stock_quantity']) : 0,
             ];
             
             // Add fiscal NCM if provided

@@ -16,6 +16,11 @@ class StockController {
         $this->stockModel = new Stock($this->db);
         $this->productModel = new Product($this->db);
         $this->logger = new Logger($this->db);
+
+        // Auto-migrate: garantir colunas e tabelas novas
+        $this->stockModel->ensureDefaultColumn();
+        $this->stockModel->ensureDeductionsTable();
+        $this->stockModel->ensureOrderWarehouseColumn();
     }
 
     // ─── Página principal: visão geral do estoque ───
@@ -69,6 +74,7 @@ class StockController {
                 'zip_code' => trim($_POST['zip_code'] ?? ''),
                 'phone'    => trim($_POST['phone'] ?? ''),
                 'notes'    => trim($_POST['notes'] ?? ''),
+                'is_default' => isset($_POST['is_default']) ? 1 : 0,
             ];
 
             if (empty($data['name'])) {
@@ -78,7 +84,7 @@ class StockController {
 
             $id = $this->stockModel->createWarehouse($data);
             if ($id) {
-                $this->logger->log('STOCK_WAREHOUSE_CREATE', "Armazém criado: {$data['name']} (ID: $id)");
+                $this->logger->log('STOCK_WAREHOUSE_CREATE', "Armazém criado: {$data['name']} (ID: $id)" . ($data['is_default'] ? ' [PADRÃO]' : ''));
             }
             header('Location: ?page=stock&action=warehouses&status=created');
             exit;
@@ -97,10 +103,11 @@ class StockController {
                 'phone'     => trim($_POST['phone'] ?? ''),
                 'notes'     => trim($_POST['notes'] ?? ''),
                 'is_active' => isset($_POST['is_active']) ? 1 : 0,
+                'is_default' => isset($_POST['is_default']) ? 1 : 0,
             ];
 
             $this->stockModel->updateWarehouse($data);
-            $this->logger->log('STOCK_WAREHOUSE_UPDATE', "Armazém atualizado: {$data['name']} (ID: {$data['id']})");
+            $this->logger->log('STOCK_WAREHOUSE_UPDATE', "Armazém atualizado: {$data['name']} (ID: {$data['id']})" . ($data['is_default'] ? ' [PADRÃO]' : ''));
             header('Location: ?page=stock&action=warehouses&status=updated');
             exit;
         }
@@ -270,6 +277,84 @@ class StockController {
             }
         }
         echo json_encode($result);
+        exit;
+    }
+
+    // ─── AJAX: Definir armazém padrão ───
+    public function setDefault() {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit;
+        }
+        $id = intval($_POST['id'] ?? 0);
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
+            exit;
+        }
+        $this->stockModel->setDefaultWarehouse($id);
+        $wh = $this->stockModel->getWarehouse($id);
+        $this->logger->log('STOCK_WAREHOUSE_DEFAULT', "Armazém padrão definido: " . ($wh['name'] ?? $id));
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    // ─── AJAX: Buscar armazém padrão ───
+    public function getDefaultWarehouse() {
+        header('Content-Type: application/json');
+        $wh = $this->stockModel->getDefaultWarehouse();
+        echo json_encode(['success' => true, 'warehouse' => $wh]);
+        exit;
+    }
+
+    // ─── AJAX: Verificar disponibilidade de estoque de um pedido em um armazém ───
+    public function checkOrderStock() {
+        header('Content-Type: application/json');
+        $orderId = intval($_GET['order_id'] ?? 0);
+        $warehouseId = intval($_GET['warehouse_id'] ?? 0);
+
+        if (!$orderId || !$warehouseId) {
+            echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos.']);
+            exit;
+        }
+
+        require_once 'app/models/Order.php';
+        $orderModel = new Order($this->db);
+        $items = $orderModel->getItems($orderId);
+
+        $result = [];
+        $allAvailable = true;
+
+        foreach ($items as $item) {
+            $product = $this->productModel->readOne($item['product_id']);
+            $useStock = !empty($product['use_stock_control']);
+            $combinationId = $item['grade_combination_id'] ?: null;
+            $needed = (float) $item['quantity'];
+            $available = 0;
+
+            if ($useStock) {
+                $available = $this->stockModel->getProductStockInWarehouse($warehouseId, $item['product_id'], $combinationId);
+            }
+
+            $sufficient = !$useStock || ($available >= $needed);
+            if ($useStock && !$sufficient) $allAvailable = false;
+
+            $result[] = [
+                'item_id' => $item['id'],
+                'product_name' => $item['product_name'],
+                'combination' => $item['combination_label'] ?? null,
+                'quantity_needed' => $needed,
+                'quantity_available' => $available,
+                'use_stock_control' => $useStock,
+                'sufficient' => $sufficient,
+            ];
+        }
+
+        echo json_encode([
+            'success' => true,
+            'all_available' => $allAvailable,
+            'items' => $result,
+        ]);
         exit;
     }
 }

@@ -253,6 +253,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `shipping_type` ENUM('retirada','entrega','correios') DEFAULT 'retirada',
     `shipping_address` TEXT DEFAULT NULL,
     `tracking_code` VARCHAR(100) DEFAULT NULL,
+    `stock_warehouse_id` INT(11) DEFAULT NULL COMMENT 'Armazém de onde o estoque foi deduzido',
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `customer_id` (`customer_id`),
@@ -552,6 +553,7 @@ CREATE TABLE IF NOT EXISTS `warehouses` (
     `phone` VARCHAR(20) DEFAULT NULL,
     `notes` TEXT DEFAULT NULL,
     `is_active` TINYINT(1) DEFAULT 1,
+    `is_default` TINYINT(1) NOT NULL DEFAULT 0,
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
@@ -603,6 +605,29 @@ CREATE TABLE IF NOT EXISTS `stock_movements` (
     CONSTRAINT `stock_movements_ibfk_2` FOREIGN KEY (`warehouse_id`) REFERENCES `warehouses` (`id`) ON DELETE CASCADE,
     CONSTRAINT `stock_movements_ibfk_3` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
     CONSTRAINT `stock_movements_ibfk_4` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Tabela para rastrear deduções de estoque feitas ao mover pedidos para preparação
+CREATE TABLE IF NOT EXISTS `order_stock_deductions` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `order_id` INT(11) NOT NULL,
+    `order_item_id` INT(11) NOT NULL,
+    `warehouse_id` INT(11) NOT NULL,
+    `product_id` INT(11) NOT NULL,
+    `combination_id` INT(11) DEFAULT NULL,
+    `quantity` DECIMAL(12,2) NOT NULL,
+    `movement_id` INT(11) DEFAULT NULL,
+    `status` ENUM('deducted','reversed') NOT NULL DEFAULT 'deducted',
+    `deducted_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `reversed_at` DATETIME DEFAULT NULL,
+    `reversed_by` INT(11) DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_order` (`order_id`),
+    KEY `idx_status` (`status`),
+    CONSTRAINT `osd_order_fk` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `osd_item_fk` FOREIGN KEY (`order_item_id`) REFERENCES `order_items` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `osd_warehouse_fk` FOREIGN KEY (`warehouse_id`) REFERENCES `warehouses` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `osd_product_fk` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ─────────────────────────────────────────────────────

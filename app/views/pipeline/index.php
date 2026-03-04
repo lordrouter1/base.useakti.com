@@ -271,7 +271,8 @@
                                     <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $nextStage ?>" 
                                        class="btn btn-sm btn-outline-success flex-fill py-0 btn-advance-stage" style="font-size:0.7rem;" 
                                        title="Avançar para <?= $stages[$nextStage]['label'] ?>"
-                                       data-order="<?= $order['id'] ?>" data-next="<?= $stages[$nextStage]['label'] ?>">
+                                       data-order="<?= $order['id'] ?>" data-next="<?= $stages[$nextStage]['label'] ?>"
+                                       data-next-stage="<?= $nextStage ?>">
                                         <i class="fas fa-arrow-right"></i> Avançar
                                     </a>
                                     <?php endif; ?>
@@ -428,26 +429,142 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     })();
 
-    // Confirmação antes de avançar etapa
+    // Confirmação antes de avançar etapa — com seleção de armazém para preparação/produção
     document.querySelectorAll('.btn-advance-stage').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             const href = this.href;
             const nextStage = this.dataset.next;
+            const nextStageKey = this.dataset.nextStage || '';
             const orderId = this.dataset.order;
-            Swal.fire({
-                title: 'Avançar pedido?',
-                html: `Mover pedido <strong>#${orderId}</strong> para <strong>${nextStage}</strong>?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-arrow-right me-1"></i> Avançar',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#27ae60'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = href;
-                }
-            });
+            
+            // Se avançando para preparação ou produção, mostrar verificação de estoque
+            if (nextStageKey === 'preparacao' || nextStageKey === 'producao') {
+                Swal.fire({
+                    title: `<i class="fas fa-warehouse me-2"></i>Avançar pedido #${orderId}?`,
+                    html: '<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><br><small class="text-muted mt-2 d-block">Verificando estoque...</small></div>',
+                    showConfirmButton: false,
+                    showCancelButton: false,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        fetch(`?page=pipeline&action=checkOrderStock&order_id=${orderId}`)
+                            .then(r => r.json())
+                            .then(data => {
+                                if (!data.success) {
+                                    Swal.fire({ icon: 'error', title: 'Erro', text: data.message || 'Erro ao verificar estoque.' });
+                                    return;
+                                }
+                                
+                                let warehouseOptions = '';
+                                if (data.warehouses && data.warehouses.length > 0) {
+                                    data.warehouses.forEach(w => {
+                                        const isDefault = (w.id == data.default_warehouse_id);
+                                        const selected = isDefault ? 'selected' : '';
+                                        const badge = isDefault ? ' ★ Padrão' : '';
+                                        warehouseOptions += `<option value="${w.id}" ${selected}>${w.name}${badge}</option>`;
+                                    });
+                                }
+                                
+                                let hasStockItems = false;
+                                let itemsHtml = '';
+                                if (data.items) {
+                                    data.items.forEach(item => {
+                                        if (item.use_stock_control) {
+                                            hasStockItems = true;
+                                            const icon = item.sufficient ? '<i class="fas fa-check-circle text-success"></i>' : '<i class="fas fa-exclamation-triangle text-danger"></i>';
+                                            const label = item.combination_label ? `${item.product_name} — ${item.combination_label}` : item.product_name;
+                                            const cls = item.sufficient ? 'text-success' : 'text-danger fw-bold';
+                                            itemsHtml += `<tr><td class="small">${icon} ${label}</td><td class="text-center small">${item.quantity}</td><td class="text-center small ${cls}">${item.stock_available}</td></tr>`;
+                                        }
+                                    });
+                                }
+                                
+                                let html = `<p class="mb-2">Mover para <strong>${nextStage}</strong>?</p>`;
+                                if (warehouseOptions && (hasStockItems || nextStageKey === 'preparacao')) {
+                                    html += `<div class="mb-2 text-start"><label class="form-label small fw-bold"><i class="fas fa-warehouse me-1"></i>Armazém:</label>
+                                        <select id="swalWarehouseSelect" class="form-select form-select-sm">${warehouseOptions}</select></div>`;
+                                    if (hasStockItems) {
+                                        html += `<table class="table table-sm table-bordered mb-1" style="font-size:0.8rem;">
+                                            <thead class="table-light"><tr><th>Produto</th><th class="text-center">Necessário</th><th class="text-center">Disponível</th></tr></thead>
+                                            <tbody id="swalStockTableBody">${itemsHtml}</tbody></table>`;
+                                        if (data.all_from_stock && nextStageKey === 'producao') {
+                                            html += `<div class="alert alert-success py-1 small mb-0"><i class="fas fa-magic me-1"></i><strong>Estoque disponível!</strong> Poderá pular produção.</div>`;
+                                        } else if (!data.all_from_stock && nextStageKey === 'preparacao') {
+                                            html += `<div class="alert alert-warning py-1 small mb-0"><i class="fas fa-exclamation-triangle me-1"></i><small>Alguns itens não possuem estoque suficiente.</small></div>`;
+                                        }
+                                    } else {
+                                        html += `<div class="alert alert-light py-1 small mb-0"><i class="fas fa-info-circle me-1"></i><small>Nenhum item com controle de estoque ativo.</small></div>`;
+                                    }
+                                }
+                                
+                                Swal.fire({
+                                    title: `Avançar pedido #${orderId}?`,
+                                    html: html,
+                                    showCancelButton: true,
+                                    confirmButtonText: '<i class="fas fa-arrow-right me-1"></i> Avançar',
+                                    cancelButtonText: 'Cancelar',
+                                    confirmButtonColor: '#27ae60',
+                                    width: (hasStockItems || warehouseOptions) ? '500px' : undefined,
+                                    preConfirm: () => {
+                                        const whSelect = document.getElementById('swalWarehouseSelect');
+                                        return whSelect ? whSelect.value : null;
+                                    }
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        let url = new URL(href, window.location.origin);
+                                        if (result.value) url.searchParams.set('warehouse_id', result.value);
+                                        window.location.href = url.toString();
+                                    }
+                                });
+                                
+                                // Atualizar estoque ao mudar armazém
+                                setTimeout(() => {
+                                    const whSelect = document.getElementById('swalWarehouseSelect');
+                                    if (whSelect) {
+                                        whSelect.addEventListener('change', function() {
+                                            fetch(`?page=pipeline&action=checkOrderStock&order_id=${orderId}&warehouse_id=${this.value}`)
+                                                .then(r => r.json())
+                                                .then(d => {
+                                                    if (d.success && d.items) {
+                                                        const tbody = document.getElementById('swalStockTableBody');
+                                                        if (tbody) {
+                                                            let rows = '';
+                                                            d.items.forEach(item => {
+                                                                if (item.use_stock_control) {
+                                                                    const ic = item.sufficient ? '<i class="fas fa-check-circle text-success"></i>' : '<i class="fas fa-exclamation-triangle text-danger"></i>';
+                                                                    const lb = item.combination_label ? `${item.product_name} — ${item.combination_label}` : item.product_name;
+                                                                    const cl = item.sufficient ? 'text-success' : 'text-danger fw-bold';
+                                                                    rows += `<tr><td class="small">${ic} ${lb}</td><td class="text-center small">${item.quantity}</td><td class="text-center small ${cl}">${item.stock_available}</td></tr>`;
+                                                                }
+                                                            });
+                                                            tbody.innerHTML = rows;
+                                                        }
+                                                    }
+                                                });
+                                        });
+                                    }
+                                }, 100);
+                            })
+                            .catch(() => {
+                                Swal.fire({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar o estoque.' });
+                            });
+                    }
+                });
+            } else {
+                Swal.fire({
+                    title: 'Avançar pedido?',
+                    html: `Mover pedido <strong>#${orderId}</strong> para <strong>${nextStage}</strong>?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-arrow-right me-1"></i> Avançar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#27ae60'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = href;
+                    }
+                });
+            }
         });
     });
 

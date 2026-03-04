@@ -45,9 +45,13 @@ class Stock {
     }
 
     public function createWarehouse($data) {
+        // Se marcado como padrão, desmarcar os outros
+        if (!empty($data['is_default'])) {
+            $this->conn->exec("UPDATE warehouses SET is_default = 0");
+        }
         $stmt = $this->conn->prepare("
-            INSERT INTO warehouses (name, address, city, state, zip_code, phone, notes)
-            VALUES (:name, :address, :city, :state, :zip_code, :phone, :notes)
+            INSERT INTO warehouses (name, address, city, state, zip_code, phone, notes, is_default)
+            VALUES (:name, :address, :city, :state, :zip_code, :phone, :notes, :is_default)
         ");
         $stmt->bindParam(':name', $data['name']);
         $stmt->bindParam(':address', $data['address']);
@@ -56,6 +60,8 @@ class Stock {
         $stmt->bindParam(':zip_code', $data['zip_code']);
         $stmt->bindParam(':phone', $data['phone']);
         $stmt->bindParam(':notes', $data['notes']);
+        $isDefault = !empty($data['is_default']) ? 1 : 0;
+        $stmt->bindParam(':is_default', $isDefault, PDO::PARAM_INT);
         if ($stmt->execute()) {
             return $this->conn->lastInsertId();
         }
@@ -63,10 +69,15 @@ class Stock {
     }
 
     public function updateWarehouse($data) {
+        // Se marcado como padrão, desmarcar os outros
+        if (!empty($data['is_default'])) {
+            $this->conn->exec("UPDATE warehouses SET is_default = 0");
+        }
         $stmt = $this->conn->prepare("
             UPDATE warehouses SET 
                 name = :name, address = :address, city = :city, state = :state,
-                zip_code = :zip_code, phone = :phone, notes = :notes, is_active = :is_active
+                zip_code = :zip_code, phone = :phone, notes = :notes, is_active = :is_active,
+                is_default = :is_default
             WHERE id = :id
         ");
         $stmt->bindParam(':name', $data['name']);
@@ -77,6 +88,8 @@ class Stock {
         $stmt->bindParam(':phone', $data['phone']);
         $stmt->bindParam(':notes', $data['notes']);
         $stmt->bindParam(':is_active', $data['is_active']);
+        $isDefault = !empty($data['is_default']) ? 1 : 0;
+        $stmt->bindParam(':is_default', $isDefault, PDO::PARAM_INT);
         $stmt->bindParam(':id', $data['id']);
         return $stmt->execute();
     }
@@ -459,5 +472,166 @@ class Stock {
         $stmt->bindParam(':pid', $productId);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // ═══════════════════════════════════════════════
+    //  ARMAZÉM PADRÃO
+    // ═══════════════════════════════════════════════
+
+    /**
+     * Retorna o armazém padrão (is_default = 1)
+     */
+    public function getDefaultWarehouse() {
+        $stmt = $this->conn->prepare("SELECT * FROM warehouses WHERE is_default = 1 AND is_active = 1 LIMIT 1");
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Define um armazém como padrão (e desmarca os demais)
+     */
+    public function setDefaultWarehouse($id) {
+        $this->conn->exec("UPDATE warehouses SET is_default = 0");
+        $stmt = $this->conn->prepare("UPDATE warehouses SET is_default = 1 WHERE id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    /**
+     * Retorna o saldo de estoque de um produto/combinação em um armazém
+     */
+    public function getProductStockInWarehouse($warehouseId, $productId, $combinationId = null) {
+        if ($combinationId) {
+            $stmt = $this->conn->prepare("SELECT COALESCE(quantity, 0) FROM stock_items WHERE warehouse_id = :wid AND product_id = :pid AND combination_id = :cid");
+            $stmt->bindParam(':cid', $combinationId, PDO::PARAM_INT);
+        } else {
+            $stmt = $this->conn->prepare("SELECT COALESCE(quantity, 0) FROM stock_items WHERE warehouse_id = :wid AND product_id = :pid AND combination_id IS NULL");
+        }
+        $stmt->bindParam(':wid', $warehouseId, PDO::PARAM_INT);
+        $stmt->bindParam(':pid', $productId, PDO::PARAM_INT);
+        $stmt->execute();
+        return (float) $stmt->fetchColumn();
+    }
+
+    // ═══════════════════════════════════════════════
+    //  DEDUÇÕES DE ESTOQUE DE PEDIDOS
+    // ═══════════════════════════════════════════════
+
+    /**
+     * Registra uma dedução de estoque de um pedido (ao mover para preparação)
+     */
+    public function addStockDeduction($data) {
+        $stmt = $this->conn->prepare("
+            INSERT INTO order_stock_deductions 
+                (order_id, order_item_id, warehouse_id, product_id, combination_id, quantity, movement_id)
+            VALUES (:oid, :iid, :wid, :pid, :cid, :qty, :mid)
+        ");
+        $stmt->bindParam(':oid', $data['order_id'], PDO::PARAM_INT);
+        $stmt->bindParam(':iid', $data['order_item_id'], PDO::PARAM_INT);
+        $stmt->bindParam(':wid', $data['warehouse_id'], PDO::PARAM_INT);
+        $stmt->bindParam(':pid', $data['product_id'], PDO::PARAM_INT);
+        $stmt->bindValue(':cid', $data['combination_id'] ?? null);
+        $stmt->bindParam(':qty', $data['quantity']);
+        $stmt->bindValue(':mid', $data['movement_id'] ?? null);
+        return $stmt->execute();
+    }
+
+    /**
+     * Busca deduções ativas (não revertidas) de um pedido
+     */
+    public function getActiveDeductions($orderId) {
+        $stmt = $this->conn->prepare("
+            SELECT osd.*, p.name as product_name, pgc.combination_label, w.name as warehouse_name
+            FROM order_stock_deductions osd
+            JOIN products p ON osd.product_id = p.id
+            JOIN warehouses w ON osd.warehouse_id = w.id
+            LEFT JOIN product_grade_combinations pgc ON osd.combination_id = pgc.id
+            WHERE osd.order_id = :oid AND osd.status = 'deducted'
+        ");
+        $stmt->bindParam(':oid', $orderId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Reverte todas as deduções ativas de um pedido (devolver estoque)
+     */
+    public function reverseDeductions($orderId, $userId = null) {
+        $deductions = $this->getActiveDeductions($orderId);
+        if (empty($deductions)) return 0;
+
+        $reversed = 0;
+        foreach ($deductions as $ded) {
+            // Devolver estoque ao armazém
+            $this->addMovement([
+                'warehouse_id'  => $ded['warehouse_id'],
+                'product_id'    => $ded['product_id'],
+                'combination_id'=> $ded['combination_id'],
+                'type'          => 'entrada',
+                'quantity'      => $ded['quantity'],
+                'reason'        => 'Devolução automática — Pedido #' . $orderId . ' retornou de preparação',
+                'reference_type'=> 'order_reversal',
+                'reference_id'  => $orderId,
+            ]);
+
+            // Marcar dedução como revertida
+            $stmt = $this->conn->prepare("
+                UPDATE order_stock_deductions 
+                SET status = 'reversed', reversed_at = NOW(), reversed_by = :uid
+                WHERE id = :id
+            ");
+            $stmt->bindParam(':uid', $userId);
+            $stmt->bindParam(':id', $ded['id'], PDO::PARAM_INT);
+            $stmt->execute();
+            $reversed++;
+        }
+        return $reversed;
+    }
+
+    /**
+     * Cria a tabela de deduções se não existir (auto-migrate)
+     */
+    public function ensureDeductionsTable() {
+        $this->conn->exec("
+            CREATE TABLE IF NOT EXISTS `order_stock_deductions` (
+                `id` INT(11) NOT NULL AUTO_INCREMENT,
+                `order_id` INT(11) NOT NULL,
+                `order_item_id` INT(11) NOT NULL,
+                `warehouse_id` INT(11) NOT NULL,
+                `product_id` INT(11) NOT NULL,
+                `combination_id` INT(11) DEFAULT NULL,
+                `quantity` DECIMAL(12,2) NOT NULL,
+                `movement_id` INT(11) DEFAULT NULL,
+                `status` ENUM('deducted','reversed') NOT NULL DEFAULT 'deducted',
+                `deducted_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                `reversed_at` DATETIME DEFAULT NULL,
+                `reversed_by` INT(11) DEFAULT NULL,
+                PRIMARY KEY (`id`),
+                KEY `idx_order` (`order_id`),
+                KEY `idx_status` (`status`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+    }
+
+    /**
+     * Garante que a coluna is_default exista na tabela warehouses (auto-migrate)
+     */
+    public function ensureDefaultColumn() {
+        try {
+            $this->conn->query("SELECT is_default FROM warehouses LIMIT 1");
+        } catch (\Exception $e) {
+            $this->conn->exec("ALTER TABLE warehouses ADD COLUMN is_default TINYINT(1) NOT NULL DEFAULT 0 AFTER is_active");
+        }
+    }
+
+    /**
+     * Garante que a coluna stock_warehouse_id exista na tabela orders (auto-migrate)
+     */
+    public function ensureOrderWarehouseColumn() {
+        try {
+            $this->conn->query("SELECT stock_warehouse_id FROM orders LIMIT 1");
+        } catch (\Exception $e) {
+            $this->conn->exec("ALTER TABLE orders ADD COLUMN stock_warehouse_id INT(11) DEFAULT NULL AFTER tracking_code");
+        }
     }
 }

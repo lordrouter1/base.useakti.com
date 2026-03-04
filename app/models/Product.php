@@ -66,7 +66,7 @@ class Product {
 
         $query = "INSERT INTO " . $this->table_name . " 
                   (name, description, category_id, subcategory_id, price, stock_quantity, use_stock_control, created_at{$fiscalCols}) 
-                  VALUES (:name, :description, :category_id, :subcategory_id, :price, :stock_quantity, :use_stock_control, NOW(){$fiscalPlaceholders})";
+                  VALUES (:name, :description, :category_id, :subcategory_id, :price, 0, :use_stock_control, NOW(){$fiscalPlaceholders})";
         
         $stmt = $this->conn->prepare($query);
 
@@ -75,7 +75,6 @@ class Product {
         $stmt->bindParam(':category_id', $data['category_id']);
         $stmt->bindParam(':subcategory_id', $data['subcategory_id']);
         $stmt->bindParam(':price', $data['price']);
-        $stmt->bindParam(':stock_quantity', $data['stock_quantity']);
         $useStockControl = isset($data['use_stock_control']) ? (int)$data['use_stock_control'] : 0;
         $stmt->bindParam(':use_stock_control', $useStockControl, PDO::PARAM_INT);
 
@@ -124,8 +123,7 @@ class Product {
                       description = :description, 
                       category_id = :category_id, 
                       subcategory_id = :subcategory_id, 
-                      price = :price, 
-                      stock_quantity = :stock_quantity,
+                      price = :price,
                       use_stock_control = :use_stock_control
                       {$fiscalSet}
                   WHERE id = :id";
@@ -137,7 +135,6 @@ class Product {
         $stmt->bindParam(':category_id', $data['category_id']);
         $stmt->bindParam(':subcategory_id', $data['subcategory_id']);
         $stmt->bindParam(':price', $data['price']);
-        $stmt->bindParam(':stock_quantity', $data['stock_quantity']);
         $stmt->bindParam(':id', $data['id']);
         $useStockControl = isset($data['use_stock_control']) ? (int)$data['use_stock_control'] : 0;
         $stmt->bindParam(':use_stock_control', $useStockControl, PDO::PARAM_INT);

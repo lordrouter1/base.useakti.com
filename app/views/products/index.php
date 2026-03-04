@@ -69,7 +69,7 @@
                                     <tr><td><code>nome</code></td><td><span class="badge bg-danger">Sim</span></td><td>Nome do produto</td></tr>
                                     <tr><td><code>preco</code></td><td><span class="badge bg-danger">Sim</span></td><td>Preço de venda (ex: 19.90)</td></tr>
                                     <tr><td><code>preco_custo</code></td><td><span class="badge bg-secondary">Não</span></td><td>Preço de custo</td></tr>
-                                    <tr><td><code>estoque</code></td><td><span class="badge bg-secondary">Não</span></td><td>Quantidade em estoque (padrão: 0)</td></tr>
+                                    <tr><td><code>estoque</code></td><td><span class="badge bg-secondary">Não</span></td><td>Ignorado (o estoque é gerenciado via armazéns)</td></tr>
                                     <tr><td><code>categoria</code></td><td><span class="badge bg-secondary">Não</span></td><td>Nome da categoria (criada automaticamente se não existir)</td></tr>
                                     <tr><td><code>subcategoria</code></td><td><span class="badge bg-secondary">Não</span></td><td>Nome da subcategoria</td></tr>
                                     <tr><td><code>descricao</code></td><td><span class="badge bg-secondary">Não</span></td><td>Descrição detalhada</td></tr>
@@ -123,7 +123,7 @@
                 <th class="py-3">Nome</th>
                 <th class="py-3">Categoria</th>
                 <th class="py-3">Preço</th>
-                <th class="py-3">Estoque</th>
+                <th class="py-3">Controle de Estoque</th>
                 <th class="py-3 text-end pe-4">Ações</th>
             </tr>
         </thead>
@@ -151,12 +151,10 @@
                 </td>
                 <td class="fw-bold">R$ <?= number_format($product['price'], 2, ',', '.') ?></td>
                 <td>
-                    <?php if($product['stock_quantity'] > 10): ?>
-                        <span class="badge bg-success px-3"><?= $product['stock_quantity'] ?> uni.</span>
-                    <?php elseif($product['stock_quantity'] > 0): ?>
-                        <span class="badge bg-warning text-dark px-3"><?= $product['stock_quantity'] ?> uni.</span>
+                    <?php if(!empty($product['use_stock_control'])): ?>
+                        <span class="badge bg-info px-3"><i class="fas fa-boxes me-1"></i>Controle ativo</span>
                     <?php else: ?>
-                        <span class="badge bg-danger px-3">Esgotado</span>
+                        <span class="badge bg-light text-muted border px-3">Sem controle</span>
                     <?php endif; ?>
                 </td>
                 <td class="text-end pe-4">

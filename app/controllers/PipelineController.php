@@ -3,16 +3,23 @@ require_once 'app/models/Pipeline.php';
 require_once 'app/models/Order.php';
 require_once 'app/models/Customer.php';
 require_once 'app/models/User.php';
+require_once 'app/models/Stock.php';
 
 class PipelineController {
 
     private $pipelineModel;
     private $db;
+    private $stockModel;
 
     public function __construct() {
         $database = new Database();
         $this->db = $database->getConnection();
         $this->pipelineModel = new Pipeline($this->db);
+        $this->stockModel = new Stock($this->db);
+        // Auto-migrate stock tables/columns
+        $this->stockModel->ensureDeductionsTable();
+        $this->stockModel->ensureDefaultColumn();
+        $this->stockModel->ensureOrderWarehouseColumn();
     }
 
     /**
@@ -32,6 +39,10 @@ class PipelineController {
 
     /**
      * Mover pedido para outra etapa (AJAX ou GET)
+     * - Ao mover para "producao": verifica se todos os itens têm use_stock_control e estoque suficiente
+     *   no armazém padrão. Se sim, pula produção direto para preparação (deduzindo estoque).
+     * - Ao mover para "preparacao": deduz estoque do armazém selecionado (ou padrão).
+     * - Ao mover DE "preparacao" para "producao" ou etapa anterior: reverte deduções de estoque.
      */
     public function move() {
         if (!isset($_GET['id']) || !isset($_GET['stage'])) {
@@ -41,41 +52,45 @@ class PipelineController {
 
         $orderId = $_GET['id'];
         $newStage = $_GET['stage'];
-        $notes = $_POST['notes'] ?? '';
+        $notes = $_POST['notes'] ?? ($_GET['notes'] ?? '');
         $userId = $_SESSION['user_id'] ?? null;
+        $warehouseId = $_GET['warehouse_id'] ?? $_POST['warehouse_id'] ?? null;
 
-        // Se movendo para produção, verificar se todos os itens têm estoque e use_stock_control ativo
-        // Se sim, pular produção e ir direto para preparação
+        // Buscar etapa atual do pedido
+        $stmtCurrent = $this->db->prepare("SELECT pipeline_stage FROM orders WHERE id = :id");
+        $stmtCurrent->bindParam(':id', $orderId);
+        $stmtCurrent->execute();
+        $currentOrder = $stmtCurrent->fetch(PDO::FETCH_ASSOC);
+        $currentStage = $currentOrder ? $currentOrder['pipeline_stage'] : null;
+
+        // ═══ Lógica de estoque ao mover para PRODUÇÃO ═══
+        // Verifica se todos os itens possuem use_stock_control e estoque suficiente no armazém padrão.
+        // Se sim, pula produção e vai direto para preparação, deduzindo estoque.
         if ($newStage === 'producao') {
-            require_once 'app/models/Order.php';
             require_once 'app/models/Product.php';
             $orderModel = new Order($this->db);
             $productModel = new Product($this->db);
             $orderItems = $orderModel->getItems($orderId);
             
+            $defaultWarehouse = $this->stockModel->getDefaultWarehouse();
             $allFromStock = true;
-            if (!empty($orderItems)) {
+
+            if (!empty($orderItems) && $defaultWarehouse) {
                 foreach ($orderItems as $item) {
                     $product = $productModel->readOne($item['product_id']);
                     if (!$product || empty($product['use_stock_control'])) {
                         $allFromStock = false;
                         break;
                     }
-                    // Checar estoque da combinação ou do produto
-                    if (!empty($item['grade_combination_id'])) {
-                        $comboStmt = $this->db->prepare("SELECT stock_quantity FROM product_grade_combinations WHERE id = :id");
-                        $comboStmt->bindParam(':id', $item['grade_combination_id'], PDO::PARAM_INT);
-                        $comboStmt->execute();
-                        $combo = $comboStmt->fetch(PDO::FETCH_ASSOC);
-                        if (!$combo || (int)$combo['stock_quantity'] < (int)$item['quantity']) {
-                            $allFromStock = false;
-                            break;
-                        }
-                    } else {
-                        if ((int)$product['stock_quantity'] < (int)$item['quantity']) {
-                            $allFromStock = false;
-                            break;
-                        }
+                    // Checar estoque no armazém padrão (stock_items)
+                    $stockQty = $this->stockModel->getProductStockInWarehouse(
+                        $defaultWarehouse['id'],
+                        $item['product_id'],
+                        $item['grade_combination_id'] ?? null
+                    );
+                    if ($stockQty < (int)$item['quantity']) {
+                        $allFromStock = false;
+                        break;
                     }
                 }
             } else {
@@ -84,11 +99,90 @@ class PipelineController {
 
             if ($allFromStock) {
                 // Todos os itens atendem pelo estoque — pular produção, ir para preparação
-                $newStage = 'preparacao';
                 $notes = ($notes ? $notes . ' | ' : '') . 'Produção pulada: todos os itens atendidos pelo estoque.';
                 
                 // Registrar passagem pela produção
                 $this->pipelineModel->moveToStage($orderId, 'producao', $userId, 'Passagem automática — estoque disponível');
+
+                // Ir direto para preparação (deduzirá estoque abaixo)
+                $newStage = 'preparacao';
+                $warehouseId = $defaultWarehouse['id'];
+            }
+        }
+
+        // ═══ Lógica de estoque ao mover para PREPARAÇÃO ═══
+        // Deduz estoque do armazém selecionado para itens com use_stock_control ativo
+        if ($newStage === 'preparacao') {
+            require_once 'app/models/Product.php';
+            $orderModel = new Order($this->db);
+            $productModel = new Product($this->db);
+            $orderItems = $orderModel->getItems($orderId);
+
+            // Determinar armazém: parâmetro > padrão
+            if (!$warehouseId) {
+                $defaultWarehouse = $this->stockModel->getDefaultWarehouse();
+                $warehouseId = $defaultWarehouse ? $defaultWarehouse['id'] : null;
+            }
+
+            // Salvar armazém no pedido
+            if ($warehouseId) {
+                $stmtWh = $this->db->prepare("UPDATE orders SET stock_warehouse_id = :wid WHERE id = :id");
+                $stmtWh->bindParam(':wid', $warehouseId, PDO::PARAM_INT);
+                $stmtWh->bindParam(':id', $orderId, PDO::PARAM_INT);
+                $stmtWh->execute();
+            }
+
+            // Deduzir estoque para itens com controle ativo
+            if ($warehouseId && !empty($orderItems)) {
+                foreach ($orderItems as $item) {
+                    $product = $productModel->readOne($item['product_id']);
+                    if (!$product || empty($product['use_stock_control'])) {
+                        continue;
+                    }
+
+                    $combinationId = $item['grade_combination_id'] ?? null;
+                    $qty = (int)$item['quantity'];
+
+                    // Registrar movimentação de saída
+                    $movementId = $this->stockModel->addMovement([
+                        'warehouse_id'   => $warehouseId,
+                        'product_id'     => $item['product_id'],
+                        'combination_id' => $combinationId,
+                        'type'           => 'saida',
+                        'quantity'       => $qty,
+                        'reason'         => 'Dedução automática — Pedido #' . $orderId . ' em preparação',
+                        'reference_type' => 'order',
+                        'reference_id'   => $orderId,
+                    ]);
+
+                    // Registrar dedução para possível reversão futura
+                    $this->stockModel->addStockDeduction([
+                        'order_id'       => $orderId,
+                        'order_item_id'  => $item['id'],
+                        'warehouse_id'   => $warehouseId,
+                        'product_id'     => $item['product_id'],
+                        'combination_id' => $combinationId,
+                        'quantity'       => $qty,
+                        'movement_id'    => $movementId,
+                    ]);
+                }
+            }
+        }
+
+        // ═══ Lógica de estoque ao RETROCEDER de preparação para produção ou anterior ═══
+        // Reverte as deduções de estoque feitas ao entrar em preparação
+        $stageOrder = [
+            'contato' => 1, 'orcamento' => 2, 'venda' => 3, 'producao' => 4,
+            'preparacao' => 5, 'envio' => 6, 'financeiro' => 7, 'concluido' => 8, 'cancelado' => 9
+        ];
+        $currentStageOrder = $stageOrder[$currentStage] ?? 0;
+        $newStageOrder = $stageOrder[$newStage] ?? 0;
+
+        if ($currentStage === 'preparacao' && $newStageOrder < $stageOrder['preparacao']) {
+            // Está saindo de preparação para trás — reverter estoque
+            $reversed = $this->stockModel->reverseDeductions($orderId, $userId);
+            if ($reversed > 0) {
+                $notes = ($notes ? $notes . ' | ' : '') . "Estoque revertido: $reversed item(ns) devolvidos ao armazém.";
             }
         }
 
@@ -201,6 +295,13 @@ class PipelineController {
         $companySettings = new CompanySettings($this->db);
         $company = $companySettings->getAll();
         $companyAddress = $companySettings->getFormattedAddress();
+
+        // Carregar armazéns ativos para seleção de estoque no pipeline
+        $warehouses = $this->stockModel->getAllWarehouses(true);
+        $defaultWarehouse = $this->stockModel->getDefaultWarehouse();
+
+        // Carregar deduções ativas do pedido (para exibição no detalhe)
+        $activeDeductions = $this->stockModel->getActiveDeductions($_GET['id']);
 
         require 'app/views/layout/header.php';
         require 'app/views/pipeline/detail.php';
@@ -315,6 +416,77 @@ class PipelineController {
 
         header('Content-Type: application/json');
         echo json_encode($prices);
+        exit;
+    }
+
+    /**
+     * API JSON: Verifica disponibilidade de estoque dos itens de um pedido num armazém (AJAX)
+     * Retorna: warehouses, defaultWarehouseId, items (com stock disponível), allFromStock
+     */
+    public function checkOrderStock() {
+        header('Content-Type: application/json');
+
+        $orderId = $_GET['order_id'] ?? null;
+        $warehouseId = $_GET['warehouse_id'] ?? null;
+
+        if (!$orderId) {
+            echo json_encode(['success' => false, 'message' => 'Pedido não informado']);
+            exit;
+        }
+
+        require_once 'app/models/Product.php';
+        $orderModel = new Order($this->db);
+        $productModel = new Product($this->db);
+        $orderItems = $orderModel->getItems($orderId);
+
+        $warehouses = $this->stockModel->getAllWarehouses(true);
+        $defaultWarehouse = $this->stockModel->getDefaultWarehouse();
+        $defaultWarehouseId = $defaultWarehouse ? $defaultWarehouse['id'] : null;
+
+        // Se nenhum armazém informado, usar o padrão
+        if (!$warehouseId && $defaultWarehouseId) {
+            $warehouseId = $defaultWarehouseId;
+        }
+
+        $items = [];
+        $allFromStock = true;
+
+        if (!empty($orderItems)) {
+            foreach ($orderItems as $item) {
+                $product = $productModel->readOne($item['product_id']);
+                $useStock = $product && !empty($product['use_stock_control']);
+                $combinationId = $item['grade_combination_id'] ?? null;
+
+                $stockQty = 0;
+                if ($useStock && $warehouseId) {
+                    $stockQty = $this->stockModel->getProductStockInWarehouse($warehouseId, $item['product_id'], $combinationId);
+                }
+
+                $sufficient = !$useStock || ($warehouseId && $stockQty >= (int)$item['quantity']);
+                if ($useStock && !$sufficient) {
+                    $allFromStock = false;
+                }
+
+                $items[] = [
+                    'id' => $item['id'],
+                    'product_name' => $item['product_name'] ?? ($product['name'] ?? '—'),
+                    'combination_label' => $item['combination_label'] ?? null,
+                    'quantity' => (int)$item['quantity'],
+                    'use_stock_control' => $useStock,
+                    'stock_available' => (float)$stockQty,
+                    'sufficient' => $sufficient,
+                ];
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'warehouses' => $warehouses,
+            'default_warehouse_id' => $defaultWarehouseId,
+            'warehouse_id' => $warehouseId,
+            'items' => $items,
+            'all_from_stock' => $allFromStock,
+        ]);
         exit;
     }
 
