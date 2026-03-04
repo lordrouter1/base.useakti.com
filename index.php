@@ -57,10 +57,16 @@ foreach ($menuConfig as $key => $info) {
 }
 $needsPermission = isset($flatMenuConfig[$page]) && !empty($flatMenuConfig[$page]['permission']);
 
+// Mapear subpáginas para a permissão pai usando permission_alias do menu config
+$permissionPage = $page;
+if (isset($flatMenuConfig[$page]['permission_alias'])) {
+    $permissionPage = $flatMenuConfig[$page]['permission_alias'];
+}
+
 if (isset($_SESSION['user_id']) && $page !== 'login' && $action !== 'logout' && $action !== 'getSubcategories' && $action !== 'getInheritedGrades' && $needsPermission) {
     $db = (new Database())->getConnection();
     $user = new User($db);
-    if (!$user->checkPermission($_SESSION['user_id'], $page)) {
+    if (!$user->checkPermission($_SESSION['user_id'], $permissionPage)) {
         require 'app/views/layout/header.php';
         echo "<div class='container mt-5'><div class='alert alert-danger'><i class='fas fa-ban me-2'></i>Acesso Negado.<br>Você não tem permissão para acessar o módulo: <strong>" . strtoupper($page) . "</strong>.</div></div>";
         require 'app/views/layout/footer.php';
@@ -436,6 +442,50 @@ switch ($page) {
         } else {
             $controller->checkStatus();
         }
+        break;
+
+    // ── Fiscal / Financeiro ──
+    case 'financial':
+        require_once 'app/controllers/FinancialController.php';
+        $controller = new FinancialController();
+        if ($action == 'payments') {
+            $controller->payments();
+        } elseif ($action == 'installments') {
+            $controller->installments();
+        } elseif ($action == 'generateInstallments') {
+            $controller->generateInstallments();
+        } elseif ($action == 'payInstallment') {
+            $controller->payInstallment();
+        } elseif ($action == 'confirmPayment') {
+            $controller->confirmPayment();
+        } elseif ($action == 'cancelInstallment') {
+            $controller->cancelInstallment();
+        } elseif ($action == 'transactions') {
+            $controller->transactions();
+        } elseif ($action == 'addTransaction') {
+            $controller->addTransaction();
+        } elseif ($action == 'deleteTransaction') {
+            $controller->deleteTransaction();
+        } elseif ($action == 'getSummaryJson') {
+            $controller->getSummaryJson();
+        } elseif ($action == 'getInstallmentsJson') {
+            $controller->getInstallmentsJson();
+        } else {
+            $controller->index();
+        }
+        break;
+
+    // ── Atalhos de menu fiscal ──
+    case 'financial_payments':
+        require_once 'app/controllers/FinancialController.php';
+        $controller = new FinancialController();
+        $controller->payments();
+        break;
+
+    case 'financial_transactions':
+        require_once 'app/controllers/FinancialController.php';
+        $controller = new FinancialController();
+        $controller->transactions();
         break;
 
     default:

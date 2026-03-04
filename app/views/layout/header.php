@@ -146,7 +146,9 @@
     function canShowInMenu($pageKey, $pageInfo, $isAdmin, $userPermissions) {
         if (empty($pageInfo['permission'])) return true;
         if ($isAdmin) return true;
-        return in_array($pageKey, $userPermissions);
+        // Use permission_alias if defined (e.g., financial_payments -> financial)
+        $checkKey = $pageInfo['permission_alias'] ?? $pageKey;
+        return in_array($checkKey, $userPermissions);
     }
 
     /**

@@ -133,6 +133,36 @@ return [
         ],
     ],
 
+    // ─── Grupo: Fiscal ───
+    'fiscal' => [
+        'label'    => 'Fiscal',
+        'icon'     => 'fas fa-coins',
+        'menu'     => true,
+        'children' => [
+            'financial' => [
+                'label'      => 'Dashboard Financeiro',
+                'icon'       => 'fas fa-chart-line',
+                'menu'       => true,
+                'permission' => true,
+                'permission_label' => 'Fiscal (Financeiro)',
+            ],
+            'financial_payments' => [
+                'label'      => 'Pagamentos',
+                'icon'       => 'fas fa-file-invoice-dollar',
+                'menu'       => true,
+                'permission' => true,
+                'permission_alias' => 'financial',
+            ],
+            'financial_transactions' => [
+                'label'      => 'Entradas / Saídas',
+                'icon'       => 'fas fa-exchange-alt',
+                'menu'       => true,
+                'permission' => true,
+                'permission_alias' => 'financial',
+            ],
+        ],
+    ],
+
     // ─── Itens ocultos do menu principal (ficam no menu direito) ───
     'settings' => [
         'label'      => 'Configurações',

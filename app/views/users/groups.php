@@ -16,7 +16,7 @@ foreach ($menuPages as $key => $info) {
 
 $pages = [];
 foreach ($flatPages as $key => $info) {
-    if (!empty($info['permission'])) {
+    if (!empty($info['permission']) && empty($info['permission_alias'])) {
         $pages[$key] = $info;
     }
 }
@@ -80,7 +80,7 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
                                         <input class="form-check-input me-2" type="checkbox" name="permissions[]" value="<?= $key ?>" id="perm_page_<?= $key ?>" <?= $checked ?>>
                                         <label class="form-check-label d-flex align-items-center small" for="perm_page_<?= $key ?>">
                                             <i class="<?= $info['icon'] ?> me-1 text-primary" style="width:16px;text-align:center;font-size:0.8rem;"></i>
-                                            <?= $info['label'] ?>
+                                            <?= $info['permission_label'] ?? $info['label'] ?>
                                         </label>
                                     </div>
                                 </div>
@@ -223,7 +223,7 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
                         <div class="d-flex flex-wrap gap-1">
                             <?php foreach($permPages as $perm):
                                 $icon = $flatPages[$perm]['icon'] ?? 'fas fa-circle';
-                                $label = $flatPages[$perm]['label'] ?? $perm;
+                                $label = $flatPages[$perm]['permission_label'] ?? $flatPages[$perm]['label'] ?? $perm;
                             ?>
                             <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
                                 <i class="<?= $icon ?> me-1" style="font-size:0.65rem;"></i><?= $label ?>

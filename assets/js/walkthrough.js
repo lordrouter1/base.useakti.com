@@ -471,7 +471,10 @@ class AktiWalkthrough {
             'categories': 'Categorias',
             'agenda': 'Agenda',
             'price_tables': 'Tabelas de Preço',
-            'production_board': 'Painel de Produção'
+            'production_board': 'Painel de Produção',
+            'financial': 'Financeiro',
+            'financial_payments': 'Pagamentos',
+            'financial_transactions': 'Entradas/Saídas'
         };
         return names[page] || page;
     }
