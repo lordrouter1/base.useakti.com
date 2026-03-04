@@ -1,85 +1,76 @@
 <?php
 /**
- * Fiscal — Transações (Entradas e Saídas)
+ * Financeiro — Entradas e Saídas
+ * Registro manual de transações financeiras (despesas fixas, compras, etc.)
  * Variáveis: $transactions, $categories, $totalEntradas, $totalSaidas
  */
 $filterType     = $_GET['type'] ?? '';
 $filterMonth    = $_GET['filter_month'] ?? '';
 $filterYear     = $_GET['filter_year'] ?? '';
 $filterCategory = $_GET['category'] ?? '';
+$saldo = ($totalEntradas ?? 0) - ($totalSaidas ?? 0);
 ?>
 
 <?php if (!empty($_SESSION['flash_success'])): ?>
-<script>document.addEventListener('DOMContentLoaded', () => Swal.fire({ icon:'success', title:'Sucesso!', text:'<?= addslashes($_SESSION['flash_success']) ?>', timer:2500, showConfirmButton:false }));</script>
+<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'success',title:'Sucesso!',text:'<?= addslashes($_SESSION['flash_success']) ?>',timer:2500,showConfirmButton:false}));</script>
 <?php unset($_SESSION['flash_success']); endif; ?>
 <?php if (!empty($_SESSION['flash_error'])): ?>
-<script>document.addEventListener('DOMContentLoaded', () => Swal.fire({ icon:'error', title:'Erro', text:'<?= addslashes($_SESSION['flash_error']) ?>' }));</script>
+<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'error',title:'Erro',text:'<?= addslashes($_SESSION['flash_error']) ?>'}));</script>
 <?php unset($_SESSION['flash_error']); endif; ?>
 
-<?php
-$allCategories = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? []);
-
-$saldo = $totalEntradas - $totalSaidas;
-?>
-
 <!-- ══════ Header ══════ -->
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2"><i class="fas fa-exchange-alt me-2 text-success"></i>Entradas e Saídas</h1>
-    <div class="btn-toolbar mb-2 mb-md-0 gap-2">
+<div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-2 mb-4 border-bottom">
+    <h1 class="h2 mb-0"><i class="fas fa-exchange-alt me-2 text-success"></i>Entradas e Saídas</h1>
+    <div class="btn-toolbar gap-2">
         <a href="?page=financial" class="btn btn-sm btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i> Dashboard Financeiro
+            <i class="fas fa-arrow-left me-1"></i> Dashboard
         </a>
         <a href="?page=financial&action=payments" class="btn btn-sm btn-outline-primary">
             <i class="fas fa-file-invoice-dollar me-1"></i> Pagamentos
         </a>
-        <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addTransactionModal" data-type="entrada">
-            <i class="fas fa-plus-circle me-1"></i> Nova Entrada
-        </button>
-        <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#addTransactionModal" data-type="saida">
-            <i class="fas fa-minus-circle me-1"></i> Nova Saída
+        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#modalAddTransaction">
+            <i class="fas fa-plus me-1"></i> Nova Transação
         </button>
     </div>
 </div>
 
 <!-- ══════ Cards Resumo ══════ -->
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-xl-4 col-md-4">
         <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
-            <div class="card-body py-3 px-3 d-flex align-items-center">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:45px;height:45px;background:rgba(39,174,96,0.15);">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(39,174,96,0.15);">
                     <i class="fas fa-arrow-down fa-lg text-success"></i>
                 </div>
                 <div>
-                    <div class="text-muted small fw-bold text-uppercase">Total Entradas</div>
-                    <div class="h5 mb-0 text-success">R$ <?= number_format($totalEntradas, 2, ',', '.') ?></div>
+                    <div class="text-muted small text-uppercase">Entradas</div>
+                    <div class="fw-bold fs-4 text-success">R$ <?= number_format($totalEntradas ?? 0, 2, ',', '.') ?></div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-xl-4 col-md-4">
         <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
-            <div class="card-body py-3 px-3 d-flex align-items-center">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:45px;height:45px;background:rgba(231,76,60,0.15);">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(192,57,43,0.15);">
                     <i class="fas fa-arrow-up fa-lg text-danger"></i>
                 </div>
                 <div>
-                    <div class="text-muted small fw-bold text-uppercase">Total Saídas</div>
-                    <div class="h5 mb-0 text-danger">R$ <?= number_format($totalSaidas, 2, ',', '.') ?></div>
+                    <div class="text-muted small text-uppercase">Saídas</div>
+                    <div class="fw-bold fs-4 text-danger">R$ <?= number_format($totalSaidas ?? 0, 2, ',', '.') ?></div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm h-100 border-start border-4" style="border-color: <?= $saldo >= 0 ? '#27ae60' : '#e74c3c' ?> !important;">
-            <div class="card-body py-3 px-3 d-flex align-items-center">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:45px;height:45px;background:<?= $saldo >= 0 ? 'rgba(39,174,96,0.15)' : 'rgba(231,76,60,0.15)' ?>;">
-                    <i class="fas fa-balance-scale fa-lg" style="color:<?= $saldo >= 0 ? '#27ae60' : '#e74c3c' ?>"></i>
+    <div class="col-xl-4 col-md-4">
+        <div class="card border-0 shadow-sm h-100 border-start <?= $saldo >= 0 ? 'border-primary' : 'border-warning' ?> border-4">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:<?= $saldo >= 0 ? 'rgba(52,152,219,0.15)' : 'rgba(243,156,18,0.15)' ?>;">
+                    <i class="fas fa-balance-scale fa-lg <?= $saldo >= 0 ? 'text-primary' : 'text-warning' ?>"></i>
                 </div>
                 <div>
-                    <div class="text-muted small fw-bold text-uppercase">Saldo</div>
-                    <div class="h5 mb-0" style="color:<?= $saldo >= 0 ? '#27ae60' : '#e74c3c' ?>">
-                        R$ <?= number_format($saldo, 2, ',', '.') ?>
-                    </div>
+                    <div class="text-muted small text-uppercase">Saldo</div>
+                    <div class="fw-bold fs-4 <?= $saldo >= 0 ? 'text-primary' : 'text-danger' ?>">R$ <?= number_format($saldo, 2, ',', '.') ?></div>
                 </div>
             </div>
         </div>
@@ -103,12 +94,12 @@ $saldo = $totalEntradas - $totalSaidas;
         <select name="category" class="form-select form-select-sm" style="width:180px">
             <option value="">Todas</option>
             <optgroup label="Entradas">
-                <?php foreach($categories['entrada'] as $k => $v): ?>
+                <?php foreach ($categories['entrada'] ?? [] as $k => $v): ?>
                 <option value="<?= $k ?>" <?= $filterCategory===$k?'selected':'' ?>><?= $v ?></option>
                 <?php endforeach; ?>
             </optgroup>
             <optgroup label="Saídas">
-                <?php foreach($categories['saida'] as $k => $v): ?>
+                <?php foreach ($categories['saida'] ?? [] as $k => $v): ?>
                 <option value="<?= $k ?>" <?= $filterCategory===$k?'selected':'' ?>><?= $v ?></option>
                 <?php endforeach; ?>
             </optgroup>
@@ -142,199 +133,216 @@ $saldo = $totalEntradas - $totalSaidas;
 <div class="mb-3">
     <div class="input-group">
         <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
-        <input type="text" class="form-control" id="searchTransactions" placeholder="Buscar por descrição, categoria, valor..." autocomplete="off">
+        <input type="text" class="form-control" id="searchTransactions" placeholder="Buscar por descrição, categoria..." autocomplete="off">
     </div>
 </div>
 
-<!-- ══════ Tabela de Transações ══════ -->
-<div class="table-responsive bg-white rounded shadow-sm">
-    <table class="table table-hover align-middle mb-0" id="transactionsTable">
-        <thead class="bg-light">
-            <tr>
-                <th class="py-3 ps-3" style="width:50px">Tipo</th>
-                <th class="py-3">Data</th>
-                <th class="py-3">Categoria</th>
-                <th class="py-3">Descrição</th>
-                <th class="py-3">Valor</th>
-                <th class="py-3">Método</th>
-                <th class="py-3">Confirmado</th>
-                <th class="py-3">Registrado por</th>
-                <th class="py-3 text-end pe-3">Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if(empty($transactions)): ?>
-            <tr><td colspan="9" class="text-center text-muted py-4"><i class="fas fa-inbox fa-2x mb-2 d-block"></i>Nenhuma transação encontrada.</td></tr>
-            <?php else: ?>
-            <?php foreach($transactions as $t): 
-                $isEntrada = $t['type'] === 'entrada';
-                $catLabel = $allCategories[$t['category']] ?? ucfirst(str_replace('_', ' ', $t['category'] ?? ''));
-            ?>
-            <tr>
-                <td class="ps-3">
-                    <?php if($isEntrada): ?>
-                        <span class="badge bg-success"><i class="fas fa-arrow-down"></i></span>
+<!-- ══════ Tabela ══════ -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="transactionsTable">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3 py-3">Data</th>
+                        <th class="py-3">Tipo</th>
+                        <th class="py-3">Categoria</th>
+                        <th class="py-3">Descrição</th>
+                        <th class="py-3">Valor</th>
+                        <th class="py-3">Método</th>
+                        <th class="py-3">Registrado por</th>
+                        <th class="py-3 text-end pe-3">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($transactions)): ?>
+                    <tr><td colspan="8" class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-2x mb-2 d-block opacity-50"></i>Nenhuma transação encontrada.
+                    </td></tr>
                     <?php else: ?>
-                        <span class="badge bg-danger"><i class="fas fa-arrow-up"></i></span>
+                    <?php
+                        $allCats = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? []);
+                        $methodLabels = [
+                            'dinheiro'=>'💵 Dinheiro','pix'=>'📱 PIX','cartao_credito'=>'💳 Crédito',
+                            'cartao_debito'=>'💳 Débito','boleto'=>'📄 Boleto','transferencia'=>'🏦 Transf.',
+                        ];
+                    ?>
+                    <?php foreach ($transactions as $t): ?>
+                    <tr>
+                        <td class="ps-3 small"><?= date('d/m/Y', strtotime($t['transaction_date'])) ?></td>
+                        <td>
+                            <?php if ($t['type'] === 'entrada'): ?>
+                                <span class="badge bg-success"><i class="fas fa-arrow-down me-1"></i>Entrada</span>
+                            <?php else: ?>
+                                <span class="badge bg-danger"><i class="fas fa-arrow-up me-1"></i>Saída</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="small"><?= htmlspecialchars($allCats[$t['category']] ?? ucfirst($t['category'])) ?></td>
+                        <td class="small"><?= htmlspecialchars($t['description']) ?></td>
+                        <td class="fw-bold <?= $t['type']==='entrada' ? 'text-success' : 'text-danger' ?>">
+                            <?= $t['type']==='entrada' ? '+' : '-' ?> R$ <?= number_format($t['amount'], 2, ',', '.') ?>
+                        </td>
+                        <td class="small"><?= $methodLabels[$t['payment_method'] ?? ''] ?? ($t['payment_method'] ? ucfirst($t['payment_method']) : '—') ?></td>
+                        <td class="small"><?= htmlspecialchars($t['user_name'] ?? '—') ?></td>
+                        <td class="text-end pe-3">
+                            <?php if (empty($t['reference_type']) || $t['reference_type'] === 'manual'): ?>
+                            <form method="post" action="?page=financial&action=deleteTransaction" class="d-inline">
+                                <input type="hidden" name="transaction_id" value="<?= $t['id'] ?>">
+                                <button type="submit" class="btn btn-sm btn-outline-danger btn-delete-tx" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                            <?php else: ?>
+                                <span class="badge bg-light text-muted border" style="font-size:0.65rem;">Automática</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
                     <?php endif; ?>
-                </td>
-                <td class="small"><?= date('d/m/Y', strtotime($t['transaction_date'])) ?></td>
-                <td>
-                    <span class="badge <?= $isEntrada ? 'bg-success bg-opacity-25 text-success' : 'bg-danger bg-opacity-25 text-danger' ?> small">
-                        <?= htmlspecialchars($catLabel) ?>
-                    </span>
-                </td>
-                <td><?= htmlspecialchars($t['description'] ?? '') ?></td>
-                <td class="fw-bold <?= $isEntrada ? 'text-success' : 'text-danger' ?>">
-                    <?= $isEntrada ? '+' : '-' ?> R$ <?= number_format($t['amount'], 2, ',', '.') ?>
-                </td>
-                <td class="small"><?= ucfirst(str_replace('_', ' ', $t['payment_method'] ?? '—')) ?></td>
-                <td>
-                    <?php if ($t['is_confirmed']): ?>
-                        <span class="badge bg-success"><i class="fas fa-check"></i></span>
-                    <?php else: ?>
-                        <span class="badge bg-warning text-dark"><i class="fas fa-hourglass-half"></i></span>
-                    <?php endif; ?>
-                </td>
-                <td class="small text-muted"><?= htmlspecialchars($t['user_name'] ?? 'Sistema') ?></td>
-                <td class="text-end pe-3">
-                    <?php if (empty($t['reference_type'])): ?>
-                    <form method="post" action="?page=financial&action=deleteTransaction" class="d-inline"
-                          onsubmit="return confirm('Remover esta transação?')">
-                        <input type="hidden" name="transaction_id" value="<?= $t['id'] ?>">
-                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Remover">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </form>
-                    <?php else: ?>
-                        <span class="text-muted small" title="Transação vinculada a pagamento"><i class="fas fa-link"></i></span>
-                    <?php endif; ?>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
-<!-- ══════ Modal: Adicionar Transação ══════ -->
-<div class="modal fade" id="addTransactionModal" tabindex="-1">
-    <div class="modal-dialog">
+<!-- ══════ Modal Nova Transação ══════ -->
+<div class="modal fade" id="modalAddTransaction" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form method="post" action="?page=financial&action=addTransaction">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="transModalTitle">
-                        <i class="fas fa-plus-circle me-2"></i>Nova Transação
-                    </h5>
+            <form method="post" action="?page=financial&action=addTransaction" id="formAddTx">
+                <div class="modal-header bg-success bg-opacity-10 border-0">
+                    <h5 class="modal-title text-success"><i class="fas fa-plus-circle me-2"></i>Nova Transação</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Tipo</label>
-                            <select name="type" id="transType" class="form-select" required>
-                                <option value="entrada">Entrada</option>
-                                <option value="saida">Saída</option>
+                            <label class="form-label small fw-bold">Tipo</label>
+                            <select name="type" id="txType" class="form-select" required>
+                                <option value="entrada">✅ Entrada</option>
+                                <option value="saida">🔴 Saída</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Categoria</label>
-                            <select name="category" id="transCategory" class="form-select" required>
-                                <!-- Preenchido via JS -->
+                            <label class="form-label small fw-bold">Categoria</label>
+                            <select name="category" id="txCategory" class="form-select" required>
+                                <?php foreach ($categories['entrada'] ?? [] as $k => $v): ?>
+                                <option value="<?= $k ?>" data-type="entrada"><?= $v ?></option>
+                                <?php endforeach; ?>
+                                <?php foreach ($categories['saida'] ?? [] as $k => $v): ?>
+                                <option value="<?= $k ?>" data-type="saida" style="display:none;"><?= $v ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-bold">Descrição</label>
-                            <input type="text" name="description" class="form-control" required placeholder="Descrição da transação">
+                            <label class="form-label small fw-bold">Descrição</label>
+                            <input type="text" name="description" class="form-control" placeholder="Ex: Compra de papel A4" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Valor (R$)</label>
-                            <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required>
+                            <label class="form-label small fw-bold">Valor (R$)</label>
+                            <input type="number" step="0.01" min="0.01" name="amount" class="form-control" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Data</label>
+                            <label class="form-label small fw-bold">Data</label>
                             <input type="date" name="transaction_date" class="form-control" value="<?= date('Y-m-d') ?>" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Método Pagamento</label>
+                            <label class="form-label small fw-bold">Forma de Pagamento</label>
                             <select name="payment_method" class="form-select">
-                                <option value="">Nenhum</option>
-                                <option value="dinheiro">Dinheiro</option>
-                                <option value="pix">PIX</option>
-                                <option value="boleto">Boleto</option>
-                                <option value="cartao_credito">Cartão de Crédito</option>
-                                <option value="cartao_debito">Cartão de Débito</option>
-                                <option value="transferencia">Transferência</option>
-                                <option value="cheque">Cheque</option>
+                                <option value="">— Não informado —</option>
+                                <option value="dinheiro">💵 Dinheiro</option>
+                                <option value="pix">📱 PIX</option>
+                                <option value="cartao_credito">💳 Cartão Crédito</option>
+                                <option value="cartao_debito">💳 Cartão Débito</option>
+                                <option value="boleto">📄 Boleto</option>
+                                <option value="transferencia">🏦 Transferência</option>
                             </select>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Observações</label>
-                            <textarea name="notes" class="form-control" rows="2" placeholder="Notas adicionais..."></textarea>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Observação <span class="text-muted fw-normal">(opcional)</span></label>
+                            <input type="text" name="notes" class="form-control" placeholder="Nota adicional">
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-check me-1"></i> Salvar</button>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i> Registrar
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<!-- ══════ Scripts ══════ -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const categories = <?= json_encode($categories) ?>;
 
-    // Atualizar categorias quando tipo muda
-    function updateCategories(type) {
-        const sel = document.getElementById('transCategory');
-        if (!sel) return;
-        sel.innerHTML = '';
-        const cats = categories[type] || {};
-        for (const [k, v] of Object.entries(cats)) {
-            const opt = document.createElement('option');
-            opt.value = k;
-            opt.textContent = v;
-            sel.appendChild(opt);
+    // ── Busca na tabela ──
+    const s = document.getElementById('searchTransactions');
+    if (s) s.addEventListener('input', function() {
+        const t = this.value.toLowerCase();
+        document.querySelectorAll('#transactionsTable tbody tr').forEach(tr => {
+            tr.style.display = tr.textContent.toLowerCase().includes(t) ? '' : 'none';
+        });
+    });
+
+    // ── Filtrar categorias pelo tipo ──
+    const txType = document.getElementById('txType');
+    const txCat  = document.getElementById('txCategory');
+    if (txType && txCat) {
+        function filterCats() {
+            const type = txType.value;
+            let first = null;
+            txCat.querySelectorAll('option').forEach(opt => {
+                const show = opt.dataset.type === type;
+                opt.style.display = show ? '' : 'none';
+                if (show && !first) first = opt;
+            });
+            if (first) txCat.value = first.value;
         }
+        txType.addEventListener('change', filterCats);
+        filterCats();
     }
 
-    const typeSelect = document.getElementById('transType');
-    if (typeSelect) {
-        typeSelect.addEventListener('change', function() {
-            updateCategories(this.value);
+    // ── Registrar transação com SweetAlert2 ──
+    document.getElementById('formAddTx')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = this;
+        Swal.fire({
+            title: 'Registrar transação?',
+            text: 'Deseja salvar esta transação financeira?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#27ae60',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-check me-1"></i> Registrar',
+            cancelButtonText: 'Cancelar'
+        }).then(result => {
+            if (result.isConfirmed) form.submit();
         });
-    }
+    });
 
-    // Modal show
-    const modal = document.getElementById('addTransactionModal');
-    if (modal) {
-        modal.addEventListener('show.bs.modal', function(e) {
-            const type = e.relatedTarget?.getAttribute('data-type') || 'entrada';
-            const typeSelect = document.getElementById('transType');
-            if (typeSelect) typeSelect.value = type;
-            updateCategories(type);
-
-            const title = document.getElementById('transModalTitle');
-            if (type === 'entrada') {
-                title.innerHTML = '<i class="fas fa-arrow-down me-2 text-success"></i>Nova Entrada';
-            } else {
-                title.innerHTML = '<i class="fas fa-arrow-up me-2 text-danger"></i>Nova Saída';
-            }
-        });
-    }
-
-    // Busca na tabela
-    const searchInput = document.getElementById('searchTransactions');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const term = this.value.toLowerCase();
-            document.querySelectorAll('#transactionsTable tbody tr').forEach(tr => {
-                tr.style.display = tr.textContent.toLowerCase().includes(term) ? '' : 'none';
+    // ── Excluir transação com SweetAlert2 ──
+    document.querySelectorAll('.btn-delete-tx').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const form = this.closest('form');
+            Swal.fire({
+                title: 'Excluir transação?',
+                text: 'Essa ação não pode ser desfeita.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e74c3c',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-trash me-1"></i> Excluir',
+                cancelButtonText: 'Manter'
+            }).then(result => {
+                if (result.isConfirmed) form.submit();
             });
         });
-    }
+    });
+
 });
 </script>

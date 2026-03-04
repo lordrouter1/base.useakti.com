@@ -32,18 +32,12 @@
 
 return [
 
-    // ─── Links diretos (sem submenu) ───
-    'home' => [
-        'label'      => 'Início',
-        'icon'       => 'fas fa-home',
-        'menu'       => true,
-        'permission' => false,
-    ],
+    // ─── Dashboard (visão geral — acesso via logo, sem item no menu) ───
     'dashboard' => [
         'label'      => 'Dashboard',
         'icon'       => 'fas fa-tachometer-alt',
-        'menu'       => true,
-        'permission' => true,
+        'menu'       => false,
+        'permission' => false,
     ],
 
     // ─── Grupo: Comercial ───
@@ -139,13 +133,6 @@ return [
         'icon'     => 'fas fa-coins',
         'menu'     => true,
         'children' => [
-            'financial' => [
-                'label'      => 'Dashboard Financeiro',
-                'icon'       => 'fas fa-chart-line',
-                'menu'       => true,
-                'permission' => true,
-                'permission_label' => 'Fiscal (Financeiro)',
-            ],
             'financial_payments' => [
                 'label'      => 'Pagamentos',
                 'icon'       => 'fas fa-file-invoice-dollar',
@@ -164,6 +151,12 @@ return [
     ],
 
     // ─── Itens ocultos do menu principal (ficam no menu direito) ───
+    'financial' => [
+        'label'      => 'Fiscal (Financeiro)',
+        'icon'       => 'fas fa-coins',
+        'menu'       => false,
+        'permission' => true,
+    ],
     'settings' => [
         'label'      => 'Configurações',
         'icon'       => 'fas fa-building',

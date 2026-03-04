@@ -92,9 +92,9 @@ switch ($page) {
         break;
 
     case 'dashboard':
-        require_once 'app/controllers/DashboardController.php';
-        $controller = new DashboardController();
-        $controller->index();
+        // Dashboard unificado com a home — redirecionar
+        header('Location: ?');
+        exit;
         break;
 
     // ── Perfil do Usuário (acessível por todos os logados) ──
@@ -460,6 +460,10 @@ switch ($page) {
             $controller->confirmPayment();
         } elseif ($action == 'cancelInstallment') {
             $controller->cancelInstallment();
+        } elseif ($action == 'uploadAttachment') {
+            $controller->uploadAttachment();
+        } elseif ($action == 'removeAttachment') {
+            $controller->removeAttachment();
         } elseif ($action == 'transactions') {
             $controller->transactions();
         } elseif ($action == 'addTransaction') {
@@ -471,7 +475,8 @@ switch ($page) {
         } elseif ($action == 'getInstallmentsJson') {
             $controller->getInstallmentsJson();
         } else {
-            $controller->index();
+            // Dashboard financeiro removido — redirecionar para pagamentos
+            $controller->payments();
         }
         break;
 

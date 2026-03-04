@@ -39,19 +39,21 @@ class Financial {
         $s->execute([':m' => $month, ':y' => $year]);
         $summary['recebido_mes'] = (float) $s->fetchColumn();
 
-        // Entradas manuais do mês
+        // Entradas manuais do mês (exclui estornos — são apenas registros, não contam no cálculo)
         $q = "SELECT COALESCE(SUM(amount), 0)
               FROM financial_transactions
               WHERE type = 'entrada' AND is_confirmed = 1
+              AND category != 'estorno_pagamento'
               AND MONTH(transaction_date) = :m AND YEAR(transaction_date) = :y";
         $s = $this->conn->prepare($q);
         $s->execute([':m' => $month, ':y' => $year]);
         $summary['entradas_mes'] = (float) $s->fetchColumn();
 
-        // Saídas do mês
+        // Saídas do mês (exclui estornos — são apenas registros, não contam no cálculo)
         $q = "SELECT COALESCE(SUM(amount), 0)
               FROM financial_transactions
               WHERE type = 'saida' AND is_confirmed = 1
+              AND category != 'estorno_pagamento'
               AND MONTH(transaction_date) = :m AND YEAR(transaction_date) = :y";
         $s = $this->conn->prepare($q);
         $s->execute([':m' => $month, ':y' => $year]);
@@ -113,19 +115,21 @@ class Financial {
             $s->execute([':m' => $m, ':y' => $y]);
             $recebido = (float) $s->fetchColumn();
 
-            // + entradas manuais
+            // + entradas manuais (exclui estornos)
             $q = "SELECT COALESCE(SUM(amount), 0)
                   FROM financial_transactions
                   WHERE type = 'entrada' AND is_confirmed = 1
+                  AND category != 'estorno_pagamento'
                   AND MONTH(transaction_date) = :m AND YEAR(transaction_date) = :y";
             $s = $this->conn->prepare($q);
             $s->execute([':m' => $m, ':y' => $y]);
             $recebido += (float) $s->fetchColumn();
 
-            // Saídas
+            // Saídas (exclui estornos)
             $q = "SELECT COALESCE(SUM(amount), 0)
                   FROM financial_transactions
                   WHERE type = 'saida' AND is_confirmed = 1
+                  AND category != 'estorno_pagamento'
                   AND MONTH(transaction_date) = :m AND YEAR(transaction_date) = :y";
             $s = $this->conn->prepare($q);
             $s->execute([':m' => $m, ':y' => $y]);
@@ -207,6 +211,61 @@ class Financial {
     // ═══════════════════════════════════════════
 
     /**
+     * Busca TODAS as parcelas de todos os pedidos (para a tela de pagamentos)
+     */
+    public function getAllInstallments($filters = []) {
+        $where = "WHERE o.status != 'cancelado'";
+        $params = [];
+
+        if (!empty($filters['status'])) {
+            if ($filters['status'] === 'pendente') {
+                $where .= " AND oi.status IN ('pendente', 'atrasado')";
+            } elseif ($filters['status'] === 'pago') {
+                $where .= " AND oi.status = 'pago'";
+            } elseif ($filters['status'] === 'atrasado') {
+                $where .= " AND oi.status = 'atrasado'";
+            } elseif ($filters['status'] === 'aguardando') {
+                $where .= " AND oi.status = 'pago' AND oi.is_confirmed = 0";
+            }
+        }
+        if (!empty($filters['month']) && !empty($filters['year'])) {
+            $where .= " AND MONTH(oi.due_date) = :fm AND YEAR(oi.due_date) = :fy";
+            $params[':fm'] = $filters['month'];
+            $params[':fy'] = $filters['year'];
+        } elseif (!empty($filters['month'])) {
+            $where .= " AND MONTH(oi.due_date) = :fm";
+            $params[':fm'] = $filters['month'];
+        } elseif (!empty($filters['year'])) {
+            $where .= " AND YEAR(oi.due_date) = :fy";
+            $params[':fy'] = $filters['year'];
+        }
+
+        $q = "SELECT oi.*, 
+                     o.total_amount as order_total, o.discount as order_discount,
+                     o.payment_method as order_payment_method, o.pipeline_stage,
+                     c.name as customer_name,
+                     c.document as customer_document,
+                     c.address as customer_address,
+                     u.name as confirmed_by_name
+              FROM order_installments oi
+              JOIN orders o ON oi.order_id = o.id
+              LEFT JOIN customers c ON o.customer_id = c.id
+              LEFT JOIN users u ON oi.confirmed_by = u.id
+              $where
+              ORDER BY 
+                CASE oi.status 
+                    WHEN 'atrasado' THEN 1 
+                    WHEN 'pendente' THEN 2 
+                    WHEN 'pago' THEN 3 
+                    WHEN 'cancelado' THEN 4 
+                END,
+                oi.due_date ASC, oi.order_id ASC, oi.installment_number ASC";
+        $s = $this->conn->prepare($q);
+        $s->execute($params);
+        return $s->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Busca as parcelas de um pedido
      */
     public function getInstallments($orderId) {
@@ -267,18 +326,17 @@ class Financial {
     }
 
     /**
-     * Registra pagamento de uma parcela (aguardando confirmação se não for gateway)
+     * Registra pagamento de uma parcela (aguarda confirmação manual)
      */
     public function payInstallment($installmentId, $data) {
-        $isGateway = !empty($data['gateway_reference']);
         $q = "UPDATE order_installments SET
                 status = 'pago',
                 paid_date = :paid_date,
                 paid_amount = :paid_amount,
                 payment_method = :method,
-                gateway_reference = :gateway,
-                is_confirmed = :confirmed,
+                is_confirmed = 0,
                 notes = :notes,
+                attachment_path = COALESCE(:attachment, attachment_path),
                 updated_at = NOW()
               WHERE id = :id";
         $s = $this->conn->prepare($q);
@@ -286,9 +344,8 @@ class Financial {
             ':paid_date' => $data['paid_date'] ?? date('Y-m-d'),
             ':paid_amount' => $data['paid_amount'],
             ':method' => $data['payment_method'] ?? null,
-            ':gateway' => $data['gateway_reference'] ?? null,
-            ':confirmed' => $isGateway ? 1 : 0,
             ':notes' => $data['notes'] ?? null,
+            ':attachment' => $data['attachment_path'] ?? null,
             ':id' => $installmentId,
         ]);
 
@@ -310,7 +367,7 @@ class Financial {
                 'reference_type' => 'installment',
                 'reference_id' => $installmentId,
                 'payment_method' => $data['payment_method'] ?? null,
-                'is_confirmed' => $isGateway ? 1 : 0,
+                'is_confirmed' => 0,
                 'user_id' => $data['user_id'] ?? null,
             ]);
         }
@@ -339,32 +396,66 @@ class Financial {
         $s2 = $this->conn->prepare($q2);
         $s2->execute([':uid' => $userId, ':rid' => $installmentId]);
 
+        // Recalcular payment_status do pedido
+        $q3 = "SELECT order_id FROM order_installments WHERE id = :id";
+        $s3 = $this->conn->prepare($q3);
+        $s3->execute([':id' => $installmentId]);
+        $row = $s3->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $this->updateOrderPaymentStatus($row['order_id']);
+        }
+
         return true;
     }
 
     /**
      * Cancela/estorna uma parcela
      */
-    public function cancelInstallment($installmentId) {
+    public function cancelInstallment($installmentId, $userId = null) {
+        // Buscar dados da parcela ANTES de limpar (para registrar o estorno)
+        $q0 = "SELECT oi.order_id, oi.paid_amount, oi.amount, oi.payment_method, oi.installment_number
+               FROM order_installments oi WHERE oi.id = :id";
+        $s0 = $this->conn->prepare($q0);
+        $s0->execute([':id' => $installmentId]);
+        $parcelaAntes = $s0->fetch(PDO::FETCH_ASSOC);
+
         $q = "UPDATE order_installments SET
                 status = 'pendente',
                 paid_date = NULL,
                 paid_amount = NULL,
+                payment_method = NULL,
                 is_confirmed = 0,
                 confirmed_by = NULL,
-                confirmed_at = NULL,
-                gateway_reference = NULL
+                confirmed_at = NULL
               WHERE id = :id";
         $s = $this->conn->prepare($q);
         $s->execute([':id' => $installmentId]);
 
-        // Buscar order_id e atualizar
-        $q2 = "SELECT order_id FROM order_installments WHERE id = :id";
-        $s2 = $this->conn->prepare($q2);
-        $s2->execute([':id' => $installmentId]);
-        $row = $s2->fetch(PDO::FETCH_ASSOC);
-        if ($row) {
-            $this->updateOrderPaymentStatus($row['order_id']);
+        if ($parcelaAntes) {
+            $this->updateOrderPaymentStatus($parcelaAntes['order_id']);
+
+            // Registrar estorno no livro caixa (financial_transactions)
+            $valorEstorno = (float)($parcelaAntes['paid_amount'] ?? $parcelaAntes['amount']);
+            if ($valorEstorno > 0) {
+                $this->addTransaction([
+                    'type' => 'saida',
+                    'category' => 'estorno_pagamento',
+                    'description' => "Estorno parcela {$parcelaAntes['installment_number']} - Pedido #{$parcelaAntes['order_id']}",
+                    'amount' => $valorEstorno,
+                    'transaction_date' => date('Y-m-d'),
+                    'reference_type' => 'installment',
+                    'reference_id' => $installmentId,
+                    'payment_method' => $parcelaAntes['payment_method'] ?? null,
+                    'is_confirmed' => 1,
+                    'user_id' => $userId,
+                ]);
+            }
+
+            // Remover a transação de entrada original (ou marcar como cancelada)
+            $qDel = "DELETE FROM financial_transactions 
+                     WHERE reference_type = 'installment' AND reference_id = :rid AND type = 'entrada'";
+            $sDel = $this->conn->prepare($qDel);
+            $sDel->execute([':rid' => $installmentId]);
         }
 
         return true;
@@ -410,6 +501,44 @@ class Financial {
               WHERE status = 'pendente' AND due_date < CURDATE()";
         $s = $this->conn->prepare($q);
         return $s->execute();
+    }
+
+    /**
+     * Busca uma parcela pelo ID
+     */
+    public function getInstallmentById($id) {
+        $q = "SELECT oi.*, o.payment_method as order_payment_method, c.name as customer_name
+              FROM order_installments oi
+              JOIN orders o ON oi.order_id = o.id
+              LEFT JOIN customers c ON o.customer_id = c.id
+              WHERE oi.id = :id";
+        $s = $this->conn->prepare($q);
+        $s->execute([':id' => $id]);
+        return $s->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Salva o caminho do comprovante (attachment) em uma parcela
+     */
+    public function saveAttachment($installmentId, $path) {
+        $q = "UPDATE order_installments SET attachment_path = :path, updated_at = NOW() WHERE id = :id";
+        $s = $this->conn->prepare($q);
+        return $s->execute([':path' => $path, ':id' => $installmentId]);
+    }
+
+    /**
+     * Remove o comprovante de uma parcela
+     */
+    public function removeAttachment($installmentId) {
+        // Buscar caminho atual
+        $q = "SELECT attachment_path FROM order_installments WHERE id = :id";
+        $s = $this->conn->prepare($q);
+        $s->execute([':id' => $installmentId]);
+        $row = $s->fetch(PDO::FETCH_ASSOC);
+        if ($row && !empty($row['attachment_path']) && file_exists($row['attachment_path'])) {
+            unlink($row['attachment_path']);
+        }
+        return $this->saveAttachment($installmentId, null);
     }
 
     /**
@@ -544,6 +673,7 @@ class Financial {
                 'outra_entrada' => 'Outra Entrada',
             ],
             'saida' => [
+                'estorno_pagamento' => 'Estorno de Pagamento',
                 'material' => 'Compra de Material',
                 'salario' => 'Salários',
                 'aluguel' => 'Aluguel',

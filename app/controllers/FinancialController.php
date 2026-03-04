@@ -51,6 +51,13 @@ class FinancialController {
         if (!empty($_GET['filter_year']))  $filters['year']  = $_GET['filter_year'];
 
         $orders = $this->financial->getOrdersWithInstallments($filters);
+        $installments = $this->financial->getAllInstallments($filters);
+
+        // Carregar dados bancários da empresa (para geração de boletos FEBRABAN)
+        require_once 'app/models/CompanySettings.php';
+        $companySettings = new CompanySettings($this->db);
+        $company = $companySettings->getAll();
+        $companyAddress = $companySettings->getFormattedAddress();
 
         require 'app/views/layout/header.php';
         require 'app/views/financial/payments.php';
@@ -151,10 +158,26 @@ class FinancialController {
             'paid_date' => $_POST['paid_date'] ?? date('Y-m-d'),
             'paid_amount' => (float)($_POST['paid_amount'] ?? 0),
             'payment_method' => $_POST['payment_method'] ?? 'dinheiro',
-            'gateway_reference' => $_POST['gateway_reference'] ?? null,
             'notes' => $_POST['notes'] ?? null,
             'user_id' => $_SESSION['user_id'] ?? null,
+            'attachment_path' => null,
         ];
+
+        // Handle file upload (comprovante)
+        if (!empty($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = TenantManager::getTenantUploadBase() . 'comprovantes/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+            $ext = strtolower(pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+            if (in_array($ext, $allowed)) {
+                $filename = 'comprovante_' . $installmentId . '_' . time() . '.' . $ext;
+                $filepath = $uploadDir . $filename;
+                if (move_uploaded_file($_FILES['attachment']['tmp_name'], $filepath)) {
+                    $data['attachment_path'] = $filepath;
+                }
+            }
+        }
 
         $this->financial->payInstallment($installmentId, $data);
 
@@ -166,7 +189,8 @@ class FinancialController {
         }
 
         $_SESSION['flash_success'] = 'Pagamento registrado com sucesso!';
-        header("Location: ?page=financial&action=installments&order_id=$orderId");
+        $redirect = $_POST['redirect'] ?? "?page=financial&action=payments";
+        header("Location: $redirect");
         exit;
     }
 
@@ -205,7 +229,8 @@ class FinancialController {
         }
 
         $installmentId = $_POST['installment_id'] ?? 0;
-        $this->financial->cancelInstallment($installmentId);
+        $userId = $_SESSION['user_id'] ?? null;
+        $this->financial->cancelInstallment($installmentId, $userId);
 
         if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
             echo json_encode(['success' => true]);
@@ -213,8 +238,77 @@ class FinancialController {
         }
 
         $_SESSION['flash_success'] = 'Parcela estornada com sucesso!';
-        $orderId = $_POST['order_id'] ?? 0;
-        header("Location: ?page=financial&action=installments&order_id=$orderId");
+        $redirect = $_POST['redirect'] ?? '?page=financial&action=payments';
+        header("Location: $redirect");
+        exit;
+    }
+
+    /**
+     * Upload de comprovante para uma parcela existente (POST + arquivo)
+     */
+    public function uploadAttachment() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=financial&action=payments');
+            exit;
+        }
+
+        $installmentId = $_POST['installment_id'] ?? 0;
+        if (!$installmentId) {
+            $_SESSION['flash_error'] = 'Parcela não informada.';
+            header('Location: ?page=financial&action=payments');
+            exit;
+        }
+
+        if (!empty($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = TenantManager::getTenantUploadBase() . 'comprovantes/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+            $ext = strtolower(pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+            if (!in_array($ext, $allowed)) {
+                $_SESSION['flash_error'] = 'Tipo de arquivo não permitido. Envie JPG, PNG, WEBP, GIF ou PDF.';
+                header('Location: ' . ($_POST['redirect'] ?? '?page=financial&action=payments'));
+                exit;
+            }
+
+            $filename = 'comprovante_' . $installmentId . '_' . time() . '.' . $ext;
+            $filepath = $uploadDir . $filename;
+
+            // Remover anterior se existir
+            $this->financial->removeAttachment($installmentId);
+
+            if (move_uploaded_file($_FILES['attachment']['tmp_name'], $filepath)) {
+                $this->financial->saveAttachment($installmentId, $filepath);
+                $_SESSION['flash_success'] = 'Comprovante anexado com sucesso!';
+            } else {
+                $_SESSION['flash_error'] = 'Erro ao fazer upload do comprovante.';
+            }
+        } else {
+            $_SESSION['flash_error'] = 'Nenhum arquivo enviado.';
+        }
+
+        $redirect = $_POST['redirect'] ?? '?page=financial&action=payments';
+        header("Location: $redirect");
+        exit;
+    }
+
+    /**
+     * Remove o comprovante de uma parcela
+     */
+    public function removeAttachment() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=financial&action=payments');
+            exit;
+        }
+
+        $installmentId = $_POST['installment_id'] ?? 0;
+        if ($installmentId) {
+            $this->financial->removeAttachment($installmentId);
+            $_SESSION['flash_success'] = 'Comprovante removido.';
+        }
+
+        $redirect = $_POST['redirect'] ?? '?page=financial&action=payments';
+        header("Location: $redirect");
         exit;
     }
 
@@ -232,10 +326,11 @@ class FinancialController {
         $transactions = $this->financial->getTransactions($filters);
         $categories = Financial::getCategories();
 
-        // Calcular totais filtrados
+        // Calcular totais filtrados (estornos não contam nos totais)
         $totalEntradas = 0;
         $totalSaidas = 0;
         foreach ($transactions as $t) {
+            if (($t['category'] ?? '') === 'estorno_pagamento') continue;
             if ($t['type'] === 'entrada' && $t['is_confirmed']) $totalEntradas += $t['amount'];
             if ($t['type'] === 'saida' && $t['is_confirmed'])   $totalSaidas += $t['amount'];
         }

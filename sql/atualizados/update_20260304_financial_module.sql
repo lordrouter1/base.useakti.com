@@ -1,18 +1,33 @@
 -- ============================================================================
--- MIGRATION: Módulo Financeiro - Controle de Pagamentos e Parcelas
+-- UPDATE: update_20260304_financial_module.sql
+-- Descrição: Módulo Financeiro - Controle de Pagamentos e Parcelas
 -- Data: 2026-03-04
+-- Autor: Sistema Akti
 -- ============================================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- 0. Corrigir ENUM duplicado na coluna 'status' da tabela orders
+--    ('pendente' e 'Pendente' são duplicados em MySQL — case-insensitive)
+--    Também converte eventuais registros 'Pendente' para 'pendente'.
+UPDATE `orders` SET `status` = 'pendente' WHERE `status` = 'Pendente';
+ALTER TABLE `orders`
+    MODIFY COLUMN `status` ENUM('orcamento','pendente','aprovado','em_producao','concluido','cancelado') DEFAULT 'orcamento';
+
+-- 0b. Adicionar 'cancelado' ao ENUM pipeline_stage (se ausente)
+ALTER TABLE `orders`
+    MODIFY COLUMN `pipeline_stage` ENUM('contato','orcamento','venda','producao','preparacao','envio','financeiro','concluido','cancelado') DEFAULT 'contato';
+
 -- 1. Adicionar colunas faltantes na tabela orders
 ALTER TABLE `orders`
-    ADD COLUMN IF NOT EXISTS `down_payment` decimal(10,2) DEFAULT 0.00 AFTER `discount`,
-    ADD COLUMN IF NOT EXISTS `nf_number` varchar(20) DEFAULT NULL AFTER `stock_warehouse_id`,
-    ADD COLUMN IF NOT EXISTS `nf_series` varchar(5) DEFAULT NULL AFTER `nf_number`,
-    ADD COLUMN IF NOT EXISTS `nf_status` enum('nao_emitida','emitida','cancelada') DEFAULT 'nao_emitida' AFTER `nf_series`,
-    ADD COLUMN IF NOT EXISTS `nf_access_key` varchar(50) DEFAULT NULL AFTER `nf_status`,
-    ADD COLUMN IF NOT EXISTS `nf_notes` text DEFAULT NULL AFTER `nf_access_key`;
+    ADD COLUMN IF NOT EXISTS `down_payment` decimal(10,2) DEFAULT 0.00 AFTER `discount`;
+
+ALTER TABLE `orders`
+    ADD COLUMN IF NOT EXISTS `nf_number` varchar(20) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS `nf_series` varchar(5) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS `nf_status` enum('nao_emitida','emitida','cancelada') DEFAULT 'nao_emitida',
+    ADD COLUMN IF NOT EXISTS `nf_access_key` varchar(50) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS `nf_notes` text DEFAULT NULL;
 
 -- 2. Tabela de parcelas individuais de pedidos
 DROP TABLE IF EXISTS `order_installments`;
@@ -29,8 +44,8 @@ CREATE TABLE `order_installments` (
   `is_confirmed` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1=confirmado manualmente, 0=aguardando confirmação',
   `confirmed_by` int(11) DEFAULT NULL COMMENT 'Usuário que confirmou',
   `confirmed_at` datetime DEFAULT NULL,
-  `gateway_reference` varchar(255) DEFAULT NULL COMMENT 'Referência do gateway (se pago online)',
   `notes` text DEFAULT NULL,
+  `attachment_path` varchar(500) DEFAULT NULL COMMENT 'Caminho do comprovante anexado',
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),

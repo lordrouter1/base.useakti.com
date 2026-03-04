@@ -262,7 +262,7 @@ class UserController {
 
     private function checkAdmin() {
         if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-            header('Location: ?page=dashboard&error=acesso_negado');
+            header('Location: ?page=home&error=acesso_negado');
             exit;
         }
     }

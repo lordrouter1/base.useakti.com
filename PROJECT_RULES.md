@@ -532,6 +532,23 @@ Toda alteração que envolva o banco de dados (criação, modificação ou remo�
 - **Criar nova tabela:** `CREATE TABLE logs (id INT AUTO_INCREMENT PRIMARY KEY, message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`
 - **Atualizar dados existentes:** `UPDATE users SET is_active = 1 WHERE last_login > '2023-01-01';`
 
+### Padrão de Nomenclatura de Migrations
+- **Formato obrigatório:** `update_YYYYMMDD_descricao_curta.sql`
+- **Exemplos:** `update_20260304_financial_module.sql`, `update_20260302_tenant_limits.sql`
+- **Nunca** usar prefixos como `migration_`, `alter_`, `fix_`. Sempre `update_`.
+- **Cabeçalho obrigatório** no arquivo SQL:
+  ```sql
+  -- ============================================================================
+  -- UPDATE: update_YYYYMMDD_descricao.sql
+  -- Descrição: Descrição clara da alteração
+  -- Data: YYYY-MM-DD
+  -- Autor: Nome ou Sistema Akti
+  -- ============================================================================
+  ```
+- Sempre incluir `SET FOREIGN_KEY_CHECKS = 0;` no início e `SET FOREIGN_KEY_CHECKS = 1;` ao final quando houver tabelas com FK.
+- Usar `IF NOT EXISTS` / `IF EXISTS` sempre que possível para tornar a migration idempotente.
+- Usar `ADD COLUMN IF NOT EXISTS` e `DROP TABLE IF EXISTS` para evitar erros em execuções repetidas.
+
 ### Boas Práticas
 - Nomear arquivos de atualização com data e descrição resumida da mudança (ex: `update_20231010_add_column_new_feature.sql`).
 - Incluir sempre um `README.md` na pasta `/sql` explicando como aplicar as atualizações.
@@ -551,3 +568,74 @@ Para aplicar uma atualização:
 |------|---------|-----------|
 | 02/03/2026 | `update_20260302_tenant_limits.sql` | Adição de colunas de limite no banco master |
 | 03/03/2026 | `update_20260303_walkthrough.sql` | Tabela `user_walkthrough` para tour guiado de primeiro acesso |
+| 04/03/2026 | `update_20260304_financial_module.sql` | Módulo financeiro: tabelas `order_installments`, `financial_transactions`, colunas NF-e |
+
+## Módulo: Financeiro (Pagamentos e Parcelas)
+
+### Conceito
+O módulo financeiro controla o ciclo de pagamento dos pedidos. A **geração de parcelas** acontece no pipeline (detalhe do pedido), e o módulo financeiro se concentra em:
+- **Dashboard** com indicadores financeiros (receita, recebido, a receber, atrasados)
+- **Confirmação de pagamentos** — fluxo simples onde o operador registra e confirma recebimentos
+- **Entradas e saídas** — registro manual de transações financeiras diversas (despesas fixas, compras, etc.)
+
+### Princípio: Simplicidade
+- As parcelas já vêm definidas pelo pipeline (card financeiro no `detail.php`)
+- No módulo financeiro, o operador **apenas confirma** os pagamentos
+- Nunca gerar parcelas a partir do módulo financeiro — isso é responsabilidade do pipeline
+- O fluxo deve ser: ver lista → clicar em "Parcelas" → registrar pagamento → confirmar
+- Todas as ações usam **SweetAlert2** para feedback e confirmação visual
+
+### Fluxo de Pagamento
+1. **Pipeline (`detail.php`):** O operador define forma de pagamento, parcelamento e entrada. As parcelas são geradas automaticamente.
+2. **Financeiro > Pagamentos (`payments.php`):** Lista todos os pedidos com seus status de pagamento. O operador clica em "Parcelas" para ver detalhes.
+3. **Financeiro > Parcelas (`installments.php`):** Mostra todas as parcelas do pedido. O operador pode:
+   - **Registrar pagamento** (abre modal com data, valor e método)
+   - **Confirmar** pagamento já registrado
+   - **Estornar** um pagamento (reverte para pendente)
+4. O `payment_status` do pedido (`orders.payment_status`) é atualizado automaticamente conforme as parcelas são pagas/confirmadas.
+
+### Tabelas no Banco de Dados
+- `order_installments` — Parcelas individuais de cada pedido (geradas pelo pipeline)
+- `financial_transactions` — Log de transações financeiras (entradas/saídas manuais + automáticas)
+- `orders` — Colunas adicionadas: `down_payment`, `nf_number`, `nf_series`, `nf_status`, `nf_access_key`, `nf_notes`
+
+### Regras de Negócio
+- Parcela com `is_confirmed = 0` e `status = 'pago'` está aguardando confirmação manual
+- Parcela com `is_confirmed = 1` e `status = 'pago'` está totalmente confirmada
+- O `payment_status` do pedido é calculado automaticamente: `pendente` (nenhuma paga), `parcial` (algumas pagas), `pago` (todas confirmadas)
+- Parcelas vencidas (`due_date < hoje`) com status `pendente` são automaticamente marcadas como `atrasado`
+- Ao registrar pagamento, uma transação financeira é criada automaticamente na tabela `financial_transactions`
+- Ao estornar, a parcela volta para `pendente` e os dados de pagamento são limpos
+
+### Padrão Visual (UI)
+- **Cards de resumo:** Seguem o mesmo padrão do Dashboard — `card border-0 shadow-sm border-start border-{cor} border-4` com ícone circular
+- **Tabelas:** `table-responsive bg-white rounded shadow-sm` com `table-hover align-middle`
+- **Badges de status:** cores padronizadas (warning=pendente, success=pago, danger=atrasado, secondary=cancelado)
+- **Modais:** Bootstrap 5 modals com header colorido (`bg-success bg-opacity-10`) e footer sem borda
+- **SweetAlert2:** Obrigatório para todas as confirmações e feedbacks. Nunca usar `confirm()` ou `alert()` nativo
+- **Filtros:** Linha de selects compactos (`form-select-sm`) com botão Filtrar e botão limpar (X)
+
+### Arquivos do Módulo
+- `sql/update_20260304_financial_module.sql` — Migration (tabelas + colunas)
+- `app/models/Financial.php` — Model com métodos de consulta, geração de parcelas, confirmação, estorno
+- `app/controllers/FinancialController.php` — Controller com actions: index, payments, installments, payInstallment, confirmPayment, cancelInstallment, transactions, addTransaction, deleteTransaction
+- `app/views/financial/index.php` — Dashboard financeiro (cards + gráfico + alertas)
+- `app/views/financial/payments.php` — Lista de pedidos com status de pagamento
+- `app/views/financial/installments.php` — Parcelas de um pedido (confirmação simples)
+- `app/views/financial/transactions.php` — Entradas e saídas manuais
+- `app/config/menu.php` — Grupo "Fiscal" com links para dashboard, pagamentos e transações
+
+### Actions do Módulo (`?page=financial`)
+| Action | Método | Descrição |
+|--------|--------|-----------|
+| `index` (default) | GET | Dashboard financeiro |
+| `payments` | GET | Lista de pedidos com pagamento |
+| `installments` | GET | Parcelas de um pedido (`&order_id=X`) |
+| `payInstallment` | POST | Registra pagamento de uma parcela |
+| `confirmPayment` | POST | Confirma pagamento manualmente |
+| `cancelInstallment` | POST | Estorna pagamento de uma parcela |
+| `transactions` | GET | Lista de entradas e saídas |
+| `addTransaction` | POST | Registra nova transação manual |
+| `deleteTransaction` | POST | Exclui transação manual |
+| `getSummaryJson` | GET | API JSON com resumo (para widgets) |
+| `getInstallmentsJson` | GET | API JSON com parcelas de um pedido |

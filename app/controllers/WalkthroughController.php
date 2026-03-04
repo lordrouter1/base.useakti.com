@@ -186,65 +186,75 @@ class WalkthroughController {
             'type' => 'highlight',
             'element' => '#navbarNav .navbar-nav:first-of-type',
             'title' => '<i class="fas fa-compass me-1"></i> Menu Principal',
-            'description' => 'Este é o <strong>menu de navegação</strong> do sistema. Os itens são organizados em <strong>grupos</strong> (Comercial, Catálogo, Produção).<br><br>O menu se adapta automaticamente às suas <strong>permissões</strong> — você só vê as áreas que pode acessar.',
+            'description' => 'Este é o <strong>menu de navegação</strong> do sistema. Os itens são organizados em <strong>grupos</strong> (Comercial, Catálogo, Produção, Fiscal).<br><br>Para voltar à <strong>página inicial</strong>, basta clicar na <strong>logo</strong> do Akti no canto superior esquerdo.<br><br>O menu se adapta automaticamente às suas <strong>permissões</strong>.',
             'position' => 'bottom',
-            'page' => 'dashboard'
+            'page' => 'home'
         ];
 
-        // ── Dashboard ──
+        // ── Página Inicial (Home unificada) ──
         $steps[] = [
-            'id' => 'dashboard',
+            'id' => 'home_page',
             'type' => 'highlight',
-            'element' => 'main.main-bg',
-            'title' => '<i class="fas fa-tachometer-alt me-1"></i> Dashboard — Visão Geral',
-            'description' => 'O <strong>Dashboard</strong> é sua página inicial. Aqui você acompanha em tempo real:<br><br>• <strong>Resumo de pedidos</strong> por status<br>• <strong>Faturamento</strong> do período<br>• <strong>Pipeline</strong> com a distribuição de pedidos<br>• <strong>Alertas</strong> de prazos e pendências',
-            'position' => 'bottom',
-            'page' => 'dashboard'
+            'element' => '#home-cards-summary',
+            'title' => '<i class="fas fa-home me-1"></i> Página Inicial — Resumo',
+            'description' => 'A <strong>Página Inicial</strong> reúne tudo em um só lugar:<br><br>• <strong>Cards de resumo</strong> — pedidos ativos, criados hoje, atrasados e concluídos no mês<br>• <strong>Pipeline visual</strong> — distribuição dos pedidos por etapa<br>• <strong>Resumo financeiro</strong> — recebido, a receber, atrasos<br>• <strong>Atalhos rápidos</strong> no topo — criar pedido, cliente, acessar pipeline e pagamentos<br><br>Clique nos cards para ir direto à área correspondente.',
+            'position' => 'bottom-end',
+            'page' => 'home'
         ];
 
-        // ── Submenu Comercial — destacar o dropdown aberto ──
+        // ── Atalhos rápidos ──
+        $steps[] = [
+            'id' => 'home_shortcuts',
+            'type' => 'highlight',
+            'element' => '#home-shortcuts',
+            'title' => '<i class="fas fa-bolt me-1"></i> Atalhos Rápidos',
+            'description' => 'No topo da página inicial ficam os <strong>atalhos rápidos</strong> para as ações mais usadas:<br><br>• <strong>Novo Pedido</strong> — cria um pedido direto<br>• <strong>Novo Cliente</strong> — cadastra um cliente<br>• <strong>Pipeline</strong> — abre o quadro Kanban<br>• <strong>Pagamentos</strong> — acessa as parcelas',
+            'position' => 'bottom-end',
+            'page' => 'home'
+        ];
+
+        // ── Submenu Comercial ──
         $hasComercial = $isAdmin || in_array('orders', $permissions) || in_array('customers', $permissions);
         if ($hasComercial) {
-            // Mostrar o submenu Comercial aberto, destacando os itens dentro
             $steps[] = [
                 'id' => 'menu_comercial',
                 'type' => 'highlight',
                 'element' => '[data-wt-menu="comercial"]',
                 'submenu' => '[data-wt-toggle="comercial"]',
                 'title' => '<i class="fas fa-briefcase me-1"></i> Menu Comercial',
-                'description' => 'O grupo <strong>Comercial</strong> contém os módulos de:<br><br>• <strong>Clientes</strong> — cadastro e gestão<br>• <strong>Pedidos</strong> — criação e acompanhamento<br>• <strong>Agenda de Contatos</strong> — follow-ups<br>• <strong>Tabelas de Preço</strong> — preços diferenciados<br><br>Vamos navegar por cada área!',
+                'description' => 'O grupo <strong>Comercial</strong> contém os módulos de:<br><br>• <strong>Clientes</strong> — cadastro completo com foto, endereço, CPF/CNPJ e tabela de preço vinculada<br>• <strong>Pedidos</strong> — criação e acompanhamento de vendas e orçamentos<br>• <strong>Agenda de Contatos</strong> — follow-ups agendados com clientes<br>• <strong>Tabelas de Preço</strong> — preços diferenciados por grupo de cliente<br><br>Vamos navegar por cada área!',
                 'position' => 'bottom',
-                'page' => 'dashboard'
+                'page' => 'home'
             ];
         }
 
-        // ── Pedidos (navega para a página) ──
+        // ── Pedidos ──
         if ($isAdmin || in_array('orders', $permissions)) {
             $steps[] = [
                 'id' => 'orders_page',
                 'type' => 'highlight',
                 'element' => 'main.main-bg',
                 'title' => '<i class="fas fa-shopping-cart me-1"></i> Pedidos',
-                'description' => 'Aqui você gerencia <strong>todos os pedidos</strong> do sistema:<br><br>• Crie novos pedidos com o botão <em>"Novo Pedido"</em><br>• Acompanhe o <strong>status</strong> de cada pedido<br>• Veja <strong>valores, prazos e prioridades</strong><br>• Cada pedido percorre as etapas: <em>Contato → Orçamento → Venda → Produção → Envio → Concluído</em>',
-                'position' => 'top',
+                'description' => 'Aqui você gerencia <strong>todos os pedidos</strong> do sistema:<br><br>• Crie novos pedidos com o botão <em>"Novo Pedido"</em><br>• Acompanhe <strong>status, valores, prazos e prioridades</strong><br>• Adicione <strong>produtos com grades</strong> (tamanho, cor, material)<br>• Configure <strong>frete, desconto e forma de pagamento</strong><br>• Gere <strong>links públicos</strong> para o cliente visualizar orçamentos<br>• Cada pedido percorre: <em>Contato → Orçamento → Venda → Produção → Preparação → Envio → Financeiro → Concluído</em>',
+                'position' => 'bottom-end',
                 'page' => 'orders'
             ];
         }
 
-        // ── Clientes (navega para a página) ──
+        // ── Clientes ──
         if ($isAdmin || in_array('customers', $permissions)) {
             $steps[] = [
                 'id' => 'customers_page',
                 'type' => 'highlight',
                 'element' => 'main.main-bg',
                 'title' => '<i class="fas fa-users me-1"></i> Clientes',
-                'description' => 'Gerencie sua <strong>base de clientes</strong> completa:<br><br>• Cadastre com <strong>nome, email, telefone, CPF/CNPJ</strong><br>• Vincule uma <strong>tabela de preço</strong> específica<br>• Acesse o <strong>histórico de pedidos</strong> do cliente<br>• Adicione <strong>foto</strong> e <strong>endereço completo</strong>',
-                'position' => 'top',
+                'description' => 'Gerencie sua <strong>base de clientes</strong> completa:<br><br>• Cadastre com <strong>nome, email, telefone, CPF/CNPJ</strong><br>• Vincule uma <strong>tabela de preço</strong> específica<br>• Acesse o <strong>histórico de pedidos</strong> do cliente<br>• Adicione <strong>foto</strong> e <strong>endereço completo</strong> (usado em boletos e notas)',
+                'position' => 'bottom-end',
                 'page' => 'customers'
             ];
         }
 
-        // ── Submenu Catálogo — destacar o dropdown aberto ──
+        // ── Submenu Catálogo ──
         $hasCatalogo = $isAdmin || in_array('products', $permissions) || in_array('stock', $permissions);
         if ($hasCatalogo) {
             $steps[] = [
@@ -253,39 +263,39 @@ class WalkthroughController {
                 'element' => '[data-wt-menu="catalogo"]',
                 'submenu' => '[data-wt-toggle="catalogo"]',
                 'title' => '<i class="fas fa-box-open me-1"></i> Menu Catálogo',
-                'description' => 'O grupo <strong>Catálogo</strong> contém:<br><br>• <strong>Produtos</strong> — cadastro com fotos, grades e dados fiscais<br>• <strong>Categorias</strong> — organização em categorias e subcategorias<br>• <strong>Controle de Estoque</strong> — multi-armazém',
+                'description' => 'O grupo <strong>Catálogo</strong> contém:<br><br>• <strong>Produtos</strong> — cadastro com fotos, grades, dados fiscais e setores<br>• <strong>Categorias</strong> — organização em categorias e subcategorias com grades herdáveis<br>• <strong>Controle de Estoque</strong> — multi-armazém com entradas, saídas e transferências',
                 'position' => 'bottom',
-                'page' => 'dashboard'
+                'page' => 'home'
             ];
         }
 
-        // ── Produtos (navega para a página) ──
+        // ── Produtos ──
         if ($isAdmin || in_array('products', $permissions)) {
             $steps[] = [
                 'id' => 'products_page',
                 'type' => 'highlight',
                 'element' => 'main.main-bg',
                 'title' => '<i class="fas fa-box-open me-1"></i> Produtos',
-                'description' => 'O catálogo completo dos seus <strong>produtos</strong>:<br><br>• Cadastre com <strong>fotos, preço, categorias</strong><br>• Configure <strong>grades</strong> (tamanho, cor, material)<br>• Adicione <strong>dados fiscais</strong> para NF-e<br>• Vincule <strong>setores de produção</strong><br>• Ative <strong>controle de estoque</strong> por produto',
-                'position' => 'top',
+                'description' => 'O catálogo completo dos seus <strong>produtos</strong>:<br><br>• Cadastre com <strong>fotos múltiplas</strong> (JPG, PNG, WebP, GIF)<br>• Configure <strong>grades</strong> (tamanho, cor, material) com combinações automáticas<br>• Adicione <strong>dados fiscais</strong> (NCM, CFOP, CSTs, alíquotas) para NF-e<br>• Vincule <strong>setores de produção</strong> ao produto<br>• Ative <strong>controle de estoque</strong> por produto<br>• Importe produtos em lote via <strong>planilha CSV</strong>',
+                'position' => 'bottom-end',
                 'page' => 'products'
             ];
         }
 
-        // ── Estoque (navega para a página) ──
+        // ── Estoque ──
         if ($isAdmin || in_array('stock', $permissions)) {
             $steps[] = [
                 'id' => 'stock_page',
                 'type' => 'highlight',
                 'element' => 'main.main-bg',
                 'title' => '<i class="fas fa-warehouse me-1"></i> Estoque',
-                'description' => 'Controle de <strong>estoque multi-armazém</strong>:<br><br>• Crie <strong>armazéns</strong> (Estoque Principal, Loja, Depósito)<br>• Registre <strong>entradas e saídas</strong><br>• Faça <strong>transferências</strong> entre armazéns<br>• Produtos com estoque podem <strong>pular a produção</strong>',
-                'position' => 'top',
+                'description' => 'Controle de <strong>estoque multi-armazém</strong>:<br><br>• Crie <strong>armazéns</strong> (Estoque Principal, Loja, Depósito)<br>• Registre <strong>entradas e saídas</strong> com observações<br>• Faça <strong>transferências</strong> entre armazéns<br>• Configure <strong>estoque mínimo</strong> e receba alertas<br>• Defina <strong>localização física</strong> dos itens (ex: A1-P3)<br>• Produtos com estoque podem <strong>pular a produção</strong> no pipeline',
+                'position' => 'bottom-end',
                 'page' => 'stock'
             ];
         }
 
-        // ── Submenu Produção — destacar o dropdown aberto ──
+        // ── Submenu Produção ──
         $hasProducao = $isAdmin || in_array('pipeline', $permissions) || in_array('sectors', $permissions);
         if ($hasProducao) {
             $steps[] = [
@@ -294,47 +304,88 @@ class WalkthroughController {
                 'element' => '[data-wt-menu="producao"]',
                 'submenu' => '[data-wt-toggle="producao"]',
                 'title' => '<i class="fas fa-industry me-1"></i> Menu Produção',
-                'description' => 'O grupo <strong>Produção</strong> contém:<br><br>• <strong>Linha de Produção</strong> — pipeline Kanban<br>• <strong>Painel de Produção</strong> — visão detalhada<br>• <strong>Setores</strong> — organização da fábrica',
+                'description' => 'O grupo <strong>Produção</strong> contém:<br><br>• <strong>Linha de Produção</strong> — pipeline Kanban com arrastar e soltar<br>• <strong>Painel de Produção</strong> — visão detalhada para o chão de fábrica<br>• <strong>Setores</strong> — organização da fábrica (Costura, Corte, Estamparia, etc.)',
                 'position' => 'bottom',
-                'page' => 'dashboard'
+                'page' => 'home'
             ];
         }
 
-        // ── Pipeline (navega para a página) ──
+        // ── Pipeline ──
         if ($isAdmin || in_array('pipeline', $permissions)) {
             $steps[] = [
                 'id' => 'pipeline_page',
                 'type' => 'highlight',
                 'element' => 'main.main-bg',
                 'title' => '<i class="fas fa-stream me-1"></i> Pipeline de Produção',
-                'description' => 'O <strong>Pipeline</strong> é um quadro visual <strong>Kanban</strong> que mostra todos os pedidos organizados por etapa:<br><br>• Cada <strong>coluna</strong> é uma etapa do processo<br>• Cada <strong>card</strong> é um pedido<br>• <strong>Arraste os cards</strong> entre colunas para mover pedidos<br>• Pedidos atrasados ficam <strong>destacados em vermelho</strong>',
-                'position' => 'top',
+                'description' => 'O <strong>Pipeline</strong> é um quadro visual <strong>Kanban</strong>:<br><br>• Cada <strong>coluna</strong> = uma etapa do processo<br>• Cada <strong>card</strong> = um pedido com info resumida<br>• <strong>Arraste os cards</strong> entre colunas para mover pedidos<br>• Pedidos atrasados ficam <strong>destacados em vermelho</strong><br>• Clique no card para ver <strong>detalhes completos</strong> do pedido<br>• Metas de tempo por etapa são configuráveis',
+                'position' => 'bottom-end',
                 'page' => 'pipeline'
             ];
         }
 
-        // ── Setores (navega para a página) ──
+        // ── Setores ──
         if ($isAdmin || in_array('sectors', $permissions)) {
             $steps[] = [
                 'id' => 'sectors_page',
                 'type' => 'highlight',
                 'element' => 'main.main-bg',
                 'title' => '<i class="fas fa-industry me-1"></i> Setores de Produção',
-                'description' => 'Organize sua <strong>linha produtiva</strong> por setores:<br><br>• Crie setores como <em>Costura, Corte, Estamparia</em><br>• Vincule setores a <strong>produtos</strong> ou <strong>categorias</strong><br>• No pipeline, acompanhe o progresso <strong>setor a setor</strong>',
-                'position' => 'top',
+                'description' => 'Organize sua <strong>linha produtiva</strong> por setores:<br><br>• Crie setores como <em>Costura, Corte, Estamparia, Embalagem</em><br>• Vincule setores a <strong>produtos</strong>, <strong>categorias</strong> ou <strong>subcategorias</strong><br>• No pipeline, acompanhe o progresso <strong>setor a setor</strong><br>• Defina a <strong>ordem</strong> dos setores na linha de produção',
+                'position' => 'bottom-end',
                 'page' => 'sectors'
             ];
         }
 
-        // ── Configurações (navega para a página) ──
+        // ── Submenu Fiscal ──
+        $hasFinancial = $isAdmin || in_array('financial', $permissions);
+        if ($hasFinancial) {
+            $steps[] = [
+                'id' => 'menu_fiscal',
+                'type' => 'highlight',
+                'element' => '[data-wt-menu="fiscal"]',
+                'submenu' => '[data-wt-toggle="fiscal"]',
+                'title' => '<i class="fas fa-coins me-1"></i> Menu Fiscal',
+                'description' => 'O grupo <strong>Fiscal</strong> contém o módulo financeiro completo:<br><br>• <strong>Pagamentos</strong> — controle de parcelas, boletos, comprovantes e confirmações<br>• <strong>Entradas / Saídas</strong> — livro caixa com registro de todas as transações<br><br>Estornos ficam registrados para auditoria mas <strong>não afetam os cálculos</strong> de saldo.',
+                'position' => 'bottom',
+                'page' => 'home'
+            ];
+        }
+
+        // ── Pagamentos (parcelas) ──
+        if ($hasFinancial) {
+            $steps[] = [
+                'id' => 'financial_payments',
+                'type' => 'highlight',
+                'element' => 'main.main-bg',
+                'title' => '<i class="fas fa-file-invoice-dollar me-1"></i> Pagamentos / Parcelas',
+                'description' => 'Gerencie <strong>todas as parcelas</strong> de todos os pedidos:<br><br>• <strong>Registrar pagamento</strong> — com forma de pagamento pré-selecionada<br>• <strong>Confirmar / Estornar</strong> — aprovação manual de pagamentos<br>• <strong>Anexar comprovante</strong> — upload de foto ou PDF<br>• <strong>Reimprimir boleto</strong> — boleto CNAB 400/FEBRABAN com código de barras<br>• Filtre por <strong>status, mês e ano</strong><br>• Parcelas ordenadas por <strong>vencimento</strong>, atrasadas em destaque<br><br><small class="text-muted">Ao clicar em "Ver parcelas" de um pedido, a listagem é apenas visualização.</small>',
+                'position' => 'bottom-end',
+                'page' => 'financial_payments'
+            ];
+        }
+
+        // ── Entradas e Saídas ──
+        if ($hasFinancial) {
+            $steps[] = [
+                'id' => 'financial_transactions',
+                'type' => 'highlight',
+                'element' => 'main.main-bg',
+                'title' => '<i class="fas fa-exchange-alt me-1"></i> Entradas e Saídas',
+                'description' => 'O <strong>livro caixa</strong> do sistema registra todas as movimentações:<br><br>• <strong>Entradas</strong> — pagamentos de pedidos, serviços avulsos, venda direta<br>• <strong>Saídas</strong> — materiais, aluguel, salários, impostos, fornecedores<br>• <strong>Estornos</strong> — ficam visíveis no registro para auditoria, mas <strong>não contam</strong> nos totais<br>• Adicione transações <strong>manualmente</strong> com "Nova Transação"<br>• Filtre por <strong>tipo, mês, ano e categoria</strong><br><br>Os totais de <strong>Entradas, Saídas e Saldo</strong> são exibidos no topo.',
+                'position' => 'bottom-end',
+                'page' => 'financial_transactions'
+            ];
+        }
+
+        // ── Configurações ──
         if ($isAdmin || in_array('settings', $permissions)) {
             $steps[] = [
                 'id' => 'settings_page',
                 'type' => 'highlight',
                 'element' => 'main.main-bg',
                 'title' => '<i class="fas fa-cog me-1"></i> Configurações',
-                'description' => 'Personalize <strong>todo o sistema</strong>:<br><br>• <strong>Dados da empresa</strong> — nome, CNPJ, logo<br>• <strong>Tabelas de preço</strong> — preços diferenciados por grupo<br>• <strong>Pipeline</strong> — metas de tempo por etapa<br>• <strong>Dados fiscais</strong> — configurações para NF-e<br>• <strong>Preparação</strong> — checklist de conferência',
-                'position' => 'top',
+                'description' => 'Personalize <strong>todo o sistema</strong>:<br><br>• <strong>Dados da empresa</strong> — nome, CNPJ, logo, endereço e telefone<br>• <strong>Tabelas de preço</strong> — preços diferenciados por grupo de cliente<br>• <strong>Pipeline</strong> — metas de tempo por etapa<br>• <strong>Dados fiscais</strong> — configurações para emissão de NF-e<br>• <strong>Boleto/Bancário</strong> — dados bancários para geração de boletos FEBRABAN<br>• <strong>Preparação</strong> — checklist de conferência antes do envio',
+                'position' => 'bottom-end',
                 'page' => 'settings'
             ];
         }
@@ -346,21 +397,21 @@ class WalkthroughController {
                 'type' => 'highlight',
                 'element' => 'main.main-bg',
                 'title' => '<i class="fas fa-user-shield me-1"></i> Usuários e Permissões',
-                'description' => 'Gerencie o <strong>acesso ao sistema</strong>:<br><br>• Cadastre <strong>usuários</strong> (Admin ou Funcionário)<br>• Crie <strong>grupos de permissão</strong><br>• Cada grupo define quais <strong>páginas</strong> podem ser acessadas<br>• Ex: Equipe de Produção vê só Dashboard, Pedidos e Pipeline',
-                'position' => 'top',
+                'description' => 'Gerencie o <strong>acesso ao sistema</strong>:<br><br>• Cadastre <strong>usuários</strong> (Admin ou Funcionário)<br>• Crie <strong>grupos de permissão</strong> (ex: Produção, Vendas, Estoque)<br>• Cada grupo define quais <strong>páginas e módulos</strong> podem ser acessados<br>• Atribua um grupo a cada funcionário para controlar o acesso',
+                'position' => 'bottom-end',
                 'page' => 'users'
             ];
         }
 
-        // ── Perfil do usuário (volta ao dashboard) ──
+        // ── Perfil ──
         $steps[] = [
             'id' => 'profile',
             'type' => 'highlight',
             'element' => 'a[href="?page=profile"]',
             'title' => '<i class="fas fa-user-circle me-1"></i> Seu Perfil',
-            'description' => 'Clique no seu <strong>nome de usuário</strong> para acessar seu perfil. Lá você pode:<br><br>• <strong>Alterar nome, email e senha</strong><br>• <strong>Personalizar</strong> suas preferências<br>• <strong>Visualizar</strong> suas informações de acesso',
+            'description' => 'Clique no seu <strong>nome de usuário</strong> para acessar seu perfil:<br><br>• <strong>Alterar nome, email e senha</strong><br>• <strong>Personalizar</strong> suas preferências<br>• <strong>Visualizar</strong> informações de acesso e grupo',
             'position' => 'bottom-end',
-            'page' => 'dashboard'
+            'page' => 'home'
         ];
 
         // ── Botão de ajuda no rodapé ──
@@ -369,9 +420,9 @@ class WalkthroughController {
             'type' => 'highlight',
             'element' => '#wtFooterHelp',
             'title' => '<i class="fas fa-lightbulb me-1"></i> Botão de Tutorial',
-            'description' => 'Este é o botão <strong>"Tutorial"</strong> no rodapé do sistema!<br><br>Clique nele <strong>a qualquer momento</strong> para refazer este tour e relembrar as funcionalidades de cada área.<br><br>Ao lado dele, você também encontra o link para o <strong>Manual do Sistema</strong> com instruções detalhadas.',
+            'description' => 'Este é o botão <strong>"Tutorial"</strong> no rodapé!<br><br>Clique nele <strong>a qualquer momento</strong> para refazer este tour.<br><br>Ao lado, você encontra o link para o <strong>Manual do Sistema</strong> com instruções completas de cada funcionalidade.',
             'position' => 'top',
-            'page' => 'dashboard'
+            'page' => 'home'
         ];
 
         // ── Conclusão (modal) ──
@@ -379,7 +430,7 @@ class WalkthroughController {
             'id' => 'finish',
             'type' => 'modal',
             'title' => 'Tour Concluído!',
-            'description' => 'Parabéns! Agora você conhece todas as áreas do <strong>Akti</strong>.<br><br><i class="fas fa-sync-alt me-1 text-info"></i> <strong>Refazer o tour:</strong> Use o botão <em>"Tutorial"</em> no rodapé ou no menu do seu perfil.<br><br><i class="fas fa-book me-1 text-primary"></i> <strong>Manual completo:</strong> Clique em <em>"Manual"</em> no rodapé para ver instruções detalhadas de cada funcionalidade.',
+            'description' => 'Parabéns! Agora você conhece todas as áreas do <strong>Akti</strong>.<br><br><i class="fas fa-sync-alt me-1 text-info"></i> <strong>Refazer o tour:</strong> Use o botão <em>"Tutorial"</em> no rodapé.<br><br><i class="fas fa-book me-1 text-primary"></i> <strong>Manual completo:</strong> Clique em <em>"Manual"</em> no rodapé para ver instruções detalhadas de cada funcionalidade.',
             'icon' => 'fas fa-check-circle',
             'position' => 'center'
         ];

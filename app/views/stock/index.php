@@ -26,51 +26,81 @@ $isLowStock = isset($_GET['low_stock']) && $_GET['low_stock'] == '1';
 
 <!-- ══════ Cards de Resumo ══════ -->
 <div class="row g-3 mb-4">
-    <div class="col-md-2 col-6">
-        <div class="card border-start border-primary border-4 h-100">
-            <div class="card-body py-3 px-3">
-                <div class="text-muted small fw-bold text-uppercase">Armazéns</div>
-                <div class="h3 mb-0 text-primary"><?= $summary['total_warehouses'] ?></div>
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(52,152,219,0.15);">
+                    <i class="fas fa-building fa-lg text-primary"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-bold text-uppercase">Armazéns</div>
+                    <div class="fw-bold fs-4 text-primary"><?= $summary['total_warehouses'] ?></div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-2 col-6">
-        <div class="card border-start border-info border-4 h-100">
-            <div class="card-body py-3 px-3">
-                <div class="text-muted small fw-bold text-uppercase">Itens</div>
-                <div class="h3 mb-0 text-info"><?= $summary['total_items'] ?></div>
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(23,162,184,0.15);">
+                    <i class="fas fa-cubes fa-lg text-info"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-bold text-uppercase">Itens</div>
+                    <div class="fw-bold fs-4 text-info"><?= $summary['total_items'] ?></div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-2 col-6">
-        <div class="card border-start border-success border-4 h-100">
-            <div class="card-body py-3 px-3">
-                <div class="text-muted small fw-bold text-uppercase">Produtos</div>
-                <div class="h3 mb-0 text-success"><?= $summary['products_in_stock'] ?></div>
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(39,174,96,0.15);">
+                    <i class="fas fa-box-open fa-lg text-success"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-bold text-uppercase">Produtos</div>
+                    <div class="fw-bold fs-4 text-success"><?= $summary['products_in_stock'] ?></div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-6">
-        <div class="card border-start border-warning border-4 h-100">
-            <div class="card-body py-3 px-3">
-                <div class="text-muted small fw-bold text-uppercase">Valor Total</div>
-                <div class="h4 mb-0 text-warning">R$ <?= number_format($summary['total_value'], 2, ',', '.') ?></div>
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(243,156,18,0.15);">
+                    <i class="fas fa-dollar-sign fa-lg text-warning"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-bold text-uppercase">Valor Total</div>
+                    <div class="fw-bold fs-5 text-warning">R$ <?= number_format($summary['total_value'], 2, ',', '.') ?></div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-1 col-6">
-        <div class="card border-start border-danger border-4 h-100 <?= $summary['low_stock_count'] > 0 ? 'bg-danger bg-opacity-10' : '' ?>">
-            <div class="card-body py-3 px-3">
-                <div class="text-muted small fw-bold text-uppercase">Baixo</div>
-                <div class="h3 mb-0 text-danger"><?= $summary['low_stock_count'] ?></div>
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="card border-0 shadow-sm h-100 border-start border-danger border-4 <?= $summary['low_stock_count'] > 0 ? 'bg-danger bg-opacity-10' : '' ?>">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(192,57,43,0.15);">
+                    <i class="fas fa-exclamation-triangle fa-lg text-danger"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-bold text-uppercase">Baixo</div>
+                    <div class="fw-bold fs-4 text-danger"><?= $summary['low_stock_count'] ?></div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-2 col-6">
-        <div class="card border-start border-secondary border-4 h-100">
-            <div class="card-body py-3 px-3">
-                <div class="text-muted small fw-bold text-uppercase">Mov. Hoje</div>
-                <div class="h3 mb-0 text-secondary"><?= $summary['movements_today'] ?></div>
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="card border-0 shadow-sm h-100 border-start border-secondary border-4">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(108,117,125,0.15);">
+                    <i class="fas fa-exchange-alt fa-lg text-secondary"></i>
+                </div>
+                <div>
+                    <div class="text-muted small fw-bold text-uppercase">Mov. Hoje</div>
+                    <div class="fw-bold fs-4 text-secondary"><?= $summary['movements_today'] ?></div>
+                </div>
             </div>
         </div>
     </div>
