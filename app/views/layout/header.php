@@ -3,7 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Akti - Gestão em Produção</title>
+    <title>Akti — Gestão em Produção</title>
+
+    <!-- SEO -->
+    <meta name="description" content="Akti — Plataforma online para gestão de produção. Gerencie pedidos, produção, estoque, financeiro e clientes.">
+    <meta name="keywords" content="gestão, pedidos, produção, estoque, ERP, produtos personalizados, akti">
+    <meta name="author" content="Akti">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#2c3e50">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Akti — Gestão em Produção">
+    <meta property="og:description" content="Plataforma online para gestão de produção. Pedidos, produção, estoque e clientes em um só lugar.">
+    <meta property="og:image" content="assets/logos/akti-logo-dark.svg">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:site_name" content="Akti">
+
+    <!-- X (Twitter) Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Akti — Gestão em Produção">
+    <meta name="twitter:description" content="Plataforma online para gestão de produção.">
+    <meta name="twitter:image" content="assets/logos/akti-logo-dark.svg">
+
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Akti">
+    <link rel="apple-touch-icon" href="assets/logos/akti-icon-dark.svg">
 
     <link rel="icon" type="image/x-icon" href="assets/logos/akti-icon-dark.ico">
 

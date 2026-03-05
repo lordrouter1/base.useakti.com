@@ -101,6 +101,7 @@ class ProductController {
 
             $data = [
                 'name' => $_POST['name'],
+                'sku' => $_POST['sku'] ?? null,
                 'description' => $_POST['description'],
                 'category_id' => $category_id ? $category_id : null,
                 'subcategory_id' => $subcategory_id ? $subcategory_id : null,
@@ -249,6 +250,7 @@ class ProductController {
             $data = [
                  'id' => $_POST['id'],
                  'name' => $_POST['name'],
+                 'sku' => $_POST['sku'] ?? null,
                  'description' => $_POST['description'],
                  'category_id' => $_POST['category_id'],
                  'subcategory_id' => $_POST['subcategory_id'] ?? null,

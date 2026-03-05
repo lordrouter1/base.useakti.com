@@ -1,6 +1,30 @@
 <?php
 session_start();
 
+// ── Tratamento global de erros — exibe a página 500 em caso de erro fatal ──
+set_exception_handler(function($e) {
+    http_response_code(500);
+    error_log('Uncaught exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    if (!headers_sent()) {
+        while (ob_get_level()) ob_end_clean();
+    }
+    require __DIR__ . '/app/views/errors/500.php';
+    exit;
+});
+
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE])) {
+        http_response_code(500);
+        error_log('Fatal error: ' . $error['message'] . ' in ' . $error['file'] . ':' . $error['line']);
+        if (!headers_sent()) {
+            while (ob_get_level()) ob_end_clean();
+        }
+        require __DIR__ . '/app/views/errors/500.php';
+        exit;
+    }
+});
+
 // Carregar configurações e banco de dados
 require_once 'app/config/database.php';
 require_once 'app/models/User.php';
@@ -246,6 +270,8 @@ switch ($page) {
         $controller = new PipelineController();
         if ($action == 'move') {
             $controller->move();
+        } elseif ($action == 'moveAjax') {
+            $controller->moveAjax();
         } elseif ($action == 'detail') {
             $controller->detail();
         } elseif ($action == 'updateDetails') {
@@ -495,8 +521,6 @@ switch ($page) {
 
     default:
         http_response_code(404);
-        require 'app/views/layout/header.php';
-        echo "<div class='container mt-5 text-center py-5'><h2 class='text-muted'><i class='fas fa-search me-2'></i>Página não encontrada</h2><p class='text-muted'>A página que você procura não existe.</p><a href='' class='btn btn-primary mt-3'>Voltar ao Início</a></div>";
-        require 'app/views/layout/footer.php';
+        require 'app/views/errors/404.php';
         break;
 }

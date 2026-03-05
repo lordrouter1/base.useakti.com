@@ -1512,6 +1512,22 @@
                                     <?php if (!empty($h['notes'])): ?>
                                     <div class="small fst-italic mt-1">"<?= $h['notes'] ?>"</div>
                                     <?php endif; ?>
+                                    <?php if (isset($h['duration_seconds']) && $h['duration_seconds'] > 0): 
+                                        $dur = $h['duration_seconds'];
+                                        $durDays = floor($dur / 86400);
+                                        $durHours = floor(($dur % 86400) / 3600);
+                                        $durMins = floor(($dur % 3600) / 60);
+                                        $durText = '';
+                                        if ($durDays > 0) $durText .= $durDays . 'd ';
+                                        if ($durHours > 0 || $durDays > 0) $durText .= $durHours . 'h ';
+                                        $durText .= $durMins . 'min';
+                                    ?>
+                                    <div class="mt-1">
+                                        <span class="badge bg-light text-dark border" style="font-size:0.6rem;">
+                                            <i class="fas fa-stopwatch me-1 text-warning"></i>Permanência: <?= trim($durText) ?>
+                                        </span>
+                                    </div>
+                                    <?php endif; ?>
                                     <div class="text-muted" style="font-size:0.65rem;">
                                         <i class="fas fa-user me-1"></i><?= $h['user_name'] ?? 'Sistema' ?>
                                         · <?= date('d/m/Y H:i', strtotime($h['created_at'])) ?>
@@ -1693,8 +1709,14 @@ document.addEventListener('DOMContentLoaded', function() {
     Swal.fire({ icon: 'success', title: 'Produto removido!', timer: 1500, showConfirmButton: false });
     <?php endif; ?>
 
-    // Confirmação ao mover etapa — com seleção de armazém para preparação/produção
+    // Confirmação ao mover etapa — com seleção de armazém quando transição pré-produção → produção+
     const currentStageKey = '<?= $currentStage ?>';
+    const preProductionStages = ['contato', 'orcamento', 'venda'];
+    const productionStages = ['producao', 'preparacao', 'envio', 'financeiro', 'concluido'];
+
+    function needsWarehouseForTransition(fromStage, toStage) {
+        return preProductionStages.includes(fromStage) && productionStages.includes(toStage);
+    }
     
     document.querySelectorAll('.btn-move-stage').forEach(btn => {
         btn.addEventListener('click', function(e) {
@@ -1705,8 +1727,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetStage = this.dataset.targetStage || '';
             const orderId = this.dataset.orderId || '<?= $order['id'] ?>';
             
-            // Se está movendo para preparação ou produção, mostrar modal com seleção de armazém e info de estoque
-            if (targetStage === 'preparacao' || targetStage === 'producao') {
+            // Se a transição precisa de seleção de armazém (pré-produção → produção+)
+            if (needsWarehouseForTransition(currentStageKey, targetStage)) {
                 // Buscar dados de estoque via AJAX
                 Swal.fire({
                     title: `<i class="fas fa-warehouse me-2"></i>${dir} para ${stage}`,
@@ -1755,7 +1777,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 
                                 let html = '';
                                 
-                                if (warehouseOptions && (targetStage === 'preparacao' || targetStage === 'producao' || hasStockItems)) {
+                                if (warehouseOptions) {
                                     html += `<div class="mb-3 text-start">
                                         <label class="form-label small fw-bold"><i class="fas fa-warehouse me-1"></i>Armazém para dedução de estoque:</label>
                                         <select id="swalWarehouseSelect" class="form-select form-select-sm">${warehouseOptions}</select>
@@ -1771,18 +1793,18 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <tbody id="swalStockTableBody">${itemsHtml}</tbody>
                                     </table>`;
                                     
-                                    if (data.all_from_stock && targetStage === 'producao') {
+                                    if (data.all_from_stock) {
                                         html += `<div class="alert alert-success py-2 small mb-2">
-                                            <i class="fas fa-magic me-1"></i>
-                                            <strong>Todos os itens em estoque!</strong> O pedido poderá pular a produção e ir direto para preparação.
+                                            <i class="fas fa-check-circle me-1"></i>
+                                            <strong>Todos os itens possuem estoque suficiente!</strong> O estoque será deduzido automaticamente.
                                         </div>`;
-                                    } else if (!data.all_from_stock && targetStage === 'preparacao') {
+                                    } else if (!data.all_from_stock) {
                                         html += `<div class="alert alert-warning py-2 small mb-2">
                                             <i class="fas fa-exclamation-triangle me-1"></i>
                                             <small>Alguns itens não possuem estoque suficiente. A dedução será parcial (apenas itens com controle ativo e estoque).</small>
                                         </div>`;
                                     }
-                                } else if (targetStage === 'preparacao') {
+                                } else {
                                     html += `<div class="alert alert-light py-2 small mb-0">
                                         <i class="fas fa-info-circle me-1"></i>
                                         <small>Nenhum item deste pedido possui controle de estoque ativo.</small>
@@ -1854,6 +1876,21 @@ document.addEventListener('DOMContentLoaded', function() {
                             .catch(err => {
                                 Swal.fire({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar o estoque.' });
                             });
+                    }
+                });
+            } else if (productionStages.includes(currentStageKey) && preProductionStages.includes(targetStage)) {
+                // Produção+ → Pré-produção: aviso que estoque será devolvido
+                Swal.fire({
+                    title: `<i class="fas fa-undo me-2 text-warning"></i>${dir} para ${stage}?`,
+                    html: `<p>Ao retornar o pedido para <strong>${stage}</strong>, todos os produtos que foram deduzidos do estoque serão <strong>devolvidos automaticamente</strong> ao armazém.</p>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-check me-1"></i> Confirmar e Devolver Estoque',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#e67e22'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = href;
                     }
                 });
             } else {

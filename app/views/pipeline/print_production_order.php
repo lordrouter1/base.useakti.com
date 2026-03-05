@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ordem de Produção #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></title>
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="icon" type="image/x-icon" href="assets/logos/akti-icon-dark.ico">
 
     <!-- CSS & JS externos -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -96,6 +99,29 @@
         }
         .production-item-card.all-done {
             border-left-color: #27ae60 !important;
+        }
+
+        /* ── Imagem do produto na ordem de produção ── */
+        .production-product-img {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            object-fit: cover;
+            border: 1px solid #e9ecef;
+            flex-shrink: 0;
+        }
+        .production-product-noimg {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #ccc;
+            font-size: 1.1rem;
         }
 
         /* ── Fluxo de setores ─────────────────────── */
@@ -324,7 +350,17 @@ $prioMap = [
 
                     <!-- Cabeçalho do item -->
                     <div class="d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <?php 
+                                $itemMainImage = $productImages[$item['product_id']] ?? null;
+                            ?>
+                            <?php if ($itemMainImage && file_exists($itemMainImage)): ?>
+                                <img src="<?= htmlspecialchars($itemMainImage) ?>" alt="" class="production-product-img">
+                            <?php else: ?>
+                                <div class="production-product-noimg">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                            <?php endif; ?>
                             <span class="badge rounded-circle d-flex align-items-center justify-content-center"
                                   style="width:22px;height:22px;font-size:0.65rem;background:<?= $allDone ? '#27ae60' : '#e67e22' ?>;color:#fff;">
                                 <?= $allDone ? '✓' : $idx ?>
