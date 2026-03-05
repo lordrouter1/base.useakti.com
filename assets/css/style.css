@@ -592,7 +592,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Cards dos Pedidos no Kanban */
 .pipeline-card {
     transition: transform 0.15s ease, box-shadow 0.15s ease;
-    cursor: pointer;
+    cursor: grab;
     border-left: 3px solid transparent !important;
 }
 
@@ -601,9 +601,55 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
 }
 
+.pipeline-card .card-footer {
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
 .pipeline-card-delayed {
     border-left: 3px solid var(--danger-color) !important;
     animation: pulse-border 2s infinite;
+}
+
+/* ── Drag-and-Drop states ── */
+.pipeline-card-ghost {
+    opacity: 0.4;
+    background: #e2e8f0 !important;
+    border: 2px dashed var(--accent-color) !important;
+    border-radius: var(--radius-md);
+    box-shadow: none !important;
+}
+
+.pipeline-card-chosen {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.18) !important;
+    transform: rotate(2deg);
+    z-index: 9999;
+    cursor: grabbing;
+}
+
+.pipeline-card-dragging {
+    opacity: 0.85;
+}
+
+body.pipeline-dragging .pipeline-dropzone {
+    background: #f8fafc !important;
+    border: 2px dashed #cbd5e1 !important;
+    border-top: none !important;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+body.pipeline-dragging .pipeline-dropzone:hover {
+    background: rgba(59, 130, 246, 0.06) !important;
+    border-color: var(--accent-color) !important;
+}
+
+/* Feedback visual após mover com sucesso */
+.pipeline-card-moved {
+    animation: card-moved-flash 1.5s ease;
+}
+
+@keyframes card-moved-flash {
+    0%   { background: rgba(34, 197, 94, 0.15); }
+    100% { background: #fff; }
 }
 
 @keyframes pulse-border {

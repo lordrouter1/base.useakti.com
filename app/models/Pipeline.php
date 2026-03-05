@@ -153,18 +153,35 @@ class Pipeline {
     }
 
     /**
-     * Busca histórico de um pedido
+     * Busca histórico de um pedido com duração em cada etapa
      */
     public function getHistory($orderId) {
         $query = "SELECT ph.*, u.name as user_name 
                   FROM pipeline_history ph 
                   LEFT JOIN users u ON ph.changed_by = u.id 
                   WHERE ph.order_id = :order_id 
-                  ORDER BY ph.created_at DESC";
+                  ORDER BY ph.created_at ASC";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':order_id', $orderId);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Calcular duração em cada etapa (diferença entre movimentações consecutivas)
+        for ($i = 0; $i < count($rows); $i++) {
+            if ($i < count($rows) - 1) {
+                // Duração = diferença entre esta entrada e a próxima
+                $from = strtotime($rows[$i]['created_at']);
+                $to = strtotime($rows[$i + 1]['created_at']);
+                $rows[$i]['duration_seconds'] = $to - $from;
+            } else {
+                // Última entrada: duração = tempo desde a entrada até agora
+                $from = strtotime($rows[$i]['created_at']);
+                $rows[$i]['duration_seconds'] = time() - $from;
+            }
+        }
+
+        // Reverter para ordem DESC (mais recente primeiro) para a view
+        return array_reverse($rows);
     }
 
     /**

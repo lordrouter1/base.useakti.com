@@ -65,12 +65,13 @@ class Product {
         }
 
         $query = "INSERT INTO " . $this->table_name . " 
-                  (name, description, category_id, subcategory_id, price, stock_quantity, use_stock_control, created_at{$fiscalCols}) 
-                  VALUES (:name, :description, :category_id, :subcategory_id, :price, 0, :use_stock_control, NOW(){$fiscalPlaceholders})";
+                  (name, sku, description, category_id, subcategory_id, price, stock_quantity, use_stock_control, created_at{$fiscalCols}) 
+                  VALUES (:name, :sku, :description, :category_id, :subcategory_id, :price, 0, :use_stock_control, NOW(){$fiscalPlaceholders})";
         
         $stmt = $this->conn->prepare($query);
 
         $stmt->bindParam(':name', $data['name']);
+        $stmt->bindValue(':sku', !empty($data['sku']) ? $data['sku'] : null);
         $stmt->bindParam(':description', $data['description']);
         $stmt->bindParam(':category_id', $data['category_id']);
         $stmt->bindParam(':subcategory_id', $data['subcategory_id']);
@@ -120,6 +121,7 @@ class Product {
 
         $query = "UPDATE " . $this->table_name . " 
                   SET name = :name, 
+                      sku = :sku,
                       description = :description, 
                       category_id = :category_id, 
                       subcategory_id = :subcategory_id, 
@@ -131,6 +133,7 @@ class Product {
         $stmt = $this->conn->prepare($query);
 
         $stmt->bindParam(':name', $data['name']);
+        $stmt->bindValue(':sku', !empty($data['sku']) ? $data['sku'] : null);
         $stmt->bindParam(':description', $data['description']);
         $stmt->bindParam(':category_id', $data['category_id']);
         $stmt->bindParam(':subcategory_id', $data['subcategory_id']);

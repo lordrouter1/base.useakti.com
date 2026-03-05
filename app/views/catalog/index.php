@@ -26,6 +26,36 @@ $cartCount = count($cartItems);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($companyName) ?> — Catálogo</title>
+
+    <!-- SEO -->
+    <meta name="description" content="Catálogo de produtos de <?= htmlspecialchars($companyName) ?>. Navegue e monte sua lista de produtos.">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#2c3e50">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="<?= htmlspecialchars($companyName) ?> — Catálogo de Produtos">
+    <meta property="og:description" content="Navegue pelo catálogo e monte sua lista de produtos.">
+    <?php if ($companyLogo): ?>
+    <meta property="og:image" content="<?= htmlspecialchars($companyLogo) ?>">
+    <?php endif; ?>
+    <meta property="og:locale" content="pt_BR">
+
+    <!-- X (Twitter) Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="<?= htmlspecialchars($companyName) ?> — Catálogo">
+    <meta name="twitter:description" content="Navegue pelo catálogo e monte sua lista de produtos.">
+    <?php if ($companyLogo): ?>
+    <meta name="twitter:image" content="<?= htmlspecialchars($companyLogo) ?>">
+    <?php endif; ?>
+
+    <!-- Web App -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="<?= htmlspecialchars($companyName) ?>">
+    <link rel="icon" type="image/x-icon" href="assets/logos/akti-icon-dark.ico">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">

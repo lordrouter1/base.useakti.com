@@ -563,7 +563,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.target.closest('tr').remove();
                 calculateTotal();
             } else {
-                Swal.fire({ icon: 'warning', title: 'Atenção', text: 'O pedido deve ter pelo menos um item.' });
+                // Limpar a última linha em vez de impedir remoção
+                const lastRow = tbody.rows[0];
+                lastRow.querySelector('.product-select').value = '';
+                lastRow.querySelector('.item-qty').value = 1;
+                lastRow.querySelector('.item-price').value = '';
+                lastRow.querySelector('.item-subtotal').value = '0.00';
+                const varSel = lastRow.querySelector('.variation-select');
+                if (varSel) { varSel.style.display = 'none'; varSel.innerHTML = ''; }
+                const gradeDesc = lastRow.querySelector('.grade-desc-input');
+                if (gradeDesc) gradeDesc.value = '';
+                const noVar = lastRow.querySelector('.no-variation-text');
+                if (noVar) noVar.style.display = '';
+                calculateTotal();
             }
         }
     });

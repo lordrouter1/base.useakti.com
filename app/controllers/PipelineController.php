@@ -38,11 +38,138 @@ class PipelineController {
     }
 
     /**
-     * Mover pedido para outra etapa (AJAX ou GET)
-     * - Ao mover para "producao": verifica se todos os itens têm use_stock_control e estoque suficiente
-     *   no armazém padrão. Se sim, pula produção direto para preparação (deduzindo estoque).
-     * - Ao mover para "preparacao": deduz estoque do armazém selecionado (ou padrão).
-     * - Ao mover DE "preparacao" para "producao" ou etapa anterior: reverte deduções de estoque.
+     * Zonas do pipeline para lógica de estoque:
+     * - Pré-produção (contato, orcamento, venda): sem estoque deduzido
+     * - Produção+ (producao, preparacao, envio, financeiro, concluido): estoque deduzido
+     * 
+     * Regras:
+     * - Mover de pré-produção → produção+: pedir armazém, deduzir estoque
+     * - Mover de produção+ → pré-produção: devolver estoque
+     * - Mover dentro da mesma zona: nada
+     * - Cancelado: se tinha estoque deduzido, devolve
+     */
+    private static $preProductionStages = ['contato', 'orcamento', 'venda'];
+    private static $productionStages = ['producao', 'preparacao', 'envio', 'financeiro', 'concluido'];
+
+    private function isPreProduction($stage) {
+        return in_array($stage, self::$preProductionStages);
+    }
+
+    private function isProduction($stage) {
+        return in_array($stage, self::$productionStages);
+    }
+
+    /**
+     * Processa a lógica de estoque ao mudar de etapa.
+     * Retorna array ['success' => bool, 'notes' => string, 'message' => string]
+     */
+    private function handleStockTransition($orderId, $currentStage, $newStage, $warehouseId = null, $userId = null) {
+        $notes = '';
+        $wasPreProd = $this->isPreProduction($currentStage);
+        $willBeProd = $this->isProduction($newStage);
+        $willBePreProd = $this->isPreProduction($newStage);
+        $wasProd = $this->isProduction($currentStage);
+
+        // ═══ PRÉ-PRODUÇÃO → PRODUÇÃO+: deduzir estoque ═══
+        if ($wasPreProd && $willBeProd) {
+            require_once 'app/models/Product.php';
+            $orderModel = new Order($this->db);
+            $productModel = new Product($this->db);
+            $orderItems = $orderModel->getItems($orderId);
+
+            // Determinar armazém: parâmetro > armazém do pedido > padrão
+            if (!$warehouseId) {
+                $stmtWh = $this->db->prepare("SELECT stock_warehouse_id FROM orders WHERE id = :id");
+                $stmtWh->bindParam(':id', $orderId);
+                $stmtWh->execute();
+                $whRow = $stmtWh->fetch(PDO::FETCH_ASSOC);
+                $warehouseId = $whRow['stock_warehouse_id'] ?? null;
+            }
+            if (!$warehouseId) {
+                $defaultWarehouse = $this->stockModel->getDefaultWarehouse();
+                $warehouseId = $defaultWarehouse ? $defaultWarehouse['id'] : null;
+            }
+
+            // Salvar armazém no pedido
+            if ($warehouseId) {
+                $stmtWh2 = $this->db->prepare("UPDATE orders SET stock_warehouse_id = :wid WHERE id = :id");
+                $stmtWh2->bindParam(':wid', $warehouseId, PDO::PARAM_INT);
+                $stmtWh2->bindParam(':id', $orderId, PDO::PARAM_INT);
+                $stmtWh2->execute();
+            }
+
+            // Deduzir estoque para itens com controle ativo
+            $deducted = 0;
+            if ($warehouseId && !empty($orderItems)) {
+                foreach ($orderItems as $item) {
+                    $product = $productModel->readOne($item['product_id']);
+                    if (!$product || empty($product['use_stock_control'])) {
+                        continue;
+                    }
+
+                    $combinationId = $item['grade_combination_id'] ?? null;
+                    $qty = (int)$item['quantity'];
+
+                    // Registrar movimentação de saída
+                    $movementId = $this->stockModel->addMovement([
+                        'warehouse_id'   => $warehouseId,
+                        'product_id'     => $item['product_id'],
+                        'combination_id' => $combinationId,
+                        'type'           => 'saida',
+                        'quantity'       => $qty,
+                        'reason'         => 'Dedução automática — Pedido #' . $orderId . ' entrou em ' . $newStage,
+                        'reference_type' => 'order',
+                        'reference_id'   => $orderId,
+                    ]);
+
+                    // Registrar dedução para possível reversão futura
+                    $this->stockModel->addStockDeduction([
+                        'order_id'       => $orderId,
+                        'order_item_id'  => $item['id'],
+                        'warehouse_id'   => $warehouseId,
+                        'product_id'     => $item['product_id'],
+                        'combination_id' => $combinationId,
+                        'quantity'       => $qty,
+                        'movement_id'    => $movementId,
+                    ]);
+                    $deducted++;
+                }
+            }
+
+            if ($deducted > 0) {
+                $notes = "Estoque deduzido: $deducted item(ns) do armazém.";
+            }
+        }
+
+        // ═══ PRODUÇÃO+ → PRÉ-PRODUÇÃO: devolver estoque ═══
+        if ($wasProd && $willBePreProd) {
+            $reversed = $this->stockModel->reverseDeductions($orderId, $userId);
+            if ($reversed > 0) {
+                $notes = "Estoque devolvido: $reversed item(ns) retornados ao armazém.";
+            }
+        }
+
+        // ═══ Qualquer → CANCELADO: devolver estoque se existir ═══
+        if ($newStage === 'cancelado') {
+            $reversed = $this->stockModel->reverseDeductions($orderId, $userId);
+            if ($reversed > 0) {
+                $notes = "Estoque devolvido: $reversed item(ns) retornados ao armazém (cancelamento).";
+            }
+        }
+
+        return ['success' => true, 'notes' => $notes];
+    }
+
+    /**
+     * Verifica se a transição de etapa precisa de seleção de armazém (para o frontend)
+     */
+    private function transitionNeedsWarehouse($currentStage, $newStage) {
+        return $this->isPreProduction($currentStage) && $this->isProduction($newStage);
+    }
+
+    /**
+     * Mover pedido para outra etapa (GET — usado no detalhe do pedido)
+     * Integra lógica de dedução/devolução de estoque conforme zona.
      */
     public function move() {
         if (!isset($_GET['id']) || !isset($_GET['stage'])) {
@@ -63,127 +190,10 @@ class PipelineController {
         $currentOrder = $stmtCurrent->fetch(PDO::FETCH_ASSOC);
         $currentStage = $currentOrder ? $currentOrder['pipeline_stage'] : null;
 
-        // ═══ Lógica de estoque ao mover para PRODUÇÃO ═══
-        // Verifica se todos os itens possuem use_stock_control e estoque suficiente no armazém padrão.
-        // Se sim, pula produção e vai direto para preparação, deduzindo estoque.
-        if ($newStage === 'producao') {
-            require_once 'app/models/Product.php';
-            $orderModel = new Order($this->db);
-            $productModel = new Product($this->db);
-            $orderItems = $orderModel->getItems($orderId);
-            
-            $defaultWarehouse = $this->stockModel->getDefaultWarehouse();
-            $allFromStock = true;
-
-            if (!empty($orderItems) && $defaultWarehouse) {
-                foreach ($orderItems as $item) {
-                    $product = $productModel->readOne($item['product_id']);
-                    if (!$product || empty($product['use_stock_control'])) {
-                        $allFromStock = false;
-                        break;
-                    }
-                    // Checar estoque no armazém padrão (stock_items)
-                    $stockQty = $this->stockModel->getProductStockInWarehouse(
-                        $defaultWarehouse['id'],
-                        $item['product_id'],
-                        $item['grade_combination_id'] ?? null
-                    );
-                    if ($stockQty < (int)$item['quantity']) {
-                        $allFromStock = false;
-                        break;
-                    }
-                }
-            } else {
-                $allFromStock = false;
-            }
-
-            if ($allFromStock) {
-                // Todos os itens atendem pelo estoque — pular produção, ir para preparação
-                $notes = ($notes ? $notes . ' | ' : '') . 'Produção pulada: todos os itens atendidos pelo estoque.';
-                
-                // Registrar passagem pela produção
-                $this->pipelineModel->moveToStage($orderId, 'producao', $userId, 'Passagem automática — estoque disponível');
-
-                // Ir direto para preparação (deduzirá estoque abaixo)
-                $newStage = 'preparacao';
-                $warehouseId = $defaultWarehouse['id'];
-            }
-        }
-
-        // ═══ Lógica de estoque ao mover para PREPARAÇÃO ═══
-        // Deduz estoque do armazém selecionado para itens com use_stock_control ativo
-        if ($newStage === 'preparacao') {
-            require_once 'app/models/Product.php';
-            $orderModel = new Order($this->db);
-            $productModel = new Product($this->db);
-            $orderItems = $orderModel->getItems($orderId);
-
-            // Determinar armazém: parâmetro > padrão
-            if (!$warehouseId) {
-                $defaultWarehouse = $this->stockModel->getDefaultWarehouse();
-                $warehouseId = $defaultWarehouse ? $defaultWarehouse['id'] : null;
-            }
-
-            // Salvar armazém no pedido
-            if ($warehouseId) {
-                $stmtWh = $this->db->prepare("UPDATE orders SET stock_warehouse_id = :wid WHERE id = :id");
-                $stmtWh->bindParam(':wid', $warehouseId, PDO::PARAM_INT);
-                $stmtWh->bindParam(':id', $orderId, PDO::PARAM_INT);
-                $stmtWh->execute();
-            }
-
-            // Deduzir estoque para itens com controle ativo
-            if ($warehouseId && !empty($orderItems)) {
-                foreach ($orderItems as $item) {
-                    $product = $productModel->readOne($item['product_id']);
-                    if (!$product || empty($product['use_stock_control'])) {
-                        continue;
-                    }
-
-                    $combinationId = $item['grade_combination_id'] ?? null;
-                    $qty = (int)$item['quantity'];
-
-                    // Registrar movimentação de saída
-                    $movementId = $this->stockModel->addMovement([
-                        'warehouse_id'   => $warehouseId,
-                        'product_id'     => $item['product_id'],
-                        'combination_id' => $combinationId,
-                        'type'           => 'saida',
-                        'quantity'       => $qty,
-                        'reason'         => 'Dedução automática — Pedido #' . $orderId . ' em preparação',
-                        'reference_type' => 'order',
-                        'reference_id'   => $orderId,
-                    ]);
-
-                    // Registrar dedução para possível reversão futura
-                    $this->stockModel->addStockDeduction([
-                        'order_id'       => $orderId,
-                        'order_item_id'  => $item['id'],
-                        'warehouse_id'   => $warehouseId,
-                        'product_id'     => $item['product_id'],
-                        'combination_id' => $combinationId,
-                        'quantity'       => $qty,
-                        'movement_id'    => $movementId,
-                    ]);
-                }
-            }
-        }
-
-        // ═══ Lógica de estoque ao RETROCEDER de preparação para produção ou anterior ═══
-        // Reverte as deduções de estoque feitas ao entrar em preparação
-        $stageOrder = [
-            'contato' => 1, 'orcamento' => 2, 'venda' => 3, 'producao' => 4,
-            'preparacao' => 5, 'envio' => 6, 'financeiro' => 7, 'concluido' => 8, 'cancelado' => 9
-        ];
-        $currentStageOrder = $stageOrder[$currentStage] ?? 0;
-        $newStageOrder = $stageOrder[$newStage] ?? 0;
-
-        if ($currentStage === 'preparacao' && $newStageOrder < $stageOrder['preparacao']) {
-            // Está saindo de preparação para trás — reverter estoque
-            $reversed = $this->stockModel->reverseDeductions($orderId, $userId);
-            if ($reversed > 0) {
-                $notes = ($notes ? $notes . ' | ' : '') . "Estoque revertido: $reversed item(ns) devolvidos ao armazém.";
-            }
+        // Processar lógica de estoque
+        $stockResult = $this->handleStockTransition($orderId, $currentStage, $newStage, $warehouseId, $userId);
+        if (!empty($stockResult['notes'])) {
+            $notes = ($notes ? $notes . ' | ' : '') . $stockResult['notes'];
         }
 
         $this->pipelineModel->moveToStage($orderId, $newStage, $userId, $notes);
@@ -191,9 +201,72 @@ class PipelineController {
         // Log
         require_once 'app/models/Logger.php';
         $logger = new Logger($this->db);
-        $logger->log('PIPELINE_MOVE', "Order #$orderId moved to stage: $newStage");
+        $logger->log('PIPELINE_MOVE', "Order #$orderId moved from $currentStage to stage: $newStage");
 
         header('Location: ?page=pipeline&status=moved');
+        exit;
+    }
+
+    /**
+     * Mover pedido via AJAX (drag-and-drop)
+     * Se a transição requer armazém e nenhum foi informado, retorna needs_warehouse=true
+     * para o frontend pedir ao usuário.
+     */
+    public function moveAjax() {
+        header('Content-Type: application/json');
+
+        $orderId = $_POST['order_id'] ?? null;
+        $newStage = $_POST['stage'] ?? null;
+        $userId = $_SESSION['user_id'] ?? null;
+        $warehouseId = $_POST['warehouse_id'] ?? null;
+
+        if (!$orderId || !$newStage) {
+            echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos']);
+            exit;
+        }
+
+        // Buscar etapa atual
+        $stmtCurrent = $this->db->prepare("SELECT pipeline_stage FROM orders WHERE id = :id");
+        $stmtCurrent->bindParam(':id', $orderId);
+        $stmtCurrent->execute();
+        $currentOrder = $stmtCurrent->fetch(PDO::FETCH_ASSOC);
+
+        if (!$currentOrder) {
+            echo json_encode(['success' => false, 'message' => 'Pedido não encontrado']);
+            exit;
+        }
+
+        $currentStage = $currentOrder['pipeline_stage'];
+
+        if ($currentStage === $newStage) {
+            echo json_encode(['success' => true, 'message' => 'Sem alteração']);
+            exit;
+        }
+
+        // Se a transição precisa de armazém e não foi informado, retorna flag
+        if ($this->transitionNeedsWarehouse($currentStage, $newStage) && !$warehouseId) {
+            echo json_encode([
+                'success' => false,
+                'needs_warehouse' => true,
+                'message' => 'Selecione o armazém para dedução de estoque.',
+            ]);
+            exit;
+        }
+
+        // Processar lógica de estoque
+        $stockResult = $this->handleStockTransition($orderId, $currentStage, $newStage, $warehouseId, $userId);
+        $notes = 'Movido via drag-and-drop';
+        if (!empty($stockResult['notes'])) {
+            $notes .= ' | ' . $stockResult['notes'];
+        }
+
+        $this->pipelineModel->moveToStage($orderId, $newStage, $userId, $notes);
+
+        require_once 'app/models/Logger.php';
+        $logger = new Logger($this->db);
+        $logger->log('PIPELINE_MOVE', "Order #$orderId dragged from $currentStage to $newStage");
+
+        echo json_encode(['success' => true, 'message' => 'Pedido movido com sucesso', 'stock_notes' => $stockResult['notes'] ?? '']);
         exit;
     }
 
@@ -750,6 +823,25 @@ class PipelineController {
         // Carregar itens do pedido
         $orderModel = new Order($this->db);
         $orderItems = $orderModel->getItems($_GET['id']);
+
+        // Carregar imagens em destaque dos produtos do pedido
+        require_once 'app/models/Product.php';
+        $productModel = new Product($this->db);
+        $productImages = [];
+        foreach ($orderItems as $item) {
+            $pid = $item['product_id'];
+            if (!isset($productImages[$pid])) {
+                $images = $productModel->getImages($pid);
+                $mainImage = null;
+                foreach ($images as $img) {
+                    if ($img['is_main']) { $mainImage = $img['image_path']; break; }
+                }
+                if (!$mainImage && !empty($images)) {
+                    $mainImage = $images[0]['image_path'];
+                }
+                $productImages[$pid] = $mainImage;
+            }
+        }
 
         // Carregar dados da empresa
         require_once 'app/models/CompanySettings.php';

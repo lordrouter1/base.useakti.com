@@ -17,10 +17,15 @@
             <div class="card-body p-4">
                 <div class="row g-3">
                     <!-- Nome do Produto -->
-                    <div class="col-md-12">
+                    <div class="col-md-8">
                         <label for="name" class="form-label fw-bold">Nome do Produto <span class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-lg" id="name" name="name" required placeholder="Ex: Cartão de Visita, Banner, Adesivo..." value="<?= htmlspecialchars($product['name']) ?>">
                         <div class="form-text"><i class="fas fa-info-circle me-1"></i>Nome principal que identifica o produto.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="sku" class="form-label fw-bold">SKU</label>
+                        <input type="text" class="form-control form-control-lg" id="sku" name="sku" placeholder="Ex: CART-VIS-001" value="<?= htmlspecialchars($product['sku'] ?? '') ?>">
+                        <div class="form-text"><i class="fas fa-barcode me-1"></i>Código único do produto (opcional).</div>
                     </div>
 
                     <!-- Preço e Estoque -->
