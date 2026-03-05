@@ -1,0 +1,9 @@
+# Uploads de usuários (imagens, logos, anexos)
+assets/uploads/**
+!assets/uploads/.gitkeep
+
+# Logs de itens do pedido (anexos)
+assets/uploads/item_logs/**
+
+# Imagens de produtos
+assets/uploads/products/**

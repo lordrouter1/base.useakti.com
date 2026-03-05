@@ -220,9 +220,9 @@
                     <!-- ═══ Link de Catálogo para o Cliente ═══ -->
                     <?php if ($currentStage === 'orcamento' && !$isReadOnly): ?>
                     <div class="card border-info border-opacity-25 mb-3" id="catalogLinkSection">
-                        <div class="card-header bg-info bg-opacity-10 py-2 d-flex align-items-center justify-content-between">
-                            <h6 class="mb-0 text-info"><i class="fas fa-share-alt me-2"></i>Catálogo do Cliente</h6>
-                            <span class="badge bg-info bg-opacity-75">
+                        <div class="card-header bg-info py-2 d-flex align-items-center justify-content-between">
+                            <h6 class="mb-0 text-white"><i class="fas fa-share-alt me-2"></i>Catálogo do Cliente</h6>
+                            <span class="badge bg-info bg-opacity-75 text-white">
                                 <i class="fas fa-magic me-1"></i> O cliente monta a lista!
                             </span>
                         </div>
@@ -372,8 +372,8 @@
                     <?php if (!$isReadOnly): ?>
                     <!-- Formulário Adicionar Item -->
                     <div class="card border-primary border-opacity-25">
-                        <div class="card-header bg-primary bg-opacity-10 py-2">
-                            <h6 class="mb-0 text-primary"><i class="fas fa-plus-circle me-2"></i>Adicionar Produto</h6>
+                        <div class="card-header bg-primary py-2">
+                            <h6 class="mb-0 text-white"><i class="fas fa-plus-circle me-2"></i>Adicionar Produto</h6>
                         </div>
                         <div class="card-body p-3">
                             <!-- O form real é colocado via JS para evitar nesting -->
@@ -1488,6 +1488,9 @@
                         </div>
                     <?php else: ?>
                         <div class="timeline">
+                            <?php 
+                                $historyFirst = !empty($history) ? $history[0] : null;
+                            ?>
                             <?php foreach ($history as $h): ?>
                             <?php 
                                 $toInfo = $stages[$h['to_stage']] ?? ['label' => $h['to_stage'], 'color' => '#999', 'icon' => 'fas fa-circle'];
@@ -1512,8 +1515,17 @@
                                     <?php if (!empty($h['notes'])): ?>
                                     <div class="small fst-italic mt-1">"<?= $h['notes'] ?>"</div>
                                     <?php endif; ?>
-                                    <?php if (isset($h['duration_seconds']) && $h['duration_seconds'] > 0): 
-                                        $dur = $h['duration_seconds'];
+                                    <?php 
+                                        // Exibir permanência na etapa (duration_seconds = tempo até a próxima movimentação)
+                                        // Para a última movimentação (mais recente, primeira na lista DESC), mostra "em andamento"
+                                        // Para etapas terminais (concluído/cancelado), não mostrar duração acumulando
+                                        $isLastEntry = ($historyFirst !== null && $h['id'] === $historyFirst['id']);
+                                        $isTerminalStage = in_array($h['to_stage'], ['concluido', 'cancelado']);
+                                        $showDuration = isset($h['duration_seconds']) && (int)$h['duration_seconds'] > 0 
+                                                         && !($isLastEntry && $isTerminalStage);
+                                    ?>
+                                    <?php if ($showDuration): 
+                                        $dur = (int)$h['duration_seconds'];
                                         $durDays = floor($dur / 86400);
                                         $durHours = floor(($dur % 86400) / 3600);
                                         $durMins = floor(($dur % 3600) / 60);
@@ -1525,6 +1537,9 @@
                                     <div class="mt-1">
                                         <span class="badge bg-light text-dark border" style="font-size:0.6rem;">
                                             <i class="fas fa-stopwatch me-1 text-warning"></i>Permanência: <?= trim($durText) ?>
+                                            <?php if ($isLastEntry && !$isTerminalStage): ?>
+                                            <span class="text-muted">(em andamento)</span>
+                                            <?php endif; ?>
                                         </span>
                                     </div>
                                     <?php endif; ?>
