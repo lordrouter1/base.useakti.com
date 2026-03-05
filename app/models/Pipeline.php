@@ -153,35 +153,42 @@ class Pipeline {
     }
 
     /**
-     * Busca histórico de um pedido com duração em cada etapa
+     * Busca histórico de um pedido com duração em cada etapa.
+     * A duração é calculada apenas entre timestamps armazenados no banco (sem NOW())
+     * para evitar problemas de timezone entre PHP e MySQL.
+     * Para a etapa atual (última movimentação), a duração é calculada no PHP.
      */
     public function getHistory($orderId) {
-        $query = "SELECT ph.*, u.name as user_name 
-                  FROM pipeline_history ph 
-                  LEFT JOIN users u ON ph.changed_by = u.id 
-                  WHERE ph.order_id = :order_id 
-                  ORDER BY ph.created_at ASC";
+        $query = "SELECT h.*, u.name as user_name,
+                         (SELECT h2.created_at FROM pipeline_history h2 
+                          WHERE h2.order_id = h.order_id AND h2.id > h.id
+                          ORDER BY h2.id ASC LIMIT 1) as next_created_at
+                  FROM pipeline_history h
+                  LEFT JOIN users u ON h.changed_by = u.id 
+                  WHERE h.order_id = :order_id 
+                  ORDER BY h.created_at DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':order_id', $orderId);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Calcular duração em cada etapa (diferença entre movimentações consecutivas)
-        for ($i = 0; $i < count($rows); $i++) {
-            if ($i < count($rows) - 1) {
-                // Duração = diferença entre esta entrada e a próxima
-                $from = strtotime($rows[$i]['created_at']);
-                $to = strtotime($rows[$i + 1]['created_at']);
-                $rows[$i]['duration_seconds'] = $to - $from;
+        // Calcular duration_seconds no PHP para evitar problemas de timezone
+        foreach ($rows as &$row) {
+            if (!empty($row['next_created_at'])) {
+                // Duração entre dois registros do banco (ambos no mesmo timezone)
+                $start = strtotime($row['created_at']);
+                $end   = strtotime($row['next_created_at']);
+                $row['duration_seconds'] = max(0, $end - $start);
             } else {
-                // Última entrada: duração = tempo desde a entrada até agora
-                $from = strtotime($rows[$i]['created_at']);
-                $rows[$i]['duration_seconds'] = time() - $from;
+                // Última movimentação (etapa atual): calcular com hora atual do PHP
+                $start = strtotime($row['created_at']);
+                $row['duration_seconds'] = max(0, time() - $start);
             }
+            unset($row['next_created_at']);
         }
+        unset($row);
 
-        // Reverter para ordem DESC (mais recente primeiro) para a view
-        return array_reverse($rows);
+        return $rows;
     }
 
     /**
@@ -441,6 +448,7 @@ class Pipeline {
                 s.name as sector_name, s.icon as sector_icon, s.color as sector_color, s.id as sector_id,
                 oi.product_id, oi.quantity, oi.grade_combination_id, oi.grade_description,
                 p.name as product_name,
+                (SELECT pi.image_path FROM product_images pi WHERE pi.product_id = p.id AND pi.is_main = 1 LIMIT 1) as product_image,
                 o.id as order_id, o.created_at as order_created_at, o.priority, o.deadline,
                 c.name as customer_name,
                 u.name as completed_by_name,

@@ -6,8 +6,8 @@
 <footer class="app-footer mt-auto">
     <div class="container-fluid">
         <div class="d-flex flex-wrap justify-content-between align-items-center py-3">
-            <div class="d-flex align-items-center">
-                <img src="assets/logos/akti-logo-dark.svg" alt="Akti" height="22" class="me-2 opacity-50">
+            <div class="m-auto">
+                <img src="assets/logos/akti-logo-light-nBg.svg" alt="Akti" class="me-2">
                 <span class="text-muted small">&copy; <?= date('Y') ?> Akti - Gestão em Produção</span>
             </div>
             <div class="d-flex align-items-center gap-3">

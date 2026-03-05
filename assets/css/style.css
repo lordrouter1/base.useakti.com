@@ -30,6 +30,30 @@ body {
     flex-direction: column;
 }
 
+/* ═══ Card-headers com background sólido → texto branco ═══ */
+.card-header.bg-primary,
+.card-header.bg-secondary,
+.card-header.bg-success,
+.card-header.bg-danger,
+.card-header.bg-info,
+.card-header.bg-dark {
+    color: #fff !important;
+}
+.card-header.bg-primary *,
+.card-header.bg-secondary *,
+.card-header.bg-success *,
+.card-header.bg-danger *,
+.card-header.bg-info *,
+.card-header.bg-dark * {
+    color: #fff !important;
+}
+.card-header.bg-warning {
+    color: #212529 !important;
+}
+.card-header.bg-warning * {
+    color: #212529 !important;
+}
+
 h1, h2, h3, h4, h5, h6 {
     color: var(--primary-color);
     font-weight: 600;
