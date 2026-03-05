@@ -1,4 +1,3 @@
-<?php echo password_hash('admin123', PASSWORD_BCRYPT);?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
