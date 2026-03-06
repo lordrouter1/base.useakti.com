@@ -214,4 +214,44 @@ class Product {
         $stmt->execute();
         return (int)$stmt->fetchColumn() > 0;
     }
+
+    /**
+     * Get products by category ID (with main image)
+     */
+    function getByCategory($categoryId) {
+        $categoryId = (int)$categoryId;
+        $query = "SELECT p.id, p.name, p.sku, p.subcategory_id,
+                         sc.name AS subcategory_name,
+                         (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id AND pi.is_main = 1 LIMIT 1) as main_image_path,
+                         (SELECT COUNT(*) FROM product_grades pg WHERE pg.product_id = p.id AND pg.is_active = 1) as grade_count,
+                         (SELECT COUNT(*) FROM product_sectors ps WHERE ps.product_id = p.id) as sector_count
+                  FROM {$this->table_name} p
+                  LEFT JOIN subcategories sc ON p.subcategory_id = sc.id
+                  WHERE p.category_id = :category_id
+                  ORDER BY p.name ASC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':category_id', $categoryId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get products by subcategory ID (with main image)
+     */
+    function getBySubcategory($subcategoryId) {
+        $subcategoryId = (int)$subcategoryId;
+        $query = "SELECT p.id, p.name, p.sku, p.category_id,
+                         c.name AS category_name,
+                         (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id AND pi.is_main = 1 LIMIT 1) as main_image_path,
+                         (SELECT COUNT(*) FROM product_grades pg WHERE pg.product_id = p.id AND pg.is_active = 1) as grade_count,
+                         (SELECT COUNT(*) FROM product_sectors ps WHERE ps.product_id = p.id) as sector_count
+                  FROM {$this->table_name} p
+                  LEFT JOIN categories c ON p.category_id = c.id
+                  WHERE p.subcategory_id = :subcategory_id
+                  ORDER BY p.name ASC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':subcategory_id', $subcategoryId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

@@ -252,8 +252,8 @@ class ProductController {
                  'name' => $_POST['name'],
                  'sku' => $_POST['sku'] ?? null,
                  'description' => $_POST['description'],
-                 'category_id' => $_POST['category_id'],
-                 'subcategory_id' => $_POST['subcategory_id'] ?? null,
+                 'category_id' => $category_id ?: null,
+                 'subcategory_id' => $subcategory_id ?: null,
                  'price' => $_POST['price'],
                  'use_stock_control' => isset($_POST['use_stock_control']) ? 1 : 0
             ];

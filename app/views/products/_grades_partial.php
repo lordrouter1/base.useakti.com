@@ -699,10 +699,8 @@
         });
     }
 
-    // Check on page load (for edit mode with category already selected)
-    <?php if (empty($productGrades)): ?>
+    // Check on page load (for edit mode — always check so user can re-import if needed)
     setTimeout(checkInheritedGrades, 300);
-    <?php endif; ?>
 
 })();
 </script>

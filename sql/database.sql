@@ -107,11 +107,13 @@ CREATE TABLE IF NOT EXISTS subcategories (
 CREATE TABLE IF NOT EXISTS products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
+    sku VARCHAR(100) DEFAULT NULL COMMENT 'Código SKU do produto',
     description TEXT,
     category_id INT NULL,
     subcategory_id INT NULL,
     price DECIMAL(10, 2) NOT NULL,
     stock_quantity INT DEFAULT 0,
+    use_stock_control TINYINT(1) DEFAULT 0 COMMENT 'Se o produto usa controle de estoque',
     -- Campos Fiscais (NF-e)
     fiscal_ncm VARCHAR(10) DEFAULT NULL COMMENT 'NCM - Nomenclatura Comum do Mercosul',
     fiscal_cest VARCHAR(10) DEFAULT NULL COMMENT 'CEST - Código Especificador da Substituição Tributária',
@@ -449,3 +451,31 @@ CREATE TABLE IF NOT EXISTS system_logs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────────────
+-- MIGRAÇÕES / ALTER TABLE — Para bancos já existentes
+-- ─────────────────────────────────────────────────────
+
+-- Adiciona coluna sku na tabela products (caso não exista)
+SET @dbname = DATABASE();
+SET @tablename = 'products';
+SET @columnname = 'sku';
+SET @preparedStatement = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename AND COLUMN_NAME = @columnname) > 0,
+    'SELECT 1',
+    'ALTER TABLE products ADD COLUMN sku VARCHAR(100) DEFAULT NULL COMMENT \'Código SKU do produto\' AFTER name'
+));
+PREPARE alterIfNotExists FROM @preparedStatement;
+EXECUTE alterIfNotExists;
+DEALLOCATE PREPARE alterIfNotExists;
+
+-- Adiciona coluna use_stock_control na tabela products (caso não exista)
+SET @columnname = 'use_stock_control';
+SET @preparedStatement = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename AND COLUMN_NAME = @columnname) > 0,
+    'SELECT 1',
+    'ALTER TABLE products ADD COLUMN use_stock_control TINYINT(1) DEFAULT 0 COMMENT \'Se o produto usa controle de estoque\' AFTER stock_quantity'
+));
+PREPARE alterIfNotExists FROM @preparedStatement;
+EXECUTE alterIfNotExists;
+DEALLOCATE PREPARE alterIfNotExists;

@@ -8,6 +8,24 @@ set_exception_handler(function($e) {
     if (!headers_sent()) {
         while (ob_get_level()) ob_end_clean();
     }
+    // Se a requisição espera JSON (AJAX/fetch), retorna JSON em vez de HTML
+    $acceptHeader = $_SERVER['HTTP_ACCEPT'] ?? '';
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    $xhrHeader = $_SERVER['HTTP_X_REQUESTED_WITH'] ?? '';
+    $isAjax = (strtolower($xhrHeader) === 'xmlhttprequest')
+              || (stripos($acceptHeader, 'application/json') !== false)
+              || (stripos($contentType, 'application/json') !== false);
+    // Também detecta AJAX por actions conhecidas
+    $action = $_GET['action'] ?? '';
+    $ajaxActions = ['getSubcategories','getInheritedGrades','getInheritedSectors','getProductsForExport','exportToProducts','createCategoryAjax','deleteImage','createGradeType','getGradeTypes','generateCombinations','importProducts','toggleCategoryCombination','toggleSubcategoryCombination'];
+    if (in_array($action, $ajaxActions)) {
+        $isAjax = true;
+    }
+    if ($isAjax) {
+        if (!headers_sent()) header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()]);
+        exit;
+    }
     require __DIR__ . '/app/views/errors/500.php';
     exit;
 });
@@ -87,7 +105,7 @@ if (isset($flatMenuConfig[$page]['permission_alias'])) {
     $permissionPage = $flatMenuConfig[$page]['permission_alias'];
 }
 
-if (isset($_SESSION['user_id']) && $page !== 'login' && $action !== 'logout' && $action !== 'getSubcategories' && $action !== 'getInheritedGrades' && $needsPermission) {
+if (isset($_SESSION['user_id']) && $page !== 'login' && $action !== 'logout' && $action !== 'getSubcategories' && $action !== 'getInheritedGrades' && $action !== 'getInheritedSectors' && $action !== 'getProductsForExport' && $action !== 'exportToProducts' && $needsPermission) {
     $db = (new Database())->getConnection();
     $user = new User($db);
     if (!$user->checkPermission($_SESSION['user_id'], $permissionPage)) {
@@ -187,6 +205,12 @@ switch ($page) {
             $controller->toggleCategoryCombinationAjax();
         } elseif ($action == 'toggleSubcategoryCombination') {
             $controller->toggleSubcategoryCombinationAjax();
+        } elseif ($action == 'getProductsForExport') {
+            $controller->getProductsForExport();
+        } elseif ($action == 'exportToProducts') {
+            $controller->exportToProducts();
+        } elseif ($action == 'getInheritedSectors') {
+            $controller->getInheritedSectorsAjax();
         } else {
             $controller->index();
         }

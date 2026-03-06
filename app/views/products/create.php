@@ -201,6 +201,19 @@
             </div>
             <div class="collapse" id="collapseSectors">
                 <div class="card-body p-4">
+                    <!-- Alert para importar setores da categoria/subcategoria -->
+                    <div id="inherit-sectors-section" class="mb-3" style="display:none;">
+                        <div class="alert alert-success py-2 px-3 d-flex align-items-center justify-content-between" id="inherit-sectors-alert" style="font-size:0.85rem;">
+                            <div>
+                                <i class="fas fa-magic me-2"></i>
+                                <span id="inherit-sectors-msg">A categoria/subcategoria possui setores de produção configurados.</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-success text-white" id="btn-inherit-sectors">
+                                <i class="fas fa-download me-1"></i>Importar Setores
+                            </button>
+                        </div>
+                    </div>
+
                     <p class="text-muted small mb-3">Selecione os setores pelos quais este produto passa na produção. Arraste para reordenar.</p>
                     
                     <div id="prod-sectors-selected" class="sectors-sortable-list mb-2" style="min-height: 40px; border: 2px dashed #dee2e6; border-radius: 0.375rem; padding: 6px;">
@@ -403,6 +416,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 subcategorySelect.innerHTML = '<option value="">Selecione uma categoria primeiro</option>';
             }
         }
+        // Check inherited sectors when category changes
+        setTimeout(checkInheritedSectors, 500);
     });
     
     subcategorySelect.addEventListener('change', function() {
@@ -414,6 +429,8 @@ document.addEventListener('DOMContentLoaded', function() {
             newSubcategoryInput.required = false;
             newSubcategoryInput.value = '';
         }
+        // Check inherited sectors when subcategory changes
+        setTimeout(checkInheritedSectors, 300);
     });
 
     function fetchSubcategories(categoryId) {
@@ -428,6 +445,99 @@ document.addEventListener('DOMContentLoaded', function() {
                 subcategorySelect.innerHTML = options;
             })
             .catch(error => console.error('Error fetching subcategories:', error));
+    }
+
+    // ── Inherited Sectors Check ──
+    function checkInheritedSectors() {
+        const catSelect = document.getElementById('category_id');
+        const subSelect = document.getElementById('subcategory_id');
+        const categoryId = catSelect ? catSelect.value : '';
+        const subcategoryId = subSelect ? subSelect.value : '';
+        const inheritSection = document.getElementById('inherit-sectors-section');
+        const inheritMsg = document.getElementById('inherit-sectors-msg');
+        const btnInherit = document.getElementById('btn-inherit-sectors');
+
+        if (!inheritSection) return;
+
+        if ((!categoryId || categoryId === 'new') && (!subcategoryId || subcategoryId === 'new')) {
+            inheritSection.style.display = 'none';
+            return;
+        }
+
+        const params = new URLSearchParams();
+        if (subcategoryId && subcategoryId !== '' && subcategoryId !== 'new') params.append('subcategory_id', subcategoryId);
+        if (categoryId && categoryId !== '' && categoryId !== 'new') params.append('category_id', categoryId);
+
+        fetch('?page=categories&action=getInheritedSectors&' + params.toString())
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.sectors && data.sectors.length > 0) {
+                    const sourceName = data.source === 'subcategory' ? 'subcategoria' : 'categoria';
+                    inheritMsg.innerHTML = `<i class="fas fa-magic me-2"></i>A <strong>${sourceName}</strong> possui <strong>${data.sectors.length}</strong> setor(es) de produção configurados.`;
+                    inheritSection.style.display = 'block';
+                    btnInherit.dataset.sectors = JSON.stringify(data.sectors);
+                } else {
+                    inheritSection.style.display = 'none';
+                }
+            })
+            .catch(() => { inheritSection.style.display = 'none'; });
+    }
+
+    // Import sectors button handler
+    const btnInheritSectors = document.getElementById('btn-inherit-sectors');
+    if (btnInheritSectors) {
+        btnInheritSectors.addEventListener('click', function() {
+            const sectorsJson = this.dataset.sectors;
+            if (!sectorsJson) return;
+
+            const sectors = JSON.parse(sectorsJson);
+            const selectedContainer = document.getElementById('prod-sectors-selected');
+            const availableContainer = document.getElementById('prod-sectors-available');
+            if (!selectedContainer || !availableContainer) return;
+
+            // Clear existing
+            selectedContainer.querySelectorAll('.sector-item').forEach(item => {
+                const id = item.dataset.id;
+                item.remove();
+                const addBtn = availableContainer.querySelector(`.sector-add-btn[data-id="${id}"]`);
+                if (addBtn) addBtn.classList.remove('d-none');
+            });
+            const placeholder = selectedContainer.querySelector('.sectors-placeholder');
+            if (placeholder) placeholder.remove();
+
+            // Add inherited sectors
+            sectors.forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'sector-item badge d-inline-flex align-items-center me-1 mb-1 px-2 py-2';
+                item.dataset.id = s.sector_id;
+                item.style.backgroundColor = s.color;
+                item.style.cursor = 'grab';
+                item.style.fontSize = '0.85rem';
+                item.innerHTML = `
+                    <i class="fas fa-grip-vertical me-1" style="opacity:0.6; font-size:0.7rem;"></i>
+                    <i class="${s.icon} me-1"></i>
+                    ${s.sector_name}
+                    <button type="button" class="btn-close btn-close-white ms-2 sector-remove" style="font-size: 0.5rem;" data-id="${s.sector_id}"></button>
+                    <input type="hidden" name="sector_ids[]" value="${s.sector_id}">
+                `;
+                selectedContainer.appendChild(item);
+                const addBtn = availableContainer.querySelector(`.sector-add-btn[data-id="${s.sector_id}"]`);
+                if (addBtn) addBtn.classList.add('d-none');
+                item.querySelector('.sector-remove').addEventListener('click', function() {
+                    const sectorId = this.dataset.id;
+                    const sItem = selectedContainer.querySelector(`.sector-item[data-id="${sectorId}"]`);
+                    if (sItem) sItem.remove();
+                    const aBtn = availableContainer.querySelector(`.sector-add-btn[data-id="${sectorId}"]`);
+                    if (aBtn) aBtn.classList.remove('d-none');
+                    if (!selectedContainer.querySelector('.sector-item')) {
+                        selectedContainer.innerHTML = '<span class="text-muted small sectors-placeholder" style="line-height: 28px; padding: 2px 6px;"><i class="fas fa-info-circle me-1"></i>Clique nos setores abaixo para adicionar e arraste para ordenar</span>';
+                    }
+                });
+            });
+
+            document.getElementById('inherit-sectors-section').style.display = 'none';
+            Swal.fire({ icon: 'success', title: 'Setores importados!', text: sectors.length + ' setor(es) importado(s).', timer: 2000, showConfirmButton: false });
+        });
     }
 
     // ── Image Drag and Drop ──

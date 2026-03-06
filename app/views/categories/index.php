@@ -100,6 +100,12 @@
                                         <i class="fas fa-save me-1"></i><?= isset($editCategory) ? 'Salvar' : 'Criar Categoria' ?>
                                     </button>
                                     <?php if(isset($editCategory)): ?>
+                                        <?php if(!empty($editCategoryGrades) || !empty($editCategorySectors)): ?>
+                                        <button type="button" class="btn btn-outline-info btn-sm btn-export-to-products" 
+                                                data-type="category" data-id="<?= $editCategory['id'] ?>" data-name="<?= htmlspecialchars($editCategory['name']) ?>">
+                                            <i class="fas fa-share-alt me-1"></i>Exportar Grades/Setores para Produtos
+                                        </button>
+                                        <?php endif; ?>
                                         <a href="?page=categories" class="btn btn-outline-secondary btn-sm">Cancelar</a>
                                     <?php endif; ?>
                                 </div>
@@ -120,7 +126,7 @@
                                             <th class="py-3">Setores</th>
                                             <th class="py-3 text-center" style="width:80px;">Subs</th>
                                             <th class="py-3 text-center" style="width:80px;">Prod.</th>
-                                            <th class="py-3 text-end pe-4" style="width:100px;">Ações</th>
+                                            <th class="py-3 text-end pe-4" style="width:130px;">Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -159,12 +165,21 @@
                                                     <span class="badge bg-secondary"><?= $cat['product_count'] ?></span>
                                                 </td>
                                                 <td class="text-end pe-4">
-                                                    <a href="?page=categories&action=edit&id=<?= $cat['id'] ?>" class="btn btn-sm btn-outline-primary me-1" title="Editar">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                    <button class="btn btn-sm btn-outline-danger btn-delete-cat" data-id="<?= $cat['id'] ?>" data-name="<?= htmlspecialchars($cat['name']) ?>" data-products="<?= $cat['product_count'] ?>" title="Excluir">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <?php if(!empty($categoryGradesMap[$cat['id']]) || !empty($catSectorsData)): ?>
+                                                        <button class="btn btn-outline-info btn-export-to-products" 
+                                                                data-type="category" data-id="<?= $cat['id'] ?>" data-name="<?= htmlspecialchars($cat['name']) ?>"
+                                                                title="Exportar grades/setores para produtos">
+                                                            <i class="fas fa-share-alt"></i>
+                                                        </button>
+                                                        <?php endif; ?>
+                                                        <a href="?page=categories&action=edit&id=<?= $cat['id'] ?>" class="btn btn-outline-primary" title="Editar">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <button class="btn btn-outline-danger btn-delete-cat" data-id="<?= $cat['id'] ?>" data-name="<?= htmlspecialchars($cat['name']) ?>" data-products="<?= $cat['product_count'] ?>" title="Excluir">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                             <?php endforeach; ?>
@@ -267,6 +282,12 @@
                                         <i class="fas fa-save me-1"></i><?= isset($editSubcategory) ? 'Salvar' : 'Criar Subcategoria' ?>
                                     </button>
                                     <?php if(isset($editSubcategory)): ?>
+                                        <?php if(!empty($editSubcategoryGrades) || !empty($editSubcategorySectors)): ?>
+                                        <button type="button" class="btn btn-outline-info btn-sm btn-export-to-products" 
+                                                data-type="subcategory" data-id="<?= $editSubcategory['id'] ?>" data-name="<?= htmlspecialchars($editSubcategory['name']) ?>">
+                                            <i class="fas fa-share-alt me-1"></i>Exportar Grades/Setores para Produtos
+                                        </button>
+                                        <?php endif; ?>
                                         <a href="?page=categories&tab=subcategories" class="btn btn-outline-secondary btn-sm">Cancelar</a>
                                     <?php endif; ?>
                                 </div>
@@ -286,7 +307,7 @@
                                             <th class="py-3 ps-4">Subcategoria</th>
                                             <th class="py-3">Categoria</th>
                                             <th class="py-3">Setores</th>
-                                            <th class="py-3 text-end pe-4" style="width:100px;">Ações</th>
+                                            <th class="py-3 text-end pe-4" style="width:130px;">Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -322,12 +343,21 @@
                                                     <?php endif; ?>
                                                 </td>
                                                 <td class="text-end pe-4">
-                                                    <a href="?page=categories&action=editSub&id=<?= $sub['id'] ?>&tab=subcategories" class="btn btn-sm btn-outline-primary me-1" title="Editar">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                    <button class="btn btn-sm btn-outline-danger btn-delete-sub" data-id="<?= $sub['id'] ?>" data-name="<?= htmlspecialchars($sub['name']) ?>" title="Excluir">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <?php if(!empty($subcategoryGradesMap[$sub['id']]) || !empty($subSectorsData)): ?>
+                                                        <button class="btn btn-outline-info btn-export-to-products" 
+                                                                data-type="subcategory" data-id="<?= $sub['id'] ?>" data-name="<?= htmlspecialchars($sub['name']) ?>"
+                                                                title="Exportar grades/setores para produtos">
+                                                            <i class="fas fa-share-alt"></i>
+                                                        </button>
+                                                        <?php endif; ?>
+                                                        <a href="?page=categories&action=editSub&id=<?= $sub['id'] ?>&tab=subcategories" class="btn btn-outline-primary" title="Editar">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <button class="btn btn-outline-danger btn-delete-sub" data-id="<?= $sub['id'] ?>" data-name="<?= htmlspecialchars($sub['name']) ?>" title="Excluir">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                             <?php endforeach; ?>
@@ -345,6 +375,93 @@
 
 <!-- SortableJS CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<!-- ═══════ MODAL: Exportar Grades/Setores para Produtos ═══════ -->
+<div class="modal fade" id="modalExportToProducts" tabindex="-1" aria-labelledby="modalExportLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalExportLabel">
+                    <i class="fas fa-share-alt me-2"></i>Exportar para Produtos
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="export-loading" class="text-center py-4">
+                    <div class="spinner-border text-info" role="status"></div>
+                    <p class="mt-2 text-muted">Carregando produtos...</p>
+                </div>
+                <div id="export-content" style="display:none;">
+                    <!-- Info da origem -->
+                    <div class="alert alert-info py-2 px-3 mb-3" style="font-size:0.85rem;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span id="export-source-info"></span>
+                    </div>
+
+                    <!-- O que exportar -->
+                    <div class="card mb-3">
+                        <div class="card-body py-2 px-3">
+                            <label class="form-label fw-bold small mb-2">O que exportar?</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check" id="export-grades-check-wrapper">
+                                    <input class="form-check-input" type="checkbox" id="chkExportGrades" checked>
+                                    <label class="form-check-label small" for="chkExportGrades">
+                                        <i class="fas fa-th-large text-info me-1"></i>Grades / Variações
+                                    </label>
+                                </div>
+                                <div class="form-check" id="export-sectors-check-wrapper">
+                                    <input class="form-check-input" type="checkbox" id="chkExportSectors" checked>
+                                    <label class="form-check-label small" for="chkExportSectors">
+                                        <i class="fas fa-industry text-success me-1"></i>Setores de Produção
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Warning -->
+                    <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:0.8rem;">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>Atenção:</strong> Esta ação irá <strong>substituir</strong> as grades e/ou setores existentes nos produtos selecionados. A ação não pode ser desfeita.
+                    </div>
+
+                    <!-- Seleção de produtos -->
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold small mb-0">Selecione os produtos:</label>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnSelectAll">
+                                <i class="fas fa-check-double me-1"></i>Todos
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnSelectNone">
+                                <i class="fas fa-times me-1"></i>Nenhum
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de produtos (sem grades/setores = highlight) -->
+                    <div id="export-products-list" class="border rounded" style="max-height: 350px; overflow-y: auto;">
+                        <!-- Populated via JS -->
+                    </div>
+                    <div id="export-no-products" class="text-center py-4 text-muted" style="display:none;">
+                        <i class="fas fa-box-open fa-2x mb-2 d-block"></i>
+                        Nenhum produto encontrado nesta categoria/subcategoria.
+                    </div>
+
+                    <div class="text-muted small mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <span id="export-selected-count">0</span> produto(s) selecionado(s)
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-info text-white" id="btnConfirmExport" disabled>
+                    <i class="fas fa-share-alt me-1"></i>Exportar para Selecionados
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -453,6 +570,211 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: 'Excluir subcategoria?', html: `Deseja excluir <strong>${name}</strong>?`, icon: 'warning', showCancelButton: true,
                 confirmButtonColor: '#c0392b', confirmButtonText: '<i class="fas fa-trash me-1"></i> Excluir', cancelButtonText: 'Cancelar'
             }).then(r => { if (r.isConfirmed) window.location = '?page=categories&action=deleteSub&id=' + id; });
+        });
+    });
+
+    // ═══════ EXPORT TO PRODUCTS LOGIC ═══════
+    let exportModal = null;
+    let exportState = { type: '', sourceId: '', sourceName: '' };
+
+    document.querySelectorAll('.btn-export-to-products').forEach(btn => {
+        btn.addEventListener('click', function() {
+            exportState.type = this.dataset.type;
+            exportState.sourceId = this.dataset.id;
+            exportState.sourceName = this.dataset.name;
+
+            const typeName = exportState.type === 'category' ? 'Categoria' : 'Subcategoria';
+            document.getElementById('modalExportLabel').innerHTML = 
+                `<i class="fas fa-share-alt me-2"></i>Exportar — ${typeName}: ${exportState.sourceName}`;
+
+            document.getElementById('export-loading').style.display = 'block';
+            document.getElementById('export-content').style.display = 'none';
+            document.getElementById('btnConfirmExport').disabled = true;
+
+            if (!exportModal) {
+                exportModal = new bootstrap.Modal(document.getElementById('modalExportToProducts'));
+            }
+            exportModal.show();
+
+            // Fetch products
+            fetch(`?page=categories&action=getProductsForExport&type=${exportState.type}&id=${exportState.sourceId}`)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('export-loading').style.display = 'none';
+                    document.getElementById('export-content').style.display = 'block';
+
+                    if (!data.success) {
+                        document.getElementById('export-no-products').style.display = 'block';
+                        document.getElementById('export-products-list').style.display = 'none';
+                        return;
+                    }
+
+                    // Setup checkboxes based on what's available
+                    const gradesCW = document.getElementById('export-grades-check-wrapper');
+                    const sectorsCW = document.getElementById('export-sectors-check-wrapper');
+                    const chkGrades = document.getElementById('chkExportGrades');
+                    const chkSectors = document.getElementById('chkExportSectors');
+
+                    if (data.has_grades) {
+                        gradesCW.style.display = 'block';
+                        chkGrades.checked = true;
+                        chkGrades.disabled = false;
+                    } else {
+                        gradesCW.style.display = 'none';
+                        chkGrades.checked = false;
+                    }
+                    if (data.has_sectors) {
+                        sectorsCW.style.display = 'block';
+                        chkSectors.checked = true;
+                        chkSectors.disabled = false;
+                    } else {
+                        sectorsCW.style.display = 'none';
+                        chkSectors.checked = false;
+                    }
+
+                    // Source info
+                    const infoItems = [];
+                    if (data.has_grades) infoItems.push('<i class="fas fa-th-large text-info me-1"></i>Grades');
+                    if (data.has_sectors) infoItems.push('<i class="fas fa-industry text-success me-1"></i>Setores');
+                    document.getElementById('export-source-info').innerHTML = 
+                        `Exportando ${infoItems.join(' e ')} da <strong>${typeName.toLowerCase()} "${exportState.sourceName}"</strong> para os produtos selecionados.`;
+
+                    // Render product list
+                    const listContainer = document.getElementById('export-products-list');
+                    const noProducts = document.getElementById('export-no-products');
+
+                    if (data.products.length === 0) {
+                        listContainer.style.display = 'none';
+                        noProducts.style.display = 'block';
+                        return;
+                    }
+
+                    listContainer.style.display = 'block';
+                    noProducts.style.display = 'none';
+
+                    let html = '';
+                    data.products.forEach(p => {
+                        const hasG = parseInt(p.grade_count) > 0;
+                        const hasS = parseInt(p.sector_count) > 0;
+                        const highlightClass = (!hasG && !hasS) ? 'bg-warning bg-opacity-10' : '';
+                        const imgHtml = p.main_image_path 
+                            ? `<img src="${p.main_image_path}" class="rounded" style="width:32px; height:32px; object-fit:cover;">` 
+                            : `<div class="rounded bg-light d-flex align-items-center justify-content-center" style="width:32px; height:32px;"><i class="fas fa-box text-muted" style="font-size:0.8rem;"></i></div>`;
+
+                        html += `
+                            <div class="d-flex align-items-center px-3 py-2 border-bottom export-product-row ${highlightClass}" data-id="${p.id}">
+                                <div class="form-check me-3">
+                                    <input class="form-check-input export-product-check" type="checkbox" value="${p.id}" checked>
+                                </div>
+                                <div class="me-2">${imgHtml}</div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold small">${p.name}</div>
+                                    <div class="text-muted" style="font-size:0.7rem;">
+                                        ${p.sku ? '<i class="fas fa-barcode me-1"></i>' + p.sku + ' · ' : ''}
+                                        ${hasG ? '<span class="text-info"><i class="fas fa-th-large me-1"></i>' + p.grade_count + ' grade(s)</span>' : '<span class="text-warning"><i class="fas fa-th-large me-1"></i>Sem grades</span>'}
+                                         · 
+                                        ${hasS ? '<span class="text-success"><i class="fas fa-industry me-1"></i>' + p.sector_count + ' setor(es)</span>' : '<span class="text-warning"><i class="fas fa-industry me-1"></i>Sem setores</span>'}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    listContainer.innerHTML = html;
+
+                    // Update count and bind events
+                    updateExportCount();
+                    listContainer.querySelectorAll('.export-product-check').forEach(chk => {
+                        chk.addEventListener('change', updateExportCount);
+                    });
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('export-loading').style.display = 'none';
+                    document.getElementById('export-content').style.display = 'block';
+                    document.getElementById('export-no-products').style.display = 'block';
+                    document.getElementById('export-products-list').style.display = 'none';
+                });
+        });
+    });
+
+    // Select All / None
+    document.getElementById('btnSelectAll')?.addEventListener('click', function() {
+        document.querySelectorAll('.export-product-check').forEach(chk => { chk.checked = true; });
+        updateExportCount();
+    });
+    document.getElementById('btnSelectNone')?.addEventListener('click', function() {
+        document.querySelectorAll('.export-product-check').forEach(chk => { chk.checked = false; });
+        updateExportCount();
+    });
+
+    function updateExportCount() {
+        const checked = document.querySelectorAll('.export-product-check:checked');
+        document.getElementById('export-selected-count').textContent = checked.length;
+        const hasGrades = document.getElementById('chkExportGrades').checked;
+        const hasSectors = document.getElementById('chkExportSectors').checked;
+        document.getElementById('btnConfirmExport').disabled = checked.length === 0 || (!hasGrades && !hasSectors);
+    }
+
+    // Also update when checkboxes change
+    document.getElementById('chkExportGrades')?.addEventListener('change', updateExportCount);
+    document.getElementById('chkExportSectors')?.addEventListener('change', updateExportCount);
+
+    // Confirm export
+    document.getElementById('btnConfirmExport')?.addEventListener('click', function() {
+        const checked = document.querySelectorAll('.export-product-check:checked');
+        const productIds = Array.from(checked).map(chk => chk.value);
+        const exportGrades = document.getElementById('chkExportGrades').checked;
+        const exportSectors = document.getElementById('chkExportSectors').checked;
+
+        if (productIds.length === 0) return;
+
+        const itemsText = [];
+        if (exportGrades) itemsText.push('grades');
+        if (exportSectors) itemsText.push('setores');
+
+        Swal.fire({
+            title: 'Confirmar exportação?',
+            html: `Você está prestes a exportar <strong>${itemsText.join(' e ')}</strong> para <strong>${productIds.length}</strong> produto(s).<br><br><span class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>As configurações existentes nesses produtos serão substituídas.</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#17a2b8',
+            confirmButtonText: '<i class="fas fa-share-alt me-1"></i> Confirmar Exportação',
+            cancelButtonText: 'Cancelar',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: () => !Swal.isLoading(),
+            preConfirm: () => {
+                const formData = new FormData();
+                formData.append('type', exportState.type);
+                formData.append('source_id', exportState.sourceId);
+                if (exportGrades) formData.append('export_grades', '1');
+                if (exportSectors) formData.append('export_sectors', '1');
+                productIds.forEach(id => formData.append('product_ids[]', id));
+
+                return fetch('?page=categories&action=exportToProducts', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) throw new Error(data.message || 'Erro desconhecido');
+                    return data;
+                })
+                .catch(err => {
+                    Swal.showValidationMessage('Erro: ' + err.message);
+                });
+            }
+        }).then(result => {
+            if (result.isConfirmed && result.value) {
+                if (exportModal) exportModal.hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Exportação concluída!',
+                    html: result.value.message,
+                    timer: 3000,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK'
+                });
+            }
         });
     });
 });
