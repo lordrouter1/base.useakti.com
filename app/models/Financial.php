@@ -39,21 +39,21 @@ class Financial {
         $s->execute([':m' => $month, ':y' => $year]);
         $summary['recebido_mes'] = (float) $s->fetchColumn();
 
-        // Entradas manuais do mês (exclui estornos — são apenas registros, não contam no cálculo)
+        // Entradas manuais do mês (exclui estornos e registros — são apenas registros, não contam no cálculo)
         $q = "SELECT COALESCE(SUM(amount), 0)
               FROM financial_transactions
               WHERE type = 'entrada' AND is_confirmed = 1
-              AND category != 'estorno_pagamento'
+              AND category NOT IN ('estorno_pagamento', 'registro_ofx')
               AND MONTH(transaction_date) = :m AND YEAR(transaction_date) = :y";
         $s = $this->conn->prepare($q);
         $s->execute([':m' => $month, ':y' => $year]);
         $summary['entradas_mes'] = (float) $s->fetchColumn();
 
-        // Saídas do mês (exclui estornos — são apenas registros, não contam no cálculo)
+        // Saídas do mês (exclui estornos e registros — são apenas registros, não contam no cálculo)
         $q = "SELECT COALESCE(SUM(amount), 0)
               FROM financial_transactions
               WHERE type = 'saida' AND is_confirmed = 1
-              AND category != 'estorno_pagamento'
+              AND category NOT IN ('estorno_pagamento', 'registro_ofx')
               AND MONTH(transaction_date) = :m AND YEAR(transaction_date) = :y";
         $s = $this->conn->prepare($q);
         $s->execute([':m' => $month, ':y' => $year]);
@@ -115,21 +115,21 @@ class Financial {
             $s->execute([':m' => $m, ':y' => $y]);
             $recebido = (float) $s->fetchColumn();
 
-            // + entradas manuais (exclui estornos)
+            // + entradas manuais (exclui estornos e registros)
             $q = "SELECT COALESCE(SUM(amount), 0)
                   FROM financial_transactions
                   WHERE type = 'entrada' AND is_confirmed = 1
-                  AND category != 'estorno_pagamento'
+                  AND category NOT IN ('estorno_pagamento', 'registro_ofx')
                   AND MONTH(transaction_date) = :m AND YEAR(transaction_date) = :y";
             $s = $this->conn->prepare($q);
             $s->execute([':m' => $m, ':y' => $y]);
             $recebido += (float) $s->fetchColumn();
 
-            // Saídas (exclui estornos)
+            // Saídas (exclui estornos e registros)
             $q = "SELECT COALESCE(SUM(amount), 0)
                   FROM financial_transactions
                   WHERE type = 'saida' AND is_confirmed = 1
-                  AND category != 'estorno_pagamento'
+                  AND category NOT IN ('estorno_pagamento', 'registro_ofx')
                   AND MONTH(transaction_date) = :m AND YEAR(transaction_date) = :y";
             $s = $this->conn->prepare($q);
             $s->execute([':m' => $m, ':y' => $y]);
@@ -435,10 +435,11 @@ class Financial {
             $this->updateOrderPaymentStatus($parcelaAntes['order_id']);
 
             // Registrar estorno no livro caixa (financial_transactions)
+            // Estornos são do tipo 'registro' — não contabilizam nos totais
             $valorEstorno = (float)($parcelaAntes['paid_amount'] ?? $parcelaAntes['amount']);
             if ($valorEstorno > 0) {
                 $this->addTransaction([
-                    'type' => 'saida',
+                    'type' => 'registro',
                     'category' => 'estorno_pagamento',
                     'description' => "Estorno parcela {$parcelaAntes['installment_number']} - Pedido #{$parcelaAntes['order_id']}",
                     'amount' => $valorEstorno,
@@ -673,7 +674,6 @@ class Financial {
                 'outra_entrada' => 'Outra Entrada',
             ],
             'saida' => [
-                'estorno_pagamento' => 'Estorno de Pagamento',
                 'material' => 'Compra de Material',
                 'salario' => 'Salários',
                 'aluguel' => 'Aluguel',
@@ -684,5 +684,161 @@ class Financial {
                 'outra_saida' => 'Outra Saída',
             ]
         ];
+    }
+
+    /**
+     * Categorias internas (usadas apenas pelo sistema, não aparecem no formulário)
+     */
+    public static function getInternalCategories() {
+        return [
+            'estorno_pagamento' => 'Estorno de Pagamento',
+            'registro_ofx' => 'Registro OFX',
+        ];
+    }
+
+    /**
+     * Importa transações de um arquivo OFX
+     * @param string $filePath Caminho do arquivo OFX
+     * @param string $mode 'registro' = apenas registrar (não contabiliza) ou 'contabilizar' = soma no caixa
+     * @param int|null $userId ID do usuário que importou
+     * @return array Resultado com imported, skipped, errors
+     */
+    public function importOfx($filePath, $mode = 'registro', $userId = null) {
+        $result = ['imported' => 0, 'skipped' => 0, 'errors' => [], 'transactions' => []];
+
+        $content = file_get_contents($filePath);
+        if (!$content) {
+            $result['errors'][] = 'Não foi possível ler o arquivo.';
+            return $result;
+        }
+
+        // Parse OFX — extrair transações do bloco <BANKTRANLIST>
+        $transactions = $this->parseOfxTransactions($content);
+
+        if (empty($transactions)) {
+            $result['errors'][] = 'Nenhuma transação encontrada no arquivo OFX.';
+            return $result;
+        }
+
+        foreach ($transactions as $tx) {
+            try {
+                $amount = abs((float)$tx['amount']);
+                if ($amount <= 0) {
+                    $result['skipped']++;
+                    continue;
+                }
+
+                $isCredit = (float)$tx['amount'] > 0;
+
+                if ($mode === 'registro') {
+                    // Modo registro: type = 'registro', não contabiliza nos totais
+                    $data = [
+                        'type' => 'registro',
+                        'category' => 'registro_ofx',
+                        'description' => $tx['memo'] ?: ($isCredit ? 'Crédito OFX' : 'Débito OFX'),
+                        'amount' => $amount,
+                        'transaction_date' => $tx['date'],
+                        'reference_type' => 'ofx',
+                        'reference_id' => null,
+                        'payment_method' => 'transferencia',
+                        'is_confirmed' => 1,
+                        'user_id' => $userId,
+                        'notes' => 'Importado via OFX (registro) — FITID: ' . ($tx['fitid'] ?? ''),
+                    ];
+                } else {
+                    // Modo contabilizar: type = entrada ou saida, contabiliza nos totais
+                    $data = [
+                        'type' => $isCredit ? 'entrada' : 'saida',
+                        'category' => $isCredit ? 'outra_entrada' : 'outra_saida',
+                        'description' => $tx['memo'] ?: ($isCredit ? 'Crédito OFX' : 'Débito OFX'),
+                        'amount' => $amount,
+                        'transaction_date' => $tx['date'],
+                        'reference_type' => 'ofx',
+                        'reference_id' => null,
+                        'payment_method' => 'transferencia',
+                        'is_confirmed' => 1,
+                        'user_id' => $userId,
+                        'notes' => 'Importado via OFX (contabilizado) — FITID: ' . ($tx['fitid'] ?? ''),
+                    ];
+                }
+
+                $this->addTransaction($data);
+                $result['imported']++;
+                $result['transactions'][] = [
+                    'date' => $tx['date'],
+                    'description' => $data['description'],
+                    'amount' => $amount,
+                    'type' => $data['type'],
+                ];
+            } catch (Exception $e) {
+                $result['errors'][] = $e->getMessage();
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Parse de transações do conteúdo OFX (formato SGML)
+     */
+    private function parseOfxTransactions($content) {
+        $transactions = [];
+
+        // Extrair bloco de transações
+        if (!preg_match('/<BANKTRANLIST>(.*?)<\/BANKTRANLIST>/si', $content, $listMatch)) {
+            // Tentar sem tag de fechamento (alguns OFX não fecham)
+            if (!preg_match('/<BANKTRANLIST>(.*)/si', $content, $listMatch)) {
+                return $transactions;
+            }
+        }
+
+        $block = $listMatch[1];
+
+        // Extrair cada STMTTRN
+        preg_match_all('/<STMTTRN>(.*?)<\/STMTTRN>/si', $block, $matches);
+        if (empty($matches[1])) {
+            // Tentar parsing sem tags de fechamento (OFX SGML)
+            preg_match_all('/<STMTTRN>(.*?)(?=<STMTTRN>|<\/BANKTRANLIST>|\z)/si', $block, $matches);
+        }
+
+        foreach ($matches[1] ?? [] as $txBlock) {
+            $tx = [
+                'type' => $this->extractOfxTag($txBlock, 'TRNTYPE'),
+                'date' => $this->parseOfxDate($this->extractOfxTag($txBlock, 'DTPOSTED')),
+                'amount' => $this->extractOfxTag($txBlock, 'TRNAMT'),
+                'fitid' => $this->extractOfxTag($txBlock, 'FITID'),
+                'memo' => $this->extractOfxTag($txBlock, 'MEMO') ?: $this->extractOfxTag($txBlock, 'NAME'),
+            ];
+
+            if ($tx['date'] && $tx['amount']) {
+                $transactions[] = $tx;
+            }
+        }
+
+        return $transactions;
+    }
+
+    /**
+     * Extrai valor de uma tag OFX (formato SGML sem atributos)
+     */
+    private function extractOfxTag($block, $tag) {
+        if (preg_match("/<{$tag}>(.*?)(?:<|$)/mi", $block, $m)) {
+            return trim($m[1]);
+        }
+        return '';
+    }
+
+    /**
+     * Converte data OFX (YYYYMMDD ou YYYYMMDDHHMMSS) para Y-m-d
+     */
+    private function parseOfxDate($dateStr) {
+        $dateStr = preg_replace('/\[.*$/', '', $dateStr); // Remove timezone info [x:BRT]
+        if (strlen($dateStr) >= 8) {
+            $y = substr($dateStr, 0, 4);
+            $m = substr($dateStr, 4, 2);
+            $d = substr($dateStr, 6, 2);
+            return "$y-$m-$d";
+        }
+        return date('Y-m-d');
     }
 }

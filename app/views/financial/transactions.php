@@ -9,6 +9,13 @@ $filterMonth    = $_GET['filter_month'] ?? '';
 $filterYear     = $_GET['filter_year'] ?? '';
 $filterCategory = $_GET['category'] ?? '';
 $saldo = ($totalEntradas ?? 0) - ($totalSaidas ?? 0);
+
+// Merge categorias internas para exibição
+$allCats = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? [], Financial::getInternalCategories());
+$methodLabels = [
+    'dinheiro'=>'💵 Dinheiro','pix'=>'📱 PIX','cartao_credito'=>'💳 Crédito',
+    'cartao_debito'=>'💳 Débito','boleto'=>'📄 Boleto','transferencia'=>'🏦 Transf.',
+];
 ?>
 
 <?php if (!empty($_SESSION['flash_success'])): ?>
@@ -28,6 +35,9 @@ $saldo = ($totalEntradas ?? 0) - ($totalSaidas ?? 0);
         <a href="?page=financial&action=payments" class="btn btn-sm btn-outline-primary">
             <i class="fas fa-file-invoice-dollar me-1"></i> Pagamentos
         </a>
+        <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalImportOfx">
+            <i class="fas fa-file-import me-1"></i> Importar OFX
+        </button>
         <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#modalAddTransaction">
             <i class="fas fa-plus me-1"></i> Nova Transação
         </button>
@@ -87,6 +97,7 @@ $saldo = ($totalEntradas ?? 0) - ($totalSaidas ?? 0);
             <option value="">Todos</option>
             <option value="entrada" <?= $filterType==='entrada'?'selected':'' ?>>Entradas</option>
             <option value="saida" <?= $filterType==='saida'?'selected':'' ?>>Saídas</option>
+            <option value="registro" <?= $filterType==='registro'?'selected':'' ?>>Registros</option>
         </select>
     </div>
     <div class="col-auto">
@@ -160,18 +171,19 @@ $saldo = ($totalEntradas ?? 0) - ($totalSaidas ?? 0);
                         <i class="fas fa-inbox fa-2x mb-2 d-block opacity-50"></i>Nenhuma transação encontrada.
                     </td></tr>
                     <?php else: ?>
-                    <?php
-                        $allCats = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? []);
-                        $methodLabels = [
-                            'dinheiro'=>'💵 Dinheiro','pix'=>'📱 PIX','cartao_credito'=>'💳 Crédito',
-                            'cartao_debito'=>'💳 Débito','boleto'=>'📄 Boleto','transferencia'=>'🏦 Transf.',
-                        ];
+                    <?php foreach ($transactions as $t):
+                        $isRegistro = ($t['type'] === 'registro' || ($t['category'] ?? '') === 'estorno_pagamento' || ($t['category'] ?? '') === 'registro_ofx');
                     ?>
-                    <?php foreach ($transactions as $t): ?>
-                    <tr>
+                    <tr<?= $isRegistro ? ' class="table-light"' : '' ?>>
                         <td class="ps-3 small"><?= date('d/m/Y', strtotime($t['transaction_date'])) ?></td>
                         <td>
-                            <?php if ($t['type'] === 'entrada'): ?>
+                            <?php if ($isRegistro): ?>
+                                <?php if (($t['category'] ?? '') === 'estorno_pagamento'): ?>
+                                    <span class="badge bg-secondary"><i class="fas fa-minus me-1"></i>Estorno</span>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary"><i class="fas fa-minus me-1"></i>Registro</span>
+                                <?php endif; ?>
+                            <?php elseif ($t['type'] === 'entrada'): ?>
                                 <span class="badge bg-success"><i class="fas fa-arrow-down me-1"></i>Entrada</span>
                             <?php else: ?>
                                 <span class="badge bg-danger"><i class="fas fa-arrow-up me-1"></i>Saída</span>
@@ -179,8 +191,14 @@ $saldo = ($totalEntradas ?? 0) - ($totalSaidas ?? 0);
                         </td>
                         <td class="small"><?= htmlspecialchars($allCats[$t['category']] ?? ucfirst($t['category'])) ?></td>
                         <td class="small"><?= htmlspecialchars($t['description']) ?></td>
-                        <td class="fw-bold <?= $t['type']==='entrada' ? 'text-success' : 'text-danger' ?>">
-                            <?= $t['type']==='entrada' ? '+' : '-' ?> R$ <?= number_format($t['amount'], 2, ',', '.') ?>
+                        <td class="fw-bold <?= $isRegistro ? 'text-secondary' : ($t['type']==='entrada' ? 'text-success' : 'text-danger') ?>">
+                            <?php if ($isRegistro): ?>
+                                — R$ <?= number_format($t['amount'], 2, ',', '.') ?>
+                            <?php elseif ($t['type'] === 'entrada'): ?>
+                                + R$ <?= number_format($t['amount'], 2, ',', '.') ?>
+                            <?php else: ?>
+                                - R$ <?= number_format($t['amount'], 2, ',', '.') ?>
+                            <?php endif; ?>
                         </td>
                         <td class="small"><?= $methodLabels[$t['payment_method'] ?? ''] ?? ($t['payment_method'] ? ucfirst($t['payment_method']) : '—') ?></td>
                         <td class="small"><?= htmlspecialchars($t['user_name'] ?? '—') ?></td>
@@ -193,7 +211,9 @@ $saldo = ($totalEntradas ?? 0) - ($totalSaidas ?? 0);
                                 </button>
                             </form>
                             <?php else: ?>
-                                <span class="badge bg-light text-muted border" style="font-size:0.65rem;">Automática</span>
+                                <span class="badge bg-light text-muted border" style="font-size:0.65rem;">
+                                    <?= $isRegistro ? 'Registro' : 'Automática' ?>
+                                </span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -275,6 +295,55 @@ $saldo = ($totalEntradas ?? 0) - ($totalSaidas ?? 0);
     </div>
 </div>
 
+<!-- ══════ Modal Importar OFX ══════ -->
+<div class="modal fade" id="modalImportOfx" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="formImportOfx" enctype="multipart/form-data">
+                <div class="modal-header bg-info bg-opacity-10 border-0">
+                    <h5 class="modal-title text-info"><i class="fas fa-file-import me-2"></i>Importar Extrato OFX</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Arquivo OFX</label>
+                        <input type="file" name="ofx_file" class="form-control" accept=".ofx,.ofc" required>
+                        <div class="form-text">Selecione o arquivo .OFX exportado do seu banco.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Modo de importação</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="import_mode" id="modeRegistro" value="registro" checked>
+                            <label class="form-check-label" for="modeRegistro">
+                                <span class="badge bg-secondary me-1"><i class="fas fa-minus me-1"></i>Registro</span>
+                                <span class="text-muted small">Apenas para consulta — <strong>não contabiliza</strong> no caixa</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="import_mode" id="modeContabilizar" value="contabilizar">
+                            <label class="form-check-label" for="modeContabilizar">
+                                <span class="badge bg-success me-1"><i class="fas fa-check me-1"></i>Contabilizar</span>
+                                <span class="text-muted small">Créditos como <strong>entrada</strong> e débitos como <strong>saída</strong></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="alert alert-light border small mb-0">
+                        <i class="fas fa-info-circle text-info me-1"></i>
+                        No modo <strong>Registro</strong>, as transações aparecem na lista com badge cinza e não somam nos totais.
+                        No modo <strong>Contabilizar</strong>, cada transação entra como entrada ou saída real no caixa.
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-info text-white" id="btnImportOfx">
+                        <i class="fas fa-upload me-1"></i> Importar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- ══════ Scripts ══════ -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -294,13 +363,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (txType && txCat) {
         function filterCats() {
             const type = txType.value;
+            const defaultCat = type === 'entrada' ? 'outra_entrada' : 'outra_saida';
             let first = null;
             txCat.querySelectorAll('option').forEach(opt => {
                 const show = opt.dataset.type === type;
                 opt.style.display = show ? '' : 'none';
                 if (show && !first) first = opt;
             });
-            if (first) txCat.value = first.value;
+            // Selecionar a categoria default
+            const defaultOpt = txCat.querySelector('option[value="' + defaultCat + '"]');
+            if (defaultOpt) {
+                txCat.value = defaultCat;
+            } else if (first) {
+                txCat.value = first.value;
+            }
         }
         txType.addEventListener('change', filterCats);
         filterCats();
@@ -341,6 +417,51 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then(result => {
                 if (result.isConfirmed) form.submit();
             });
+        });
+    });
+
+    // ── Importar OFX via AJAX ──
+    document.getElementById('formImportOfx')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = this;
+        const btn = document.getElementById('btnImportOfx');
+        const fileInput = form.querySelector('input[name="ofx_file"]');
+
+        if (!fileInput.files.length) {
+            Swal.fire({ icon: 'warning', title: 'Selecione um arquivo OFX.' });
+            return;
+        }
+
+        const formData = new FormData(form);
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Importando...';
+
+        fetch('?page=financial&action=importOfx', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-upload me-1"></i> Importar';
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalImportOfx'));
+                if (modal) modal.hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Importação concluída!',
+                    html: data.message,
+                    confirmButtonColor: '#17a2b8'
+                }).then(() => { window.location.reload(); });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Erro na importação', text: data.message });
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-upload me-1"></i> Importar';
+            Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha ao importar o arquivo.' });
         });
     });
 

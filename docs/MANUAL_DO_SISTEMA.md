@@ -17,12 +17,13 @@
 7. [Produtos](#7-produtos)
 8. [Estoque](#8-estoque)
 9. [Setores de Produção](#9-setores-de-produção)
-10. [Configurações](#10-configurações)
-11. [Usuários e Permissões](#11-usuários-e-permissões)
-12. [Perfil do Usuário](#12-perfil-do-usuário)
-13. [Limites do Plano](#13-limites-do-plano)
-14. [Atalhos e Dicas](#14-atalhos-e-dicas)
-15. [Perguntas Frequentes](#15-perguntas-frequentes)
+10. [Financeiro](#10-financeiro)
+11. [Configurações](#11-configurações)
+12. [Usuários e Permissões](#12-usuários-e-permissões)
+13. [Perfil do Usuário](#13-perfil-do-usuário)
+14. [Limites do Plano](#14-limites-do-plano)
+15. [Atalhos e Dicas](#15-atalhos-e-dicas)
+16. [Perguntas Frequentes](#16-perguntas-frequentes)
 
 ---
 
@@ -37,7 +38,8 @@ O **Akti - Gestão em Produção** é um sistema completo para gerenciar o fluxo
 - 📦 **Catálogo de Produtos** — Produtos com fotos, grades, categorias e dados fiscais
 - 🏭 **Controle de Estoque** — Multi-armazém com entradas, saídas e transferências
 - ⚙️ **Setores de Produção** — Organize a linha produtiva por setores
-- 📊 **Dashboard** — Indicadores de faturamento, pedidos e produção
+- � **Financeiro** — Parcelas, confirmação de pagamentos, entradas/saídas e importação OFX
+- �📊 **Dashboard** — Indicadores de faturamento, pedidos e produção
 - 👤 **Controle de Acesso** — Usuários com grupos e permissões granulares
 - 🏢 **Multi-tenant** — Cada cliente tem seu ambiente isolado por subdomínio
 
@@ -310,7 +312,85 @@ Quando um pedido entra em produção, o sistema exibe os setores vinculados aos 
 
 ---
 
-## 10. Configurações
+## 10. Financeiro
+
+O módulo Financeiro controla o ciclo de pagamento dos pedidos e o livro-caixa da empresa.
+
+### Áreas do módulo
+| Área | Descrição |
+|------|-----------|
+| **Pagamentos** | Lista de pedidos com status de pagamento e controle de parcelas |
+| **Entradas e Saídas** | Registro manual de transações, importação OFX e visualização de estornos |
+
+### Pagamentos e Parcelas
+
+#### Fluxo de pagamento
+1. No **Pipeline** (detalhe do pedido), o operador define a forma de pagamento, parcelamento e entrada. As parcelas são geradas automaticamente.
+2. Em **Financeiro > Pagamentos**, o operador visualiza todos os pedidos com seus status.
+3. Ao clicar em **"Parcelas"**, pode:
+   - **Registrar pagamento** — Informa data, valor pago e método
+   - **Confirmar** — Valida um pagamento já registrado
+   - **Estornar** — Reverte o pagamento para pendente
+
+#### Status de pagamento
+| Status | Significado |
+|--------|-------------|
+| **Pendente** | Nenhuma parcela paga |
+| **Parcial** | Algumas parcelas pagas |
+| **Pago** | Todas as parcelas confirmadas |
+| **Atrasado** | Parcela vencida sem pagamento |
+
+> 💡 O status é calculado automaticamente conforme as parcelas são pagas e confirmadas.
+
+### Entradas e Saídas (Caixa)
+
+A tela de **Entradas e Saídas** funciona como um livro-caixa, registrando todas as movimentações financeiras.
+
+#### Nova Transação
+1. Clique em **"Nova Transação"**
+2. Escolha o tipo: **Entrada** ou **Saída**
+3. A **categoria** é selecionada automaticamente:
+   - Para entradas: **"Outra Entrada"** (padrão)
+   - Para saídas: **"Outra Saída"** (padrão)
+4. Preencha descrição, valor, data e método de pagamento
+5. Clique em **"Registrar"**
+
+#### Tipos de registro na listagem
+
+| Tipo | Badge | Ícone | Contabiliza no saldo? |
+|------|-------|-------|-----------------------|
+| **Entrada** | 🟢 Verde | Seta para baixo ↓ | ✅ Sim |
+| **Saída** | 🔴 Vermelho | Seta para cima ↑ | ✅ Sim |
+| **Estorno** | ⚫ Cinza | Risco — | ❌ Não |
+| **Registro** | ⚫ Cinza | Risco — | ❌ Não |
+
+> ⚠️ **Estornos** são gerados automaticamente pelo sistema ao estornar uma parcela. Não é possível lançar um estorno manualmente.
+
+> 💡 **Registros** são importações OFX no modo "apenas registro" — servem para consulta, sem impactar o saldo.
+
+#### Importar Extrato OFX
+1. Clique em **"Importar OFX"**
+2. Selecione o arquivo `.ofx` exportado do seu banco
+3. Escolha o modo de importação:
+   - **Registro** (padrão) — As transações aparecem na lista com badge cinza e **não contabilizam** no caixa
+   - **Contabilizar** — Créditos entram como **entrada** e débitos como **saída** no caixa
+4. Clique em **"Importar"**
+
+#### Cards de resumo
+No topo da tela são exibidos três cards:
+- **Entradas** — Total de entradas confirmadas (exclui estornos e registros)
+- **Saídas** — Total de saídas confirmadas (exclui estornos e registros)
+- **Saldo** — Diferença entre entradas e saídas
+
+#### Filtros
+- **Tipo** — Entradas, Saídas ou Registros
+- **Categoria** — Filtra por categoria de transação
+- **Mês/Ano** — Filtra por período
+- **Busca** — Pesquisa por texto na tabela
+
+---
+
+## 11. Configurações
 
 O módulo de Configurações permite personalizar todo o sistema.
 
@@ -354,7 +434,7 @@ Configure dados para geração de boletos:
 
 ---
 
-## 11. Usuários e Permissões
+## 12. Usuários e Permissões
 
 > ⚠️ **Apenas administradores** podem acessar esta área.
 
@@ -393,7 +473,7 @@ Crie grupos para controlar o que cada equipe pode acessar:
 
 ---
 
-## 12. Perfil do Usuário
+## 13. Perfil do Usuário
 
 Cada usuário pode gerenciar seus próprios dados:
 
@@ -409,7 +489,7 @@ Cada usuário pode gerenciar seus próprios dados:
 
 ---
 
-## 13. Limites do Plano
+## 14. Limites do Plano
 
 O sistema possui limites definidos pelo plano contratado:
 
@@ -430,7 +510,7 @@ Para aumentar os limites, entre em contato com o suporte.
 
 ---
 
-## 14. Atalhos e Dicas
+## 15. Atalhos e Dicas
 
 ### Atalhos do Tour Guiado
 | Tecla | Ação |
@@ -458,7 +538,7 @@ Para aumentar os limites, entre em contato com o suporte.
 
 ---
 
-## 15. Perguntas Frequentes
+## 16. Perguntas Frequentes
 
 ### Como mudo minha senha?
 Acesse **Perfil** (menu do usuário → Meu Perfil), preencha a nova senha e clique em Atualizar.
@@ -487,6 +567,18 @@ Os botões de criação são desabilitados e um alerta é exibido. O sistema blo
 
 ### Como gero um link de orçamento para o cliente?
 Na lista de pedidos, clique no ícone de **compartilhar/link**. Um link público é gerado para o cliente visualizar o orçamento.
+
+### Como importo um extrato bancário (OFX)?
+Acesse **Financeiro > Entradas e Saídas**, clique em **"Importar OFX"**, selecione o arquivo `.ofx` do banco e escolha se quer apenas registrar (não contabiliza) ou contabilizar no caixa.
+
+### Qual a diferença entre "Registro" e "Contabilizar" na importação OFX?
+No modo **Registro**, as transações aparecem na lista com badge cinza apenas para consulta, sem afetar o saldo. No modo **Contabilizar**, créditos viram entradas e débitos viram saídas reais no caixa.
+
+### Por que estornos aparecem em cinza com um risco?
+Estornos são gerados automaticamente ao cancelar um pagamento. Eles não contam como entrada nem saída — servem apenas como registro histórico. Por isso aparecem com badge cinza e ícone de risco (—).
+
+### Posso lançar um estorno manualmente?
+Não. A categoria "Estorno de Pagamento" é interna do sistema. Para registrar um estorno, utilize a funcionalidade de estorno na tela de parcelas do pedido.
 
 ---
 

@@ -17,7 +17,7 @@ set_exception_handler(function($e) {
               || (stripos($contentType, 'application/json') !== false);
     // Também detecta AJAX por actions conhecidas
     $action = $_GET['action'] ?? '';
-    $ajaxActions = ['getSubcategories','getInheritedGrades','getInheritedSectors','getProductsForExport','exportToProducts','createCategoryAjax','deleteImage','createGradeType','getGradeTypes','generateCombinations','importProducts','toggleCategoryCombination','toggleSubcategoryCombination'];
+    $ajaxActions = ['getSubcategories','getInheritedGrades','getInheritedSectors','getProductsForExport','exportToProducts','createCategoryAjax','deleteImage','createGradeType','getGradeTypes','generateCombinations','importProducts','toggleCategoryCombination','toggleSubcategoryCombination','importOfx','getSummaryJson','getInstallmentsJson'];
     if (in_array($action, $ajaxActions)) {
         $isAjax = true;
     }
@@ -520,6 +520,8 @@ switch ($page) {
             $controller->addTransaction();
         } elseif ($action == 'deleteTransaction') {
             $controller->deleteTransaction();
+        } elseif ($action == 'importOfx') {
+            $controller->importOfx();
         } elseif ($action == 'getSummaryJson') {
             $controller->getSummaryJson();
         } elseif ($action == 'getInstallmentsJson') {

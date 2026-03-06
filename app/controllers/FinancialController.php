@@ -326,11 +326,13 @@ class FinancialController {
         $transactions = $this->financial->getTransactions($filters);
         $categories = Financial::getCategories();
 
-        // Calcular totais filtrados (estornos não contam nos totais)
+        // Calcular totais filtrados (estornos e registros não contam nos totais)
         $totalEntradas = 0;
         $totalSaidas = 0;
         foreach ($transactions as $t) {
+            if ($t['type'] === 'registro') continue;
             if (($t['category'] ?? '') === 'estorno_pagamento') continue;
+            if (($t['category'] ?? '') === 'registro_ofx') continue;
             if ($t['type'] === 'entrada' && $t['is_confirmed']) $totalEntradas += $t['amount'];
             if ($t['type'] === 'saida' && $t['is_confirmed'])   $totalSaidas += $t['amount'];
         }
@@ -351,7 +353,7 @@ class FinancialController {
 
         $data = [
             'type' => $_POST['type'] ?? 'entrada',
-            'category' => $_POST['category'] ?? 'outra_entrada',
+            'category' => $_POST['category'] ?? (($_POST['type'] ?? 'entrada') === 'entrada' ? 'outra_entrada' : 'outra_saida'),
             'description' => $_POST['description'] ?? '',
             'amount' => (float)($_POST['amount'] ?? 0),
             'transaction_date' => $_POST['transaction_date'] ?? date('Y-m-d'),
@@ -392,6 +394,59 @@ class FinancialController {
 
         $_SESSION['flash_success'] = 'Transação removida.';
         header('Location: ?page=financial&action=transactions');
+        exit;
+    }
+
+    /**
+     * Importar arquivo OFX
+     */
+    public function importOfx() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit;
+        }
+
+        if (empty($_FILES['ofx_file']) || $_FILES['ofx_file']['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo OFX enviado.']);
+            exit;
+        }
+
+        $file = $_FILES['ofx_file'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+        if (!in_array($ext, ['ofx', 'ofc'])) {
+            echo json_encode(['success' => false, 'message' => 'Formato não suportado. Envie um arquivo .OFX']);
+            exit;
+        }
+
+        $mode = $_POST['import_mode'] ?? 'registro'; // 'registro' ou 'contabilizar'
+        if (!in_array($mode, ['registro', 'contabilizar'])) {
+            $mode = 'registro';
+        }
+
+        $userId = $_SESSION['user_id'] ?? null;
+
+        try {
+            $result = $this->financial->importOfx($file['tmp_name'], $mode, $userId);
+
+            $modeLabel = $mode === 'registro' ? 'apenas registro (não contabilizado)' : 'contabilizado no caixa';
+            echo json_encode([
+                'success' => true,
+                'imported' => $result['imported'],
+                'skipped' => $result['skipped'],
+                'errors' => $result['errors'],
+                'message' => sprintf(
+                    'Importação concluída! %d transação(ões) importada(s) como %s.%s',
+                    $result['imported'],
+                    $modeLabel,
+                    !empty($result['errors']) ? ' Erros: ' . count($result['errors']) : ''
+                )
+            ]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Erro na importação: ' . $e->getMessage()]);
+        }
         exit;
     }
 

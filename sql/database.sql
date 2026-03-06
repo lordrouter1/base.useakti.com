@@ -479,3 +479,51 @@ SET @preparedStatement = (SELECT IF(
 PREPARE alterIfNotExists FROM @preparedStatement;
 EXECUTE alterIfNotExists;
 DEALLOCATE PREPARE alterIfNotExists;
+
+-- ─────────────────────────────────────────────────────
+-- MÓDULO: FINANCEIRO
+-- ─────────────────────────────────────────────────────
+
+-- Parcelas de pagamento dos pedidos
+CREATE TABLE IF NOT EXISTS order_installments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    installment_number INT NOT NULL DEFAULT 1,
+    amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    due_date DATE NOT NULL,
+    status ENUM('pendente','pago','atrasado','cancelado') DEFAULT 'pendente',
+    paid_date DATE DEFAULT NULL,
+    paid_amount DECIMAL(12,2) DEFAULT NULL,
+    payment_method VARCHAR(50) DEFAULT NULL,
+    is_confirmed TINYINT(1) DEFAULT 0,
+    confirmed_by INT DEFAULT NULL,
+    confirmed_at DATETIME DEFAULT NULL,
+    notes TEXT DEFAULT NULL,
+    attachment_path VARCHAR(500) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (confirmed_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Transações financeiras (entradas, saídas e registros)
+CREATE TABLE IF NOT EXISTS financial_transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    type VARCHAR(20) NOT NULL DEFAULT 'entrada' COMMENT 'entrada, saida ou registro',
+    category VARCHAR(50) NOT NULL DEFAULT 'outra_entrada',
+    description VARCHAR(500) NOT NULL,
+    amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    transaction_date DATE NOT NULL,
+    reference_type VARCHAR(50) DEFAULT NULL COMMENT 'manual, installment, ofx',
+    reference_id INT DEFAULT NULL,
+    payment_method VARCHAR(50) DEFAULT NULL,
+    is_confirmed TINYINT(1) DEFAULT 1,
+    confirmed_by INT DEFAULT NULL,
+    confirmed_at DATETIME DEFAULT NULL,
+    user_id INT DEFAULT NULL,
+    notes TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (confirmed_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
