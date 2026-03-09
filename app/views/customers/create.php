@@ -2,6 +2,7 @@
     <h2 class="mb-4 text-primary"><i class="fas fa-user-plus me-2"></i>Novo Cliente</h2>
     
     <form id="customerForm" method="post" action="?page=customers&action=store" enctype="multipart/form-data">
+        <?= csrf_field() ?>
         <div class="row">
             <div class="col-md-3">
                 <!-- Foto do Cliente -->

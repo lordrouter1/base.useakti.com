@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 class UserGroup {
     private $conn;
     private $table_name = "user_groups";

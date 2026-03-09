@@ -21,12 +21,10 @@ foreach ($flatPages as $key => $info) {
     }
 }
 
-require_once 'app/models/Pipeline.php';
-$pipelineStages = Pipeline::$stages;
+$pipelineStages = \Akti\Models\Pipeline::$stages;
 
-require_once 'app/models/ProductionSector.php';
-$dbSec = (new Database())->getConnection();
-$sectorModel = new ProductionSector($dbSec);
+$dbSec = (new \Database())->getConnection();
+$sectorModel = new \Akti\Models\ProductionSector($dbSec);
 $sectors = $sectorModel->readAll(true);
 
 $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
@@ -47,6 +45,7 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
             </div>
             <div class="card-body p-4" style="max-height: calc(100vh - 160px); overflow-y: auto;">
                 <form action="?page=users&action=<?= isset($editGroup) ? 'updateGroup' : 'createGroup' ?>" method="POST">
+                    <?= csrf_field() ?>
                     <?php if(isset($editGroup)): ?>
                         <input type="hidden" name="id" value="<?= $editGroup['id'] ?>">
                     <?php endif; ?>
@@ -313,6 +312,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const input = document.createElement('input');
                     input.type = 'hidden'; input.name = 'id'; input.value = id;
                     form.appendChild(input);
+                    const csrf = document.createElement('input');
+                    csrf.type = 'hidden'; csrf.name = 'csrf_token'; csrf.value = document.querySelector('meta[name="csrf-token"]').content;
+                    form.appendChild(csrf);
                     document.body.appendChild(form);
                     form.submit();
                 }

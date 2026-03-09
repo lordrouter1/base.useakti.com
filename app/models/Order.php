@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 class Order {
     private $conn;
     private $table_name = "orders";

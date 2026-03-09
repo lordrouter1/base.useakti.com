@@ -86,6 +86,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" action="?page=<?= $refPage === 'price_tables' ? 'price_tables' : 'settings' ?>&action=savePriceItem">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="price_table_id" value="<?= $table['id'] ?>">
                         <input type="hidden" name="ref_page" value="<?= $refPage ?>">
                         <div class="mb-3">

@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 /**
  * Model para gerenciar etapas de preparo globais (configuráveis via Settings).
  * As etapas definidas aqui são usadas no checklist de preparação de pedidos.

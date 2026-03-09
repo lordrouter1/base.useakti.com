@@ -1,5 +1,10 @@
 <?php
-require_once 'app/models/ProductionSector.php';
+namespace Akti\Controllers;
+
+use Akti\Models\ProductionSector;
+use Akti\Models\Logger;
+use Database;
+use TenantManager;
 
 class SectorController {
     
@@ -9,7 +14,6 @@ class SectorController {
     public function __construct() {
         $db = (new Database())->getConnection();
         $this->sectorModel = new ProductionSector($db);
-        require_once 'app/models/Logger.php';
         $this->logger = new Logger($db);
     }
 

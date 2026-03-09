@@ -168,6 +168,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
                                 <div class="text-muted" style="font-size:0.7rem;">Parcela <?= $pc['installment_number'] ?> — R$ <?= number_format($pc['paid_amount'] ?? $pc['amount'], 2, ',', '.') ?></div>
                             </div>
                             <form method="post" action="?page=financial&action=confirmPayment" class="d-inline confirm-form">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="installment_id" value="<?= $pc['id'] ?>">
                                 <input type="hidden" name="redirect" value="?page=financial">
                                 <button type="submit" class="btn btn-sm btn-outline-success btn-confirm-payment" title="Confirmar">

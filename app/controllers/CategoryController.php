@@ -1,9 +1,14 @@
 <?php
-require_once 'app/models/Category.php';
-require_once 'app/models/Subcategory.php';
-require_once 'app/models/ProductionSector.php';
-require_once 'app/models/ProductGrade.php';
-require_once 'app/models/CategoryGrade.php';
+namespace Akti\Controllers;
+
+use Akti\Models\Category;
+use Akti\Models\Subcategory;
+use Akti\Models\ProductionSector;
+use Akti\Models\ProductGrade;
+use Akti\Models\CategoryGrade;
+use Akti\Models\Logger;
+use Akti\Models\Product;
+use Database;
 
 class CategoryController {
     
@@ -21,7 +26,6 @@ class CategoryController {
         $this->sectorModel = new ProductionSector($db);
         $this->gradeModel = new ProductGrade($db);
         $this->categoryGradeModel = new CategoryGrade($db);
-        require_once 'app/models/Logger.php';
         $this->logger = new Logger($db);
     }
 
@@ -271,7 +275,6 @@ class CategoryController {
         }
 
         try {
-            require_once 'app/models/Product.php';
             $db = (new Database())->getConnection();
             $productModel = new Product($db);
 
@@ -340,7 +343,6 @@ class CategoryController {
         $db = (new Database())->getConnection();
         $gradeModel = new ProductGrade($db);
         $sectorModel = new ProductionSector($db);
-        require_once 'app/models/Logger.php';
         $logger = new Logger($db);
 
         $results = ['grades_applied' => 0, 'sectors_applied' => 0, 'errors' => []];

@@ -6,6 +6,7 @@
             </div>
             <div class="card-body p-4">
                 <form action="?page=users&action=update" method="POST">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="id" value="<?= $user['id'] ?>">
                     
                     <div class="row g-3">

@@ -31,11 +31,17 @@
                 <i class="fas fa-file-invoice me-1"></i> Fiscal / NF-e
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link <?= $activeTab === 'security' ? 'active' : '' ?>" href="?page=settings&tab=security">
+                <i class="fas fa-shield-alt me-1"></i> Segurança
+            </a>
+        </li>
     </ul>
 
     <?php if ($activeTab === 'company'): ?>
     <!-- ══════════ ABA: DADOS DA EMPRESA ══════════ -->
     <form method="POST" action="?page=settings&action=saveCompany" enctype="multipart/form-data">
+        <?= csrf_field() ?>
         <div class="row">
             <div class="col-lg-8">
                 <!-- Dados Básicos -->
@@ -293,6 +299,7 @@
     <div class="modal fade" id="modalNewTable" tabindex="-1">
         <div class="modal-dialog">
             <form method="POST" action="?page=settings&action=createPriceTable">
+                <?= csrf_field() ?>
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Nova Tabela de Preço</h5>
@@ -454,6 +461,7 @@
     <div class="modal fade" id="modalNewStep" tabindex="-1">
         <div class="modal-dialog">
             <form method="POST" action="?page=settings&action=addPreparationStep">
+                <?= csrf_field() ?>
                 <div class="modal-content">
                     <div class="modal-header" style="background:#e0f7f1;">
                         <h5 class="modal-title" style="color:#1abc9c;"><i class="fas fa-plus-circle me-2"></i>Nova Etapa de Preparo</h5>
@@ -509,6 +517,7 @@
     <div class="modal fade" id="modalEditStep" tabindex="-1">
         <div class="modal-dialog">
             <form method="POST" action="?page=settings&action=updatePreparationStep">
+                <?= csrf_field() ?>
                 <div class="modal-content">
                     <div class="modal-header" style="background:#e0f7f1;">
                         <h5 class="modal-title" style="color:#1abc9c;"><i class="fas fa-edit me-2"></i>Editar Etapa de Preparo</h5>
@@ -557,6 +566,7 @@
     <?php if ($activeTab === 'boleto'): ?>
     <!-- ══════════ ABA: BOLETO / BANCÁRIO ══════════ -->
     <form method="POST" action="?page=settings&action=saveBankSettings">
+        <?= csrf_field() ?>
         <div class="row">
             <div class="col-lg-8">
                 <!-- Dados Bancários do Cedente -->
@@ -789,6 +799,7 @@
     <?php if ($activeTab === 'fiscal'): ?>
     <!-- ══════════ ABA: FISCAL / NF-e ══════════ -->
     <form method="POST" action="?page=settings&action=saveFiscalSettings">
+        <?= csrf_field() ?>
         <div class="row">
             <div class="col-lg-8">
                 <!-- Identificação Fiscal da Empresa -->
@@ -1125,6 +1136,139 @@
                             <li class="mb-2"><a href="https://www.confaz.fazenda.gov.br/legislacao/convenios/2015/cv085_15" target="_blank"><i class="fas fa-external-link-alt me-1"></i>Tabela CEST</a></li>
                             <li class="mb-0"><a href="https://www.nfe.fazenda.gov.br/portal/principal.aspx" target="_blank"><i class="fas fa-external-link-alt me-1"></i>Portal NF-e (SEFAZ)</a></li>
                         </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+    <?php endif; ?>
+
+    <?php if ($activeTab === 'security'): ?>
+    <!-- ══════════ ABA: SEGURANÇA ══════════ -->
+    <form method="POST" action="?page=settings&action=saveSecuritySettings">
+        <?= csrf_field() ?>
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Timeout de Sessão -->
+                <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #e74c3c;">
+                        <i class="fas fa-clock me-2"></i>Tempo Limite de Sessão
+                    </legend>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Timeout por Inatividade (minutos)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-hourglass-half"></i></span>
+                                <input type="number" class="form-control" name="session_timeout_minutes"
+                                       value="<?= htmlspecialchars($settings['session_timeout_minutes'] ?? '60') ?>"
+                                       min="5" max="1440" step="1">
+                                <span class="input-group-text">min</span>
+                            </div>
+                            <small class="text-muted" style="font-size:0.7rem;">
+                                Mínimo: 5 min · Máximo: 1440 min (24h) · Padrão: 60 min
+                            </small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Valor atual em uso</label>
+                            <?php
+                            $currentTimeout = (int)($settings['session_timeout_minutes'] ?? 60);
+                            if ($currentTimeout < 5) $currentTimeout = 60;
+                            $hours = floor($currentTimeout / 60);
+                            $mins = $currentTimeout % 60;
+                            $humanTime = '';
+                            if ($hours > 0) $humanTime .= $hours . 'h ';
+                            if ($mins > 0 || $hours === 0) $humanTime .= $mins . 'min';
+                            ?>
+                            <div class="form-control-plaintext">
+                                <span class="badge bg-primary fs-6 px-3 py-2">
+                                    <i class="fas fa-stopwatch me-1"></i> <?= trim($humanTime) ?>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info py-2 px-3 small mt-3 mb-0">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Após este período sem nenhuma interação, o usuário será desconectado automaticamente e
+                        redirecionado para o login com a mensagem <em>"Sessão expirada por inatividade"</em>.
+                        Um <strong>aviso visual</strong> (modal com contagem regressiva) aparece nos <strong>últimos 5 minutos</strong> antes da expiração,
+                        permitindo ao usuário renovar a sessão clicando em "Continuar".
+                    </div>
+                </fieldset>
+
+                <!-- Proteções Ativas -->
+                <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #e74c3c;">
+                        <i class="fas fa-shield-alt me-2"></i>Proteções Ativas
+                    </legend>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr>
+                                    <td style="width:40px;"><span class="badge bg-success"><i class="fas fa-check"></i></span></td>
+                                    <td class="fw-bold">Cookie HttpOnly</td>
+                                    <td class="text-muted small">Cookie de sessão inacessível via JavaScript, prevenindo roubo por XSS.</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-success"><i class="fas fa-check"></i></span></td>
+                                    <td class="fw-bold">Cookie Secure (HTTPS)</td>
+                                    <td class="text-muted small">Cookie transmitido apenas em conexões HTTPS.</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-success"><i class="fas fa-check"></i></span></td>
+                                    <td class="fw-bold">SameSite Strict</td>
+                                    <td class="text-muted small">Cookie não enviado em requisições cross-site (previne CSRF).</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-success"><i class="fas fa-check"></i></span></td>
+                                    <td class="fw-bold">Session Fixation Prevention</td>
+                                    <td class="text-muted small">ID da sessão regenerado a cada login bem-sucedido.</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-success"><i class="fas fa-check"></i></span></td>
+                                    <td class="fw-bold">Strict Session Mode</td>
+                                    <td class="text-muted small">IDs de sessão não gerados pelo servidor são rejeitados.</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-success"><i class="fas fa-check"></i></span></td>
+                                    <td class="fw-bold">Detecção de Troca de Tenant</td>
+                                    <td class="text-muted small">Sessão destruída se o subdomínio mudar durante uso ativo.</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-success"><i class="fas fa-check"></i></span></td>
+                                    <td class="fw-bold">Bloqueio por Tentativas de Login</td>
+                                    <td class="text-muted small">Conta bloqueada temporariamente após múltiplas tentativas com credenciais inválidas.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </fieldset>
+
+                <div class="text-end mb-4">
+                    <button type="submit" class="btn px-4 fw-bold text-white" style="background:#e74c3c;">
+                        <i class="fas fa-save me-2"></i>Salvar Configurações de Segurança
+                    </button>
+                </div>
+            </div>
+
+            <!-- Coluna Direita: Info -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header py-2" style="background: #fdecea;">
+                        <h6 class="mb-0 fw-bold" style="color:#e74c3c;"><i class="fas fa-info-circle me-2"></i>Sobre Sessão Segura</h6>
+                    </div>
+                    <div class="card-body small">
+                        <p>O sistema gerencia sessões de forma segura com múltiplas camadas de proteção:</p>
+                        <ul class="mb-2">
+                            <li><strong>Timeout:</strong> O tempo de inatividade é configurável. Após expirar, o usuário precisa fazer login novamente.</li>
+                            <li><strong>Aviso prévio:</strong> Um modal aparece 5 minutos antes da expiração com contagem regressiva e botão para renovar.</li>
+                            <li><strong>Cookies seguros:</strong> HttpOnly, Secure e SameSite protegem contra XSS, interceptação e CSRF.</li>
+                            <li><strong>Anti-fixation:</strong> O ID da sessão é regenerado após cada login.</li>
+                        </ul>
+                        <div class="alert alert-warning py-2 px-3 mb-0" style="font-size:0.75rem;">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Valores muito baixos de timeout (abaixo de 15 min) podem causar inconveniência para usuários
+                            que consultam informações enquanto trabalham.
+                        </div>
                     </div>
                 </div>
             </div>

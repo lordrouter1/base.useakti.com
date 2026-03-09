@@ -1,4 +1,9 @@
 <?php
+namespace Akti\Models;
+
+use Akti\Models\ProductionSector;
+use PDO;
+
 class Pipeline {
     private $conn;
 
@@ -339,7 +344,6 @@ class Pipeline {
         $existingStmt->execute([':oid' => $orderId]);
         $existingItemIds = $existingStmt->fetchAll(PDO::FETCH_COLUMN);
 
-        require_once 'app/models/ProductionSector.php';
         $sectorModel = new ProductionSector($this->conn);
 
         $ins = $this->conn->prepare("INSERT INTO order_production_sectors (order_id, order_item_id, sector_id, status, sort_order) VALUES (:oid, :iid, :sid, 'pendente', :sort)");

@@ -1,0 +1,4 @@
+[2026-03-09 21:09:14] CSRF validation failed | IP: ::1 | Route: ?page=walkthrough&action=start | Method: POST | Token: (empty) | User: 1
+[2026-03-09 21:09:16] CSRF validation failed | IP: ::1 | Route: ?page=walkthrough&action=saveStep | Method: POST | Token: (empty) | User: 1
+[2026-03-09 21:09:19] CSRF validation failed | IP: ::1 | Route: ?page=walkthrough&action=saveStep | Method: POST | Token: (empty) | User: 1
+[2026-03-09 21:09:20] CSRF validation failed | IP: ::1 | Route: ?page=walkthrough&action=skip | Method: POST | Token: (empty) | User: 1

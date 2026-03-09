@@ -5,6 +5,7 @@
     </div>
     
     <form id="productForm" method="post" action="?page=products&action=update" enctype="multipart/form-data">
+        <?= csrf_field() ?>
         <input type="hidden" name="id" value="<?= $product['id'] ?>">
 
         <!-- ════════════════════════════════════════════════════

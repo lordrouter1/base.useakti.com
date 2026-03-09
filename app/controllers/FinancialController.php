@@ -1,6 +1,12 @@
 <?php
-require_once 'app/models/Financial.php';
-require_once 'app/models/Order.php';
+namespace Akti\Controllers;
+
+use Akti\Models\Financial;
+use Akti\Models\Order;
+use Akti\Models\CompanySettings;
+use Database;
+use PDO;
+use TenantManager;
 
 class FinancialController {
 
@@ -54,7 +60,6 @@ class FinancialController {
         $installments = $this->financial->getAllInstallments($filters);
 
         // Carregar dados bancários da empresa (para geração de boletos FEBRABAN)
-        require_once 'app/models/CompanySettings.php';
         $companySettings = new CompanySettings($this->db);
         $company = $companySettings->getAll();
         $companyAddress = $companySettings->getFormattedAddress();

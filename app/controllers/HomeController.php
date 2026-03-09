@@ -1,4 +1,5 @@
 <?php
+namespace Akti\Controllers;
 
 class HomeController {
     public function index() {

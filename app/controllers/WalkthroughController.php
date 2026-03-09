@@ -1,6 +1,9 @@
 <?php
+namespace Akti\Controllers;
 
-require_once 'app/models/Walkthrough.php';
+use Akti\Models\Walkthrough;
+use Akti\Models\UserGroup;
+use Database;
 
 class WalkthroughController {
 
@@ -143,7 +146,6 @@ class WalkthroughController {
         if ($groupId) {
             $database = new Database();
             $db = $database->getConnection();
-            require_once 'app/models/UserGroup.php';
             $groupModel = new UserGroup($db);
             $permissions = $groupModel->getPermissions((int) $groupId);
         }

@@ -1,4 +1,16 @@
 <?php
+namespace Akti\Controllers;
+
+use Akti\Models\CatalogLink;
+use Akti\Models\Order;
+use Akti\Models\Product;
+use Akti\Models\PriceTable;
+use Akti\Models\CompanySettings;
+use Akti\Models\Logger;
+use Database;
+use PDOException;
+use PDO;
+
 /**
  * Controller: CatalogController
  * 
@@ -6,13 +18,6 @@
  * O catálogo permite ao cliente navegar produtos, adicionar/remover do carrinho,
  * e essas mudanças se refletem em tempo real nos itens do pedido.
  */
-require_once 'app/config/database.php';
-require_once 'app/models/CatalogLink.php';
-require_once 'app/models/Order.php';
-require_once 'app/models/Product.php';
-require_once 'app/models/PriceTable.php';
-require_once 'app/models/CompanySettings.php';
-
 class CatalogController {
 
     private $db;
@@ -117,7 +122,6 @@ class CatalogController {
             $url = CatalogLink::buildUrl($link['token']);
             
             // Log
-            require_once 'app/models/Logger.php';
             $logger = new Logger($this->db);
             $logger->log('CATALOG_LINK', "Link de catálogo gerado para pedido #{$orderId}");
 

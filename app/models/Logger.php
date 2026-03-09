@@ -1,4 +1,6 @@
 <?php
+namespace Akti\Models;
+
 class Logger {
     private $conn;
     private $table_name = "system_logs";

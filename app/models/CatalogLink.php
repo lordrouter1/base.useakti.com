@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 /**
  * Model: CatalogLink
  * Gerencia links de catálogo público vinculados a pedidos.

@@ -31,10 +31,9 @@
 <body>
     <?php
     // Helper para formatar endereço do cliente (JSON -> string)
-    require_once 'app/models/CompanySettings.php';
     $customerFormattedAddress = '';
     if (!empty($order['customer_address'])) {
-        $customerFormattedAddress = CompanySettings::formatCustomerAddress($order['customer_address']);
+        $customerFormattedAddress = \Akti\Models\CompanySettings::formatCustomerAddress($order['customer_address']);
     }
     $validityDays = (int)($company['quote_validity_days'] ?? 15);
     ?>

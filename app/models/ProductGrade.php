@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 /**
  * ProductGrade Model
  * Manages product grades (variations) — types, values, and combinations.

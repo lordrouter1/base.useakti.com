@@ -106,6 +106,7 @@
 <div class="modal fade" id="modalNewTable" tabindex="-1">
     <div class="modal-dialog">
         <form method="POST" action="?page=price_tables&action=createPriceTable">
+            <?= csrf_field() ?>
             <input type="hidden" name="ref_page" value="price_tables">
             <div class="modal-content">
                 <div class="modal-header">

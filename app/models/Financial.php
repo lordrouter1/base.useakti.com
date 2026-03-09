@@ -1,4 +1,6 @@
 <?php
+namespace Akti\Models;
+use PDO;
 
 class Financial {
     private $conn;

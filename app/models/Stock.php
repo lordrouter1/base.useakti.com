@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 /**
  * Stock Model
  * Gerencia armazéns, itens de estoque e movimentações.

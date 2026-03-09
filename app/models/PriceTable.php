@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 /**
  * Model: PriceTable
  * Gerencia tabelas de preço e seus itens

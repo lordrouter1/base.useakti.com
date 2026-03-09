@@ -224,7 +224,7 @@ foreach ($installments as $inst) {
                         // Endereço formatado do cliente (address é JSON)
                         $customerAddrFormatted = '';
                         if (!empty($inst['customer_address'])) {
-                            $customerAddrFormatted = CompanySettings::formatCustomerAddress($inst['customer_address']);
+                            $customerAddrFormatted = \Akti\Models\CompanySettings::formatCustomerAddress($inst['customer_address']);
                         }
                     ?>
                     <tr class="<?= $inst['status'] === 'atrasado' ? 'table-danger' : '' ?>">
@@ -339,6 +339,7 @@ foreach ($installments as $inst) {
                                 <?php elseif ($inst['status'] === 'pago' && empty($inst['is_confirmed'])): ?>
                                     <!-- Confirmar -->
                                     <form method="post" action="?page=financial&action=confirmPayment" class="d-inline">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="installment_id" value="<?= $inst['id'] ?>">
                                         <input type="hidden" name="redirect" value="?page=financial&action=payments<?= $filterStatus ? '&status='.$filterStatus : '' ?>">
                                         <button type="submit" class="btn btn-outline-success btn-confirm" title="Confirmar Pagamento">
@@ -347,6 +348,7 @@ foreach ($installments as $inst) {
                                     </form>
                                     <!-- Estornar -->
                                     <form method="post" action="?page=financial&action=cancelInstallment" class="d-inline">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="installment_id" value="<?= $inst['id'] ?>">
                                         <input type="hidden" name="order_id" value="<?= $orderId ?>">
                                         <button type="submit" class="btn btn-outline-danger btn-estornar" title="Estornar Pagamento">
@@ -356,6 +358,7 @@ foreach ($installments as $inst) {
                                 <?php elseif ($inst['status'] === 'pago' && !empty($inst['is_confirmed'])): ?>
                                     <!-- Já confirmado — permitir estorno -->
                                     <form method="post" action="?page=financial&action=cancelInstallment" class="d-inline">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="installment_id" value="<?= $inst['id'] ?>">
                                         <input type="hidden" name="order_id" value="<?= $orderId ?>">
                                         <button type="submit" class="btn btn-outline-danger btn-estornar" title="Estornar Pagamento">
@@ -411,6 +414,7 @@ foreach ($installments as $inst) {
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <form method="post" action="?page=financial&action=payInstallment" id="formPay" enctype="multipart/form-data">
+                <?= csrf_field() ?>
                 <input type="hidden" name="installment_id" id="payInstId">
                 <input type="hidden" name="order_id" id="payOrderId">
                 <div class="modal-header bg-success bg-opacity-10 border-0">
@@ -509,6 +513,7 @@ foreach ($installments as $inst) {
                             <i class="fas fa-external-link-alt me-1"></i> Abrir
                         </a>
                         <form method="post" action="?page=financial&action=removeAttachment" class="d-inline" id="formRemoveAttach">
+                            <?= csrf_field() ?>
                             <input type="hidden" name="installment_id" id="removeAttachInstId">
                             <input type="hidden" name="redirect" value="?page=financial&action=payments">
                             <button type="submit" class="btn btn-sm btn-outline-danger ms-2 btn-remove-attach">
@@ -519,6 +524,7 @@ foreach ($installments as $inst) {
                 </div>
                 <!-- Upload de novo anexo -->
                 <form method="post" action="?page=financial&action=uploadAttachment" enctype="multipart/form-data" id="formUploadAttach">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="installment_id" id="uploadAttachInstId">
                     <input type="hidden" name="redirect" value="?page=financial&action=payments">
                     <div class="mb-3">

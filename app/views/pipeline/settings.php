@@ -18,6 +18,7 @@
                     </p>
 
                     <form method="POST" action="?page=pipeline&action=saveSettings">
+                        <?= csrf_field() ?>
                         <?php foreach ($stages as $stageKey => $stageInfo): ?>
                         <?php $currentGoal = isset($goals[$stageKey]) ? (int)$goals[$stageKey]['max_hours'] : 24; ?>
                         <div class="row align-items-center mb-3 py-2 px-3 rounded" style="background: rgba(0,0,0,0.02);">

@@ -34,6 +34,7 @@
                         </div>
                     <?php else: ?>
                     <form method="POST" action="?page=sectors&action=<?= isset($editSector) ? 'update' : 'store' ?>">
+                        <?= csrf_field() ?>
                         <?php if(isset($editSector)): ?>
                             <input type="hidden" name="id" value="<?= $editSector['id'] ?>">
                         <?php endif; ?>

@@ -1,4 +1,10 @@
 <?php
+namespace Akti\Models;
+
+use PDO;
+use DateTime;
+use RuntimeException;
+
 /**
  * LoginAttempt — Proteção contra força bruta
  *

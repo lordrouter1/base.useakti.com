@@ -192,11 +192,9 @@
 /* ================================================================
    PHP – Preparação de dados
    ================================================================ */
-require_once 'app/models/CompanySettings.php';
-
 $customerFormattedAddress = '';
 if (!empty($order['customer_address'])) {
-    $customerFormattedAddress = CompanySettings::formatCustomerAddress($order['customer_address']);
+    $customerFormattedAddress = \Akti\Models\CompanySettings::formatCustomerAddress($order['customer_address']);
 }
 
 // Agrupar setores por order_item_id

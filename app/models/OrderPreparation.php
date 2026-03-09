@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 /**
  * Model para checklist de preparação de pedidos.
  * Controla as etapas de preparo, conferência e verificação antes do envio.

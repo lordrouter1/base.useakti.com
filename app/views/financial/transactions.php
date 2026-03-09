@@ -11,7 +11,7 @@ $filterCategory = $_GET['category'] ?? '';
 $saldo = ($totalEntradas ?? 0) - ($totalSaidas ?? 0);
 
 // Merge categorias internas para exibição
-$allCats = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? [], Financial::getInternalCategories());
+$allCats = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? [], \Akti\Models\Financial::getInternalCategories());
 $methodLabels = [
     'dinheiro'=>'💵 Dinheiro','pix'=>'📱 PIX','cartao_credito'=>'💳 Crédito',
     'cartao_debito'=>'💳 Débito','boleto'=>'📄 Boleto','transferencia'=>'🏦 Transf.',
@@ -205,6 +205,7 @@ $methodLabels = [
                         <td class="text-end pe-3">
                             <?php if (empty($t['reference_type']) || $t['reference_type'] === 'manual'): ?>
                             <form method="post" action="?page=financial&action=deleteTransaction" class="d-inline">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="transaction_id" value="<?= $t['id'] ?>">
                                 <button type="submit" class="btn btn-sm btn-outline-danger btn-delete-tx" title="Excluir">
                                     <i class="fas fa-trash"></i>
@@ -230,6 +231,7 @@ $methodLabels = [
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form method="post" action="?page=financial&action=addTransaction" id="formAddTx">
+                <?= csrf_field() ?>
                 <div class="modal-header bg-success bg-opacity-10 border-0">
                     <h5 class="modal-title text-success"><i class="fas fa-plus-circle me-2"></i>Nova Transação</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

@@ -1,5 +1,15 @@
 <?php
-require_once 'app/models/Order.php';
+namespace Akti\Controllers;
+
+use Akti\Models\Order;
+use Akti\Models\Product;
+use Akti\Models\Customer;
+use Akti\Models\Pipeline;
+use Akti\Models\Logger;
+use Akti\Models\PriceTable;
+use Akti\Models\CompanySettings;
+use Database;
+use PDO;
 
 class OrderController {
     
@@ -21,8 +31,6 @@ class OrderController {
     }
 
     public function create() {
-        require_once 'app/models/Product.php';
-        require_once 'app/models/Customer.php';
         
         $database = new Database();
         $db = $database->getConnection();
@@ -98,13 +106,11 @@ class OrderController {
                 // Registrar entrada no pipeline
                 $database = new Database();
                 $db = $database->getConnection();
-                require_once 'app/models/Pipeline.php';
                 $pipeline = new Pipeline($db);
                 $stageLabel = $initialStage === 'contato' ? 'Pedido criado como Contato' : 'Pedido criado como Orçamento';
                 $pipeline->addHistory($this->orderModel->id, null, $initialStage, $_SESSION['user_id'] ?? null, $stageLabel);
 
                 // Log
-                require_once 'app/models/Logger.php';
                 $logger = new Logger($db);
                 $logger->log('ORDER_CREATE', "Pedido #{$this->orderModel->id} criado na etapa " . ucfirst($initialStage));
 
@@ -127,9 +133,6 @@ class OrderController {
             exit;
         }
 
-        require_once 'app/models/Customer.php';
-        require_once 'app/models/Product.php';
-        require_once 'app/models/PriceTable.php';
         $database = new Database();
         $db = $database->getConnection();
         $customerModel = new Customer($db);
@@ -265,7 +268,6 @@ class OrderController {
         $extraCosts = $this->orderModel->getExtraCosts($orderId);
 
         // Carregar dados da empresa
-        require_once 'app/models/CompanySettings.php';
         $database = new Database();
         $db = $database->getConnection();
         $companyModel = new CompanySettings($db);

@@ -1,9 +1,8 @@
 <div class="container py-4">
     <?php
-        require_once 'app/models/CompanySettings.php';
         $customerFormattedAddress = '';
         if (!empty($order['customer_address'])) {
-            $customerFormattedAddress = CompanySettings::formatCustomerAddress($order['customer_address']);
+            $customerFormattedAddress = \Akti\Models\CompanySettings::formatCustomerAddress($order['customer_address']);
         }
         $currentStage = $order['pipeline_stage'] ?? 'contato';
         $stageInfo = $stages[$currentStage] ?? ['label' => $currentStage, 'color' => '#999', 'icon' => 'fas fa-circle'];
@@ -155,6 +154,7 @@
         <!-- Coluna Esquerda: Informações e Formulário -->
         <div class="col-lg-8">
             <form method="POST" action="?page=pipeline&action=updateDetails">
+                <?= csrf_field() ?>
                 <input type="hidden" name="id" value="<?= $order['id'] ?>">
 
                 <!-- Dados do Cliente -->

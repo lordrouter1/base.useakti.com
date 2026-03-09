@@ -10,7 +10,7 @@
     <link href="assets/css/theme.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
     <?php
-        $recaptchaSiteKey = LoginAttempt::getSiteKey();
+        $recaptchaSiteKey = \Akti\Models\LoginAttempt::getSiteKey();
         $captchaEnabled = !empty($recaptchaSiteKey) && !empty($showCaptcha);
     ?>
     <?php if ($captchaEnabled): ?>
@@ -285,6 +285,13 @@
             </div>
         <?php endif; ?>
 
+        <?php if (isset($_GET['session_expired'])): ?>
+            <div class="alert alert-warning py-2 d-flex align-items-center" style="border-radius: 10px;">
+                <i class="fas fa-hourglass-end me-2"></i>
+                <div>Sessão expirada por inatividade. Faça login novamente para continuar.</div>
+            </div>
+        <?php endif; ?>
+
         <?php if (isset($_GET['access_denied'])): ?>
             <div class="alert alert-warning py-2 d-flex align-items-center" style="border-radius: 10px;">
                 <i class="fas fa-exclamation-triangle me-2"></i>
@@ -293,6 +300,7 @@
         <?php endif; ?>
 
         <form method="POST" action="?page=login">
+            <?= csrf_field() ?>
             <input type="hidden" name="tenant_key" value="<?= htmlspecialchars($tenantInfo['key'] ?? '') ?>">
             <?php
                 $isBlocked = !empty($lockout['blocked']);

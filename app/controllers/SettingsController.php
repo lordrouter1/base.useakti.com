@@ -1,8 +1,14 @@
 <?php
-require_once 'app/models/CompanySettings.php';
-require_once 'app/models/PriceTable.php';
-require_once 'app/models/Product.php';
-require_once 'app/models/PreparationStep.php';
+namespace Akti\Controllers;
+
+use Akti\Models\CompanySettings;
+use Akti\Models\PriceTable;
+use Akti\Models\Product;
+use Akti\Models\PreparationStep;
+use Akti\Models\Logger;
+use Database;
+use PDO;
+use TenantManager;
 
 class SettingsController {
 
@@ -91,7 +97,6 @@ class SettingsController {
             $this->companySettings->set('company_logo', '');
         }
 
-        require_once 'app/models/Logger.php';
         $logger = new Logger($this->db);
         $logger->log('SETTINGS_UPDATE', 'Configurações da empresa atualizadas');
 
@@ -126,7 +131,6 @@ class SettingsController {
             }
         }
 
-        require_once 'app/models/Logger.php';
         $logger = new Logger($this->db);
         $logger->log('SETTINGS_UPDATE', 'Configurações bancárias/boleto atualizadas');
 
@@ -410,11 +414,38 @@ class SettingsController {
             }
         }
 
-        require_once 'app/models/Logger.php';
         $logger = new Logger($this->db);
         $logger->log('SETTINGS_UPDATE', 'Configurações fiscais/NF-e atualizadas');
 
         header('Location: ?page=settings&tab=fiscal&status=saved');
+        exit;
+    }
+
+    // ──────── CONFIGURAÇÕES DE SEGURANÇA ────────
+
+    /**
+     * Salvar configurações de segurança (POST)
+     */
+    public function saveSecuritySettings() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=settings&tab=security');
+            exit;
+        }
+
+        $timeout = (int) ($_POST['session_timeout_minutes'] ?? 60);
+        // Validação: mínimo 5, máximo 1440 (24h)
+        if ($timeout < 5) $timeout = 5;
+        if ($timeout > 1440) $timeout = 1440;
+
+        $this->companySettings->set('session_timeout_minutes', $timeout);
+
+        // Limpar cache de timeout na sessão para refletir imediatamente
+        unset($_SESSION['_session_timeout_minutes'], $_SESSION['_session_timeout_cached_at']);
+
+        $logger = new Logger($this->db);
+        $logger->log('SETTINGS_UPDATE', "Configurações de segurança atualizadas (timeout={$timeout}min)");
+
+        header('Location: ?page=settings&tab=security&status=saved');
         exit;
     }
 

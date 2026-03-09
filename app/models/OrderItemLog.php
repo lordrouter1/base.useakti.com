@@ -1,4 +1,8 @@
 <?php
+namespace Akti\Models;
+use PDO;
+use TenantManager;
+
 /**
  * Model para logs/histórico de itens de pedido (por produto)
  * Permite registrar textos, imagens e PDFs vinculados a cada item do pedido.

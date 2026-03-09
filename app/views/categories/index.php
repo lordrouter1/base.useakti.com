@@ -39,6 +39,7 @@
                         </div>
                         <div class="card-body p-3">
                             <form method="POST" action="?page=categories&action=<?= isset($editCategory) ? 'update' : 'store' ?>">
+                                <?= csrf_field() ?>
                                 <?php if(isset($editCategory)): ?>
                                     <input type="hidden" name="id" value="<?= $editCategory['id'] ?>">
                                 <?php endif; ?>
@@ -210,6 +211,7 @@
                         </div>
                         <div class="card-body p-3">
                             <form method="POST" action="?page=categories&action=<?= isset($editSubcategory) ? 'updateSub' : 'storeSub' ?>">
+                                <?= csrf_field() ?>
                                 <?php if(isset($editSubcategory)): ?>
                                     <input type="hidden" name="id" value="<?= $editSubcategory['id'] ?>">
                                 <?php endif; ?>

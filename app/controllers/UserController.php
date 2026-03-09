@@ -1,7 +1,13 @@
 <?php
-require_once 'app/models/User.php';
-require_once 'app/models/UserGroup.php';
-require_once 'app/models/LoginAttempt.php';
+namespace Akti\Controllers;
+
+use Akti\Models\User;
+use Akti\Models\UserGroup;
+use Akti\Models\LoginAttempt;
+use Akti\Models\Logger;
+use Database;
+use PDO;
+use TenantManager;
 
 class UserController {
     
@@ -16,7 +22,6 @@ class UserController {
         $this->userModel = new User($db);
         $this->groupModel = new UserGroup($db);
         $this->loginAttempt = new LoginAttempt($db);
-        require_once 'app/models/Logger.php';
         $this->logger = new Logger($db);
     }
 
@@ -332,11 +337,17 @@ class UserController {
                  $this->loginAttempt->clearFailures($ip, $email);
                  $this->loginAttempt->purgeOld();
 
+                 // ── Prevenir session fixation: regenerar ID da sessão ──
+                 session_regenerate_id(true);
+
                  $_SESSION['user_id']   = $this->userModel->id;
                  $_SESSION['user_name'] = $this->userModel->name;
                  $_SESSION['user_role'] = $this->userModel->role;
                  $_SESSION['group_id']  = $this->userModel->group_id;
                  $_SESSION['user_tenant_key'] = $_SESSION['tenant']['key'] ?? null;
+
+                 // ── Inicializar timestamp de atividade para controle de timeout ──
+                 $_SESSION['last_activity'] = time();
 
                  $this->logger->log('LOGIN', 'User logged in: ' . $email, $this->userModel->id);
                  

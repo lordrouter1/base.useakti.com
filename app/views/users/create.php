@@ -6,6 +6,7 @@
             </div>
             <div class="card-body p-4">
                 <form action="?page=users&action=store" method="POST">
+                    <?= csrf_field() ?>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Nome Completo</label>

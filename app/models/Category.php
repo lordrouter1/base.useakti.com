@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 class Category {
     private $conn;
     private $table_name = "categories";

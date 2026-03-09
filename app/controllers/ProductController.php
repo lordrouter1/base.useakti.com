@@ -1,9 +1,16 @@
 <?php
-require_once 'app/models/Product.php';
-require_once 'app/models/Category.php';
-require_once 'app/models/Subcategory.php';
-require_once 'app/models/ProductionSector.php';
-require_once 'app/models/ProductGrade.php';
+namespace Akti\Controllers;
+
+use Akti\Models\Product;
+use Akti\Models\Category;
+use Akti\Models\Subcategory;
+use Akti\Models\ProductionSector;
+use Akti\Models\ProductGrade;
+use Akti\Models\Logger;
+use Akti\Models\PriceTable;
+use Database;
+use PDO;
+use TenantManager;
 
 class ProductController {
     
@@ -22,7 +29,6 @@ class ProductController {
         $this->subcategoryModel = new Subcategory($db);
         $this->sectorModel = new ProductionSector($db);
         $this->gradeModel = new ProductGrade($db);
-        require_once 'app/models/Logger.php';
         $this->logger = new Logger($db);
     }
 
@@ -48,7 +54,6 @@ class ProductController {
         $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Fetch price tables
-        require_once 'app/models/PriceTable.php';
         $database = new Database();
         $db = $database->getConnection();
         $priceTableModel = new PriceTable($db);
@@ -139,8 +144,7 @@ class ProductController {
 
                 // Salvar preços das tabelas de preço
                 if (!empty($_POST['table_prices']) && is_array($_POST['table_prices'])) {
-                    require_once 'app/models/PriceTable.php';
-                    $dbPT = (new Database())->getConnection();
+                                $dbPT = (new Database())->getConnection();
                     $ptModel = new PriceTable($dbPT);
                     $ptModel->saveProductPrices($productId, $_POST['table_prices']);
                 }
@@ -204,7 +208,6 @@ class ProductController {
         }
 
         // Fetch price tables and existing prices for this product
-        require_once 'app/models/PriceTable.php';
         $database = new Database();
         $db = $database->getConnection();
         $priceTableModel = new PriceTable($db);
@@ -295,8 +298,7 @@ class ProductController {
 
                 // Salvar preços das tabelas de preço
                 if (isset($_POST['table_prices']) && is_array($_POST['table_prices'])) {
-                    require_once 'app/models/PriceTable.php';
-                    $dbPT = (new Database())->getConnection();
+                                $dbPT = (new Database())->getConnection();
                     $ptModel = new PriceTable($dbPT);
                     $ptModel->saveProductPrices($data['id'], $_POST['table_prices']);
                 }

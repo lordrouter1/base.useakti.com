@@ -1,9 +1,20 @@
 <?php
-require_once 'app/models/Pipeline.php';
-require_once 'app/models/Order.php';
-require_once 'app/models/Customer.php';
-require_once 'app/models/User.php';
-require_once 'app/models/Stock.php';
+namespace Akti\Controllers;
+
+use Akti\Models\Pipeline;
+use Akti\Models\Order;
+use Akti\Models\Customer;
+use Akti\Models\User;
+use Akti\Models\Stock;
+use Akti\Models\Product;
+use Akti\Models\PriceTable;
+use Akti\Models\Logger;
+use Akti\Models\OrderItemLog;
+use Akti\Models\OrderPreparation;
+use Akti\Models\PreparationStep;
+use Akti\Models\CompanySettings;
+use Database;
+use PDO;
 
 class PipelineController {
 
@@ -72,7 +83,6 @@ class PipelineController {
 
         // ═══ PRÉ-PRODUÇÃO → PRODUÇÃO+: deduzir estoque ═══
         if ($wasPreProd && $willBeProd) {
-            require_once 'app/models/Product.php';
             $orderModel = new Order($this->db);
             $productModel = new Product($this->db);
             $orderItems = $orderModel->getItems($orderId);
@@ -199,7 +209,6 @@ class PipelineController {
         $this->pipelineModel->moveToStage($orderId, $newStage, $userId, $notes);
 
         // Log
-        require_once 'app/models/Logger.php';
         $logger = new Logger($this->db);
         $logger->log('PIPELINE_MOVE', "Order #$orderId moved from $currentStage to stage: $newStage");
 
@@ -262,7 +271,6 @@ class PipelineController {
 
         $this->pipelineModel->moveToStage($orderId, $newStage, $userId, $notes);
 
-        require_once 'app/models/Logger.php';
         $logger = new Logger($this->db);
         $logger->log('PIPELINE_MOVE', "Order #$orderId dragged from $currentStage to $newStage");
 
@@ -295,8 +303,6 @@ class PipelineController {
         $users = $usersStmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Buscar produtos e itens do pedido (para seção de orçamento)
-        require_once 'app/models/Product.php';
-        require_once 'app/models/PriceTable.php';
         $productModel = new Product($this->db);
         $stmt_products = $productModel->readAll();
         $products = $stmt_products->fetchAll(PDO::FETCH_ASSOC);
@@ -327,7 +333,6 @@ class PipelineController {
         // Identificar tabela de preço atual do pedido ou do cliente
         $currentPriceTableId = $order['price_table_id'] ?? null;
         if (!$currentPriceTableId && !empty($order['customer_id'])) {
-            require_once 'app/models/Customer.php';
             $customerModel = new Customer($this->db);
             $customerData = $customerModel->readOne($order['customer_id']);
             $currentPriceTableId = $customerData['price_table_id'] ?? null;
@@ -347,24 +352,20 @@ class PipelineController {
         $userAllowedSectorIds = $userModel->getAllowedSectorIds($_SESSION['user_id'] ?? 0);
 
         // Carregar logs dos itens do pedido
-        require_once 'app/models/OrderItemLog.php';
         $logModel = new OrderItemLog($this->db);
         $logModel->createTableIfNotExists();
         $orderItemLogs = $logModel->getLogsByOrder($_GET['id']);
         $orderItemLogCounts = $logModel->countLogsByOrderGrouped($_GET['id']);
 
         // Carregar checklist de preparação do pedido
-        require_once 'app/models/OrderPreparation.php';
         $prepModel = new OrderPreparation($this->db);
         $orderPreparationChecklist = $prepModel->getChecklist($_GET['id']);
 
         // Carregar etapas de preparo configuráveis (globais)
-        require_once 'app/models/PreparationStep.php';
         $prepStepModel = new PreparationStep($this->db);
         $preparoItems = $prepStepModel->getActiveAsMap();
 
         // Carregar dados da empresa (para impressão de boletos e guias)
-        require_once 'app/models/CompanySettings.php';
         $companySettings = new CompanySettings($this->db);
         $company = $companySettings->getAll();
         $companyAddress = $companySettings->getFormattedAddress();
@@ -413,7 +414,6 @@ class PipelineController {
 
             $this->pipelineModel->updateOrderDetails($data);
 
-            require_once 'app/models/Logger.php';
             $logger = new Logger($this->db);
             $logger->log('PIPELINE_UPDATE', "Updated order details #" . $data['id']);
 
@@ -443,7 +443,6 @@ class PipelineController {
                 $this->pipelineModel->updateStageGoal($stage, (int)$hours);
             }
 
-            require_once 'app/models/Logger.php';
             $logger = new Logger($this->db);
             $logger->log('PIPELINE_SETTINGS', 'Updated pipeline stage goals');
 
@@ -466,7 +465,6 @@ class PipelineController {
      * API JSON: Retorna preços de uma tabela de preço específica (AJAX)
      */
     public function getPricesByTable() {
-        require_once 'app/models/PriceTable.php';
         $priceTableModel = new PriceTable($this->db);
         $tableId = $_GET['table_id'] ?? null;
         $customerId = $_GET['customer_id'] ?? null;
@@ -507,7 +505,6 @@ class PipelineController {
             exit;
         }
 
-        require_once 'app/models/Product.php';
         $orderModel = new Order($this->db);
         $productModel = new Product($this->db);
         $orderItems = $orderModel->getItems($orderId);
@@ -631,7 +628,6 @@ class PipelineController {
         }
 
         if ($result) {
-            require_once 'app/models/Logger.php';
             $logger = new Logger($this->db);
             $logger->log('PRODUCTION_SECTOR_MOVE', "Order #$orderId item #$orderItemId sector #$sectorId action:$action");
         }
@@ -658,7 +654,6 @@ class PipelineController {
         $boardData = $this->pipelineModel->getProductionBoardData($userAllowedSectorIds);
         
         // Carregar contagem de logs por item para badges
-        require_once 'app/models/OrderItemLog.php';
         $logModel = new OrderItemLog($this->db);
         $logModel->createTableIfNotExists();
         $allItemIds = [];
@@ -692,7 +687,6 @@ class PipelineController {
      */
     public function getItemLogs() {
         header('Content-Type: application/json');
-        require_once 'app/models/OrderItemLog.php';
         $logModel = new OrderItemLog($this->db);
         $logModel->createTableIfNotExists();
 
@@ -713,7 +707,6 @@ class PipelineController {
      */
     public function addItemLog() {
         header('Content-Type: application/json');
-        require_once 'app/models/OrderItemLog.php';
         $logModel = new OrderItemLog($this->db);
         $logModel->createTableIfNotExists();
 
@@ -769,7 +762,6 @@ class PipelineController {
         }
 
         // Log do sistema
-        require_once 'app/models/Logger.php';
         $logger = new Logger($this->db);
         $itemCount = count($logIds);
         $logger->log('ITEM_LOG_ADDED', "Log added to order #$orderId for $itemCount item(s)");
@@ -783,7 +775,6 @@ class PipelineController {
      */
     public function deleteItemLog() {
         header('Content-Type: application/json');
-        require_once 'app/models/OrderItemLog.php';
         $logModel = new OrderItemLog($this->db);
 
         $logId = $_POST['log_id'] ?? null;
@@ -825,7 +816,6 @@ class PipelineController {
         $orderItems = $orderModel->getItems($_GET['id']);
 
         // Carregar imagens em destaque dos produtos do pedido
-        require_once 'app/models/Product.php';
         $productModel = new Product($this->db);
         $productImages = [];
         foreach ($orderItems as $item) {
@@ -844,23 +834,19 @@ class PipelineController {
         }
 
         // Carregar dados da empresa
-        require_once 'app/models/CompanySettings.php';
         $companySettings = new CompanySettings($this->db);
         $company = $companySettings->getAll();
         $companyAddress = $companySettings->getFormattedAddress();
 
         // Carregar checklist de preparação do pedido
-        require_once 'app/models/OrderPreparation.php';
         $prepModel = new OrderPreparation($this->db);
         $orderPreparationChecklist = $prepModel->getChecklist($_GET['id']);
 
         // Carregar etapas de preparo configuráveis (globais)
-        require_once 'app/models/PreparationStep.php';
         $prepStepModel = new PreparationStep($this->db);
         $preparoItems = $prepStepModel->getActiveAsMap();
 
         // Carregar logs dos itens do pedido
-        require_once 'app/models/OrderItemLog.php';
         $logModel = new OrderItemLog($this->db);
         $logModel->createTableIfNotExists();
         $orderItemLogs = $logModel->getLogsByOrder($_GET['id']);
@@ -874,7 +860,6 @@ class PipelineController {
      */
     public function togglePreparation() {
         header('Content-Type: application/json');
-        require_once 'app/models/OrderPreparation.php';
         $prepModel = new OrderPreparation($this->db);
 
         $orderId = $_POST['order_id'] ?? null;
@@ -896,7 +881,6 @@ class PipelineController {
         $checked = $prepModel->toggle($orderId, $key, $userId);
 
         // Log do sistema
-        require_once 'app/models/Logger.php';
         $logger = new Logger($this->db);
         $action = $checked ? 'checked' : 'unchecked';
         $logger->log('PREPARATION_TOGGLE', "Preparation '$key' $action for order #$orderId");

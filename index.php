@@ -1,4 +1,13 @@
 <?php
+// ── Autoloader PSR-4 (carrega session.php, tenant.php, database.php automaticamente) ──
+require_once __DIR__ . '/app/bootstrap/autoload.php';
+
+use Akti\Core\Router;
+use Akti\Core\Security;
+use Akti\Middleware\CsrfMiddleware;
+use Akti\Models\User;
+use Akti\Models\IpGuard;
+
 session_start();
 
 // ── Tratamento global de erros — exibe a página 500 em caso de erro fatal ──
@@ -43,49 +52,79 @@ register_shutdown_function(function() {
     }
 });
 
-// Carregar configurações e banco de dados
-require_once 'app/config/database.php';
-require_once 'app/models/User.php';
+// Inicializar tenant
 TenantManager::enforceTenantSession();
 
-// Sistema de Roteamento Simples
-$page = isset($_GET['page']) ? $_GET['page'] : 'home';
-$action = isset($_GET['action']) ? $_GET['action'] : 'index';
+// ── Verificação de inatividade de sessão ──
+// Precisa de conexão ao tenant para ler session_timeout_minutes de company_settings
+if (isset($_SESSION['user_id'])) {
+    $__sessionDb = (new Database())->getConnection();
+    SessionGuard::checkInactivity($__sessionDb);
+    SessionGuard::touch();
+} else {
+    $__sessionDb = null;
+}
 
-// ── Catálogo público: NÃO exige autenticação ──
-if ($page === 'catalog') {
-    require_once 'app/controllers/CatalogController.php';
-    $controller = new CatalogController();
-    if ($action === 'addToCart') {
-        $controller->addToCart();
-    } elseif ($action === 'removeFromCart') {
-        $controller->removeFromCart();
-    } elseif ($action === 'updateCartItem') {
-        $controller->updateCartItem();
-    } elseif ($action === 'getCart') {
-        $controller->getCart();
+// ══════════════════════════════════════════════════════════════════
+// Inicializar Token CSRF (gera se não existir na sessão)
+// ══════════════════════════════════════════════════════════════════
+Security::generateCsrfToken();
+
+// ══════════════════════════════════════════════════════════════════
+// Inicializar Router baseado em mapa de rotas
+// ══════════════════════════════════════════════════════════════════
+$router = new Router(__DIR__ . '/app/config/routes.php');
+$page   = $router->getPage();
+$action = $router->getAction();
+
+// ── Endpoint AJAX de keepalive (renova sessão sem recarregar página) ──
+if ($page === 'session' && $action === 'keepalive') {
+    header('Content-Type: application/json');
+    if (isset($_SESSION['user_id'])) {
+        SessionGuard::touch();
+        $data = SessionGuard::getJsSessionData($__sessionDb);
+        echo json_encode(['success' => true, 'remaining_seconds' => $data['remaining_seconds']]);
     } else {
-        $controller->index();
+        http_response_code(401);
+        echo json_encode(['success' => false, 'session_expired' => true]);
     }
     exit;
 }
 
-// Authentication Check
+// ── Páginas públicas/before_auth: despachar ANTES do auth check ──
+if ($router->isPublicPage() || $router->hasBeforeAuth()) {
+    // Catálogo: sempre público, despachar e sair
+    if ($router->isPublicPage() && $page !== 'login') {
+        CsrfMiddleware::handle();
+        $router->dispatch();
+        exit;
+    }
+}
+
+// ── Authentication Check ──
 if (!isset($_SESSION['user_id'])) {
     if ($page !== 'login') {
         header('Location: ?page=login');
         exit;
     }
+    // Não logado + page=login → despachar login (POST de login precisa de CSRF)
+    CsrfMiddleware::handle();
+    $router->dispatch();
+    exit;
 } else {
+    // Logado + page=login (e não é logout) → redirecionar para home
     if ($page === 'login' && $action !== 'logout') {
         header('Location: ?');
         exit;
     }
+    // Logado + page=login + action=logout → despachar logout
+    if ($page === 'login' && $action === 'logout') {
+        $router->dispatch();
+        exit;
+    }
 }
 
-// Permission Check — usa o registro centralizado de menu.php
-// Páginas com 'permission' => false são acessíveis por todos os logados
-// Achata submenus para encontrar a config de qualquer página (inclusive filhas)
+// ── Permission Check — usa o registro centralizado de menu.php ──
 $menuConfig = require 'app/config/menu.php';
 $flatMenuConfig = [];
 foreach ($menuConfig as $key => $info) {
@@ -105,7 +144,13 @@ if (isset($flatMenuConfig[$page]['permission_alias'])) {
     $permissionPage = $flatMenuConfig[$page]['permission_alias'];
 }
 
-if (isset($_SESSION['user_id']) && $page !== 'login' && $action !== 'logout' && $action !== 'getSubcategories' && $action !== 'getInheritedGrades' && $action !== 'getInheritedSectors' && $action !== 'getProductsForExport' && $action !== 'exportToProducts' && $needsPermission) {
+// Actions AJAX que bypassam verificação de permissão (chamadas de dentro de páginas já autorizadas)
+$permissionBypassActions = [
+    'getSubcategories', 'getInheritedGrades', 'getInheritedSectors',
+    'getProductsForExport', 'exportToProducts',
+];
+
+if ($needsPermission && !in_array($action, $permissionBypassActions)) {
     $db = (new Database())->getConnection();
     $user = new User($db);
     if (!$user->checkPermission($_SESSION['user_id'], $permissionPage)) {
@@ -116,448 +161,12 @@ if (isset($_SESSION['user_id']) && $page !== 'login' && $action !== 'logout' && 
     }
 }
 
-switch ($page) {
-    case 'home':
-        require 'app/views/layout/header.php';
-        require 'app/views/home/index.php';
-        require 'app/views/layout/footer.php';
-        break;
+// ══════════════════════════════════════════════════════════════════
+// CSRF Middleware — validar token em requisições POST/PUT/PATCH/DELETE
+// ══════════════════════════════════════════════════════════════════
+CsrfMiddleware::handle();
 
-    case 'login':
-        require_once 'app/controllers/UserController.php';
-        $controller = new UserController();
-        if ($action == 'logout') {
-            $controller->logout();
-        } else {
-            $controller->login();
-        }
-        break;
-
-    case 'dashboard':
-        // Dashboard unificado com a home — redirecionar
-        header('Location: ?');
-        exit;
-        break;
-
-    // ── Perfil do Usuário (acessível por todos os logados) ──
-    case 'profile':
-        require_once 'app/controllers/UserController.php';
-        $controller = new UserController();
-        if ($action == 'update') {
-            $controller->updateProfile();
-        } else {
-            $controller->profile();
-        }
-        break;
-
-    // ── Produtos ──
-    case 'products':
-        require_once 'app/controllers/ProductController.php';
-        $controller = new ProductController();
-        if ($action == 'store') {
-            $controller->store();
-        } elseif ($action == 'create') {
-            $controller->create();
-        } elseif ($action == 'edit') {
-            $controller->edit();
-        } elseif ($action == 'update') {
-            $controller->update();
-        } elseif ($action == 'delete') {
-            $controller->delete();
-        } elseif ($action == 'deleteImage') {
-            $controller->deleteImage();
-        } elseif ($action == 'getSubcategories') {
-            $controller->getSubcategories();
-        } elseif ($action == 'createGradeType') {
-            $controller->createGradeTypeAjax();
-        } elseif ($action == 'getGradeTypes') {
-            $controller->getGradeTypes();
-        } elseif ($action == 'generateCombinations') {
-            $controller->generateCombinationsAjax();
-        } elseif ($action == 'downloadImportTemplate') {
-            $controller->downloadImportTemplate();
-        } elseif ($action == 'importProducts') {
-            $controller->importProducts();
-        } else {
-            $controller->index();
-        }
-        break;
-
-    // ── Categorias e Subcategorias ──
-    case 'categories':
-        require_once 'app/controllers/CategoryController.php';
-        $controller = new CategoryController();
-        if ($action == 'store') {
-            $controller->store();
-        } elseif ($action == 'update') {
-            $controller->update();
-        } elseif ($action == 'delete') {
-            $controller->delete();
-        } elseif ($action == 'storeSub') {
-            $controller->storeSub();
-        } elseif ($action == 'updateSub') {
-            $controller->updateSub();
-        } elseif ($action == 'deleteSub') {
-            $controller->deleteSub();
-        } elseif ($action == 'getInheritedGrades') {
-            $controller->getInheritedGradesAjax();
-        } elseif ($action == 'toggleCategoryCombination') {
-            $controller->toggleCategoryCombinationAjax();
-        } elseif ($action == 'toggleSubcategoryCombination') {
-            $controller->toggleSubcategoryCombinationAjax();
-        } elseif ($action == 'getProductsForExport') {
-            $controller->getProductsForExport();
-        } elseif ($action == 'exportToProducts') {
-            $controller->exportToProducts();
-        } elseif ($action == 'getInheritedSectors') {
-            $controller->getInheritedSectorsAjax();
-        } else {
-            $controller->index();
-        }
-        break;
-
-    // ── Setores de Produção ──
-    case 'sectors':
-        require_once 'app/controllers/SectorController.php';
-        $controller = new SectorController();
-        if ($action == 'store') {
-            $controller->store();
-        } elseif ($action == 'update') {
-            $controller->update();
-        } elseif ($action == 'delete') {
-            $controller->delete();
-        } else {
-            $controller->index();
-        }
-        break;
-
-    // ── Clientes ──
-    case 'customers':
-        require_once 'app/controllers/CustomerController.php';
-        $controller = new CustomerController();
-        if ($action == 'store') {
-            $controller->store();
-        } elseif ($action == 'create') {
-            $controller->create();
-        } elseif ($action == 'edit') {
-            $controller->edit();
-        } elseif ($action == 'update') {
-            $controller->update();
-        } elseif ($action == 'delete') {
-            $controller->delete();
-        } else {
-            $controller->index();
-        }
-        break;
-
-    // ── Pedidos ──
-    case 'orders':
-        require_once 'app/controllers/OrderController.php';
-        $controller = new OrderController();
-        if ($action == 'store') {
-            $controller->store();
-        } elseif ($action == 'create') {
-            $controller->create();
-        } elseif ($action == 'edit') {
-            $controller->edit();
-        } elseif ($action == 'update') {
-            $controller->update();
-        } elseif ($action == 'delete') {
-            $controller->delete();
-        } elseif ($action == 'addItem') {
-            $controller->addItem();
-        } elseif ($action == 'updateItem') {
-            $controller->updateItem();
-        } elseif ($action == 'deleteItem') {
-            $controller->deleteItem();
-        } elseif ($action == 'printQuote') {
-            $controller->printQuote();
-        } elseif ($action == 'agenda') {
-            $controller->agenda();
-        } elseif ($action == 'report') {
-            $controller->report();
-        } else {
-            $controller->index();
-        }
-        break;
-
-    // ── Agenda de Contatos (atalho de menu — usa OrderController) ──
-    case 'agenda':
-        require_once 'app/controllers/OrderController.php';
-        $controller = new OrderController();
-        $controller->agenda();
-        break;
-
-    // ── Linha de Produção (Pipeline) ──
-    case 'pipeline':
-        require_once 'app/controllers/PipelineController.php';
-        $controller = new PipelineController();
-        if ($action == 'move') {
-            $controller->move();
-        } elseif ($action == 'moveAjax') {
-            $controller->moveAjax();
-        } elseif ($action == 'detail') {
-            $controller->detail();
-        } elseif ($action == 'updateDetails') {
-            $controller->updateDetails();
-        } elseif ($action == 'settings') {
-            $controller->settings();
-        } elseif ($action == 'saveSettings') {
-            $controller->saveSettings();
-        } elseif ($action == 'alerts') {
-            $controller->alerts();
-        } elseif ($action == 'getPricesByTable') {
-            $controller->getPricesByTable();
-        } elseif ($action == 'addExtraCost') {
-            $controller->addExtraCost();
-        } elseif ($action == 'deleteExtraCost') {
-            $controller->deleteExtraCost();
-        } elseif ($action == 'generateCatalogLink') {
-            require_once 'app/controllers/CatalogController.php';
-            $catCtrl = new CatalogController();
-            $catCtrl->generate();
-        } elseif ($action == 'deactivateCatalogLink') {
-            require_once 'app/controllers/CatalogController.php';
-            $catCtrl = new CatalogController();
-            $catCtrl->deactivate();
-        } elseif ($action == 'getCatalogLink') {
-            require_once 'app/controllers/CatalogController.php';
-            $catCtrl = new CatalogController();
-            $catCtrl->getLink();
-        } elseif ($action == 'moveSector') {
-            $controller->moveSector();
-        } elseif ($action == 'getItemLogs') {
-            $controller->getItemLogs();
-        } elseif ($action == 'addItemLog') {
-            $controller->addItemLog();
-        } elseif ($action == 'deleteItemLog') {
-            $controller->deleteItemLog();
-        } elseif ($action == 'togglePreparation') {
-            $controller->togglePreparation();
-        } elseif ($action == 'checkOrderStock') {
-            $controller->checkOrderStock();
-        } elseif ($action == 'productionBoard') {
-            $controller->productionBoard();
-        } elseif ($action == 'printProductionOrder') {
-            $controller->printProductionOrder();
-        } else {
-            $controller->index();
-        }
-        break;
-    
-    // ── Painel de Produção (atalho de menu — usa PipelineController) ──
-    case 'production_board':
-        require_once 'app/controllers/PipelineController.php';
-        $controller = new PipelineController();
-        if ($action == 'moveSector') {
-            $controller->moveSector();
-        } elseif ($action == 'getItemLogs') {
-            $controller->getItemLogs();
-        } elseif ($action == 'addItemLog') {
-            $controller->addItemLog();
-        } elseif ($action == 'deleteItemLog') {
-            $controller->deleteItemLog();
-        } else {
-            $controller->productionBoard();
-        }
-        break;
-
-    // ── Tabelas de Preço (atalho de menu — redireciona para settings tab=prices) ──
-    case 'price_tables':
-        require_once 'app/controllers/SettingsController.php';
-        $controller = new SettingsController();
-        if ($action == 'createPriceTable') {
-            $controller->createPriceTable();
-        } elseif ($action == 'updatePriceTable') {
-            $controller->updatePriceTable();
-        } elseif ($action == 'deletePriceTable') {
-            $controller->deletePriceTable();
-        } elseif ($action == 'editPriceTable') {
-            $controller->editPriceTable();
-        } elseif ($action == 'savePriceItem') {
-            $controller->savePriceItem();
-        } elseif ($action == 'deletePriceItem') {
-            $controller->deletePriceItem();
-        } else {
-            $controller->priceTablesIndex();
-        }
-        break;
-
-    // ── Configurações do Sistema ──
-    case 'settings':
-        require_once 'app/controllers/SettingsController.php';
-        $controller = new SettingsController();
-        if ($action == 'saveCompany') {
-            $controller->saveCompany();
-        } elseif ($action == 'createPriceTable') {
-            $controller->createPriceTable();
-        } elseif ($action == 'updatePriceTable') {
-            $controller->updatePriceTable();
-        } elseif ($action == 'deletePriceTable') {
-            $controller->deletePriceTable();
-        } elseif ($action == 'editPriceTable') {
-            $controller->editPriceTable();
-        } elseif ($action == 'savePriceItem') {
-            $controller->savePriceItem();
-        } elseif ($action == 'deletePriceItem') {
-            $controller->deletePriceItem();
-        } elseif ($action == 'getPricesForCustomer') {
-            $controller->getPricesForCustomer();
-        } elseif ($action == 'addPreparationStep') {
-            $controller->addPreparationStep();
-        } elseif ($action == 'updatePreparationStep') {
-            $controller->updatePreparationStep();
-        } elseif ($action == 'deletePreparationStep') {
-            $controller->deletePreparationStep();
-        } elseif ($action == 'togglePreparationStep') {
-            $controller->togglePreparationStep();
-        } elseif ($action == 'saveBankSettings') {
-            $controller->saveBankSettings();
-        } elseif ($action == 'saveFiscalSettings') {
-            $controller->saveFiscalSettings();
-        } else {
-            $controller->index();
-        }
-        break;
-
-    // ── Gestão de Usuários (Admin) ──
-    case 'users':
-        require_once 'app/controllers/UserController.php';
-        $controller = new UserController();
-        if ($action == 'create') {
-            $controller->create();
-        } elseif ($action == 'store') {
-            $controller->store();
-        } elseif ($action == 'edit') {
-            $controller->edit();
-        } elseif ($action == 'update') {
-            $controller->update();
-        } elseif ($action == 'delete') {
-            $controller->delete();
-        } elseif ($action == 'groups') {
-            $controller->groups();
-        } elseif ($action == 'createGroup') {
-            $controller->createGroup();
-        } elseif ($action == 'updateGroup') {
-            $controller->updateGroup();
-        } elseif ($action == 'deleteGroup') {
-            $controller->deleteGroup();
-        } else {
-            $controller->index();
-        }
-        break;
-
-    // ── Controle de Estoque ──
-    case 'stock':
-        require_once 'app/controllers/StockController.php';
-        $controller = new StockController();
-        if ($action == 'warehouses') {
-            $controller->warehouses();
-        } elseif ($action == 'storeWarehouse') {
-            $controller->storeWarehouse();
-        } elseif ($action == 'updateWarehouse') {
-            $controller->updateWarehouse();
-        } elseif ($action == 'deleteWarehouse') {
-            $controller->deleteWarehouse();
-        } elseif ($action == 'entry') {
-            $controller->entry();
-        } elseif ($action == 'storeMovement') {
-            $controller->storeMovement();
-        } elseif ($action == 'movements') {
-            $controller->movements();
-        } elseif ($action == 'getProductCombinations') {
-            $controller->getProductCombinations();
-        } elseif ($action == 'updateItemMeta') {
-            $controller->updateItemMeta();
-        } elseif ($action == 'getProductStock') {
-            $controller->getProductStock();
-        } elseif ($action == 'setDefault') {
-            $controller->setDefault();
-        } elseif ($action == 'getDefaultWarehouse') {
-            $controller->getDefaultWarehouse();
-        } elseif ($action == 'checkOrderStock') {
-            $controller->checkOrderStock();
-        } else {
-            $controller->index();
-        }
-        break;
-
-    // ── Walkthrough ──
-    case 'walkthrough':
-        require_once 'app/controllers/WalkthroughController.php';
-        $controller = new WalkthroughController();
-        $action = $_GET['action'] ?? 'checkStatus';            $allowed = ['checkStatus', 'start', 'complete', 'skip', 'saveStep', 'reset', 'getSteps', 'manual'];
-        if (in_array($action, $allowed)) {
-            $controller->$action();
-        } else {
-            $controller->checkStatus();
-        }
-        break;
-
-    // ── Fiscal / Financeiro ──
-    case 'financial':
-        require_once 'app/controllers/FinancialController.php';
-        $controller = new FinancialController();
-        if ($action == 'payments') {
-            $controller->payments();
-        } elseif ($action == 'installments') {
-            $controller->installments();
-        } elseif ($action == 'generateInstallments') {
-            $controller->generateInstallments();
-        } elseif ($action == 'payInstallment') {
-            $controller->payInstallment();
-        } elseif ($action == 'confirmPayment') {
-            $controller->confirmPayment();
-        } elseif ($action == 'cancelInstallment') {
-            $controller->cancelInstallment();
-        } elseif ($action == 'uploadAttachment') {
-            $controller->uploadAttachment();
-        } elseif ($action == 'removeAttachment') {
-            $controller->removeAttachment();
-        } elseif ($action == 'transactions') {
-            $controller->transactions();
-        } elseif ($action == 'addTransaction') {
-            $controller->addTransaction();
-        } elseif ($action == 'deleteTransaction') {
-            $controller->deleteTransaction();
-        } elseif ($action == 'importOfx') {
-            $controller->importOfx();
-        } elseif ($action == 'getSummaryJson') {
-            $controller->getSummaryJson();
-        } elseif ($action == 'getInstallmentsJson') {
-            $controller->getInstallmentsJson();
-        } else {
-            // Dashboard financeiro removido — redirecionar para pagamentos
-            $controller->payments();
-        }
-        break;
-
-    // ── Atalhos de menu fiscal ──
-    case 'financial_payments':
-        require_once 'app/controllers/FinancialController.php';
-        $controller = new FinancialController();
-        $controller->payments();
-        break;
-
-    case 'financial_transactions':
-        require_once 'app/controllers/FinancialController.php';
-        $controller = new FinancialController();
-        $controller->transactions();
-        break;
-
-    default:
-        http_response_code(404);
-
-        // ── IP Guard: registra hit 404 e verifica blacklist ──
-        require_once 'app/models/IpGuard.php';
-        if (IpGuard::isBlacklisted()) {
-            // IP na blacklist — resposta mínima, sem gastar recursos
-            header('Retry-After: 3600');
-            echo '<!DOCTYPE html><html><head><title>403</title></head><body><h1>403 Forbidden</h1></body></html>';
-            exit;
-        }
-        IpGuard::register404Hit();
-
-        require 'app/views/errors/404.php';
-        break;
-}
+// ══════════════════════════════════════════════════════════════════
+// Despachar rota autenticada
+// ══════════════════════════════════════════════════════════════════
+$router->dispatch();

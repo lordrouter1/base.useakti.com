@@ -1,7 +1,12 @@
 <?php
-require_once 'app/models/Stock.php';
-require_once 'app/models/Product.php';
-require_once 'app/models/Logger.php';
+namespace Akti\Controllers;
+
+use Akti\Models\Stock;
+use Akti\Models\Product;
+use Akti\Models\Logger;
+use Akti\Models\Order;
+use Database;
+use TenantManager;
 
 class StockController {
 
@@ -318,7 +323,6 @@ class StockController {
             exit;
         }
 
-        require_once 'app/models/Order.php';
         $orderModel = new Order($this->db);
         $items = $orderModel->getItems($orderId);
 

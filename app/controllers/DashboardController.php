@@ -1,7 +1,10 @@
 <?php
-require_once 'app/models/Pipeline.php';
-require_once 'app/models/Order.php';
-require_once 'app/models/Customer.php';
+namespace Akti\Controllers;
+
+use Akti\Models\Pipeline;
+use Akti\Models\Order;
+use Akti\Models\Customer;
+use Database;
 
 class DashboardController {
     public function index() {

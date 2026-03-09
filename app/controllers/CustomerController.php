@@ -1,6 +1,11 @@
 <?php
-require_once 'app/models/Customer.php';
-require_once 'app/models/PriceTable.php';
+namespace Akti\Controllers;
+
+use Akti\Models\Customer;
+use Akti\Models\PriceTable;
+use Database;
+use PDO;
+use TenantManager;
 
 class CustomerController {
     

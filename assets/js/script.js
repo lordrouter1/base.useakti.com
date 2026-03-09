@@ -1,6 +1,45 @@
 $(document).ready(function() {
     console.log("Sistema de Gestão Iniciado");
 
+    // ── CSRF Token: enviar automaticamente em todas as requisições AJAX ──
+    var csrfToken = $('meta[name="csrf-token"]').attr('content');
+    if (csrfToken) {
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': csrfToken
+            }
+        });
+    }
+
+    // ── Interceptor global AJAX: redirecionar para login se sessão expirou (401) ──
+    // ── Interceptor CSRF: recarregar página se token inválido (403) ──
+    $(document).ajaxComplete(function(event, xhr) {
+        if (xhr.status === 401) {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (data.session_expired) {
+                    window.location.href = '?page=login&session_expired=1';
+                }
+            } catch(e) {}
+        }
+        if (xhr.status === 403) {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (data.csrf_error) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Sessão expirada',
+                        text: 'Sua sessão de segurança expirou. A página será recarregada.',
+                        confirmButtonText: 'Recarregar',
+                        allowOutsideClick: false
+                    }).then(function() {
+                        location.reload();
+                    });
+                }
+            } catch(e) {}
+        }
+    });
+
     // Exemplo de interação genérica
     $('.btn-delete').click(function(e) {
         if(!confirm('Tem certeza que deseja excluir este item?')) {

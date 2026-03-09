@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 class ProductionSector {
     private $conn;
     private $table = 'production_sectors';

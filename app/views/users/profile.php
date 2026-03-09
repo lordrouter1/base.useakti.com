@@ -36,6 +36,7 @@
             </div>
             <div class="card-body p-4">
                 <form id="profileForm" action="?page=profile&action=update" method="POST">
+                    <?= csrf_field() ?>
                     
                     <div class="mb-3">
                         <label class="form-label fw-bold small text-muted">Nome Completo</label>

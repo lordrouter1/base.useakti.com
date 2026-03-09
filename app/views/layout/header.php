@@ -11,6 +11,7 @@
     <meta name="author" content="Akti">
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#2c3e50">
+    <?= csrf_meta() ?>
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">

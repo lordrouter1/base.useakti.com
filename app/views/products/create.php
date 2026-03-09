@@ -5,6 +5,7 @@
     </div>
     
     <form id="productForm" method="post" action="?page=products&action=store" enctype="multipart/form-data">
+        <?= csrf_field() ?>
 
         <!-- ════════════════════════════════════════════════════
              SEÇÃO 1 — CAMPOS OBRIGATÓRIOS (sempre visíveis)

@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 /**
  * CategoryGrade Model
  * Manages grades (variations) for categories and subcategories.

@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 class User {
     private $conn;
     private $table_name = "users";

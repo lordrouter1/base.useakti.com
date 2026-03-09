@@ -114,6 +114,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form id="warehouseForm" method="post">
+                <?= csrf_field() ?>
                 <div class="modal-header bg-primary py-2">
                     <h5 class="modal-title text-white" id="whModalTitle"><i class="fas fa-warehouse me-2"></i>Novo Armazém</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>

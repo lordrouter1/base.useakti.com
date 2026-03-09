@@ -5,6 +5,7 @@
     </div>
     
     <form id="customerForm" method="post" action="?page=customers&action=update" enctype="multipart/form-data">
+        <?= csrf_field() ?>
         <input type="hidden" name="id" value="<?= $customer['id'] ?>">
         <div class="row">
             <div class="col-md-3">

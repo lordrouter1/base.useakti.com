@@ -1,4 +1,7 @@
 <?php
+namespace Akti\Models;
+use PDO;
+
 /**
  * Model: CompanySettings
  * Gerencia configurações da empresa (key-value store)

@@ -35,6 +35,7 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
             <h2 class="mb-4 text-primary"><i class="fas fa-cart-plus me-2"></i>Novo Pedido</h2>
             
             <form id="orderForm" method="post" action="?page=orders&action=store">
+                <?= csrf_field() ?>
                 
                 <!-- Escolha da Etapa Inicial -->
                 <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">

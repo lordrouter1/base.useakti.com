@@ -38,6 +38,7 @@
     </div>
     
     <form method="POST" action="?page=orders&action=update">
+        <?= csrf_field() ?>
         <input type="hidden" name="id" value="<?= $order['id'] ?>">
         
         <div class="row">
@@ -178,6 +179,7 @@
                     </div>
                     <div class="card-body p-3">
                         <form method="POST" action="?page=orders&action=addItem" id="formAddItemEdit">
+                            <?= csrf_field() ?>
                             <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
                             <input type="hidden" name="redirect" value="orders">
                             <input type="hidden" name="combination_id" id="combinationIdEdit" value="">

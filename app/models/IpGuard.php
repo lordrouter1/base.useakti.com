@@ -1,4 +1,9 @@
 <?php
+namespace Akti\Models;
+
+use PDO;
+use PDOException;
+
 /**
  * IpGuard — Detecção de flood 404 e blacklist automática de IPs.
  *
