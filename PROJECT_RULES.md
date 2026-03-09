@@ -569,6 +569,7 @@ Para aplicar uma atualização:
 | 02/03/2026 | `update_20260302_tenant_limits.sql` | Adição de colunas de limite no banco master |
 | 03/03/2026 | `update_20260303_walkthrough.sql` | Tabela `user_walkthrough` para tour guiado de primeiro acesso |
 | 04/03/2026 | `update_20260304_financial_module.sql` | Módulo financeiro: tabelas `order_installments`, `financial_transactions`, colunas NF-e |
+| 09/03/2026 | `update_20260309_ip_blacklist.sql` | Sistema de blacklist automática por flood 404 (tabelas `ip_404_hits`, `ip_blacklist`, índices, usuário MySQL `akti_guard`) |
 
 ## Módulo: Financeiro (Pagamentos, Parcelas e Caixa)
 
@@ -662,7 +663,7 @@ O sistema permite importar extratos bancários no formato OFX (Open Financial Ex
 - Ao lançar manualmente, a categoria default é `outra_entrada` para entradas e `outra_saida` para saídas
 
 ### Padrão Visual (UI)
-- **Cards de resumo:** Seguem o mesmo padrão do Dashboard — `card border-0 shadow-sm border-start border-{cor} border-4` com ícone circular
+- **Cards de resumo:** Seguem o mesmo padrão do Dashboard — `card border-0 shadow-sm border-start border-4` com ícone circular
 - **Tabelas:** `table-responsive bg-white rounded shadow-sm` com `table-hover align-middle`
 - **Badges de status:** cores padronizadas (warning=pendente, success=pago, danger=atrasado, secondary=cancelado)
 - **Badge de estorno/registro:** `badge bg-secondary` com ícone `fa-minus` (risco —), texto cinza, linha com fundo `table-light`
@@ -696,3 +697,80 @@ O sistema permite importar extratos bancários no formato OFX (Open Financial Ex
 | `importOfx` | POST (AJAX) | Importa arquivo OFX (registro ou contabilizado) |
 | `getSummaryJson` | GET | API JSON com resumo (para widgets) |
 | `getInstallmentsJson` | GET | API JSON com parcelas de um pedido |
+
+## Módulo: Segurança — IpGuard (Blacklist Automática por Flood 404)
+
+### Conceito
+O sistema detecta automaticamente ataques de varredura (scanners, bots, brute-force de paths) com base na quantidade de requisições 404 por IP dentro de uma janela de tempo. IPs que excedem o threshold são automaticamente adicionados à blacklist.
+
+A proteção opera em **duas camadas**:
+1. **PHP (index.php):** No handler `default` do switch de roteamento, o `IpGuard` registra hits 404 e bloqueia IPs que ultrapassem o limite. Se o IP já estiver na blacklist, retorna 403 imediato sem renderizar a view.
+2. **Nginx/OpenResty (Lua):** Antes de processar qualquer request, o script Lua consulta a blacklist no banco `akti_master` e retorna 403 para IPs bloqueados. Usa cache em `lua_shared_dict` para minimizar queries.
+
+### Tabelas no Banco de Dados (`akti_master`)
+- `ip_404_hits` — Registro de cada hit 404 por IP (path, user-agent, timestamp)
+- `ip_blacklist` — IPs bloqueados (com razão, duração, expiração e flag ativo/inativo)
+
+> ⚠️ Estas tabelas ficam no banco **master** (`akti_master`), não nos bancos de tenant.
+
+### Parâmetros de Configuração (constantes em `IpGuard.php`)
+
+| Constante | Valor padrão | Descrição |
+|-----------|-------------|-----------|
+| `THRESHOLD` | 30 | Número máximo de 404s na janela de tempo |
+| `WINDOW_SECONDS` | 60 | Janela de tempo em segundos |
+| `BLOCK_HOURS` | 24 | Duração do bloqueio em horas (0 = permanente) |
+| `MAX_PATH_LENGTH` | 2048 | Tamanho máximo do path armazenado |
+| `MAX_UA_LENGTH` | 512 | Tamanho máximo do user-agent armazenado |
+
+### Regras de Negócio
+- O IP é obtido respeitando headers de proxy reverso (CF-Connecting-IP, X-Forwarded-For, X-Real-IP)
+- Path e User-Agent são sanitizados e truncados antes do armazenamento
+- A verificação é **fail-open**: se o banco master estiver indisponível, o sistema NÃO bloqueia (para não impedir acesso legítimo)
+- IPs `127.0.0.1` e `::1` são whitelisted no script Lua (nunca bloqueados pela camada Nginx)
+- Bloqueios expirados (`expires_at < NOW()`) são ignorados automaticamente nas consultas
+- O método `blacklistIp()` usa UPSERT (INSERT ... ON DUPLICATE KEY UPDATE) para atualizar IPs já presentes
+- Registros antigos de `ip_404_hits` podem ser purgados via `IpGuard::purgeOldHits()` (recomendado via cron diário)
+
+### Usuário MySQL para Lua (somente leitura)
+O script Lua utiliza um usuário MySQL dedicado com acesso somente leitura à tabela `ip_blacklist`:
+```sql
+CREATE USER IF NOT EXISTS 'akti_guard'@'127.0.0.1' IDENTIFIED BY 'GuardR3ad0nly!@2026';
+GRANT SELECT ON akti_master.ip_blacklist TO 'akti_guard'@'127.0.0.1';
+FLUSH PRIVILEGES;
+```
+
+### Integração com Nginx/OpenResty
+
+#### Requisitos
+- **OpenResty** (Nginx compilado com `ngx_http_lua_module`)
+- **lua-resty-mysql** (incluído no OpenResty)
+- Diretiva `lua_shared_dict ip_blacklist_cache 10m;` no bloco `http {}` do `nginx.conf`
+
+#### Ativação
+1. Copiar `nginx/ip_guard.lua` para `/etc/nginx/conf.d/ip_guard.lua` no servidor
+2. Adicionar no bloco `server` do site:
+   ```nginx
+   access_by_lua_file /etc/nginx/conf.d/ip_guard.lua;
+   ```
+3. Adicionar no bloco `http {}` do `nginx.conf`:
+   ```nginx
+   lua_shared_dict ip_blacklist_cache 10m;
+   ```
+4. Testar e recarregar: `nginx -t && systemctl reload nginx`
+
+#### Variáveis de Ambiente do Lua
+| Variável | Default | Descrição |
+|----------|---------|-----------|
+| `AKTI_GUARD_DB_HOST` | `127.0.0.1` | Host do banco master |
+| `AKTI_GUARD_DB_PORT` | `3306` | Porta do MySQL |
+| `AKTI_GUARD_DB_NAME` | `akti_master` | Nome do banco master |
+| `AKTI_GUARD_DB_USER` | `akti_guard` | Usuário MySQL (somente leitura) |
+| `AKTI_GUARD_DB_PASSWORD` | — | Senha do usuário akti_guard |
+
+### Arquivos do Módulo
+- `sql/update_20260309_ip_blacklist.sql` — Migration: tabelas, índices e SQL para usuário akti_guard
+- `app/models/IpGuard.php` — Model PHP: `register404Hit()`, `blacklistIp()`, `isBlacklisted()`, `purgeOldHits()`
+- `nginx/ip_guard.lua` — Script Lua para OpenResty: consulta blacklist e bloqueia IPs na camada Nginx
+- `nginx/sis-useakti` — Configuração Nginx atualizada com `access_by_lua_file`
+- `index.php` — Integração no handler `default` (404) do switch de roteamento

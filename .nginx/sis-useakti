@@ -1,0 +1,96 @@
+# ============================================================
+# *.useakti.com (sis) — Configuração Nginx (OpenResty)
+# ============================================================
+
+# ── Shared dict para cache da blacklist de IPs (IpGuard/Lua) ──
+# Deve ficar no contexto http {} (geralmente em nginx.conf):
+#   lua_shared_dict ip_blacklist_cache 10m;
+
+# Redireciona HTTP → HTTPS
+server {
+    listen 80;
+    server_name *.useakti.com;
+
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name *.useakti.com;
+
+    root /var/www/base.useakti.com;
+    index index.php index.html;
+
+    # ── IpGuard: Blacklist de IPs via Lua (OpenResty) ──
+    # Verifica a tabela ip_blacklist no akti_master antes de processar.
+    # Requer: OpenResty + lua-resty-mysql + lua_shared_dict ip_blacklist_cache 10m;
+    # O script retorna 403 imediatamente para IPs bloqueados.
+    access_by_lua_file /etc/nginx/conf.d/ip_guard.lua;
+
+    # --- SSL ---
+    # ATENÇÃO: Certificado deve cobrir *.useakti.com
+    ssl_certificate     /etc/letsencrypt/live/useakti.com-0001/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/useakti.com-0001/privkey.pem;
+    include             /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+
+    # --- Páginas de erro ---
+    # 404: gerado pelo PHP da aplicação
+    error_page 404 /errors/404;
+
+    # 5xx: o PHP não responde — Nginx serve o arquivo estático diretamente
+    error_page 500 502 503 504 /errors/server-error;
+
+    location = /errors/404 {
+        internal;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+        include snippets/fastcgi-php.conf;
+        fastcgi_param SCRIPT_FILENAME /var/www/base.useakti.com/app/views/errors/404.php;
+        include fastcgi_params;
+    }
+
+    location = /errors/server-error {
+        internal;
+        # Servido de forma estática pois o PHP pode estar indisponível
+        alias /var/www/base.useakti.com/app/views/errors/500.php;
+        default_type text/html;
+    }
+
+    # --- Bloqueio de arquivos indevidos ---
+    # Arquivos ocultos (.htaccess, .env, .git, etc.)
+    location ~ /\. {
+        deny all;
+        return 404;
+    }
+
+    # Arquivos de configuração e dados sensíveis
+    location ~* \.(env|ini|conf|config|sql|bak|backup|log|sh|bash|key|pem|crt|cer|p12|pfx|DS_Store)$ {
+        deny all;
+        return 404;
+    }
+
+    # Diretórios sensíveis
+    location ~* ^/(vendor|node_modules|storage|cache|logs|tmp|temp|\.git|\.svn)/ {
+        deny all;
+        return 404;
+    }
+
+    # Impede acesso direto a arquivos PHP dentro de pastas protegidas
+    location ~* ^/(app|config|database|bootstrap|resources|tests)/.*\.php$ {
+        deny all;
+        return 404;
+    }
+
+    # --- Roteamento principal ---
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # --- PHP-FPM ---
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}

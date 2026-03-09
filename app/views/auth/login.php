@@ -9,6 +9,13 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="assets/css/theme.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
+    <?php
+        $recaptchaSiteKey = LoginAttempt::getSiteKey();
+        $captchaEnabled = !empty($recaptchaSiteKey) && !empty($showCaptcha);
+    ?>
+    <?php if ($captchaEnabled): ?>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <?php endif; ?>
     <style>
         * {
             margin: 0;
@@ -260,9 +267,14 @@
         </div>
 
         <?php if (isset($error)): ?>
-            <div class="alert alert-danger py-2 d-flex align-items-center" style="border-radius: 10px;">
-                <i class="fas fa-exclamation-circle me-2"></i>
-                <div><?= $error ?></div>
+            <?php
+                $isBlocked = !empty($lockout['blocked']);
+                $alertClass = $isBlocked ? 'alert-warning' : 'alert-danger';
+                $alertIcon  = $isBlocked ? 'fa-clock' : 'fa-exclamation-circle';
+            ?>
+            <div class="alert <?= $alertClass ?> py-2 d-flex align-items-center" style="border-radius: 10px;">
+                <i class="fas <?= $alertIcon ?> me-2"></i>
+                <div><?= htmlspecialchars($error) ?></div>
             </div>
         <?php endif; ?>
         
@@ -282,24 +294,38 @@
 
         <form method="POST" action="?page=login">
             <input type="hidden" name="tenant_key" value="<?= htmlspecialchars($tenantInfo['key'] ?? '') ?>">
+            <?php
+                $isBlocked = !empty($lockout['blocked']);
+                $formDisabled = ($tenantBlocked || $isBlocked) ? 'disabled' : '';
+            ?>
             <?php if ($tenantBlocked): ?>
                 <input type="hidden" name="tenant_blocked" value="1">
             <?php endif; ?>
             <div class="form-floating mb-3">
                 <i class="fas fa-envelope input-icon"></i>
-                <input type="email" class="form-control" id="email" name="email" required placeholder="seu@email.com" autocomplete="email" <?= $tenantBlocked ? "disabled" : ""; ?>>
+                <input type="email" class="form-control" id="email" name="email" required placeholder="seu@email.com" autocomplete="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" <?= $formDisabled ?>>
                 <label for="email">E-mail</label>
             </div>
             
             <div class="form-floating mb-4">
                 <i class="fas fa-lock input-icon"></i>
-                <input type="password" class="form-control" id="password" name="password" required placeholder="Sua senha" autocomplete="current-password" <?= $tenantBlocked ? "disabled" : ""; ?>>
+                <input type="password" class="form-control" id="password" name="password" required placeholder="Sua senha" autocomplete="current-password" <?= $formDisabled ?>>
                 <label for="password">Senha</label>
             </div>
 
+            <?php if ($captchaEnabled && !$isBlocked): ?>
+            <div class="mb-3 d-flex justify-content-center">
+                <div class="g-recaptcha" data-sitekey="<?= htmlspecialchars($recaptchaSiteKey) ?>"></div>
+            </div>
+            <?php endif; ?>
+
             <div class="d-grid mb-3">
-                <button type="submit" class="btn btn-login btn-lg" <?= $tenantBlocked ? "disabled" : ""; ?>>
-                    <i class="fas fa-sign-in-alt me-2"></i>ENTRAR
+                <button type="submit" class="btn btn-login btn-lg" <?= $formDisabled ?>>
+                    <?php if ($isBlocked): ?>
+                        <i class="fas fa-lock me-2"></i>BLOQUEADO
+                    <?php else: ?>
+                        <i class="fas fa-sign-in-alt me-2"></i>ENTRAR
+                    <?php endif; ?>
                 </button>
             </div>
             

@@ -547,6 +547,17 @@ switch ($page) {
 
     default:
         http_response_code(404);
+
+        // ── IP Guard: registra hit 404 e verifica blacklist ──
+        require_once 'app/models/IpGuard.php';
+        if (IpGuard::isBlacklisted()) {
+            // IP na blacklist — resposta mínima, sem gastar recursos
+            header('Retry-After: 3600');
+            echo '<!DOCTYPE html><html><head><title>403</title></head><body><h1>403 Forbidden</h1></body></html>';
+            exit;
+        }
+        IpGuard::register404Hit();
+
         require 'app/views/errors/404.php';
         break;
 }

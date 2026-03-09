@@ -1,18 +1,21 @@
 <?php
 require_once 'app/models/User.php';
 require_once 'app/models/UserGroup.php';
+require_once 'app/models/LoginAttempt.php';
 
 class UserController {
     
     private $userModel;
     private $groupModel;
     private $logger;
+    private $loginAttempt;
 
     public function __construct() {
         $database = new Database();
         $db = $database->getConnection();
         $this->userModel = new User($db);
         $this->groupModel = new UserGroup($db);
+        $this->loginAttempt = new LoginAttempt($db);
         require_once 'app/models/Logger.php';
         $this->logger = new Logger($db);
     }
@@ -280,12 +283,17 @@ class UserController {
             return;
         }
 
+        $ip = LoginAttempt::getClientIp();
+        $showCaptcha = false;
+        $lockout = null;
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-             $email = $_POST['email'];
-             $password = $_POST['password'];
-             $postedTenant = $_POST['tenant_key'] ?? '';
+             $email    = trim($_POST['email'] ?? '');
+             $password = $_POST['password'] ?? '';
+             $postedTenant   = $_POST['tenant_key'] ?? '';
              $resolvedTenant = $_SESSION['tenant']['key'] ?? '';
 
+             // ── Validação de tenant ──
              if ($postedTenant !== $resolvedTenant) {
                  $this->logger->log('LOGIN_FAIL', 'Tentativa de login com tenant divergente.');
                  $error = 'Validação de cliente inválida. Atualize a página e tente novamente.';
@@ -293,11 +301,41 @@ class UserController {
                  return;
              }
 
+             // ── Verificar bloqueio (>= 5 falhas em 10 min) ──
+             $lockout = $this->loginAttempt->checkLockout($ip, $email);
+             if ($lockout['blocked']) {
+                 $this->logger->log('LOGIN_BLOCKED', "IP bloqueado por força bruta: $ip / $email");
+                 $remaining = $lockout['remaining_minutes'];
+                 $error = "Muitas tentativas de login. Aguarde {$remaining} minuto" . ($remaining > 1 ? 's' : '') . " e tente novamente.";
+                 // Manter captcha visível caso desbloqueie
+                 $showCaptcha = $this->loginAttempt->requiresCaptcha($ip, $email);
+                 require 'app/views/auth/login.php';
+                 return;
+             }
+
+             // ── Verificar reCAPTCHA (>= 3 falhas) ──
+             $showCaptcha = $this->loginAttempt->requiresCaptcha($ip, $email);
+             if ($showCaptcha) {
+                 $captchaResponse = $_POST['g-recaptcha-response'] ?? '';
+                 if (empty($captchaResponse) || !$this->loginAttempt->validateCaptcha($captchaResponse, $ip)) {
+                     $this->logger->log('LOGIN_CAPTCHA_FAIL', "reCAPTCHA inválido: $ip / $email");
+                     $error = 'Por favor, confirme que você não é um robô.';
+                     require 'app/views/auth/login.php';
+                     return;
+                 }
+             }
+
+             // ── Tentativa de login ──
              if ($this->userModel->login($email, $password)) {
-                 $_SESSION['user_id'] = $this->userModel->id;
+                 // Sucesso — registrar e limpar
+                 $this->loginAttempt->record($ip, $email, true);
+                 $this->loginAttempt->clearFailures($ip, $email);
+                 $this->loginAttempt->purgeOld();
+
+                 $_SESSION['user_id']   = $this->userModel->id;
                  $_SESSION['user_name'] = $this->userModel->name;
                  $_SESSION['user_role'] = $this->userModel->role;
-                 $_SESSION['group_id'] = $this->userModel->group_id;
+                 $_SESSION['group_id']  = $this->userModel->group_id;
                  $_SESSION['user_tenant_key'] = $_SESSION['tenant']['key'] ?? null;
 
                  $this->logger->log('LOGIN', 'User logged in: ' . $email, $this->userModel->id);
@@ -305,11 +343,27 @@ class UserController {
                  header('Location: ?');
                  exit;
              } else {
+                 // Falha — registrar tentativa
+                 $this->loginAttempt->record($ip, $email, false);
                  $this->logger->log('LOGIN_FAIL', 'Failed login attempt for: ' . $email);
-                 $error = 'Email ou senha inválidos para o cliente selecionado.';
+
+                 // Recalcular estado após registrar a falha
+                 $lockout = $this->loginAttempt->checkLockout($ip, $email);
+                 $showCaptcha = $this->loginAttempt->requiresCaptcha($ip, $email);
+
+                 if ($lockout['blocked']) {
+                     $remaining = $lockout['remaining_minutes'];
+                     $error = "Muitas tentativas de login. Aguarde {$remaining} minuto" . ($remaining > 1 ? 's' : '') . " e tente novamente.";
+                 } else {
+                     // Mensagem genérica — nunca vazar se o email existe
+                     $error = 'Credenciais inválidas. Verifique seu e-mail e senha.';
+                 }
+
                  require 'app/views/auth/login.php';
              }
         } else {
+             // GET — verificar se precisa de captcha (por IP genérico ou email em sessão)
+             // Na abertura da página não temos email, então captcha só aparece após falha
              require 'app/views/auth/login.php';
         }
     }
