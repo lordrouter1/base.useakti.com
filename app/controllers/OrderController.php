@@ -8,6 +8,7 @@ use Akti\Models\Pipeline;
 use Akti\Models\Logger;
 use Akti\Models\PriceTable;
 use Akti\Models\CompanySettings;
+use Akti\Models\Financial;
 use Database;
 use PDO;
 
@@ -176,7 +177,13 @@ class OrderController {
             $this->orderModel->status = $_POST['status'];
             
             if ($this->orderModel->update()) {
-                header('Location: ?page=orders&status=success');
+                // Se veio do botão "Imprimir Nota de Pedido", redirecionar com flag para abrir a nota
+                $printOrder = !empty($_POST['print_order_after_save']);
+                $redirectUrl = '?page=orders&action=edit&id=' . $_POST['id'] . '&status=success';
+                if ($printOrder) {
+                    $redirectUrl .= '&print_order=1';
+                }
+                header('Location: ' . $redirectUrl);
                 exit;
             } else {
                 echo "Erro ao atualizar pedido.";
@@ -251,6 +258,85 @@ class OrderController {
     }
 
     /**
+     * Atualizar quantidade de um item do pedido (AJAX POST)
+     */
+    public function updateItemQty() {
+        header('Content-Type: application/json');
+
+        $itemId = $_POST['item_id'] ?? null;
+        $quantity = $_POST['quantity'] ?? 1;
+
+        if (!$itemId) {
+            echo json_encode(['success' => false, 'message' => 'ID do item não informado']);
+            exit;
+        }
+
+        $result = $this->orderModel->updateItemQty($itemId, $quantity);
+
+        if ($result) {
+            $database = new \Database();
+            $db = $database->getConnection();
+            $q = "SELECT oi.order_id, oi.quantity, oi.unit_price, oi.subtotal, oi.discount, o.total_amount 
+                  FROM order_items oi 
+                  JOIN orders o ON oi.order_id = o.id 
+                  WHERE oi.id = :id";
+            $s = $db->prepare($q);
+            $s->execute([':id' => $itemId]);
+            $row = $s->fetch(PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Quantidade atualizada com sucesso',
+                'new_subtotal' => $row ? (float)$row['subtotal'] : 0,
+                'new_total' => $row ? (float)$row['total_amount'] : 0,
+                'quantity' => $row ? (int)$row['quantity'] : 1,
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Erro ao atualizar quantidade']);
+        }
+        exit;
+    }
+
+    /**
+     * Atualizar desconto de um item do pedido (AJAX POST)
+     */
+    public function updateItemDiscount() {
+        header('Content-Type: application/json');
+
+        $itemId = $_POST['item_id'] ?? null;
+        $discount = $_POST['discount'] ?? 0;
+
+        if (!$itemId) {
+            echo json_encode(['success' => false, 'message' => 'ID do item não informado']);
+            exit;
+        }
+
+        $result = $this->orderModel->updateItemDiscount($itemId, $discount);
+
+        if ($result) {
+            // Buscar novo total do pedido (recalculado pelo model)
+            $database = new \Database();
+            $db = $database->getConnection();
+            $q = "SELECT oi.order_id, o.total_amount 
+                  FROM order_items oi 
+                  JOIN orders o ON oi.order_id = o.id 
+                  WHERE oi.id = :id";
+            $s = $db->prepare($q);
+            $s->execute([':id' => $itemId]);
+            $row = $s->fetch(PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Desconto atualizado com sucesso',
+                'new_total' => $row ? (float)$row['total_amount'] : 0,
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Erro ao atualizar desconto']);
+        }
+        exit;
+    }
+
+    /**
      * Imprimir orçamento
      */
     public function printQuote() {
@@ -275,6 +361,38 @@ class OrderController {
         $companyAddress = $companyModel->getFormattedAddress();
         
         require 'app/views/orders/print_quote.php';
+    }
+
+    /**
+     * Imprimir nota de pedido (pedido de compra)
+     * Disponível nas etapas: venda e financeiro
+     */
+    public function printOrder() {
+        $orderId = $_GET['id'] ?? null;
+        if (!$orderId) {
+            header('Location: ?page=orders');
+            exit;
+        }
+        $order = $this->orderModel->readOne($orderId);
+        if (!$order) {
+            header('Location: ?page=orders');
+            exit;
+        }
+        $orderItems = $this->orderModel->getItems($orderId);
+        $extraCosts = $this->orderModel->getExtraCosts($orderId);
+
+        // Carregar dados da empresa
+        $database = new Database();
+        $db = $database->getConnection();
+        $companyModel = new CompanySettings($db);
+        $company = $companyModel->getAll();
+        $companyAddress = $companyModel->getFormattedAddress();
+
+        // Carregar parcelas (se existirem)
+        $financialModel = new Financial($db);
+        $installments = $financialModel->getInstallments($orderId);
+
+        require 'app/views/orders/print_order.php';
     }
 
     public function delete() {

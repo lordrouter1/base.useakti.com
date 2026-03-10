@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orçamento #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></title>
+    <title>Nota de Pedido #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -14,18 +14,21 @@
             .card { border: 1px solid #ddd !important; box-shadow: none !important; }
             .table th { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .total-row { background: #eaf7ee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .order-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             @page { margin: 15mm; }
         }
         body { background: #f5f5f5; font-family: 'Segoe UI', Arial, sans-serif; }
-        .quote-header { border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 20px; }
+        .order-header { border-bottom: 3px solid #2ecc71; padding-bottom: 15px; margin-bottom: 20px; }
         .company-logo img { max-height: 80px; }
         .company-name { font-size: 1.8rem; font-weight: 800; color: #2c3e50; }
-        .quote-number { font-size: 1.4rem; color: #3498db; font-weight: 700; }
+        .order-number { font-size: 1.4rem; color: #2ecc71; font-weight: 700; }
         .info-label { font-weight: 600; color: #7f8c8d; font-size: 0.85rem; text-transform: uppercase; }
         .info-value { font-weight: 500; color: #2c3e50; }
         .total-row { background: #eaf7ee !important; }
         .total-value { font-size: 1.4rem; font-weight: 800; color: #27ae60; }
         .footer-note { border-top: 2px solid #ecf0f1; padding-top: 15px; margin-top: 30px; }
+        .order-badge { display: inline-block; padding: 4px 14px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; }
+        .payment-info { border-left: 4px solid #2ecc71; padding-left: 12px; }
     </style>
 </head>
 <body>
@@ -35,13 +38,31 @@
     if (!empty($order['customer_address'])) {
         $customerFormattedAddress = \Akti\Models\CompanySettings::formatCustomerAddress($order['customer_address']);
     }
-    $validityDays = (int)($company['quote_validity_days'] ?? 15);
+
+    // Mapas de labels
+    $paymentMethodMap = [
+        'dinheiro'          => '💵 Dinheiro',
+        'pix'               => '📱 PIX',
+        'cartao_credito'    => '💳 Cartão de Crédito',
+        'cartao_debito'     => '💳 Cartão de Débito',
+        'boleto'            => '📄 Boleto',
+        'transferencia'     => '🏦 Transferência',
+        'cheque'            => '📝 Cheque',
+        'outro'             => 'Outro',
+    ];
+    $paymentStatusMap = [
+        'pendente' => ['label' => 'Pendente', 'color' => '#f39c12', 'icon' => '⏳'],
+        'parcial'  => ['label' => 'Parcial', 'color' => '#3498db', 'icon' => '💳'],
+        'pago'     => ['label' => 'Pago', 'color' => '#27ae60', 'icon' => '✅'],
+    ];
+    $paymentStatus = $order['payment_status'] ?? 'pendente';
+    $paymentStatusInfo = $paymentStatusMap[$paymentStatus] ?? $paymentStatusMap['pendente'];
     ?>
 
     <!-- Barra de ações (não imprime) -->
     <div class="no-print bg-dark text-white py-2">
         <div class="container d-flex justify-content-between align-items-center">
-            <span><i class="fas fa-file-invoice-dollar me-2"></i>Orçamento #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></span>
+            <span><i class="fas fa-file-invoice me-2"></i>Nota de Pedido #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></span>
             <div class="d-flex gap-2">
                 <button onclick="window.print()" class="btn btn-success btn-sm"><i class="fas fa-print me-1"></i> Imprimir</button>
                 <button onclick="window.close()" class="btn btn-outline-light btn-sm"><i class="fas fa-times me-1"></i> Fechar</button>
@@ -51,14 +72,14 @@
 
     <div class="container py-4" style="max-width: 800px;">
         <!-- Cabeçalho da empresa -->
-        <div class="quote-header d-flex justify-content-between align-items-start">
+        <div class="order-header d-flex justify-content-between align-items-start">
             <div>
                 <?php if (!empty($company['company_logo']) && file_exists($company['company_logo'])): ?>
                 <div class="company-logo mb-1">
                     <img src="<?= $company['company_logo'] ?>" alt="Logo">
                 </div>
                 <?php endif; ?>
-                <div class="company-name"><?= htmlspecialchars($company['company_name'] ?? 'Minha Gráfica') ?></div>
+                <div class="company-name"><?= htmlspecialchars($company['company_name'] ?? 'Minha Empresa') ?></div>
                 <?php if (!empty($company['company_document'])): ?>
                 <div class="text-muted small"><?= htmlspecialchars($company['company_document']) ?></div>
                 <?php endif; ?>
@@ -78,15 +99,17 @@
                 <?php endif; ?>
             </div>
             <div class="text-end">
-                <div class="quote-number">ORÇAMENTO</div>
+                <div class="order-number">NOTA DE PEDIDO</div>
                 <div class="fw-bold fs-5">#<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></div>
                 <div class="text-muted small">Data: <?= date('d/m/Y') ?></div>
-                <div class="text-muted small">Válido até: <?= date('d/m/Y', strtotime("+{$validityDays} days")) ?></div>
+                <?php if (!empty($order['deadline'])): ?>
+                <div class="text-muted small">Prazo: <?= date('d/m/Y', strtotime($order['deadline'])) ?></div>
+                <?php endif; ?>
             </div>
         </div>
 
         <!-- Dados do Cliente -->
-        <div class="card border-0 shadow-sm mb-2">
+        <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-light py-2">
                 <h6 class="mb-0 text-primary fw-bold"><i class="fas fa-user me-2"></i>Dados do Cliente</h6>
             </div>
@@ -121,7 +144,7 @@
         </div>
 
         <!-- Informações do Pedido -->
-        <div class="card border-0 shadow-sm mb-2">
+        <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-light py-2">
                 <h6 class="mb-0 text-primary fw-bold"><i class="fas fa-info-circle me-2"></i>Informações do Pedido</h6>
             </div>
@@ -136,7 +159,7 @@
                         <div class="info-value"><?= date('d/m/Y', strtotime($order['created_at'])) ?></div>
                     </div>
                     <div class="col-md-3">
-                        <span class="info-label">Prazo</span>
+                        <span class="info-label">Prazo de Entrega</span>
                         <div class="info-value"><?= !empty($order['deadline']) ? date('d/m/Y', strtotime($order['deadline'])) : '—' ?></div>
                     </div>
                     <div class="col-md-3">
@@ -152,10 +175,72 @@
             </div>
         </div>
 
-        <!-- Itens do Orçamento -->
-        <div class="card border-0 shadow-sm mb-2">
+        <!-- Dados de Pagamento -->
+        <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-light py-2">
-                <h6 class="mb-0 text-primary fw-bold"><i class="fas fa-list me-2"></i>Itens do Orçamento</h6>
+                <h6 class="mb-0 fw-bold" style="color:#2ecc71;"><i class="fas fa-money-bill-wave me-2"></i>Dados de Pagamento</h6>
+            </div>
+            <div class="card-body py-3">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <span class="info-label">Status do Pagamento</span>
+                        <div class="info-value">
+                            <span class="order-badge" style="background: <?= $paymentStatusInfo['color'] ?>15; color: <?= $paymentStatusInfo['color'] ?>; border: 1px solid <?= $paymentStatusInfo['color'] ?>40;">
+                                <?= $paymentStatusInfo['icon'] ?> <?= $paymentStatusInfo['label'] ?>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="info-label">Forma de Pagamento</span>
+                        <div class="info-value"><?= $paymentMethodMap[$order['payment_method'] ?? ''] ?? '—' ?></div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="info-label">Valor Total</span>
+                        <div class="info-value fw-bold fs-5" style="color:#27ae60;">R$ <?= number_format($order['total_amount'], 2, ',', '.') ?></div>
+                    </div>
+                </div>
+
+                <?php if (!empty($installments)): ?>
+                <!-- Parcelas -->
+                <hr class="my-3">
+                <h6 class="fw-bold text-muted small mb-2"><i class="fas fa-calendar-alt me-1"></i>Parcelas</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-0" style="font-size:0.85rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-center" style="width:50px;">Nº</th>
+                                <th>Vencimento</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($installments as $idx => $inst): ?>
+                            <tr>
+                                <td class="text-center"><?= $idx + 1 ?></td>
+                                <td><?= !empty($inst['due_date']) ? date('d/m/Y', strtotime($inst['due_date'])) : '—' ?></td>
+                                <td class="text-end">R$ <?= number_format($inst['amount'] ?? 0, 2, ',', '.') ?></td>
+                                <td class="text-center">
+                                    <?php
+                                    $instStatus = $inst['status'] ?? 'pendente';
+                                    if ($instStatus === 'pago') echo '<span class="badge bg-success">Pago</span>';
+                                    elseif ($instStatus === 'parcial') echo '<span class="badge bg-info">Parcial</span>';
+                                    else echo '<span class="badge bg-warning text-dark">Pendente</span>';
+                                    ?>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Itens do Pedido -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light py-2">
+                <h6 class="mb-0 text-primary fw-bold"><i class="fas fa-list me-2"></i>Itens do Pedido</h6>
             </div>
             <div class="card-body p-0">
                 <?php if (!empty($orderItems)): ?>
@@ -224,7 +309,6 @@
                                     $totalExtras += (float)$ec['amount'];
                                 }
                             }
-                            // O total líquido de produtos (após descontos por item)
                             $totalNetProducts = $total - $totalItemDiscounts;
                             $finalTotal = $totalNetProducts + $totalExtras - $discount;
                             $footColspan = $hasItemDiscount ? 6 : 4;
@@ -273,7 +357,7 @@
                 <?php else: ?>
                 <div class="text-center text-muted py-4">
                     <i class="fas fa-box-open d-block mb-2" style="font-size:2rem;"></i>
-                    Nenhum item adicionado ao orçamento.
+                    Nenhum item adicionado ao pedido.
                 </div>
                 <?php endif; ?>
             </div>
@@ -292,11 +376,26 @@
 
         <!-- Rodapé / Notas legais -->
         <div class="footer-note text-center">
-            <p class="text-muted small mb-1">Este orçamento é válido por <strong><?= $validityDays ?> dias</strong> a partir da data de emissão.</p>
-            <?php if (!empty($company['quote_footer_note'])): ?>
+            <?php if (!empty($company['order_footer_note'])): ?>
+            <p class="text-muted small mb-1"><?= htmlspecialchars($company['order_footer_note']) ?></p>
+            <?php elseif (!empty($company['quote_footer_note'])): ?>
             <p class="text-muted small mb-1"><?= htmlspecialchars($company['quote_footer_note']) ?></p>
             <?php endif; ?>
             <p class="text-muted small mb-0">Documento gerado em <?= date('d/m/Y \à\s H:i') ?></p>
+        </div>
+
+        <!-- Assinatura -->
+        <div class="row mt-5 pt-4">
+            <div class="col-6 text-center">
+                <div style="border-top: 1px solid #333; width: 80%; margin: 0 auto; padding-top: 5px;">
+                    <small class="text-muted"><?= htmlspecialchars($company['company_name'] ?? 'Assinatura da Empresa') ?></small>
+                </div>
+            </div>
+            <div class="col-6 text-center">
+                <div style="border-top: 1px solid #333; width: 80%; margin: 0 auto; padding-top: 5px;">
+                    <small class="text-muted">Assinatura do Cliente</small>
+                </div>
+            </div>
         </div>
     </div>
 </body>

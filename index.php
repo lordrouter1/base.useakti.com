@@ -26,7 +26,7 @@ set_exception_handler(function($e) {
               || (stripos($contentType, 'application/json') !== false);
     // Também detecta AJAX por actions conhecidas
     $action = $_GET['action'] ?? '';
-    $ajaxActions = ['getSubcategories','getInheritedGrades','getInheritedSectors','getProductsForExport','exportToProducts','createCategoryAjax','deleteImage','createGradeType','getGradeTypes','generateCombinations','importProducts','toggleCategoryCombination','toggleSubcategoryCombination','importOfx','getSummaryJson','getInstallmentsJson'];
+    $ajaxActions = ['getSubcategories','getInheritedGrades','getInheritedSectors','getProductsForExport','exportToProducts','createCategoryAjax','deleteImage','createGradeType','getGradeTypes','generateCombinations','importProducts','toggleCategoryCombination','toggleSubcategoryCombination','importOfx','getSummaryJson','getInstallmentsJson','moveAjax','checkOrderStock','addExtraCost','deleteExtraCost','moveSector','getItemLogs','addItemLog','deleteItemLog','togglePreparation','countInstallments','deleteInstallments','updateItemDiscount','updateItemQty'];
     if (in_array($action, $ajaxActions)) {
         $isAjax = true;
     }

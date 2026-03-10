@@ -251,10 +251,10 @@ class Order {
     }
 
     /**
-     * Recalcula o total do pedido com base nos itens + custos extras
+     * Recalcula o total do pedido com base nos itens (subtotal - discount) + custos extras
      */
     public function recalculateTotal($orderId) {
-        $query = "SELECT COALESCE(SUM(subtotal), 0) FROM order_items WHERE order_id = :order_id";
+        $query = "SELECT COALESCE(SUM(subtotal - COALESCE(discount, 0)), 0) FROM order_items WHERE order_id = :order_id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':order_id', $orderId, PDO::PARAM_INT);
         $stmt->execute();
@@ -274,6 +274,62 @@ class Order {
         $stmt3->bindParam(':total', $total);
         $stmt3->bindParam(':id', $orderId, PDO::PARAM_INT);
         return $stmt3->execute();
+    }
+
+    /**
+     * Atualiza a quantidade de um item do pedido via AJAX e recalcula totais
+     */
+    public function updateItemQty($itemId, $quantity) {
+        $quantity = max(1, (int)$quantity);
+        // Buscar unit_price atual
+        $q = "SELECT unit_price, order_id FROM order_items WHERE id = :id";
+        $s = $this->conn->prepare($q);
+        $s->bindParam(':id', $itemId, PDO::PARAM_INT);
+        $s->execute();
+        $row = $s->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return false;
+
+        $subtotal = $quantity * (float)$row['unit_price'];
+        $query = "UPDATE order_items SET quantity = :quantity, subtotal = :subtotal WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':quantity', $quantity, PDO::PARAM_INT);
+        $stmt->bindParam(':subtotal', $subtotal);
+        $stmt->bindParam(':id', $itemId, PDO::PARAM_INT);
+        $result = $stmt->execute();
+
+        if ($result) {
+            $this->recalculateTotal($row['order_id']);
+        }
+        return $result;
+    }
+
+    // ─────────────────────────────────────────────────
+    // Desconto por Item (order_items.discount)
+    // ─────────────────────────────────────────────────
+
+    /**
+     * Atualiza o desconto de um item do pedido e recalcula o total
+     */
+    public function updateItemDiscount($itemId, $discount) {
+        $discount = max(0, (float)$discount);
+        $query = "UPDATE order_items SET discount = :discount WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':discount', $discount);
+        $stmt->bindParam(':id', $itemId, PDO::PARAM_INT);
+        $result = $stmt->execute();
+
+        if ($result) {
+            // Buscar order_id do item para recalcular total
+            $q = "SELECT order_id FROM order_items WHERE id = :id";
+            $s = $this->conn->prepare($q);
+            $s->bindParam(':id', $itemId, PDO::PARAM_INT);
+            $s->execute();
+            $row = $s->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                $this->recalculateTotal($row['order_id']);
+            }
+        }
+        return $result;
     }
 
     // ─────────────────────────────────────────────────

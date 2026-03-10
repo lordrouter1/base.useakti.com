@@ -282,6 +282,26 @@ class Financial {
     }
 
     /**
+     * Conta parcelas de um pedido
+     */
+    public function countInstallments($orderId) {
+        $q = "SELECT COUNT(*) FROM order_installments WHERE order_id = :oid";
+        $s = $this->conn->prepare($q);
+        $s->execute([':oid' => $orderId]);
+        return (int) $s->fetchColumn();
+    }
+
+    /**
+     * Remove todas as parcelas de um pedido
+     */
+    public function deleteInstallmentsByOrder($orderId) {
+        $q = "DELETE FROM order_installments WHERE order_id = :oid";
+        $s = $this->conn->prepare($q);
+        $s->execute([':oid' => $orderId]);
+        return $s->rowCount();
+    }
+
+    /**
      * Gera parcelas para um pedido (chamado quando se define o parcelamento)
      */
     public function generateInstallments($orderId, $totalAmount, $numInstallments, $downPayment = 0, $startDate = null) {
@@ -294,6 +314,7 @@ class Financial {
         if (!$startDate) $startDate = date('Y-m-d');
 
         $remaining = $totalAmount - $downPayment;
+        if ($remaining <= 0) $remaining = $totalAmount; // segurança
         $installmentValue = round($remaining / $numInstallments, 2);
         // Ajuste de centavos na última parcela
         $lastValue = round($remaining - ($installmentValue * ($numInstallments - 1)), 2);
@@ -314,7 +335,12 @@ class Financial {
         }
 
         for ($i = 1; $i <= $numInstallments; $i++) {
-            $dueDate = date('Y-m-d', strtotime($startDate . " + {$i} months"));
+            // Parcela única (à vista): vencimento hoje; múltiplas: +i meses
+            if ($numInstallments === 1) {
+                $dueDate = $startDate;
+            } else {
+                $dueDate = date('Y-m-d', strtotime($startDate . " + {$i} months"));
+            }
             $amount = ($i === $numInstallments) ? $lastValue : $installmentValue;
             $s->execute([
                 ':oid' => $orderId,
@@ -328,15 +354,20 @@ class Financial {
     }
 
     /**
-     * Registra pagamento de uma parcela (aguarda confirmação manual)
+     * Registra pagamento de uma parcela.
+     * Se $autoConfirm = true, marca como pago E confirmado de uma vez (sem necessidade de confirmar depois).
      */
-    public function payInstallment($installmentId, $data) {
+    public function payInstallment($installmentId, $data, $autoConfirm = false) {
+        $isConfirmed = $autoConfirm ? 1 : 0;
+
         $q = "UPDATE order_installments SET
                 status = 'pago',
                 paid_date = :paid_date,
                 paid_amount = :paid_amount,
                 payment_method = :method,
-                is_confirmed = 0,
+                is_confirmed = :confirmed,
+                confirmed_by = :confirmed_by,
+                confirmed_at = IF(:confirmed2 = 1, NOW(), NULL),
                 notes = :notes,
                 attachment_path = COALESCE(:attachment, attachment_path),
                 updated_at = NOW()
@@ -346,6 +377,9 @@ class Financial {
             ':paid_date' => $data['paid_date'] ?? date('Y-m-d'),
             ':paid_amount' => $data['paid_amount'],
             ':method' => $data['payment_method'] ?? null,
+            ':confirmed' => $isConfirmed,
+            ':confirmed_by' => $autoConfirm ? ($data['user_id'] ?? null) : null,
+            ':confirmed2' => $isConfirmed,
             ':notes' => $data['notes'] ?? null,
             ':attachment' => $data['attachment_path'] ?? null,
             ':id' => $installmentId,
@@ -369,12 +403,55 @@ class Financial {
                 'reference_type' => 'installment',
                 'reference_id' => $installmentId,
                 'payment_method' => $data['payment_method'] ?? null,
-                'is_confirmed' => 0,
+                'is_confirmed' => $isConfirmed,
                 'user_id' => $data['user_id'] ?? null,
             ]);
         }
 
         return true;
+    }
+
+    /**
+     * Cria uma nova parcela com o valor restante (quando pagamento parcial).
+     * Retorna o ID da nova parcela criada.
+     */
+    public function createRemainingInstallment($originalInstallmentId, $remainingAmount, $dueDate = null) {
+        // Buscar dados da parcela original
+        $q = "SELECT order_id, installment_number, due_date FROM order_installments WHERE id = :id";
+        $s = $this->conn->prepare($q);
+        $s->execute([':id' => $originalInstallmentId]);
+        $original = $s->fetch(PDO::FETCH_ASSOC);
+
+        if (!$original) return false;
+
+        // Descobrir o próximo installment_number
+        $q2 = "SELECT MAX(installment_number) FROM order_installments WHERE order_id = :oid";
+        $s2 = $this->conn->prepare($q2);
+        $s2->execute([':oid' => $original['order_id']]);
+        $maxNum = (int) $s2->fetchColumn();
+        $nextNum = $maxNum + 1;
+
+        // Data de vencimento: usar a fornecida ou +30 dias da original
+        if (!$dueDate) {
+            $dueDate = date('Y-m-d', strtotime($original['due_date'] . ' + 30 days'));
+        }
+
+        $q3 = "INSERT INTO order_installments (order_id, installment_number, amount, due_date, status)
+               VALUES (:oid, :num, :amt, :due, 'pendente')";
+        $s3 = $this->conn->prepare($q3);
+        $s3->execute([
+            ':oid' => $original['order_id'],
+            ':num' => $nextNum,
+            ':amt' => $remainingAmount,
+            ':due' => $dueDate,
+        ]);
+
+        $newId = $this->conn->lastInsertId();
+
+        // Atualizar o status do pedido
+        $this->updateOrderPaymentStatus($original['order_id']);
+
+        return $newId;
     }
 
     /**

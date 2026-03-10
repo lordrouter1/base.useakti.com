@@ -1046,6 +1046,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('payNumber').textContent = (num == 0) ? 'Entrada' : num + 'ª';
             document.getElementById('payAmountDisplay').textContent = 'R$ ' + amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
             document.getElementById('payAmountInput').value = amount.toFixed(2);
+            document.getElementById('payAmountInput').dataset.originalAmount = amount.toFixed(2);
             document.getElementById('payCustomerDisplay').textContent = customer ? 'Cliente: ' + customer : '';
 
             // Pré-selecionar forma de pagamento do pedido
@@ -1246,24 +1247,150 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ── Registrar pagamento com SweetAlert2 ──
+    // ── Registrar pagamento com fluxo inteligente ──
+    // Se pago < total → pergunta se quer criar parcela restante
+    // Se pago >= total → confirma automaticamente (sem etapa extra)
     const formPay = document.getElementById('formPay');
     if (formPay) {
         formPay.addEventListener('submit', function(e) {
             e.preventDefault();
             const form = this;
+            const paidAmount = parseFloat(document.getElementById('payAmountInput').value) || 0;
+            const originalAmount = parseFloat(document.getElementById('payAmountInput').dataset.originalAmount) || paidAmount;
+
+            // Valor pago é menor que o valor da parcela?
+            if (paidAmount > 0 && paidAmount < originalAmount) {
+                var restante = (originalAmount - paidAmount).toFixed(2);
+                var restanteFmt = parseFloat(restante).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                var pagoFmt = paidAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+                Swal.fire({
+                    title: 'Pagamento parcial detectado',
+                    html: '<div class="text-start">' +
+                          '<p>O valor pago (<strong>R$ ' + pagoFmt + '</strong>) é menor que o valor da parcela (<strong>R$ ' + parseFloat(originalAmount).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + '</strong>).</p>' +
+                          '<p>Valor restante: <strong class="text-danger">R$ ' + restanteFmt + '</strong></p>' +
+                          '<hr>' +
+                          '<p class="mb-2"><strong>Deseja criar uma nova parcela com o valor restante?</strong></p>' +
+                          '<div class="mb-3" id="swalDueDateContainer">' +
+                          '  <label class="form-label small fw-bold">Vencimento da nova parcela:</label>' +
+                          '  <input type="date" id="swalRemainingDueDate" class="form-control form-control-sm" value="' + getDefaultDueDate() + '">' +
+                          '</div>' +
+                          '</div>',
+                    icon: 'question',
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonColor: '#27ae60',
+                    denyButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-plus-circle me-1"></i> Sim, criar parcela restante',
+                    denyButtonText: '<i class="fas fa-check me-1"></i> Não, quitar assim mesmo',
+                    cancelButtonText: 'Cancelar',
+                    reverseButtons: false,
+                    customClass: { popup: 'text-start' }
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        // Criar parcela restante
+                        submitPaymentAjax(form, 1, document.getElementById('swalRemainingDueDate')?.value || '');
+                    } else if (result.isDenied) {
+                        // Quitar como está (auto-confirmar)
+                        submitPaymentAjax(form, 0, '');
+                    }
+                });
+            } else {
+                // Valor igual ou maior → confirma automaticamente
+                Swal.fire({
+                    title: 'Confirmar pagamento?',
+                    text: 'O pagamento será registrado e confirmado automaticamente.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#27ae60',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-check me-1"></i> Confirmar Pagamento',
+                    cancelButtonText: 'Cancelar'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        submitPaymentAjax(form, 0, '');
+                    }
+                });
+            }
+        });
+    }
+
+    function getDefaultDueDate() {
+        var d = new Date();
+        d.setDate(d.getDate() + 30);
+        return d.toISOString().split('T')[0];
+    }
+
+    function submitPaymentAjax(form, createRemaining, remainingDueDate) {
+        var formData = new FormData(form);
+        formData.append('create_remaining', createRemaining);
+        if (remainingDueDate) {
+            formData.append('remaining_due_date', remainingDueDate);
+        }
+
+        // Adicionar CSRF token via header
+        var csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        var btnSubmit = document.getElementById('btnSubmitPay');
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processando...';
+        }
+
+        fetch('?page=financial&action=payInstallment', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: formData
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                // Fechar modal
+                var modal = bootstrap.Modal.getInstance(document.getElementById('modalPay'));
+                if (modal) modal.hide();
+
+                var msg = 'Pagamento registrado e confirmado!';
+                if (data.remaining_created) {
+                    var restFmt = parseFloat(data.remaining_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                    msg = 'Pagamento registrado! Uma nova parcela de R$ ' + restFmt + ' foi criada para o valor restante.';
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Sucesso!',
+                    text: msg,
+                    timer: 3000,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK'
+                }).then(function() {
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erro',
+                    text: data.message || 'Erro ao processar pagamento.'
+                });
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<i class="fas fa-check me-1"></i> Registrar Pagamento';
+                }
+            }
+        })
+        .catch(function(err) {
             Swal.fire({
-                title: 'Confirmar registro?',
-                text: 'Deseja registrar este pagamento?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#27ae60',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-check me-1"></i> Registrar',
-                cancelButtonText: 'Cancelar'
-            }).then(result => {
-                if (result.isConfirmed) form.submit();
+                icon: 'error',
+                title: 'Erro de Conexão',
+                text: 'Não foi possível processar o pagamento. Tente novamente.'
             });
+            if (btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = '<i class="fas fa-check me-1"></i> Registrar Pagamento';
+            }
         });
     }
 

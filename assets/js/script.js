@@ -87,4 +87,101 @@ $(document).ready(function() {
     };
     $('#document').mask(cpfCnpjBehavior, cpfCnpjOptions);
 
+    // ═══════════════════════════════════════════════════
+    // ATALHOS DE TECLADO — Navegação rápida
+    // ═══════════════════════════════════════════════════
+    $(document).on('keydown', function(e) {
+        console.log("entrou no atalho");
+        // Não disparar atalhos se estiver em input, textarea ou select
+        var tag = (e.target.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select' || $(e.target).attr('contenteditable') === 'true') {
+            return;
+        }
+
+        // Alt + tecla = atalhos do sistema
+        if (e.altKey && !e.ctrlKey && !e.metaKey) {
+            var handled = true;
+            switch (e.key.toLowerCase()) {
+                case 'h': // Alt+H → Dashboard
+                    window.location.href = '?page=dashboard';
+                    break;
+                case 'p': // Alt+P → Pipeline (Kanban)
+                    window.location.href = '?page=pipeline';
+                    break;
+                case 'o': // Alt+O → Pedidos
+                    window.location.href = '?page=orders';
+                    break;
+                case 'n': // Alt+N → Novo Pedido
+                    window.location.href = '?page=orders&action=create';
+                    break;
+                case 'c': // Alt+C → Clientes
+                    window.location.href = '?page=customers';
+                    break;
+                case 'r': // Alt+R → Produtos
+                    window.location.href = '?page=products';
+                    break;
+                case 'e': // Alt+E → Estoque
+                    window.location.href = '?page=stock';
+                    break;
+                case 'f': // Alt+F → Financeiro
+                    window.location.href = '?page=financial';
+                    break;
+                case 's': // Alt+S → Configurações
+                    window.location.href = '?page=settings';
+                    break;
+                case 'u': // Alt+U → Usuários
+                    window.location.href = '?page=users';
+                    break;
+                case 'a': // Alt+A → Agenda
+                    window.location.href = '?page=orders&action=agenda';
+                    break;
+                case 'k': // Alt+K → Mostrar painel de atalhos
+                    showKeyboardShortcuts();
+                    break;
+                default:
+                    handled = false;
+            }
+            if (handled) {
+                e.preventDefault();
+            }
+        }
+    });
+
+    // Painel de atalhos (Alt+K)
+    function showKeyboardShortcuts() {
+        var html = '<table class="table table-sm table-bordered mb-0 text-start" style="font-size:0.9rem;">';
+        html += '<thead class="table-light"><tr><th style="width:120px;">Atalho</th><th>Ação</th></tr></thead><tbody>';
+        var shortcuts = [
+            ['Alt + H', 'Dashboard'],
+            ['Alt + P', 'Pipeline (Kanban)'],
+            ['Alt + O', 'Pedidos'],
+            ['Alt + N', 'Novo Pedido'],
+            ['Alt + C', 'Clientes'],
+            ['Alt + R', 'Produtos'],
+            ['Alt + E', 'Estoque'],
+            ['Alt + F', 'Financeiro'],
+            ['Alt + S', 'Configurações'],
+            ['Alt + U', 'Usuários'],
+            ['Alt + A', 'Agenda de Contatos'],
+            ['Alt + K', 'Este painel de atalhos']
+        ];
+        for (var i = 0; i < shortcuts.length; i++) {
+            html += '<tr><td><kbd>' + shortcuts[i][0] + '</kbd></td><td>' + shortcuts[i][1] + '</td></tr>';
+        }
+        html += '</tbody></table>';
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: '<i class="fas fa-keyboard me-2"></i>Atalhos do Teclado',
+                html: html,
+                width: 480,
+                showConfirmButton: true,
+                confirmButtonText: 'Fechar',
+                customClass: { popup: 'text-start' }
+            });
+        } else {
+            alert('Atalhos: Alt+H=Dashboard, Alt+P=Pipeline, Alt+O=Pedidos, Alt+N=Novo Pedido, Alt+C=Clientes, Alt+R=Produtos, Alt+E=Estoque, Alt+F=Financeiro, Alt+S=Config, Alt+U=Usuários, Alt+A=Agenda');
+        }
+    }
+
 });

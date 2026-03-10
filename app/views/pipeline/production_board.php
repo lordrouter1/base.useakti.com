@@ -592,6 +592,10 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
 </style>
 
 <script>
+// ── CSRF token global para fetch POST ──
+var __csrfMeta = document.querySelector('meta[name="csrf-token"]');
+var __csrfToken = __csrfMeta ? __csrfMeta.getAttribute('content') : '';
+
 // ═══════════════════════════════════════════════════════
 // ═══ DADOS DE BUSCA — Todos os itens por setor     ═══
 // ═══════════════════════════════════════════════════════
@@ -852,7 +856,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     fetch('?page=production_board&action=moveSector', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: 'order_id=' + orderId + '&order_item_id=' + itemId + '&sector_id=' + sectorId + '&move_action=' + action
+                        body: 'order_id=' + orderId + '&order_item_id=' + itemId + '&sector_id=' + sectorId + '&move_action=' + action + '&csrf_token=' + encodeURIComponent(__csrfToken)
                     })
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
@@ -958,6 +962,7 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Enviando...';
 
+        formData.append('csrf_token', __csrfToken);
         fetch('?page=production_board&action=addItemLog', {
             method: 'POST',
             body: formData
@@ -1087,7 +1092,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetch('?page=production_board&action=deleteItemLog', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: 'log_id=' + logId
+                    body: 'log_id=' + logId + '&csrf_token=' + encodeURIComponent(__csrfToken)
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {

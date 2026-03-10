@@ -519,6 +519,27 @@ Para aumentar os limites, entre em contato com o suporte.
 | `←` | Passo anterior |
 | `Esc` | Pular tour |
 
+### Atalhos de Teclado — Navegação Rápida
+
+O sistema possui atalhos de teclado para navegação rápida entre as páginas principais. Os atalhos utilizam a tecla **Alt** combinada com uma letra. Pressione **Alt + K** a qualquer momento para visualizar o painel de atalhos.
+
+> ⚠️ Os atalhos **não funcionam** quando o cursor está dentro de um campo de texto (input, textarea ou select).
+
+| Atalho | Página de Destino |
+|--------|-------------------|
+| `Alt + H` | Dashboard |
+| `Alt + P` | Pipeline (Kanban) |
+| `Alt + O` | Pedidos |
+| `Alt + N` | Novo Pedido |
+| `Alt + C` | Clientes |
+| `Alt + R` | Produtos |
+| `Alt + E` | Estoque |
+| `Alt + F` | Financeiro |
+| `Alt + S` | Configurações |
+| `Alt + U` | Usuários |
+| `Alt + A` | Agenda de Contatos |
+| `Alt + K` | Exibir painel de atalhos |
+
 ### Dicas Gerais
 - 🔍 Use a **barra de pesquisa** nas listagens para encontrar registros rapidamente
 - 📱 O sistema é **responsivo** — funciona em celular e tablet

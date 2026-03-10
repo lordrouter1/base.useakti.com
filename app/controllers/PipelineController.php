@@ -13,6 +13,7 @@ use Akti\Models\OrderItemLog;
 use Akti\Models\OrderPreparation;
 use Akti\Models\PreparationStep;
 use Akti\Models\CompanySettings;
+use Akti\Models\Financial;
 use Database;
 use PDO;
 
@@ -31,6 +32,62 @@ class PipelineController {
         $this->stockModel->ensureDeductionsTable();
         $this->stockModel->ensureDefaultColumn();
         $this->stockModel->ensureOrderWarehouseColumn();
+    }
+
+    /**
+     * Gera automaticamente as parcelas de pagamento quando o pedido
+     * chega nas etapas financeiro/concluido e ainda não possui parcelas.
+     * Para boleto e cartão crédito: gera N parcelas conforme configurado.
+     * Para outros meios (dinheiro, pix, etc.): gera 1 parcela única (à vista).
+     */
+    private function autoGenerateInstallments($orderId) {
+        $financialModel = new Financial($this->db);
+        
+        // Verificar se já existem parcelas — não sobrescrever
+        $existingCount = $financialModel->countInstallments($orderId);
+        if ($existingCount > 0) {
+            return false;
+        }
+
+        // Buscar dados do pedido
+        $q = "SELECT total_amount, COALESCE(discount, 0) as discount, 
+                     payment_method, COALESCE(installments, 0) as installments,
+                     COALESCE(down_payment, 0) as down_payment
+              FROM orders WHERE id = :id";
+        $s = $this->db->prepare($q);
+        $s->execute([':id' => $orderId]);
+        $order = $s->fetch(PDO::FETCH_ASSOC);
+
+        if (!$order || (float)$order['total_amount'] <= 0) {
+            return false;
+        }
+
+        $totalAmount = (float)$order['total_amount'] - (float)$order['discount'];
+        if ($totalAmount <= 0) {
+            return false;
+        }
+
+        $paymentMethod = $order['payment_method'] ?? '';
+        $numInstallments = (int)$order['installments'];
+        $downPayment = (float)$order['down_payment'];
+
+        // Formas parceláveis: boleto e cartão crédito
+        $parcelableMethods = ['boleto', 'cartao_credito'];
+
+        if (in_array($paymentMethod, $parcelableMethods) && $numInstallments >= 2) {
+            // Gerar N parcelas
+            $financialModel->generateInstallments($orderId, $totalAmount, $numInstallments, $downPayment);
+        } else {
+            // Pagamento à vista (1 parcela única)
+            $singleAmount = $totalAmount - $downPayment;
+            if ($singleAmount <= 0) $singleAmount = $totalAmount;
+            $financialModel->generateInstallments($orderId, $totalAmount, 1, $downPayment);
+        }
+
+        $logger = new Logger($this->db);
+        $logger->log('INSTALLMENTS_AUTO', "Auto-generated installments for order #$orderId (method: $paymentMethod, installments: $numInstallments)");
+
+        return true;
     }
 
     /**
@@ -212,6 +269,11 @@ class PipelineController {
         $logger = new Logger($this->db);
         $logger->log('PIPELINE_MOVE', "Order #$orderId moved from $currentStage to stage: $newStage");
 
+        // ═══ AUTO-GERAR PARCELAS ao mover para financeiro/concluido ═══
+        if (in_array($newStage, ['financeiro', 'concluido'])) {
+            $this->autoGenerateInstallments($orderId);
+        }
+
         header('Location: ?page=pipeline&status=moved');
         exit;
     }
@@ -273,6 +335,11 @@ class PipelineController {
 
         $logger = new Logger($this->db);
         $logger->log('PIPELINE_MOVE', "Order #$orderId dragged from $currentStage to $newStage");
+
+        // ═══ AUTO-GERAR PARCELAS ao mover para financeiro/concluido ═══
+        if (in_array($newStage, ['financeiro', 'concluido'])) {
+            $this->autoGenerateInstallments($orderId);
+        }
 
         echo json_encode(['success' => true, 'message' => 'Pedido movido com sucesso', 'stock_notes' => $stockResult['notes'] ?? '']);
         exit;
@@ -377,6 +444,10 @@ class PipelineController {
         // Carregar deduções ativas do pedido (para exibição no detalhe)
         $activeDeductions = $this->stockModel->getActiveDeductions($_GET['id']);
 
+        // Carregar contagem de parcelas existentes (order_installments)
+        $financialModel = new Financial($this->db);
+        $existingInstallmentCount = $financialModel->countInstallments($_GET['id']);
+
         require 'app/views/layout/header.php';
         require 'app/views/pipeline/detail.php';
         require 'app/views/layout/footer.php';
@@ -417,9 +488,70 @@ class PipelineController {
             $logger = new Logger($this->db);
             $logger->log('PIPELINE_UPDATE', "Updated order details #" . $data['id']);
 
-            header('Location: ?page=pipeline&action=detail&id=' . $data['id'] . '&status=success');
+            // ═══ AUTO-GERAR PARCELAS ═══
+            // Se o pedido está em etapa financeiro/concluido e tem forma de pagamento,
+            // gerar parcelas automaticamente (se ainda não existirem)
+            $orderId = $data['id'];
+            $stmtStage = $this->db->prepare("SELECT pipeline_stage FROM orders WHERE id = :id");
+            $stmtStage->execute([':id' => $orderId]);
+            $currentOrderData = $stmtStage->fetch(PDO::FETCH_ASSOC);
+            $currentOrderStage = $currentOrderData['pipeline_stage'] ?? '';
+
+            if (in_array($currentOrderStage, ['venda', 'financeiro', 'concluido']) && !empty($data['payment_method'])) {
+                $this->autoGenerateInstallments($orderId);
+            }
+
+            // Se veio do botão "Imprimir Nota de Pedido", redirecionar com flag para abrir a nota
+            $printOrder = !empty($_POST['print_order_after_save']);
+            $redirectUrl = '?page=pipeline&action=detail&id=' . $data['id'] . '&status=success';
+            if ($printOrder) {
+                $redirectUrl .= '&print_order=1';
+            }
+
+            header('Location: ' . $redirectUrl);
             exit;
         }
+    }
+
+    /**
+     * API JSON: Conta parcelas existentes de um pedido (AJAX GET)
+     */
+    public function countInstallments() {
+        header('Content-Type: application/json');
+        $orderId = $_GET['order_id'] ?? null;
+        if (!$orderId) {
+            echo json_encode(['success' => false, 'message' => 'ID do pedido não informado']);
+            exit;
+        }
+        $financial = new Financial($this->db);
+        $count = $financial->countInstallments($orderId);
+        echo json_encode(['success' => true, 'count' => $count]);
+        exit;
+    }
+
+    /**
+     * API JSON: Remove todas as parcelas de um pedido (AJAX POST)
+     */
+    public function deleteInstallments() {
+        header('Content-Type: application/json');
+        $orderId = $_POST['order_id'] ?? null;
+        if (!$orderId) {
+            echo json_encode(['success' => false, 'message' => 'ID do pedido não informado']);
+            exit;
+        }
+        $financial = new Financial($this->db);
+        $deleted = $financial->deleteInstallmentsByOrder($orderId);
+
+        // Limpar campos de parcelamento no pedido
+        $q = "UPDATE orders SET installments = NULL, installment_value = NULL, down_payment = 0 WHERE id = :id";
+        $s = $this->db->prepare($q);
+        $s->execute([':id' => $orderId]);
+
+        $logger = new Logger($this->db);
+        $logger->log('INSTALLMENTS_DELETED', "Deleted $deleted installments for order #$orderId (payment method changed)");
+
+        echo json_encode(['success' => true, 'deleted' => $deleted]);
+        exit;
     }
 
     /**

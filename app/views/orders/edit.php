@@ -121,22 +121,39 @@
 
                 <!-- Tabela de Itens Existentes -->
                 <?php if (!empty($orderItems)): ?>
+                <?php
+                // Verifica se algum item tem desconto individual
+                $hasItemDiscount = false;
+                foreach ($orderItems as $chkItem) {
+                    if ((float)($chkItem['discount'] ?? 0) > 0) { $hasItemDiscount = true; break; }
+                }
+                // Always show discount column on edit (editable)
+                $showEditDiscount = true;
+                ?>
                 <div class="table-responsive mb-3">
-                    <table class="table table-hover table-sm align-middle">
+                    <table class="table table-hover table-sm align-middle" id="editItemsTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Produto</th>
-                                <th class="text-center" style="width:100px;">Qtd</th>
+                                <th class="text-center" style="width:90px;">Qtd</th>
                                 <th class="text-end" style="width:130px;">Preço Unit.</th>
                                 <th class="text-end" style="width:130px;">Subtotal</th>
+                                <th class="text-end" style="width:140px;">Desconto</th>
+                                <th class="text-end" style="width:130px;">Líquido</th>
                                 <th class="text-center" style="width:80px;">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php $totalItems = 0; ?>
+                            <?php $totalItems = 0; $totalDiscounts = 0; ?>
                             <?php foreach ($orderItems as $item): ?>
-                            <?php $subtotal = $item['quantity'] * $item['unit_price']; $totalItems += $subtotal; ?>
-                            <tr>
+                            <?php 
+                                $subtotal = $item['quantity'] * $item['unit_price']; 
+                                $itemDiscount = (float)($item['discount'] ?? 0);
+                                $netAmount = $subtotal - $itemDiscount;
+                                $totalItems += $subtotal; 
+                                $totalDiscounts += $itemDiscount;
+                            ?>
+                            <tr data-item-id="<?= $item['id'] ?>">
                                 <td>
                                     <strong><?= htmlspecialchars($item['product_name']) ?></strong>
                                     <?php if (!empty($item['combination_label'])): ?>
@@ -145,9 +162,28 @@
                                     <br><small class="text-info"><i class="fas fa-layer-group me-1"></i><?= htmlspecialchars($item['grade_description']) ?></small>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-center"><?= $item['quantity'] ?></td>
+                                <td class="text-center">
+                                    <input type="number" min="1" step="1"
+                                           class="form-control form-control-sm text-center edit-item-qty-input py-0" 
+                                           data-item-id="<?= $item['id'] ?>" data-unit-price="<?= $item['unit_price'] ?>"
+                                           value="<?= $item['quantity'] ?>"
+                                           style="width:70px; margin:0 auto; font-size:0.8rem;">
+                                </td>
                                 <td class="text-end">R$ <?= number_format($item['unit_price'], 2, ',', '.') ?></td>
-                                <td class="text-end fw-bold">R$ <?= number_format($subtotal, 2, ',', '.') ?></td>
+                                <td class="text-end fw-bold edit-item-subtotal">R$ <?= number_format($subtotal, 2, ',', '.') ?></td>
+                                <td class="text-end">
+                                    <div class="input-group input-group-sm" style="width:130px; margin-left:auto;">
+                                        <span class="input-group-text py-0 px-1" style="font-size:0.7rem;">R$</span>
+                                        <input type="number" step="0.01" min="0" max="<?= $subtotal ?>" 
+                                               class="form-control form-control-sm text-end edit-item-discount-input py-0" 
+                                               data-item-id="<?= $item['id'] ?>" data-subtotal="<?= $subtotal ?>"
+                                               value="<?= $itemDiscount > 0 ? number_format($itemDiscount, 2, '.', '') : '' ?>"
+                                               placeholder="0,00" style="font-size:0.8rem;">
+                                    </div>
+                                </td>
+                                <td class="text-end fw-bold edit-item-net-amount <?= $itemDiscount > 0 ? 'text-success' : '' ?>">
+                                    R$ <?= number_format($netAmount, 2, ',', '.') ?>
+                                </td>
                                 <td class="text-center">
                                     <a href="?page=orders&action=deleteItem&item_id=<?= $item['id'] ?>&order_id=<?= $order['id'] ?>&redirect=orders" 
                                        class="btn btn-sm btn-outline-danger btn-delete-item" title="Remover item">
@@ -159,8 +195,14 @@
                         </tbody>
                         <tfoot>
                             <tr class="table-success">
-                                <td colspan="3" class="text-end fw-bold">Total:</td>
-                                <td class="text-end fw-bold fs-5">R$ <?= number_format($totalItems, 2, ',', '.') ?></td>
+                                <td colspan="3" class="text-end fw-bold">Subtotal:</td>
+                                <td class="text-end fw-bold fs-5" id="editTotalSubtotal">R$ <?= number_format($totalItems, 2, ',', '.') ?></td>
+                                <td class="text-end fw-bold text-danger" id="editTotalDiscounts">
+                                    <?= $totalDiscounts > 0 ? '- R$ ' . number_format($totalDiscounts, 2, ',', '.') : '' ?>
+                                </td>
+                                <td class="text-end fw-bold fs-5 text-success" id="editTotalNet">
+                                    R$ <?= number_format($totalItems - $totalDiscounts, 2, ',', '.') ?>
+                                </td>
                                 <td></td>
                             </tr>
                         </tfoot>
@@ -297,6 +339,201 @@
             });
         });
     });
+
+    // ═══ QUANTIDADE INLINE — Salvar via AJAX ═══
+    (function() {
+        let qtyTimers = {};
+        const csrf = $('meta[name="csrf-token"]').attr('content') || '';
+
+        document.querySelectorAll('.edit-item-qty-input').forEach(input => {
+            input.addEventListener('input', function() {
+                const itemId = this.dataset.itemId;
+                const unitPrice = parseFloat(this.dataset.unitPrice) || 0;
+                let qty = parseInt(this.value) || 1;
+                if (qty < 1) { qty = 1; this.value = 1; }
+
+                const newSubtotal = qty * unitPrice;
+                const row = this.closest('tr');
+                const subtotalCell = row ? row.querySelector('.edit-item-subtotal') : null;
+                if (subtotalCell) {
+                    subtotalCell.textContent = 'R$ ' + newSubtotal.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+                }
+                const discountInput = row ? row.querySelector('.edit-item-discount-input') : null;
+                if (discountInput) {
+                    discountInput.setAttribute('max', newSubtotal);
+                    discountInput.dataset.subtotal = newSubtotal;
+                    const disc = parseFloat(discountInput.value) || 0;
+                    const netCell = row.querySelector('.edit-item-net-amount');
+                    if (netCell) {
+                        netCell.textContent = 'R$ ' + (newSubtotal - disc).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+                    }
+                }
+                recalcEditTotals();
+
+                clearTimeout(qtyTimers[itemId]);
+                qtyTimers[itemId] = setTimeout(() => { saveEditQty(itemId, qty); }, 800);
+            });
+            input.addEventListener('blur', function() {
+                const itemId = this.dataset.itemId;
+                let qty = parseInt(this.value) || 1;
+                clearTimeout(qtyTimers[itemId]);
+                saveEditQty(itemId, qty);
+            });
+        });
+
+        function saveEditQty(itemId, qty) {
+            const fd = new FormData();
+            fd.append('item_id', itemId);
+            fd.append('quantity', qty);
+            fd.append('csrf_token', csrf);
+            fetch('?page=orders&action=updateItemQty', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const inp = document.querySelector('.edit-item-qty-input[data-item-id="'+itemId+'"]');
+                        if (inp) { inp.classList.add('border-success'); setTimeout(()=>inp.classList.remove('border-success'),1500); }
+                    }
+                }).catch(e => console.error('Erro qty:', e));
+        }
+    })();
+
+    // ═══ DESCONTO INLINE — Salvar via AJAX ═══
+    (function() {
+        let discTimers = {};
+        const csrf = $('meta[name="csrf-token"]').attr('content') || '';
+
+        document.querySelectorAll('.edit-item-discount-input').forEach(input => {
+            input.addEventListener('input', function() {
+                const itemId = this.dataset.itemId;
+                const subtotal = parseFloat(this.dataset.subtotal) || 0;
+                let discount = parseFloat(this.value) || 0;
+                if (discount < 0) discount = 0;
+                if (discount > subtotal) { discount = subtotal; this.value = discount.toFixed(2); }
+
+                const netAmount = subtotal - discount;
+                const row = this.closest('tr');
+                const netCell = row ? row.querySelector('.edit-item-net-amount') : null;
+                if (netCell) {
+                    netCell.textContent = 'R$ ' + netAmount.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+                    netCell.classList.toggle('text-success', discount > 0);
+                }
+                recalcEditTotals();
+
+                clearTimeout(discTimers[itemId]);
+                discTimers[itemId] = setTimeout(() => { saveEditDiscount(itemId, discount); }, 800);
+            });
+            input.addEventListener('blur', function() {
+                const itemId = this.dataset.itemId;
+                const discount = parseFloat(this.value) || 0;
+                clearTimeout(discTimers[itemId]);
+                saveEditDiscount(itemId, discount);
+            });
+        });
+
+        function saveEditDiscount(itemId, discount) {
+            const fd = new FormData();
+            fd.append('item_id', itemId);
+            fd.append('discount', discount);
+            fd.append('csrf_token', csrf);
+            fetch('?page=orders&action=updateItemDiscount', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const inp = document.querySelector('.edit-item-discount-input[data-item-id="'+itemId+'"]');
+                        if (inp) { inp.classList.add('border-success'); setTimeout(()=>inp.classList.remove('border-success'),1500); }
+                    }
+                }).catch(e => console.error('Erro discount:', e));
+        }
+    })();
+
+    function recalcEditTotals() {
+        let totalSub = 0, totalDisc = 0;
+        document.querySelectorAll('.edit-item-discount-input').forEach(inp => {
+            totalSub += parseFloat(inp.dataset.subtotal) || 0;
+            totalDisc += parseFloat(inp.value) || 0;
+        });
+        const subEl = document.getElementById('editTotalSubtotal');
+        const discEl = document.getElementById('editTotalDiscounts');
+        const netEl = document.getElementById('editTotalNet');
+        if (subEl) subEl.textContent = 'R$ ' + totalSub.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+        if (discEl) discEl.textContent = totalDisc > 0 ? '- R$ ' + totalDisc.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
+        if (netEl) netEl.textContent = 'R$ ' + (totalSub - totalDisc).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+    }
+    </script>
+
+    <?php if (in_array($currentStage, ['venda', 'financeiro'])): ?>
+    <!-- Nota de Pedido — Disponível nas etapas Venda e Financeiro -->
+    <div class="row mt-4">
+        <div class="col-md-8 mx-auto">
+            <div class="card border-success border-opacity-50 shadow-sm">
+                <div class="card-header py-2 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">
+                    <h6 class="mb-0 text-white fw-bold">
+                        <i class="fas fa-file-invoice me-2"></i>Nota de Pedido
+                    </h6>
+                    <span class="badge bg-white bg-opacity-25 text-white" style="font-size:0.7rem;">
+                        <i class="fas fa-print me-1"></i>Documento para impressão
+                    </span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="mb-1 small text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Gere a Nota de Pedido com os dados do cliente, produtos, valores e informações de pagamento.
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                Ideal para entregar ao cliente como comprovante da compra.
+                                <strong>O pedido será salvo antes de gerar a nota.</strong>
+                            </p>
+                        </div>
+                        <button type="button" id="btnPrintOrderEdit" 
+                                class="btn btn-success btn-sm ms-3 px-3 flex-shrink-0">
+                            <i class="fas fa-print me-1"></i> Imprimir Nota de Pedido
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    document.getElementById('btnPrintOrderEdit').addEventListener('click', function() {
+        // Salvar o formulário principal do pedido via POST, depois abrir a nota
+        const form = document.querySelector('form[action*="action=update"]');
+        if (form) {
+            // Adicionar campo hidden para indicar que deve abrir a nota após salvar
+            let hiddenInput = form.querySelector('input[name="print_order_after_save"]');
+            if (!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'print_order_after_save';
+                form.appendChild(hiddenInput);
+            }
+            hiddenInput.value = '1';
+            form.submit();
+        }
+    });
     </script>
     <?php endif; ?>
+
+    <?php endif; ?>
 </div>
+
+<?php if(isset($_GET['status']) && $_GET['status'] == 'success'): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Limpar parâmetros da URL
+    if (window.history.replaceState) {
+        const url = new URL(window.location);
+        url.searchParams.delete('status');
+        url.searchParams.delete('print_order');
+        window.history.replaceState({}, '', url);
+    }
+    <?php if(!empty($_GET['print_order'])): ?>
+    Swal.fire({ icon: 'success', title: 'Salvo!', text: 'Abrindo a Nota de Pedido...', timer: 1500, showConfirmButton: false });
+    window.open('?page=orders&action=printOrder&id=<?= $order['id'] ?>', '_blank');
+    <?php else: ?>
+    Swal.fire({ icon: 'success', title: 'Salvo!', text: 'Pedido atualizado com sucesso.', timer: 2000, showConfirmButton: false });
+    <?php endif; ?>
+});
+</script>
+<?php endif; ?>

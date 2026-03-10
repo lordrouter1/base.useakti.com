@@ -364,17 +364,25 @@ document.addEventListener('DOMContentLoaded', function() {
         return productionStages.includes(fromStage) && preProductionStages.includes(toStage);
     }
 
+    // ── CSRF token para fetch (não é coberto pelo $.ajaxSetup do jQuery) ──
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfTokenValue = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+
     function performMoveAjax(orderId, newStage, warehouseId, evtItem, evtFrom) {
         const formData = new FormData();
         formData.append('order_id', orderId);
         formData.append('stage', newStage);
+        formData.append('csrf_token', csrfTokenValue);
         if (warehouseId) formData.append('warehouse_id', warehouseId);
 
         return fetch('?page=pipeline&action=moveAjax', {
             method: 'POST',
             body: formData
         })
-        .then(r => r.json())
+        .then(r => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
         .then(data => {
             if (data.success) {
                 evtItem.classList.add('pipeline-card-moved');
@@ -391,8 +399,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 revertCard(evtItem, evtFrom);
             }
         })
-        .catch(() => {
-            Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro de conexão ao mover pedido.', timer: 3000 });
+        .catch((err) => {
+            console.error('moveAjax error:', err);
+            Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro de conexão ao mover pedido. ' + (err.message || ''), timer: 4000 });
             revertCard(evtItem, evtFrom);
         });
     }

@@ -150,7 +150,11 @@ class FinancialController {
     }
 
     /**
-     * Registra pagamento de uma parcela
+     * Registra pagamento de uma parcela (AJAX ou POST).
+     * Novo fluxo:
+     *  - Se paid_amount >= amount da parcela → marca como pago+confirmado automaticamente
+     *  - Se paid_amount < amount → paga o valor informado e, se solicitado (create_remaining=1),
+     *    cria nova parcela com o valor restante
      */
     public function payInstallment() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -158,10 +162,35 @@ class FinancialController {
             exit;
         }
 
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
+
         $installmentId = $_POST['installment_id'] ?? 0;
+        $paidAmount = (float)($_POST['paid_amount'] ?? 0);
+        $createRemaining = (int)($_POST['create_remaining'] ?? 0);
+
+        // Buscar dados da parcela original
+        $q = "SELECT id, order_id, amount, installment_number FROM order_installments WHERE id = :id";
+        $s = $this->db->prepare($q);
+        $s->execute([':id' => $installmentId]);
+        $installment = $s->fetch(PDO::FETCH_ASSOC);
+
+        if (!$installment) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Parcela não encontrada.']);
+                exit;
+            }
+            $_SESSION['flash_error'] = 'Parcela não encontrada.';
+            header('Location: ?page=financial&action=payments');
+            exit;
+        }
+
+        $originalAmount = (float) $installment['amount'];
+        $orderId = $installment['order_id'];
+
         $data = [
             'paid_date' => $_POST['paid_date'] ?? date('Y-m-d'),
-            'paid_amount' => (float)($_POST['paid_amount'] ?? 0),
+            'paid_amount' => $paidAmount,
             'payment_method' => $_POST['payment_method'] ?? 'dinheiro',
             'notes' => $_POST['notes'] ?? null,
             'user_id' => $_SESSION['user_id'] ?? null,
@@ -184,12 +213,47 @@ class FinancialController {
             }
         }
 
-        $this->financial->payInstallment($installmentId, $data);
+        // Determinar se auto-confirma
+        // Se pagou o valor total (ou mais), confirma automaticamente
+        $autoConfirm = ($paidAmount >= $originalAmount);
 
-        $orderId = $_POST['order_id'] ?? 0;
+        // Se pagou menos e NÃO quer criar parcela restante, também confirma (aceita como quitado)
+        if ($paidAmount < $originalAmount && !$createRemaining) {
+            $autoConfirm = true;
+        }
 
-        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
-            echo json_encode(['success' => true]);
+        // Registrar o pagamento
+        $this->financial->payInstallment($installmentId, $data, $autoConfirm);
+
+        $newInstallmentId = null;
+        $remainingAmount = 0;
+
+        // Se pagou menos e quer criar parcela restante
+        if ($paidAmount < $originalAmount && $createRemaining) {
+            $remainingAmount = round($originalAmount - $paidAmount, 2);
+            $remainingDueDate = $_POST['remaining_due_date'] ?? null;
+
+            // Atualizar o valor da parcela original para o valor efetivamente pago
+            $qUpd = "UPDATE order_installments SET amount = :amt WHERE id = :id";
+            $sUpd = $this->db->prepare($qUpd);
+            $sUpd->execute([':amt' => $paidAmount, ':id' => $installmentId]);
+
+            // Confirmar a parcela original (já foi paga integralmente pelo novo valor)
+            $this->financial->confirmInstallment($installmentId, $_SESSION['user_id'] ?? null);
+
+            // Criar nova parcela com o restante
+            $newInstallmentId = $this->financial->createRemainingInstallment($installmentId, $remainingAmount, $remainingDueDate);
+        }
+
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'auto_confirmed' => $autoConfirm,
+                'remaining_created' => $newInstallmentId ? true : false,
+                'new_installment_id' => $newInstallmentId,
+                'remaining_amount' => $remainingAmount,
+            ]);
             exit;
         }
 
