@@ -45,6 +45,7 @@ class TenantManager
             'max_warehouses' => isset($tenant['max_warehouses']) ? (int) $tenant['max_warehouses'] : null,
             'max_price_tables' => isset($tenant['max_price_tables']) ? (int) $tenant['max_price_tables'] : null,
             'max_sectors' => isset($tenant['max_sectors']) ? (int) $tenant['max_sectors'] : null,
+            'enabled_modules' => $tenant['enabled_modules'] ?? null,
         ];
 
         self::storeTenantSession(self::$tenantConfig, $subdomain, false, null, (int) $tenant['id']);
@@ -70,6 +71,7 @@ class TenantManager
             'max_warehouses' => null,
             'max_price_tables' => null,
             'max_sectors' => null,
+            'enabled_modules' => null,
         ];
     }
 
@@ -101,7 +103,7 @@ class TenantManager
             $conn = new PDO($dsn, $master['username'], $master['password']);
             $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-            $sql = 'SELECT id, subdomain, db_host, db_port, db_name, db_user, db_password, db_charset, max_users, max_products, max_warehouses, max_price_tables, max_sectors
+            $sql = 'SELECT id, subdomain, db_host, db_port, db_name, db_user, db_password, db_charset, max_users, max_products, max_warehouses, max_price_tables, max_sectors, enabled_modules
                     FROM tenant_clients
                     WHERE subdomain = :subdomain AND is_active = 1
                     LIMIT 1';
@@ -179,6 +181,7 @@ class TenantManager
             'max_warehouses' => isset($tenantConfig['max_warehouses']) ? (int) $tenantConfig['max_warehouses'] : null,
             'max_price_tables' => isset($tenantConfig['max_price_tables']) ? (int) $tenantConfig['max_price_tables'] : null,
             'max_sectors' => isset($tenantConfig['max_sectors']) ? (int) $tenantConfig['max_sectors'] : null,
+            'enabled_modules' => $tenantConfig['enabled_modules'] ?? null,
         ];
     }
 

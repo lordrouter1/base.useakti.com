@@ -4,6 +4,7 @@ require_once __DIR__ . '/app/bootstrap/autoload.php';
 
 use Akti\Core\Router;
 use Akti\Core\Security;
+use Akti\Core\ModuleBootloader;
 use Akti\Middleware\CsrfMiddleware;
 use Akti\Models\User;
 use Akti\Models\IpGuard;
@@ -122,6 +123,14 @@ if (!isset($_SESSION['user_id'])) {
         $router->dispatch();
         exit;
     }
+}
+
+// ── Permission Check — usa o registro centralizado de menu.php ──
+if (!ModuleBootloader::canAccessPage($page)) {
+    require 'app/views/layout/header.php';
+    echo "<div class='container mt-5'><div class='alert alert-warning'><i class='fas fa-toggle-off me-2'></i>Módulo indisponível para este tenant.<br>Página bloqueada pelo bootloader: <strong>" . strtoupper($page) . "</strong>.</div></div>";
+    require 'app/views/layout/footer.php';
+    exit;
 }
 
 // ── Permission Check — usa o registro centralizado de menu.php ──

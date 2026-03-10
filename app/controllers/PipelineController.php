@@ -14,6 +14,7 @@ use Akti\Models\OrderPreparation;
 use Akti\Models\PreparationStep;
 use Akti\Models\CompanySettings;
 use Akti\Models\Financial;
+use Akti\Core\ModuleBootloader;
 use Database;
 use PDO;
 
@@ -71,8 +72,11 @@ class PipelineController {
         $numInstallments = (int)$order['installments'];
         $downPayment = (float)$order['down_payment'];
 
-        // Formas parceláveis: boleto e cartão crédito
-        $parcelableMethods = ['boleto', 'cartao_credito'];
+        // Formas parceláveis: cartão crédito e, quando habilitado, boleto
+        $parcelableMethods = ['cartao_credito'];
+        if (ModuleBootloader::isModuleEnabled('boleto')) {
+            $parcelableMethods[] = 'boleto';
+        }
 
         if (in_array($paymentMethod, $parcelableMethods) && $numInstallments >= 2) {
             // Gerar N parcelas

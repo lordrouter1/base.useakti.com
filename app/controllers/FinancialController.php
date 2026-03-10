@@ -4,6 +4,7 @@ namespace Akti\Controllers;
 use Akti\Models\Financial;
 use Akti\Models\Order;
 use Akti\Models\CompanySettings;
+use Akti\Core\ModuleBootloader;
 use Database;
 use PDO;
 use TenantManager;
@@ -14,6 +15,14 @@ class FinancialController {
     private $db;
 
     public function __construct() {
+        if (!ModuleBootloader::isModuleEnabled('financial')) {
+            http_response_code(403);
+            require 'app/views/layout/header.php';
+            echo "<div class='container mt-5'><div class='alert alert-warning'><i class='fas fa-toggle-off me-2'></i>Módulo financeiro desativado para este tenant.</div></div>";
+            require 'app/views/layout/footer.php';
+            exit;
+        }
+
         $database = new Database();
         $this->db = $database->getConnection();
         $this->financial = new Financial($this->db);

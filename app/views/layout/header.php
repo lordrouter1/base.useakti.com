@@ -174,6 +174,7 @@
      * Verifica se o usuário pode ver determinada página no menu.
      */
     function canShowInMenu($pageKey, $pageInfo, $isAdmin, $userPermissions) {
+        if (!\Akti\Core\ModuleBootloader::canAccessPage($pageKey)) return false;
         if (empty($pageInfo['permission'])) return true;
         if ($isAdmin) return true;
         // Use permission_alias if defined (e.g., financial_payments -> financial)

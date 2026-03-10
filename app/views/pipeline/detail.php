@@ -10,6 +10,9 @@
         $stageGoal = isset($goals[$currentStage]) ? (int)$goals[$currentStage]['max_hours'] : 24;
         $isDelayed = ($stageGoal > 0 && $hoursInStage > $stageGoal);
         $isReadOnly = in_array($currentStage, ['concluido', 'cancelado']);
+        $canUseBoletoModule = \Akti\Core\ModuleBootloader::isModuleEnabled('boleto');
+        $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
+        $canUseNfeModule = \Akti\Core\ModuleBootloader::isModuleEnabled('nfe');
     ?>
 
     <!-- Cabeçalho -->
@@ -1195,7 +1198,9 @@
                                 <option value="pix" <?= ($order['payment_method'] ?? '') == 'pix' ? 'selected' : '' ?>>📱 PIX</option>
                                 <option value="cartao_credito" <?= ($order['payment_method'] ?? '') == 'cartao_credito' ? 'selected' : '' ?>>💳 Cartão Crédito</option>
                                 <option value="cartao_debito" <?= ($order['payment_method'] ?? '') == 'cartao_debito' ? 'selected' : '' ?>>💳 Cartão Débito</option>
+                                <?php if ($canUseBoletoModule): ?>
                                 <option value="boleto" <?= ($order['payment_method'] ?? '') == 'boleto' ? 'selected' : '' ?>>📄 Boleto</option>
+                                <?php endif; ?>
                                 <option value="transferencia" <?= ($order['payment_method'] ?? '') == 'transferencia' ? 'selected' : '' ?>>🏦 Transferência</option>
                             </select>
                         </div>
@@ -1303,6 +1308,7 @@
                         </div>
                     </div>
 
+                    <?php if ($canUseFiscalModule && $canUseNfeModule): ?>
                     <!-- ═══ FISCAL — Nota Fiscal ═══ -->
                     <div class="card mt-3 border-0 shadow-sm" id="fiscalSection">
                         <div class="card-header py-2 bg-success bg-opacity-10">
@@ -1382,6 +1388,7 @@
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
                 </fieldset>
                 <?php else: ?>
                 <!-- Manter valores atuais nos campos ocultos para não perder ao salvar -->
@@ -2972,7 +2979,7 @@ setInterval(() => {
     const cardTitleText = document.getElementById('installmentCardTitleText');
     
     // Formas de pagamento que aceitam parcelamento
-    const parcelableMethods = ['cartao_credito', 'boleto'];
+    const parcelableMethods = ['cartao_credito'<?= $canUseBoletoModule ? ", 'boleto'" : '' ?>];
     
     function updateCardTitle() {
         if (!cardTitleText) return;
