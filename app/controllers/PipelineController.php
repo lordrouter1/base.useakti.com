@@ -14,6 +14,7 @@ use Akti\Models\OrderPreparation;
 use Akti\Models\PreparationStep;
 use Akti\Models\CompanySettings;
 use Akti\Models\Financial;
+use Akti\Core\ModuleBootloader;
 use Database;
 use PDO;
 
@@ -71,8 +72,11 @@ class PipelineController {
         $numInstallments = (int)$order['installments'];
         $downPayment = (float)$order['down_payment'];
 
-        // Formas parceláveis: boleto e cartão crédito
-        $parcelableMethods = ['boleto', 'cartao_credito'];
+        // Formas parceláveis: cartão crédito e, quando habilitado, boleto
+        $parcelableMethods = ['cartao_credito'];
+        if (ModuleBootloader::isModuleEnabled('boleto')) {
+            $parcelableMethods[] = 'boleto';
+        }
 
         if (in_array($paymentMethod, $parcelableMethods) && $numInstallments >= 2) {
             // Gerar N parcelas
@@ -552,6 +556,150 @@ class PipelineController {
 
         echo json_encode(['success' => true, 'deleted' => $deleted]);
         exit;
+    }
+
+    /**
+     * API JSON: Gera link de pagamento via Mercado Pago para pedido em etapa financeira.
+     */
+    public function generateMercadoPagoLink() {
+        header('Content-Type: application/json');
+
+        $orderId = $_POST['order_id'] ?? null;
+        if (!$orderId) {
+            echo json_encode(['success' => false, 'message' => 'Pedido não informado.']);
+            exit;
+        }
+
+        if (!ModuleBootloader::isModuleEnabled('financial')) {
+            echo json_encode(['success' => false, 'message' => 'Módulo financeiro desativado para este tenant.']);
+            exit;
+        }
+
+        $orderModel = new Order($this->db);
+        $order = $orderModel->readOne($orderId);
+        if (!$order) {
+            echo json_encode(['success' => false, 'message' => 'Pedido não encontrado.']);
+            exit;
+        }
+
+        if (($order['pipeline_stage'] ?? '') !== 'financeiro') {
+            echo json_encode(['success' => false, 'message' => 'Link de pagamento disponível apenas para pedidos na etapa financeira.']);
+            exit;
+        }
+
+        $settingsModel = new CompanySettings($this->db);
+        $settings = $settingsModel->getAll();
+        $accessToken = trim((string)($settings['mercadopago_access_token'] ?? getenv('MERCADOPAGO_ACCESS_TOKEN') ?? ''));
+
+        if ($accessToken === '') {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Access Token do Mercado Pago não configurado. Vá em Configurações → Boleto/Bancário.',
+            ]);
+            exit;
+        }
+
+        $grossTotal = (float)($order['total_amount'] ?? 0);
+        $discount = (float)($order['discount'] ?? 0);
+        $totalAmount = round(max(0, $grossTotal - $discount), 2);
+
+        if ($totalAmount <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Pedido com valor inválido para gerar link de pagamento.']);
+            exit;
+        }
+
+        $baseUrl = $this->getAppBaseUrl();
+        $externalRef = 'order_' . (int)$orderId . '_tenant_' . ($_SESSION['tenant']['database'] ?? 'default');
+
+        $payload = [
+            'items' => [[
+                'id' => (string)$orderId,
+                'title' => 'Pedido #' . str_pad((string)$orderId, 4, '0', STR_PAD_LEFT),
+                'quantity' => 1,
+                'currency_id' => 'BRL',
+                'unit_price' => $totalAmount,
+            ]],
+            'payer' => [
+                'name' => (string)($order['customer_name'] ?? ''),
+                'email' => (string)($order['customer_email'] ?? ''),
+            ],
+            'external_reference' => $externalRef,
+            'statement_descriptor' => substr(preg_replace('/[^A-Za-z0-9 ]/', '', (string)($settings['company_name'] ?? 'AKTI')), 0, 13),
+            'back_urls' => [
+                'success' => $baseUrl . '/?page=pipeline&action=detail&id=' . (int)$orderId . '&mp_status=success',
+                'pending' => $baseUrl . '/?page=pipeline&action=detail&id=' . (int)$orderId . '&mp_status=pending',
+                'failure' => $baseUrl . '/?page=pipeline&action=detail&id=' . (int)$orderId . '&mp_status=failure',
+            ],
+            'auto_return' => 'approved',
+            'notification_url' => $baseUrl . '/?page=financial&action=payments',
+            'metadata' => [
+                'order_id' => (int)$orderId,
+                'tenant' => (string)($_SESSION['tenant']['database'] ?? ''),
+            ],
+        ];
+
+        $result = $this->createMercadoPagoPreference($accessToken, $payload);
+        if (!$result['success']) {
+            echo json_encode(['success' => false, 'message' => $result['message']]);
+            exit;
+        }
+
+        $link = $result['data']['init_point'] ?? $result['data']['sandbox_init_point'] ?? '';
+        if (!$link) {
+            echo json_encode(['success' => false, 'message' => 'Mercado Pago não retornou URL de pagamento.']);
+            exit;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'payment_url' => $link,
+            'preference_id' => $result['data']['id'] ?? null,
+        ]);
+        exit;
+    }
+
+    private function createMercadoPagoPreference(string $accessToken, array $payload): array {
+        $url = 'https://api.mercadopago.com/checkout/preferences';
+
+        if (!function_exists('curl_init')) {
+            return ['success' => false, 'message' => 'Extensão cURL não disponível no servidor.'];
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $accessToken,
+                'Content-Type: application/json',
+                'X-Idempotency-Key: akti-' . uniqid('', true),
+            ],
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_TIMEOUT => 20,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false || $curlError) {
+            return ['success' => false, 'message' => 'Falha ao conectar com Mercado Pago: ' . $curlError];
+        }
+
+        $data = json_decode($response, true);
+        if ($httpCode < 200 || $httpCode >= 300) {
+            $mpMessage = $data['message'] ?? $data['error'] ?? 'Erro ao gerar link no Mercado Pago.';
+            return ['success' => false, 'message' => $mpMessage];
+        }
+
+        return ['success' => true, 'data' => is_array($data) ? $data : []];
+    }
+
+    private function getAppBaseUrl(): string {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        return $scheme . '://' . $host;
     }
 
     /**

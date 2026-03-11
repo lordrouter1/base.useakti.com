@@ -6,6 +6,7 @@ use Akti\Models\PriceTable;
 use Akti\Models\Product;
 use Akti\Models\PreparationStep;
 use Akti\Models\Logger;
+use Akti\Core\ModuleBootloader;
 use Database;
 use PDO;
 use TenantManager;
@@ -31,6 +32,12 @@ class SettingsController {
      * Página de configurações da empresa
      */
     public function index() {
+        $safeTab = ModuleBootloader::sanitizeSettingsTab($_GET['tab'] ?? 'company');
+        if (isset($_GET['tab']) && $safeTab !== $_GET['tab']) {
+            header('Location: ?page=settings&tab=' . $safeTab);
+            exit;
+        }
+
         $settings = $this->companySettings->getAll();
         $priceTables = $this->priceTable->readAll();
         $preparationSteps = $this->preparationStep->getAll();
@@ -115,6 +122,12 @@ class SettingsController {
             exit;
         }
 
+        if (!ModuleBootloader::isModuleEnabled('boleto')) {
+            $_SESSION['flash_error'] = 'Módulo de boleto desativado para este tenant.';
+            header('Location: ?page=settings');
+            exit;
+        }
+
         $keys = [
             'boleto_banco', 'boleto_agencia', 'boleto_agencia_dv',
             'boleto_conta', 'boleto_conta_dv', 'boleto_carteira',
@@ -123,6 +136,7 @@ class SettingsController {
             'boleto_instrucoes', 'boleto_multa', 'boleto_juros',
             'boleto_aceite', 'boleto_especie_doc', 'boleto_demonstrativo',
             'boleto_local_pagamento', 'boleto_cedente_endereco',
+            'mercadopago_access_token', 'mercadopago_public_key',
         ];
 
         foreach ($keys as $key) {
@@ -384,6 +398,12 @@ class SettingsController {
     public function saveFiscalSettings() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ?page=settings&tab=fiscal');
+            exit;
+        }
+
+        if (!ModuleBootloader::isModuleEnabled('fiscal')) {
+            $_SESSION['flash_error'] = 'Módulo fiscal desativado para este tenant.';
+            header('Location: ?page=settings');
             exit;
         }
 

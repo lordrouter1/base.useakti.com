@@ -1,4 +1,8 @@
-<?php $activeTab = $_GET['tab'] ?? 'company'; ?>
+<?php
+$activeTab = \Akti\Core\ModuleBootloader::sanitizeSettingsTab($_GET['tab'] ?? 'company');
+$canUseBoletoModule = \Akti\Core\ModuleBootloader::isModuleEnabled('boleto');
+$canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
+?>
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2"><i class="fas fa-building me-2"></i>Configurações do Sistema</h1>
@@ -21,16 +25,20 @@
                 <i class="fas fa-boxes-packing me-1"></i> Etapas de Preparo
             </a>
         </li>
+        <?php if ($canUseBoletoModule): ?>
         <li class="nav-item">
             <a class="nav-link <?= $activeTab === 'boleto' ? 'active' : '' ?>" href="?page=settings&tab=boleto">
                 <i class="fas fa-barcode me-1"></i> Boleto / Bancário
             </a>
         </li>
+        <?php endif; ?>
+        <?php if ($canUseFiscalModule): ?>
         <li class="nav-item">
             <a class="nav-link <?= $activeTab === 'fiscal' ? 'active' : '' ?>" href="?page=settings&tab=fiscal">
                 <i class="fas fa-file-invoice me-1"></i> Fiscal / NF-e
             </a>
         </li>
+        <?php endif; ?>
         <li class="nav-item">
             <a class="nav-link <?= $activeTab === 'security' ? 'active' : '' ?>" href="?page=settings&tab=security">
                 <i class="fas fa-shield-alt me-1"></i> Segurança
@@ -563,7 +571,7 @@
     </div>
     <?php endif; ?>
 
-    <?php if ($activeTab === 'boleto'): ?>
+    <?php if ($activeTab === 'boleto' && $canUseBoletoModule): ?>
     <!-- ══════════ ABA: BOLETO / BANCÁRIO ══════════ -->
     <form method="POST" action="?page=settings&action=saveBankSettings">
         <?= csrf_field() ?>
@@ -737,6 +745,22 @@
                             <input type="text" class="form-control" name="boleto_cedente_endereco" value="<?= htmlspecialchars($settings['boleto_cedente_endereco'] ?? '') ?>" placeholder="Deixe em branco para usar o endereço da empresa">
                             <small class="text-muted" style="font-size:0.65rem;">Se vazio, será usado o endereço cadastrado em Dados da Empresa</small>
                         </div>
+
+                        <div class="col-12 mt-2">
+                            <hr>
+                            <h6 class="fw-bold mb-2" style="color:#0d6efd;"><i class="fas fa-link me-2"></i>Gateway Mercado Pago</h6>
+                            <small class="text-muted d-block mb-2">Essas credenciais habilitam geração de link de pagamento no pedido em etapa financeira.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Access Token (Secret)</label>
+                            <input type="password" class="form-control" name="mercadopago_access_token" value="<?= htmlspecialchars($settings['mercadopago_access_token'] ?? '') ?>" placeholder="APP_USR-...">
+                            <small class="text-muted" style="font-size:0.65rem;">Necessário para criar preferência de pagamento na API.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Public Key (Opcional)</label>
+                            <input type="text" class="form-control" name="mercadopago_public_key" value="<?= htmlspecialchars($settings['mercadopago_public_key'] ?? '') ?>" placeholder="APP_USR-...">
+                            <small class="text-muted" style="font-size:0.65rem;">Opcional para futuras integrações checkout no front.</small>
+                        </div>
                     </div>
                 </fieldset>
 
@@ -796,7 +820,7 @@
     </form>
     <?php endif; ?>
 
-    <?php if ($activeTab === 'fiscal'): ?>
+    <?php if ($activeTab === 'fiscal' && $canUseFiscalModule): ?>
     <!-- ══════════ ABA: FISCAL / NF-e ══════════ -->
     <form method="POST" action="?page=settings&action=saveFiscalSettings">
         <?= csrf_field() ?>

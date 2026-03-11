@@ -222,6 +222,7 @@ return [
             'checkOrderStock'      => 'checkOrderStock',
             'countInstallments'    => 'countInstallments',
             'deleteInstallments'   => 'deleteInstallments',
+            'generateMercadoPagoLink' => 'generateMercadoPagoLink',
             'productionBoard'      => 'productionBoard',
             'printProductionOrder' => 'printProductionOrder',
             // Actions que usam CatalogController em vez de PipelineController

@@ -10,6 +10,9 @@
         $stageGoal = isset($goals[$currentStage]) ? (int)$goals[$currentStage]['max_hours'] : 24;
         $isDelayed = ($stageGoal > 0 && $hoursInStage > $stageGoal);
         $isReadOnly = in_array($currentStage, ['concluido', 'cancelado']);
+        $canUseBoletoModule = \Akti\Core\ModuleBootloader::isModuleEnabled('boleto');
+        $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
+        $canUseNfeModule = \Akti\Core\ModuleBootloader::isModuleEnabled('nfe');
     ?>
 
     <!-- Cabeçalho -->
@@ -1195,7 +1198,9 @@
                                 <option value="pix" <?= ($order['payment_method'] ?? '') == 'pix' ? 'selected' : '' ?>>📱 PIX</option>
                                 <option value="cartao_credito" <?= ($order['payment_method'] ?? '') == 'cartao_credito' ? 'selected' : '' ?>>💳 Cartão Crédito</option>
                                 <option value="cartao_debito" <?= ($order['payment_method'] ?? '') == 'cartao_debito' ? 'selected' : '' ?>>💳 Cartão Débito</option>
+                                <?php if ($canUseBoletoModule): ?>
                                 <option value="boleto" <?= ($order['payment_method'] ?? '') == 'boleto' ? 'selected' : '' ?>>📄 Boleto</option>
+                                <?php endif; ?>
                                 <option value="transferencia" <?= ($order['payment_method'] ?? '') == 'transferencia' ? 'selected' : '' ?>>🏦 Transferência</option>
                             </select>
                         </div>
@@ -1277,7 +1282,7 @@
                         </div>
                     </div>
 
-                    <!-- ═══ LINKS DE PAGAMENTO — Integração futura ═══ -->
+                    <!-- ═══ LINKS DE PAGAMENTO — Mercado Pago ═══ -->
                     <div class="card mt-3 border-dashed border-secondary border-opacity-25" style="border-style:dashed !important;" id="paymentLinksSection">
                         <div class="card-header py-2 bg-light">
                             <h6 class="mb-0 text-muted" style="font-size:0.85rem;">
@@ -1285,24 +1290,30 @@
                             </h6>
                         </div>
                         <div class="card-body p-3 text-center">
-                            <i class="fas fa-plug text-muted d-block mb-2" style="font-size:1.3rem;opacity:0.3;"></i>
-                            <p class="small text-muted mb-1"><strong>Integração com Gateways de Pagamento</strong></p>
-                            <p class="small text-muted mb-0" style="font-size:0.72rem;">
+                            <i class="fas fa-shopping-bag text-primary d-block mb-2" style="font-size:1.2rem;opacity:0.8;"></i>
+                            <p class="small text-muted mb-1"><strong>Mercado Pago — Link de Pagamento</strong></p>
+                            <p class="small text-muted mb-2" style="font-size:0.72rem;">
                                 <i class="fas fa-info-circle me-1"></i>
-                                Em breve: gerar links de pagamento via PagSeguro, Mercado Pago, Stripe, PIX dinâmico e outros.
-                                O cliente receberá o link por WhatsApp/e-mail e poderá pagar online.
+                                Gere um link de pagamento para o cliente pagar online.
                             </p>
                             <?php if ($isFinanceiroStage && !$isReadOnly): ?>
-                            <div class="mt-2 d-flex justify-content-center gap-2">
-                                <span class="badge bg-light text-muted border" style="font-size:0.65rem;"><i class="fas fa-qrcode me-1"></i>PIX Dinâmico</span>
-                                <span class="badge bg-light text-muted border" style="font-size:0.65rem;"><i class="fas fa-credit-card me-1"></i>PagSeguro</span>
-                                <span class="badge bg-light text-muted border" style="font-size:0.65rem;"><i class="fas fa-shopping-bag me-1"></i>Mercado Pago</span>
-                                <span class="badge bg-light text-muted border" style="font-size:0.65rem;"><i class="fab fa-stripe-s me-1"></i>Stripe</span>
+                            <div class="mt-2 d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-primary" id="btnGenerateMpLink" style="font-size:0.75rem;">
+                                    <i class="fas fa-external-link-alt me-1"></i> Gerar Link Mercado Pago
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyMpLink" style="font-size:0.75rem; display:none;">
+                                    <i class="fas fa-copy me-1"></i> Copiar Link
+                                </button>
                             </div>
+                            <input type="text" class="form-control form-control-sm mt-2" id="mpLinkOutput" style="display:none;" readonly>
+                            <small class="text-muted d-block mt-1" style="font-size:0.68rem;">Configure o Access Token em Configurações → Boleto / Bancário.</small>
+                            <?php else: ?>
+                            <small class="text-muted" style="font-size:0.68rem;">Disponível quando o pedido estiver na etapa Financeiro.</small>
                             <?php endif; ?>
                         </div>
                     </div>
 
+                    <?php if ($canUseFiscalModule && $canUseNfeModule): ?>
                     <!-- ═══ FISCAL — Nota Fiscal ═══ -->
                     <div class="card mt-3 border-0 shadow-sm" id="fiscalSection">
                         <div class="card-header py-2 bg-success bg-opacity-10">
@@ -1382,6 +1393,7 @@
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
                 </fieldset>
                 <?php else: ?>
                 <!-- Manter valores atuais nos campos ocultos para não perder ao salvar -->
@@ -2972,7 +2984,7 @@ setInterval(() => {
     const cardTitleText = document.getElementById('installmentCardTitleText');
     
     // Formas de pagamento que aceitam parcelamento
-    const parcelableMethods = ['cartao_credito', 'boleto'];
+    const parcelableMethods = ['cartao_credito'<?= $canUseBoletoModule ? ", 'boleto'" : '' ?>];
     
     function updateCardTitle() {
         if (!cardTitleText) return;
@@ -3703,6 +3715,67 @@ setInterval(() => {
                 confirmButtonText: 'Entendi',
                 confirmButtonColor: '#27ae60'
             });
+        });
+    }
+
+    // ═══ Link de pagamento Mercado Pago ═══
+    var btnGenerateMpLink = document.getElementById('btnGenerateMpLink');
+    var btnCopyMpLink = document.getElementById('btnCopyMpLink');
+    var mpLinkOutput = document.getElementById('mpLinkOutput');
+
+    if (btnGenerateMpLink) {
+        btnGenerateMpLink.addEventListener('click', function() {
+            btnGenerateMpLink.disabled = true;
+            btnGenerateMpLink.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Gerando...';
+
+            fetch('?page=pipeline&action=generateMercadoPagoLink', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'order_id=<?= (int)$order['id'] ?>&csrf_token=' + encodeURIComponent(__csrfToken)
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(resp) {
+                if (!resp.success) {
+                    throw new Error(resp.message || 'Não foi possível gerar o link de pagamento.');
+                }
+
+                if (mpLinkOutput) {
+                    mpLinkOutput.style.display = '';
+                    mpLinkOutput.value = resp.payment_url || '';
+                }
+                if (btnCopyMpLink) {
+                    btnCopyMpLink.style.display = '';
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Link gerado com sucesso',
+                    html: '<p class="small mb-2">O link do Mercado Pago foi gerado para o pedido.</p><a href="' + (resp.payment_url || '#') + '" target="_blank" class="btn btn-sm btn-primary">Abrir link</a>',
+                    confirmButtonText: 'Fechar'
+                });
+            })
+            .catch(function(err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Falha ao gerar link',
+                    text: err.message || 'Erro inesperado ao gerar link no Mercado Pago.'
+                });
+            })
+            .finally(function() {
+                btnGenerateMpLink.disabled = false;
+                btnGenerateMpLink.innerHTML = '<i class="fas fa-external-link-alt me-1"></i> Gerar Link Mercado Pago';
+            });
+        });
+    }
+
+    if (btnCopyMpLink && mpLinkOutput) {
+        btnCopyMpLink.addEventListener('click', function() {
+            if (!mpLinkOutput.value) return;
+            mpLinkOutput.select();
+            mpLinkOutput.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1200, timerProgressBar: true })
+                .fire({ icon: 'success', title: 'Link copiado!' });
         });
     }
 })();
