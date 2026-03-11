@@ -136,6 +136,7 @@ class SettingsController {
             'boleto_instrucoes', 'boleto_multa', 'boleto_juros',
             'boleto_aceite', 'boleto_especie_doc', 'boleto_demonstrativo',
             'boleto_local_pagamento', 'boleto_cedente_endereco',
+            'mercadopago_access_token', 'mercadopago_public_key',
         ];
 
         foreach ($keys as $key) {

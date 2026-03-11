@@ -745,6 +745,22 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                             <input type="text" class="form-control" name="boleto_cedente_endereco" value="<?= htmlspecialchars($settings['boleto_cedente_endereco'] ?? '') ?>" placeholder="Deixe em branco para usar o endereço da empresa">
                             <small class="text-muted" style="font-size:0.65rem;">Se vazio, será usado o endereço cadastrado em Dados da Empresa</small>
                         </div>
+
+                        <div class="col-12 mt-2">
+                            <hr>
+                            <h6 class="fw-bold mb-2" style="color:#0d6efd;"><i class="fas fa-link me-2"></i>Gateway Mercado Pago</h6>
+                            <small class="text-muted d-block mb-2">Essas credenciais habilitam geração de link de pagamento no pedido em etapa financeira.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Access Token (Secret)</label>
+                            <input type="password" class="form-control" name="mercadopago_access_token" value="<?= htmlspecialchars($settings['mercadopago_access_token'] ?? '') ?>" placeholder="APP_USR-...">
+                            <small class="text-muted" style="font-size:0.65rem;">Necessário para criar preferência de pagamento na API.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Public Key (Opcional)</label>
+                            <input type="text" class="form-control" name="mercadopago_public_key" value="<?= htmlspecialchars($settings['mercadopago_public_key'] ?? '') ?>" placeholder="APP_USR-...">
+                            <small class="text-muted" style="font-size:0.65rem;">Opcional para futuras integrações checkout no front.</small>
+                        </div>
                     </div>
                 </fieldset>
 
