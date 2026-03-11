@@ -124,7 +124,7 @@ $methodLabels = [
         <div class="row g-3 text-center">
             <div class="col-md-3">
                 <div class="text-muted small text-uppercase fw-bold">Cliente</div>
-                <div class="fw-bold"><?= htmlspecialchars($order['customer_name'] ?? 'N/A') ?></div>
+                <div class="fw-bold"><?= e($order['customer_name'] ?? 'N/A') ?></div>
             </div>
             <div class="col-md-3">
                 <div class="text-muted small text-uppercase fw-bold">Forma de Pagamento</div>
@@ -209,7 +209,7 @@ $methodLabels = [
                         <td><span class="badge <?= $st['badge'] ?>"><i class="<?= $st['icon'] ?> me-1"></i><?= $st['label'] ?></span></td>
                         <td>
                             <?php if ($inst['status'] === 'pago' && $inst['is_confirmed']): ?>
-                                <span class="text-success small" title="Confirmado por <?= htmlspecialchars($inst['confirmed_by_name'] ?? '—') ?> em <?= $inst['confirmed_at'] ? date('d/m/Y H:i', strtotime($inst['confirmed_at'])) : '' ?>">
+                                <span class="text-success small" title="Confirmado por <?= e($inst['confirmed_by_name'] ?? '—') ?> em <?= $inst['confirmed_at'] ? date('d/m/Y H:i', strtotime($inst['confirmed_at'])) : '' ?>">
                                     <i class="fas fa-check-double me-1"></i>Confirmado
                                 </span>
                             <?php elseif ($inst['status'] === 'pago' && !$inst['is_confirmed']): ?>

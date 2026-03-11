@@ -20,7 +20,7 @@
 <div class="alert alert-warning border-warning d-flex align-items-center mb-3" role="alert">
     <i class="fas fa-exclamation-triangle fs-5 me-3 text-warning"></i>
     <div>
-        <strong>Limite do plano atingido!</strong> Você possui <strong><?= $limitInfo['current'] ?></strong> de <strong><?= $limitInfo['max'] ?></strong> usuários permitidos.
+        <strong>Limite do plano atingido!</strong> Você possui <strong><?= e($limitInfo['current']) ?></strong> de <strong><?= e($limitInfo['max']) ?></strong> usuários permitidos.
         <span class="text-muted">Para cadastrar mais usuários, entre em contato com o suporte para fazer um upgrade do seu plano.</span>
     </div>
 </div>
@@ -43,12 +43,12 @@
                 <td class="ps-4 fw-bold">
                     <div class="d-flex align-items-center">
                         <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px; font-size: 0.9rem;">
-                            <?= strtoupper(substr($user['name'], 0, 1)) ?>
+                            <?= e(strtoupper(substr($user['name'], 0, 1))) ?>
                         </div>
-                        <?= $user['name'] ?>
+                        <?= e($user['name']) ?>
                     </div>
                 </td>
-                <td><?= $user['email'] ?></td>
+                <td><?= e($user['email']) ?></td>
                 <td>
                     <?php if($user['role'] === 'admin'): ?>
                         <span class="badge bg-danger rounded-pill px-3">Administrador</span>
@@ -60,16 +60,16 @@
                     <?php if($user['role'] === 'admin'): ?>
                         <span class="text-muted small fst-italic">Acesso Total</span>
                     <?php else: ?>
-                        <?= $user['group_name'] ?? '<span class="text-muted">-</span>' ?>
+                        <?= !empty($user['group_name']) ? e($user['group_name']) : '<span class="text-muted">-</span>' ?>
                     <?php endif; ?>
                 </td>
                 <td class="text-end pe-4">
                     <div class="btn-group">
-                        <a href="?page=users&action=edit&id=<?= $user['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
+                        <a href="?page=users&action=edit&id=<?= (int)$user['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
                             <i class="fas fa-edit"></i>
                         </a>
                         <?php if($user['id'] != $_SESSION['user_id']): ?>
-                            <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-user" data-id="<?= $user['id'] ?>" data-name="<?= $user['name'] ?>" title="Excluir">
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-user" data-id="<?= (int)$user['id'] ?>" data-name="<?= eAttr($user['name']) ?>" title="Excluir">
                                 <i class="fas fa-trash"></i>
                             </button>
                         <?php endif; ?>

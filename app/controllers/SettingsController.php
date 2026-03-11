@@ -7,6 +7,8 @@ use Akti\Models\Product;
 use Akti\Models\PreparationStep;
 use Akti\Models\Logger;
 use Akti\Core\ModuleBootloader;
+use Akti\Utils\Input;
+use Akti\Utils\Sanitizer;
 use Database;
 use PDO;
 use TenantManager;
@@ -32,8 +34,9 @@ class SettingsController {
      * Página de configurações da empresa
      */
     public function index() {
-        $safeTab = ModuleBootloader::sanitizeSettingsTab($_GET['tab'] ?? 'company');
-        if (isset($_GET['tab']) && $safeTab !== $_GET['tab']) {
+        $rawTab = Input::get('tab', 'string', 'company');
+        $safeTab = ModuleBootloader::sanitizeSettingsTab($rawTab);
+        if ($rawTab !== $safeTab) {
             header('Location: ?page=settings&tab=' . $safeTab);
             exit;
         }
@@ -71,8 +74,8 @@ class SettingsController {
         ];
 
         foreach ($keys as $key) {
-            if (isset($_POST[$key])) {
-                $this->companySettings->set($key, $_POST[$key]);
+            if (Input::hasPost($key)) {
+                $this->companySettings->set($key, Input::post($key));
             }
         }
 
@@ -96,7 +99,7 @@ class SettingsController {
         }
 
         // Remover logo se checkbox marcado
-        if (isset($_POST['remove_logo']) && $_POST['remove_logo'] == '1') {
+        if (Input::post('remove_logo') === '1') {
             $oldLogo = $this->companySettings->get('company_logo');
             if ($oldLogo && file_exists($oldLogo)) {
                 unlink($oldLogo);
@@ -140,8 +143,8 @@ class SettingsController {
         ];
 
         foreach ($keys as $key) {
-            if (isset($_POST[$key])) {
-                $this->companySettings->set($key, $_POST[$key]);
+            if (Input::hasPost($key)) {
+                $this->companySettings->set($key, Input::post($key));
             }
         }
 
@@ -176,9 +179,9 @@ class SettingsController {
      */
     public function createPriceTable() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $name = $_POST['name'] ?? '';
-            $description = $_POST['description'] ?? '';
-            $refPage = $_POST['ref_page'] ?? 'settings';
+            $name = Input::post('name');
+            $description = Input::post('description');
+            $refPage = Input::post('ref_page', 'string', 'settings');
 
             // Verificar limite de tabelas de preço do tenant
             $maxPriceTables = TenantManager::getTenantLimit('max_price_tables');
@@ -211,9 +214,9 @@ class SettingsController {
      */
     public function updatePriceTable() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['id'] ?? null;
-            $name = $_POST['name'] ?? '';
-            $description = $_POST['description'] ?? '';
+            $id = Input::post('id', 'int');
+            $name = Input::post('name');
+            $description = Input::post('description');
             if ($id && $name) {
                 $this->priceTable->update($id, $name, $description);
             }
@@ -226,8 +229,8 @@ class SettingsController {
      * Excluir tabela de preço
      */
     public function deletePriceTable() {
-        $id = $_GET['id'] ?? null;
-        $refPage = $_GET['ref'] ?? 'settings';
+        $id = Input::get('id', 'int');
+        $refPage = Input::get('ref', 'string', 'settings');
         if ($id) {
             $result = $this->priceTable->delete($id);
             $status = $result ? 'table_deleted' : 'table_default_error';
@@ -244,8 +247,8 @@ class SettingsController {
      * Editar itens de uma tabela de preço
      */
     public function editPriceTable() {
-        $id = $_GET['id'] ?? null;
-        $refPage = $_GET['ref'] ?? 'settings';
+        $id = Input::get('id', 'int');
+        $refPage = Input::get('ref', 'string', 'settings');
         if (!$id) {
             header('Location: ?page=' . ($refPage === 'price_tables' ? 'price_tables' : 'settings&tab=prices'));
             exit;
@@ -278,10 +281,10 @@ class SettingsController {
      */
     public function savePriceItem() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $tableId = $_POST['price_table_id'] ?? null;
-            $productId = $_POST['product_id'] ?? null;
-            $price = $_POST['price'] ?? 0;
-            $refPage = $_POST['ref_page'] ?? 'settings';
+            $tableId = Input::post('price_table_id', 'int');
+            $productId = Input::post('product_id', 'int');
+            $price = Input::post('price', 'float', 0);
+            $refPage = Input::post('ref_page', 'string', 'settings');
 
             if ($tableId && $productId) {
                 $this->priceTable->setItemPrice($tableId, $productId, $price);
@@ -296,9 +299,9 @@ class SettingsController {
      * Remover item da tabela de preço
      */
     public function deletePriceItem() {
-        $itemId = $_GET['item_id'] ?? null;
-        $tableId = $_GET['table_id'] ?? null;
-        $refPage = $_GET['ref'] ?? 'settings';
+        $itemId = Input::get('item_id', 'int');
+        $tableId = Input::get('table_id', 'int');
+        $refPage = Input::get('ref', 'string', 'settings');
 
         if ($itemId) {
             $this->priceTable->removeItem($itemId);
@@ -312,7 +315,7 @@ class SettingsController {
      * API: Retorna preços para um cliente (AJAX/JSON)
      */
     public function getPricesForCustomer() {
-        $customerId = $_GET['customer_id'] ?? null;
+        $customerId = Input::get('customer_id', 'int');
         $prices = $this->priceTable->getAllPricesForCustomer($customerId);
         header('Content-Type: application/json');
         echo json_encode($prices);
@@ -326,10 +329,10 @@ class SettingsController {
      */
     public function addPreparationStep() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $label = trim($_POST['label'] ?? '');
-            $description = trim($_POST['description'] ?? '');
-            $icon = trim($_POST['icon'] ?? 'fas fa-check');
-            $sortOrder = (int)($_POST['sort_order'] ?? 0);
+            $label = Input::post('label');
+            $description = Input::post('description');
+            $icon = Input::post('icon', 'string', 'fas fa-check');
+            $sortOrder = Input::post('sort_order', 'int', 0);
 
             if ($label) {
                 // Gerar key a partir do label
@@ -347,12 +350,12 @@ class SettingsController {
      */
     public function updatePreparationStep() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['id'] ?? null;
-            $label = trim($_POST['label'] ?? '');
-            $description = trim($_POST['description'] ?? '');
-            $icon = trim($_POST['icon'] ?? 'fas fa-check');
-            $sortOrder = (int)($_POST['sort_order'] ?? 0);
-            $isActive = isset($_POST['is_active']) ? 1 : 0;
+            $id = Input::post('id', 'int');
+            $label = Input::post('label');
+            $description = Input::post('description');
+            $icon = Input::post('icon', 'string', 'fas fa-check');
+            $sortOrder = Input::post('sort_order', 'int', 0);
+            $isActive = Input::post('is_active', 'bool') ? 1 : 0;
 
             if ($id && $label) {
                 $this->preparationStep->update($id, $label, $description, $icon, $sortOrder, $isActive);
@@ -367,7 +370,7 @@ class SettingsController {
      * Excluir etapa de preparo
      */
     public function deletePreparationStep() {
-        $id = $_GET['id'] ?? null;
+        $id = Input::get('id', 'int');
         if ($id) {
             $this->preparationStep->delete($id);
         }
@@ -380,7 +383,7 @@ class SettingsController {
      */
     public function togglePreparationStep() {
         header('Content-Type: application/json');
-        $id = $_POST['id'] ?? null;
+        $id = Input::post('id', 'int');
         if ($id) {
             $this->preparationStep->toggleActive($id);
             echo json_encode(['success' => true]);
@@ -429,8 +432,8 @@ class SettingsController {
         ];
 
         foreach ($keys as $key) {
-            if (isset($_POST[$key])) {
-                $this->companySettings->set($key, $_POST[$key]);
+            if (Input::hasPost($key)) {
+                $this->companySettings->set($key, Input::post($key));
             }
         }
 
@@ -452,7 +455,7 @@ class SettingsController {
             exit;
         }
 
-        $timeout = (int) ($_POST['session_timeout_minutes'] ?? 60);
+        $timeout = Input::post('session_timeout_minutes', 'int', 60);
         // Validação: mínimo 5, máximo 1440 (24h)
         if ($timeout < 5) $timeout = 5;
         if ($timeout > 1440) $timeout = 1440;

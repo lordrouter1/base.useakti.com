@@ -40,11 +40,11 @@
                         <?php endif; ?>
                         <div class="mb-3">
                             <label class="form-label fw-bold small">Nome do Setor <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="name" required placeholder="Ex: Impressão, Corte, Acabamento" value="<?= isset($editSector) ? htmlspecialchars($editSector['name']) : '' ?>">
+                            <input type="text" class="form-control" name="name" required placeholder="Ex: Impressão, Corte, Acabamento" value="<?= isset($editSector) ? eAttr($editSector['name']) : '' ?>">
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold small">Descrição</label>
-                            <textarea class="form-control" name="description" rows="2" placeholder="Breve descrição do setor..."><?= isset($editSector) ? htmlspecialchars($editSector['description']) : '' ?></textarea>
+                            <textarea class="form-control" name="description" rows="2" placeholder="Breve descrição do setor..."><?= isset($editSector) ? e($editSector['description']) : '' ?></textarea>
                         </div>
                         <div class="row mb-3">
                             <div class="col-6">
@@ -136,9 +136,9 @@
                                                     <i class="<?= $sector['icon'] ?>" style="color:<?= $sector['color'] ?>;"></i>
                                                 </div>
                                                 <div>
-                                                    <div class="fw-bold"><?= htmlspecialchars($sector['name']) ?></div>
+                                                    <div class="fw-bold"><?= e($sector['name']) ?></div>
                                                     <?php if($sector['description']): ?>
-                                                    <div class="small text-muted"><?= htmlspecialchars($sector['description']) ?></div>
+                                                    <div class="small text-muted"><?= e($sector['description']) ?></div>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
@@ -151,10 +151,10 @@
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-end pe-4">
-                                            <a href="?page=sectors&action=edit&id=<?= $sector['id'] ?>" class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                                            <a href="?page=sectors&action=edit&id=<?= (int)$sector['id'] ?>" class="btn btn-sm btn-outline-primary me-1" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <button class="btn btn-sm btn-outline-danger btn-delete-sector" data-id="<?= $sector['id'] ?>" data-name="<?= htmlspecialchars($sector['name']) ?>" title="Excluir">
+                                            <button class="btn btn-sm btn-outline-danger btn-delete-sector" data-id="<?= (int)$sector['id'] ?>" data-name="<?= eAttr($sector['name']) ?>" title="Excluir">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </td>

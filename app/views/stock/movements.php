@@ -28,7 +28,7 @@ $fDateTo = $_GET['date_to'] ?? '';
         <select name="warehouse_id" class="form-select form-select-sm">
             <option value="">Todos</option>
             <?php foreach ($warehouses as $wh): ?>
-                <option value="<?= $wh['id'] ?>" <?= $fWarehouse == $wh['id'] ? 'selected' : '' ?>><?= htmlspecialchars($wh['name']) ?></option>
+                <option value="<?= $wh['id'] ?>" <?= $fWarehouse == $wh['id'] ? 'selected' : '' ?>><?= e($wh['name']) ?></option>
             <?php endforeach; ?>
         </select>
     </div>
@@ -37,7 +37,7 @@ $fDateTo = $_GET['date_to'] ?? '';
         <select name="product_id" class="form-select form-select-sm">
             <option value="">Todos</option>
             <?php foreach ($products as $p): ?>
-                <option value="<?= $p['id'] ?>" <?= $fProduct == $p['id'] ? 'selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
+                <option value="<?= $p['id'] ?>" <?= $fProduct == $p['id'] ? 'selected' : '' ?>><?= e($p['name']) ?></option>
             <?php endforeach; ?>
         </select>
     </div>
@@ -53,11 +53,11 @@ $fDateTo = $_GET['date_to'] ?? '';
     </div>
     <div class="col-md-2">
         <label class="form-label small fw-bold">De</label>
-        <input type="date" name="date_from" class="form-control form-control-sm" value="<?= htmlspecialchars($fDateFrom) ?>">
+        <input type="date" name="date_from" class="form-control form-control-sm" value="<?= eAttr($fDateFrom) ?>">
     </div>
     <div class="col-md-2">
         <label class="form-label small fw-bold">Até</label>
-        <input type="date" name="date_to" class="form-control form-control-sm" value="<?= htmlspecialchars($fDateTo) ?>">
+        <input type="date" name="date_to" class="form-control form-control-sm" value="<?= eAttr($fDateTo) ?>">
     </div>
     <div class="col-md-1 d-flex gap-1">
         <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-filter"></i></button>
@@ -113,15 +113,15 @@ $fDateTo = $_GET['date_to'] ?? '';
                         <i class="<?= $typeIcons[$m['type']] ?? '' ?> me-1"></i><?= $typeLabels[$m['type']] ?? $m['type'] ?>
                     </span>
                 </td>
-                <td class="fw-bold small"><?= htmlspecialchars($m['product_name']) ?></td>
+                <td class="fw-bold small"><?= e($m['product_name']) ?></td>
                 <td class="small">
-                    <?= $m['combination_label'] ? '<span class="badge bg-light text-dark border">' . htmlspecialchars($m['combination_label']) . '</span>' : '<span class="text-muted">—</span>' ?>
+                    <?= $m['combination_label'] ? '<span class="badge bg-light text-dark border">' . e($m['combination_label']) . '</span>' : '<span class="text-muted">—</span>' ?>
                 </td>
                 <td class="small">
-                    <?= htmlspecialchars($m['warehouse_name']) ?>
+                    <?= e($m['warehouse_name']) ?>
                     <?php if ($m['type'] === 'transferencia' && $m['dest_warehouse_name']): ?>
                         <i class="fas fa-arrow-right mx-1 text-muted" style="font-size:0.6rem;"></i>
-                        <span class="text-info"><?= htmlspecialchars($m['dest_warehouse_name']) ?></span>
+                        <span class="text-info"><?= e($m['dest_warehouse_name']) ?></span>
                     <?php endif; ?>
                 </td>
                 <td class="text-center fw-bold">
@@ -135,10 +135,10 @@ $fDateTo = $_GET['date_to'] ?? '';
                 </td>
                 <td class="text-center small text-muted"><?= number_format($m['quantity_before'], 0) ?></td>
                 <td class="text-center small fw-bold"><?= number_format($m['quantity_after'], 0) ?></td>
-                <td class="small text-muted" style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="<?= htmlspecialchars($m['reason'] ?? '') ?>">
-                    <?= $m['reason'] ? htmlspecialchars($m['reason']) : '—' ?>
+                <td class="small text-muted" style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="<?= e($m['reason'] ?? '') ?>">
+                    <?= $m['reason'] ? e($m['reason']) : '—' ?>
                 </td>
-                <td class="small text-muted"><?= $m['user_name'] ? htmlspecialchars($m['user_name']) : '—' ?></td>
+                <td class="small text-muted"><?= $m['user_name'] ? e($m['user_name']) : '—' ?></td>
             </tr>
             <?php endforeach; ?>
             <?php else: ?>

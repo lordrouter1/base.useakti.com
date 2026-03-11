@@ -7,16 +7,16 @@
             <div class="card-body p-4">
                 <form action="?page=users&action=update" method="POST">
                     <?= csrf_field() ?>
-                    <input type="hidden" name="id" value="<?= $user['id'] ?>">
+                    <input type="hidden" name="id" value="<?= (int)$user['id'] ?>">
                     
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Nome Completo</label>
-                            <input type="text" class="form-control" name="name" required value="<?= $user['name'] ?>">
+                            <input type="text" class="form-control" name="name" required value="<?= eAttr($user['name']) ?>">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Email</label>
-                            <input type="email" class="form-control" name="email" required value="<?= $user['email'] ?>">
+                            <input type="email" class="form-control" name="email" required value="<?= eAttr($user['email']) ?>">
                         </div>
                         
                         <div class="col-md-6">
@@ -37,7 +37,7 @@
                             <select class="form-select" name="group_id">
                                 <option value="">Selecione um grupo...</option>
                                 <?php foreach($groups as $grp): ?>
-                                    <option value="<?= $grp['id'] ?>" <?= $user['group_id'] == $grp['id'] ? 'selected' : '' ?>><?= $grp['name'] ?></option>
+                                    <option value="<?= (int)$grp['id'] ?>" <?= $user['group_id'] == $grp['id'] ? 'selected' : '' ?>><?= e($grp['name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                             <div class="form-text">Define quais páginas este usuário pode acessar.</div>

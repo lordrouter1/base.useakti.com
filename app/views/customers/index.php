@@ -33,20 +33,20 @@
                 <td class="ps-4">
                     <div class="d-flex align-items-center">
                         <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px; font-size: 0.9rem;">
-                            <?= strtoupper(substr($customer['name'], 0, 1)) ?>
+                            <?= e(strtoupper(substr($customer['name'], 0, 1))) ?>
                         </div>
-                        <span class="fw-bold"><?= $customer['name'] ?></span>
+                        <span class="fw-bold"><?= e($customer['name']) ?></span>
                     </div>
                 </td>
-                <td><?= $customer['email'] ?: '<span class="text-muted">—</span>' ?></td>
-                <td><?= $customer['phone'] ?: '<span class="text-muted">—</span>' ?></td>
-                <td><span class="badge bg-light text-dark border"><?= $customer['document'] ?: '—' ?></span></td>
+                <td><?= $customer['email'] ? e($customer['email']) : '<span class="text-muted">—</span>' ?></td>
+                <td><?= $customer['phone'] ? e($customer['phone']) : '<span class="text-muted">—</span>' ?></td>
+                <td><span class="badge bg-light text-dark border"><?= $customer['document'] ? e($customer['document']) : '—' ?></span></td>
                 <td class="text-end pe-4">
                     <div class="btn-group">
-                        <a href="?page=customers&action=edit&id=<?= $customer['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
+                        <a href="?page=customers&action=edit&id=<?= (int)$customer['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-customer" data-id="<?= $customer['id'] ?>" data-name="<?= $customer['name'] ?>" title="Excluir">
+                        <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-customer" data-id="<?= (int)$customer['id'] ?>" data-name="<?= eAttr($customer['name']) ?>" title="Excluir">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>

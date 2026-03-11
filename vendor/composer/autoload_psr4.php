@@ -15,6 +15,7 @@ return array(
     'Akti\\Security\\' => array($baseDir . '/app/security'),
     'Akti\\Models\\' => array($baseDir . '/app/models'),
     'Akti\\Middleware\\' => array($baseDir . '/app/middleware'),
+    'Akti\\Core\\' => array($baseDir . '/app/core'),
     'Akti\\Controllers\\' => array($baseDir . '/app/controllers'),
     'Akti\\Config\\' => array($baseDir . '/app/config'),
 );

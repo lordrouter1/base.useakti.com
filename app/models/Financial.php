@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 class Financial {
@@ -174,9 +177,10 @@ class Financial {
 
     /**
      * Todos os pedidos com parcelas (para a tela de pagamentos)
+     * Filtra apenas pedidos nas etapas financeiro/concluido (regra de negócio)
      */
     public function getOrdersWithInstallments($filters = []) {
-        $where = "WHERE o.status != 'cancelado'";
+        $where = "WHERE o.status != 'cancelado' AND o.pipeline_stage IN ('financeiro', 'concluido')";
         $params = [];
 
         if (!empty($filters['status'])) {
@@ -214,9 +218,10 @@ class Financial {
 
     /**
      * Busca TODAS as parcelas de todos os pedidos (para a tela de pagamentos)
+     * Filtra apenas pedidos nas etapas financeiro/concluido (regra de negócio)
      */
     public function getAllInstallments($filters = []) {
-        $where = "WHERE o.status != 'cancelado'";
+        $where = "WHERE o.status != 'cancelado' AND o.pipeline_stage IN ('financeiro', 'concluido')";
         $params = [];
 
         if (!empty($filters['status'])) {
@@ -686,7 +691,7 @@ class Financial {
               (type, category, description, amount, transaction_date, reference_type, reference_id, payment_method, is_confirmed, user_id, notes)
               VALUES (:type, :cat, :desc, :amt, :date, :ref_type, :ref_id, :method, :confirmed, :uid, :notes)";
         $s = $this->conn->prepare($q);
-        return $s->execute([
+        $result = $s->execute([
             ':type' => $data['type'],
             ':cat' => $data['category'],
             ':desc' => $data['description'],
@@ -699,6 +704,15 @@ class Financial {
             ':uid' => $data['user_id'] ?? null,
             ':notes' => $data['notes'] ?? null,
         ]);
+        if ($result) {
+            EventDispatcher::dispatch('model.financial_transaction.created', new Event('model.financial_transaction.created', [
+                'id' => $this->conn->lastInsertId(),
+                'type' => $data['type'],
+                'category' => $data['category'],
+                'amount' => $data['amount'],
+            ]));
+        }
+        return $result;
     }
 
     /**
@@ -739,7 +753,11 @@ class Financial {
     public function deleteTransaction($id) {
         $q = "DELETE FROM financial_transactions WHERE id = :id";
         $s = $this->conn->prepare($q);
-        return $s->execute([':id' => $id]);
+        $result = $s->execute([':id' => $id]);
+        if ($result) {
+            EventDispatcher::dispatch('model.financial_transaction.deleted', new Event('model.financial_transaction.deleted', ['id' => $id]));
+        }
+        return $result;
     }
 
     /**

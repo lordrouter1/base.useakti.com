@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 /**
@@ -47,7 +50,12 @@ class PriceTable {
     public function create($name, $description = '') {
         $stmt = $this->conn->prepare("INSERT INTO price_tables (name, description) VALUES (:name, :desc)");
         $stmt->execute([':name' => $name, ':desc' => $description]);
-        return $this->conn->lastInsertId();
+        $newId = $this->conn->lastInsertId();
+        EventDispatcher::dispatch('model.price_table.created', new Event('model.price_table.created', [
+            'id' => $newId,
+            'name' => $name,
+        ]));
+        return $newId;
     }
 
     /**
@@ -55,7 +63,14 @@ class PriceTable {
      */
     public function update($id, $name, $description = '') {
         $stmt = $this->conn->prepare("UPDATE price_tables SET name = :name, description = :desc WHERE id = :id");
-        return $stmt->execute([':name' => $name, ':desc' => $description, ':id' => $id]);
+        $result = $stmt->execute([':name' => $name, ':desc' => $description, ':id' => $id]);
+        if ($result) {
+            EventDispatcher::dispatch('model.price_table.updated', new Event('model.price_table.updated', [
+                'id' => $id,
+                'name' => $name,
+            ]));
+        }
+        return $result;
     }
 
     /**
@@ -72,7 +87,11 @@ class PriceTable {
         // Limpar FK nos customers
         $this->conn->prepare("UPDATE customers SET price_table_id = NULL WHERE price_table_id = :id")->execute([':id' => $id]);
         $stmt = $this->conn->prepare("DELETE FROM price_tables WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        $result = $stmt->execute([':id' => $id]);
+        if ($result) {
+            EventDispatcher::dispatch('model.price_table.deleted', new Event('model.price_table.deleted', ['id' => $id]));
+        }
+        return $result;
     }
 
     /**

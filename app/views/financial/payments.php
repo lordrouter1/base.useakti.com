@@ -15,6 +15,8 @@ $filterStatus = $_GET['status'] ?? '';
 $filterMonth  = $_GET['filter_month'] ?? '';
 $filterYear   = $_GET['filter_year'] ?? '';
 
+$canUseBoletoModule = \Akti\Core\ModuleBootloader::isModuleEnabled('boleto');
+
 $statusMap = [
     'pendente'  => ['badge' => 'bg-warning text-dark', 'icon' => 'fas fa-clock',                'label' => 'Pendente'],
     'pago'      => ['badge' => 'bg-success',            'icon' => 'fas fa-check-circle',         'label' => 'Pago'],
@@ -54,9 +56,6 @@ foreach ($installments as $inst) {
 <div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-2 mb-4 border-bottom">
     <h1 class="h2 mb-0"><i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Pagamentos</h1>
     <div class="btn-toolbar gap-2">
-        <a href="?page=financial" class="btn btn-sm btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i> Dashboard
-        </a>
         <a href="?page=financial&action=transactions" class="btn btn-sm btn-outline-success">
             <i class="fas fa-exchange-alt me-1"></i> Entradas / Saídas
         </a>
@@ -170,6 +169,12 @@ foreach ($installments as $inst) {
     </div>
 </div>
 
+<div class="alert alert-info py-2 small mb-3">
+    <i class="fas fa-info-circle me-1"></i>
+    Exibindo apenas parcelas de pedidos nas etapas <strong>Financeiro</strong> e <strong>Concluído</strong>.
+    Pedidos em outras etapas do pipeline não aparecem aqui.
+</div>
+
 <!-- ══════ Tabela de Parcelas ══════ -->
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
@@ -235,7 +240,7 @@ foreach ($installments as $inst) {
                             </a>
                         </td>
                         <!-- Cliente -->
-                        <td class="small"><?= htmlspecialchars($inst['customer_name'] ?? 'N/A') ?></td>
+                        <td class="small"><?= e($inst['customer_name'] ?? 'N/A') ?></td>
                         <!-- Parcela -->
                         <td>
                             <?php if ($isEntrada): ?>
@@ -285,7 +290,7 @@ foreach ($installments as $inst) {
                         <!-- Confirmação -->
                         <td>
                             <?php if ($inst['status'] === 'pago' && !empty($inst['is_confirmed'])): ?>
-                                <span class="text-success small" title="Confirmado por <?= htmlspecialchars($inst['confirmed_by_name'] ?? '—') ?> em <?= !empty($inst['confirmed_at']) ? date('d/m/Y H:i', strtotime($inst['confirmed_at'])) : '' ?>">
+                                <span class="text-success small" title="Confirmado por <?= eAttr($inst['confirmed_by_name'] ?? '—') ?> em <?= !empty($inst['confirmed_at']) ? date('d/m/Y H:i', strtotime($inst['confirmed_at'])) : '' ?>">
                                     <i class="fas fa-check-double me-1"></i>Confirmado
                                 </span>
                             <?php elseif ($inst['status'] === 'pago' && empty($inst['is_confirmed'])): ?>
@@ -297,7 +302,7 @@ foreach ($installments as $inst) {
                         <!-- Anexo (Comprovante) -->
                         <td class="text-center">
                             <?php if ($hasAttachment): ?>
-                                <a href="<?= htmlspecialchars($inst['attachment_path']) ?>" target="_blank" class="text-success" title="Ver comprovante">
+                                <a href="<?= eAttr($inst['attachment_path']) ?>" target="_blank" class="text-success" title="Ver comprovante">
                                     <i class="fas fa-paperclip fa-lg"></i>
                                 </a>
                             <?php else: ?>
@@ -314,14 +319,15 @@ foreach ($installments as $inst) {
                                             data-order-id="<?= $orderId ?>"
                                             data-amount="<?= $inst['amount'] ?>"
                                             data-number="<?= $inst['installment_number'] ?>"
-                                            data-customer="<?= htmlspecialchars($inst['customer_name'] ?? '') ?>"
-                                            data-order-method="<?= htmlspecialchars($orderMethod) ?>"
+                                            data-customer="<?= eAttr($inst['customer_name'] ?? '') ?>"
+                                            data-order-method="<?= eAttr($orderMethod) ?>"
                                             data-due-date="<?= $inst['due_date'] ?>"
                                             title="Registrar Pagamento">
                                         <i class="fas fa-hand-holding-usd me-1"></i> Pagar
                                     </button>
                                     <!-- Boleto: Reimprimir -->
                                     <?php if ($isBoleto): ?>
+                                    <?php if ($canUseBoletoModule): ?>
                                     <button type="button" class="btn btn-outline-primary btn-print-boleto"
                                             data-id="<?= $inst['id'] ?>"
                                             data-order-id="<?= $orderId ?>"
@@ -329,12 +335,18 @@ foreach ($installments as $inst) {
                                             data-due="<?= $inst['due_date'] ?>"
                                             data-mes-ref="<?= $boletoMesRef ?>"
                                             data-number="<?= $inst['installment_number'] ?>"
-                                            data-customer="<?= htmlspecialchars($inst['customer_name'] ?? '') ?>"
-                                            data-customer-doc="<?= htmlspecialchars($inst['customer_document'] ?? '') ?>"
-                                            data-customer-addr="<?= htmlspecialchars($customerAddrFormatted) ?>"
+                                            data-customer="<?= eAttr($inst['customer_name'] ?? '') ?>"
+                                            data-customer-doc="<?= eAttr($inst['customer_document'] ?? '') ?>"
+                                            data-customer-addr="<?= eAttr($customerAddrFormatted) ?>"
                                             title="Reimprimir Boleto (ref. <?= $boletoMesRef ?>)">
                                         <i class="fas fa-print"></i>
                                     </button>
+                                    <?php else: ?>
+                                    <button type="button" class="btn btn-outline-secondary" title="Módulo Boleto inativo"
+                                            onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('boleto') ?>">
+                                        <i class="fas fa-print"></i>
+                                    </button>
+                                    <?php endif; ?>
                                     <?php endif; ?>
                                 <?php elseif ($inst['status'] === 'pago' && empty($inst['is_confirmed'])): ?>
                                     <!-- Confirmar -->
@@ -372,13 +384,14 @@ foreach ($installments as $inst) {
                                         data-id="<?= $inst['id'] ?>"
                                         data-order-id="<?= $orderId ?>"
                                         data-has-attachment="<?= $hasAttachment ? '1' : '0' ?>"
-                                        data-attachment-path="<?= htmlspecialchars($inst['attachment_path'] ?? '') ?>"
+                                        data-attachment-path="<?= eAttr($inst['attachment_path'] ?? '') ?>"
                                         title="<?= $hasAttachment ? 'Gerenciar comprovante' : 'Anexar comprovante' ?>">
                                     <i class="fas fa-<?= $hasAttachment ? 'file-alt' : 'upload' ?>"></i>
                                 </button>
 
                                 <!-- Boleto: Reimprimir (para parcelas pagas com boleto) -->
                                 <?php if ($inst['status'] === 'pago' && $isBoleto): ?>
+                                <?php if ($canUseBoletoModule): ?>
                                 <button type="button" class="btn btn-outline-primary btn-print-boleto"
                                         data-id="<?= $inst['id'] ?>"
                                         data-order-id="<?= $orderId ?>"
@@ -386,12 +399,18 @@ foreach ($installments as $inst) {
                                         data-due="<?= $inst['due_date'] ?>"
                                         data-mes-ref="<?= $boletoMesRef ?>"
                                         data-number="<?= $inst['installment_number'] ?>"
-                                        data-customer="<?= htmlspecialchars($inst['customer_name'] ?? '') ?>"
-                                        data-customer-doc="<?= htmlspecialchars($inst['customer_document'] ?? '') ?>"
-                                        data-customer-addr="<?= htmlspecialchars($customerAddrFormatted) ?>"
+                                        data-customer="<?= eAttr($inst['customer_name'] ?? '') ?>"
+                                        data-customer-doc="<?= eAttr($inst['customer_document'] ?? '') ?>"
+                                        data-customer-addr="<?= eAttr($customerAddrFormatted) ?>"
                                         title="Reimprimir Boleto (ref. <?= $boletoMesRef ?>)">
                                     <i class="fas fa-print"></i>
                                 </button>
+                                <?php else: ?>
+                                <button type="button" class="btn btn-outline-secondary" title="Módulo Boleto inativo"
+                                        onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('boleto') ?>">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                                <?php endif; ?>
                                 <?php endif; ?>
 
                                 <!-- Link para ver todas as parcelas do pedido -->
@@ -460,9 +479,16 @@ foreach ($installments as $inst) {
                                             <span class="small fw-bold">Boleto — Mês Referente:</span>
                                             <span class="badge bg-primary ms-1" id="payBoletoMesRef">—</span>
                                         </div>
+                                        <?php if ($canUseBoletoModule): ?>
                                         <button type="button" class="btn btn-sm btn-outline-primary" id="btnPrintBoletoModal" title="Reimprimir Boleto">
                                             <i class="fas fa-print me-1"></i> Reimprimir
                                         </button>
+                                        <?php else: ?>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" title="Módulo Boleto inativo"
+                                                onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('boleto') ?>">
+                                            <i class="fas fa-print me-1"></i> Reimprimir
+                                        </button>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>

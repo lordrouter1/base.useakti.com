@@ -5,6 +5,7 @@ use Akti\Models\Financial;
 use Akti\Models\Order;
 use Akti\Models\CompanySettings;
 use Akti\Core\ModuleBootloader;
+use Akti\Utils\Input;
 use Database;
 use PDO;
 use TenantManager;
@@ -33,8 +34,8 @@ class FinancialController {
     // ═══════════════════════════════════════════
 
     public function index() {
-        $month = $_GET['month'] ?? date('m');
-        $year  = $_GET['year']  ?? date('Y');
+        $month = Input::get('month', 'int', (int)date('m'));
+        $year  = Input::get('year', 'int', (int)date('Y'));
 
         // Atualizar parcelas vencidas
         $this->financial->updateOverdueInstallments();
@@ -61,9 +62,9 @@ class FinancialController {
         $this->financial->updateOverdueInstallments();
 
         $filters = [];
-        if (!empty($_GET['status'])) $filters['status'] = $_GET['status'];
-        if (!empty($_GET['filter_month'])) $filters['month'] = $_GET['filter_month'];
-        if (!empty($_GET['filter_year']))  $filters['year']  = $_GET['filter_year'];
+        if (Input::hasGet('status')) $filters['status'] = Input::get('status');
+        if (Input::hasGet('filter_month')) $filters['month'] = Input::get('filter_month', 'int');
+        if (Input::hasGet('filter_year'))  $filters['year']  = Input::get('filter_year', 'int');
 
         $orders = $this->financial->getOrdersWithInstallments($filters);
         $installments = $this->financial->getAllInstallments($filters);
@@ -79,8 +80,18 @@ class FinancialController {
     }
 
     public function installments() {
-        $orderId = $_GET['order_id'] ?? 0;
+        $orderId = Input::get('order_id', 'int', 0);
         if (!$orderId) {
+            header('Location: ?page=financial&action=payments');
+            exit;
+        }
+
+        // Verificar se o pedido está em etapa financeiro/concluido
+        $stmtStage = $this->db->prepare("SELECT pipeline_stage FROM orders WHERE id = :id");
+        $stmtStage->execute([':id' => $orderId]);
+        $orderStage = $stmtStage->fetch(\PDO::FETCH_ASSOC);
+        if (!$orderStage || !in_array($orderStage['pipeline_stage'], ['financeiro', 'concluido'])) {
+            $_SESSION['flash_error'] = 'As parcelas de pagamento só estão disponíveis para pedidos nas etapas Financeiro ou Concluído.';
             header('Location: ?page=financial&action=payments');
             exit;
         }
@@ -116,10 +127,10 @@ class FinancialController {
             exit;
         }
 
-        $orderId = $_POST['order_id'] ?? 0;
-        $numInstallments = (int)($_POST['num_installments'] ?? 1);
-        $downPayment = (float)($_POST['down_payment'] ?? 0);
-        $startDate = $_POST['start_date'] ?? date('Y-m-d');
+        $orderId = Input::post('order_id', 'int', 0);
+        $numInstallments = Input::post('num_installments', 'int', 1);
+        $downPayment = Input::post('down_payment', 'float', 0);
+        $startDate = Input::post('start_date', 'date', date('Y-m-d'));
 
         // Buscar total do pedido
         $q = "SELECT total_amount, COALESCE(discount, 0) as discount FROM orders WHERE id = :id";
@@ -173,9 +184,9 @@ class FinancialController {
 
         $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
 
-        $installmentId = $_POST['installment_id'] ?? 0;
-        $paidAmount = (float)($_POST['paid_amount'] ?? 0);
-        $createRemaining = (int)($_POST['create_remaining'] ?? 0);
+        $installmentId = Input::post('installment_id', 'int', 0);
+        $paidAmount = Input::post('paid_amount', 'float', 0);
+        $createRemaining = Input::post('create_remaining', 'int', 0);
 
         // Buscar dados da parcela original
         $q = "SELECT id, order_id, amount, installment_number FROM order_installments WHERE id = :id";
@@ -198,10 +209,10 @@ class FinancialController {
         $orderId = $installment['order_id'];
 
         $data = [
-            'paid_date' => $_POST['paid_date'] ?? date('Y-m-d'),
+            'paid_date' => Input::post('paid_date', 'date') ?: date('Y-m-d'),
             'paid_amount' => $paidAmount,
-            'payment_method' => $_POST['payment_method'] ?? 'dinheiro',
-            'notes' => $_POST['notes'] ?? null,
+            'payment_method' => Input::post('payment_method', 'string', 'dinheiro'),
+            'notes' => Input::post('notes'),
             'user_id' => $_SESSION['user_id'] ?? null,
             'attachment_path' => null,
         ];
@@ -240,7 +251,7 @@ class FinancialController {
         // Se pagou menos e quer criar parcela restante
         if ($paidAmount < $originalAmount && $createRemaining) {
             $remainingAmount = round($originalAmount - $paidAmount, 2);
-            $remainingDueDate = $_POST['remaining_due_date'] ?? null;
+            $remainingDueDate = Input::post('remaining_due_date', 'date');
 
             // Atualizar o valor da parcela original para o valor efetivamente pago
             $qUpd = "UPDATE order_installments SET amount = :amt WHERE id = :id";
@@ -267,7 +278,7 @@ class FinancialController {
         }
 
         $_SESSION['flash_success'] = 'Pagamento registrado com sucesso!';
-        $redirect = $_POST['redirect'] ?? "?page=financial&action=payments";
+        $redirect = Input::post('redirect', 'string', '?page=financial&action=payments');
         header("Location: $redirect");
         exit;
     }
@@ -281,7 +292,7 @@ class FinancialController {
             exit;
         }
 
-        $installmentId = $_POST['installment_id'] ?? 0;
+        $installmentId = Input::post('installment_id', 'int', 0);
         $userId = $_SESSION['user_id'] ?? null;
 
         $this->financial->confirmInstallment($installmentId, $userId);
@@ -292,7 +303,7 @@ class FinancialController {
         }
 
         $_SESSION['flash_success'] = 'Pagamento confirmado com sucesso!';
-        $redirect = $_POST['redirect'] ?? '?page=financial';
+        $redirect = Input::post('redirect', 'string', '?page=financial');
         header("Location: $redirect");
         exit;
     }
@@ -306,7 +317,7 @@ class FinancialController {
             exit;
         }
 
-        $installmentId = $_POST['installment_id'] ?? 0;
+        $installmentId = Input::post('installment_id', 'int', 0);
         $userId = $_SESSION['user_id'] ?? null;
         $this->financial->cancelInstallment($installmentId, $userId);
 
@@ -316,7 +327,7 @@ class FinancialController {
         }
 
         $_SESSION['flash_success'] = 'Parcela estornada com sucesso!';
-        $redirect = $_POST['redirect'] ?? '?page=financial&action=payments';
+        $redirect = Input::post('redirect', 'string', '?page=financial&action=payments');
         header("Location: $redirect");
         exit;
     }
@@ -330,7 +341,7 @@ class FinancialController {
             exit;
         }
 
-        $installmentId = $_POST['installment_id'] ?? 0;
+        $installmentId = Input::post('installment_id', 'int', 0);
         if (!$installmentId) {
             $_SESSION['flash_error'] = 'Parcela não informada.';
             header('Location: ?page=financial&action=payments');
@@ -345,7 +356,7 @@ class FinancialController {
             $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
             if (!in_array($ext, $allowed)) {
                 $_SESSION['flash_error'] = 'Tipo de arquivo não permitido. Envie JPG, PNG, WEBP, GIF ou PDF.';
-                header('Location: ' . ($_POST['redirect'] ?? '?page=financial&action=payments'));
+                header('Location: ' . (Input::post('redirect', 'string', '?page=financial&action=payments')));
                 exit;
             }
 
@@ -365,7 +376,7 @@ class FinancialController {
             $_SESSION['flash_error'] = 'Nenhum arquivo enviado.';
         }
 
-        $redirect = $_POST['redirect'] ?? '?page=financial&action=payments';
+        $redirect = Input::post('redirect', 'string', '?page=financial&action=payments');
         header("Location: $redirect");
         exit;
     }
@@ -379,13 +390,13 @@ class FinancialController {
             exit;
         }
 
-        $installmentId = $_POST['installment_id'] ?? 0;
+        $installmentId = Input::post('installment_id', 'int', 0);
         if ($installmentId) {
             $this->financial->removeAttachment($installmentId);
             $_SESSION['flash_success'] = 'Comprovante removido.';
         }
 
-        $redirect = $_POST['redirect'] ?? '?page=financial&action=payments';
+        $redirect = Input::post('redirect', 'string', '?page=financial&action=payments');
         header("Location: $redirect");
         exit;
     }
@@ -396,10 +407,10 @@ class FinancialController {
 
     public function transactions() {
         $filters = [];
-        if (!empty($_GET['type'])) $filters['type'] = $_GET['type'];
-        if (!empty($_GET['filter_month'])) $filters['month'] = $_GET['filter_month'];
-        if (!empty($_GET['filter_year']))  $filters['year']  = $_GET['filter_year'];
-        if (!empty($_GET['category']))     $filters['category'] = $_GET['category'];
+        if (!empty(Input::get('type'))) $filters['type'] = Input::get('type');
+        if (!empty(Input::get('filter_month'))) $filters['month'] = Input::get('filter_month', 'int');
+        if (!empty(Input::get('filter_year')))  $filters['year']  = Input::get('filter_year', 'int');
+        if (!empty(Input::get('category')))     $filters['category'] = Input::get('category');
 
         $transactions = $this->financial->getTransactions($filters);
         $categories = Financial::getCategories();
@@ -429,16 +440,17 @@ class FinancialController {
             exit;
         }
 
+        $type = Input::post('type', 'enum', 'entrada', ['entrada', 'saida']);
         $data = [
-            'type' => $_POST['type'] ?? 'entrada',
-            'category' => $_POST['category'] ?? (($_POST['type'] ?? 'entrada') === 'entrada' ? 'outra_entrada' : 'outra_saida'),
-            'description' => $_POST['description'] ?? '',
-            'amount' => (float)($_POST['amount'] ?? 0),
-            'transaction_date' => $_POST['transaction_date'] ?? date('Y-m-d'),
-            'payment_method' => $_POST['payment_method'] ?? null,
+            'type' => $type,
+            'category' => Input::post('category', 'string', $type === 'entrada' ? 'outra_entrada' : 'outra_saida'),
+            'description' => Input::post('description'),
+            'amount' => Input::post('amount', 'float', 0),
+            'transaction_date' => Input::post('transaction_date', 'date') ?: date('Y-m-d'),
+            'payment_method' => Input::post('payment_method'),
             'is_confirmed' => 1,
             'user_id' => $_SESSION['user_id'] ?? null,
-            'notes' => $_POST['notes'] ?? null,
+            'notes' => Input::post('notes'),
         ];
 
         $this->financial->addTransaction($data);
@@ -462,7 +474,7 @@ class FinancialController {
             exit;
         }
 
-        $id = $_POST['transaction_id'] ?? 0;
+        $id = Input::post('transaction_id', 'int', 0);
         $this->financial->deleteTransaction($id);
 
         if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
@@ -499,10 +511,7 @@ class FinancialController {
             exit;
         }
 
-        $mode = $_POST['import_mode'] ?? 'registro'; // 'registro' ou 'contabilizar'
-        if (!in_array($mode, ['registro', 'contabilizar'])) {
-            $mode = 'registro';
-        }
+        $mode = Input::post('import_mode', 'enum', 'registro', ['registro', 'contabilizar']);
 
         $userId = $_SESSION['user_id'] ?? null;
 
@@ -536,8 +545,8 @@ class FinancialController {
      * Retorna dados de resumo em JSON (para widgets externos)
      */
     public function getSummaryJson() {
-        $month = $_GET['month'] ?? date('m');
-        $year  = $_GET['year']  ?? date('Y');
+        $month = Input::get('month', 'int') ?: (int)date('m');
+        $year  = Input::get('year', 'int') ?: (int)date('Y');
         $summary = $this->financial->getSummary($month, $year);
         header('Content-Type: application/json');
         echo json_encode($summary);
@@ -548,7 +557,7 @@ class FinancialController {
      * Retorna parcelas de um pedido em JSON
      */
     public function getInstallmentsJson() {
-        $orderId = $_GET['order_id'] ?? 0;
+        $orderId = Input::get('order_id', 'int', 0);
         $installments = $this->financial->getInstallments($orderId);
         header('Content-Type: application/json');
         echo json_encode($installments);

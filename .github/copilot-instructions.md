@@ -784,7 +784,7 @@ O sistema permite importar extratos bancários no formato OFX (Open Financial Ex
 2. Selecione o arquivo `.ofx` ou `.ofc` exportado do banco
 3. Escolha o **modo de importação**:
    - **Registro** (default): importa apenas como referência — badge cinza, não contabiliza no caixa
-   - **Contabilizar**: créditos entram como `entrada` e débitos como `saída`, contabilizando normalmente
+   - **Contabilizar**: créditos entram como `entrada` e débitos como `saida`, contabilizando normalmente
 4. O parser suporta o formato SGML utilizado pela maioria dos bancos brasileiros
 5. Transações com valor zero ou negativo são ignoradas automaticamente
 
@@ -896,7 +896,7 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     ip_address VARCHAR(45) NOT NULL,       -- Suporta IPv6
     email VARCHAR(191) NOT NULL,
     attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    success TINYINT(1) NOT NULL DEFAULT 0  -- 0=falha, 1=sucesso
+    success TINYINT(1) NOT NULL DEFAULT 0 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
@@ -932,7 +932,7 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 ### Comportamento na View (`login.php`)
 
 - **Estado normal:** formulário padrão de e-mail + senha
-- **reCAPTCHA ativo ($showCaptcha):** widget `g-recaptcha` renderizado antes do botão de submit
+- **reCAPTCHA ativo ($showCaptcha):** widget `g-recaptcha` renderizado no formulário
 - **Bloqueio ativo ($isBlocked):** mensagem de erro com contagem de minutos restantes, botão de submit desabilitado
 - **Mensagens de erro:** sempre genéricas ("Credenciais inválidas") para evitar enumeração de e-mails
 
@@ -964,150 +964,6 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 
 ---
 
-## Testes Automatizados (PHPUnit)
-
-### Visão Geral
-O projeto possui uma suíte de testes automatizados que verifica se todas as páginas do sistema carregam corretamente após alterações estruturais (PSR-4, namespaces, refatorações). Os testes usam **requisições HTTP reais** via cURL ao servidor local, simulando o comportamento de um navegador.
-
-### Tecnologias
-- **PHPUnit 9.x** — Framework de testes
-- **cURL** — Requisições HTTP autenticadas
-- **Composer** — Gerenciamento de dependências e autoload dos testes
-
-### Estrutura de Arquivos
-
-```
-/tests
-|-- bootstrap.php           # Carrega autoloader do Composer
-|-- routes_test.php         # Registro de TODAS as rotas testáveis
-|-- TestCase.php            # Classe base com login, cURL, assertions
-|-- Pages/
-|   |-- AllPagesTest.php    # Testa TODAS as rotas via @dataProvider
-|   |-- DashboardTest.php   # Testes da Home / Dashboard / Perfil
-|   |-- ProductTest.php     # Testes de Produtos, Categorias, Setores
-|   |-- OrderTest.php       # Testes de Pedidos e Clientes
-|   |-- UserTest.php        # Testes de Usuários e Grupos
-|   |-- SettingsTest.php    # Testes de Configurações e Tabelas de Preço
-|   |-- PipelineTest.php    # Testes de Pipeline / Kanban / Produção
-|   |-- StockFinancialTest.php # Testes de Estoque e Financeiro
-/scripts
-|-- check_pages.php         # Script CLI de verificação rápida (sem PHPUnit)
-phpunit.xml                 # Configuração do PHPUnit
-composer.json               # Dependências e autoload PSR-4
-```
-
-### Executar os Testes
-
-```bash
-# Toda a suíte (64 testes, ~8 segundos)
-php vendor/bin/phpunit
-
-# Apenas um arquivo de teste específico
-php vendor/bin/phpunit tests/Pages/DashboardTest.php
-
-# Script de verificação rápida (30 rotas, ~3 segundos)
-php scripts/check_pages.php
-php scripts/check_pages.php --no-color
-php scripts/check_pages.php --base-url=http://meusite.com
-```
-
-### Configuração (phpunit.xml)
-As variáveis de ambiente para os testes são definidas em `phpunit.xml`:
-
-| Variável | Valor Padrão | Descrição |
-|----------|-------------|-----------|
-| `AKTI_TEST_BASE_URL` | `http://localhost/teste.akti.com` | URL base do sistema |
-| `AKTI_TEST_USER_EMAIL` | `admin@sistema.com` | E-mail do usuário de teste |
-| `AKTI_TEST_USER_PASSWORD` | `admin123` | Senha do usuário de teste |
-| `AKTI_TEST_TIMEOUT` | `30` | Timeout das requisições em segundos |
-
-### Fluxo de Autenticação nos Testes
-O `TestCase.php` implementa um login em 2 passos:
-
-1. **GET `?page=login`** — Obtém o cookie de sessão (`AKTI_SID`) e o `tenant_key` do formulário
-2. **POST `?page=login`** — Envia `email`, `password` e `tenant_key` com o cookie de sessão
-
-Após o login bem-sucedido (HTTP 302), os cookies são armazenados em um **cookie jar** (arquivo temporário) compartilhado por **todos os testes da execução** (login único). Se a sessão expirar durante a execução, o sistema re-autentica automaticamente.
-
-### Cada Teste Verifica
-1. **Status HTTP 200** — A página carregou sem erro do servidor
-2. **Ausência de erros PHP** — Fatal error, Parse error, Warning, Notice, etc.
-3. **HTML válido** — Presença da tag `<html`
-4. **Não é página de login** — Sessão ativa (não redirecionou para login)
-5. **Conteúdo específico** — Strings esperadas no HTML (quando definido)
-
-### Como Adicionar Novas Rotas aos Testes
-
-#### 1. Registrar a rota em `tests/routes_test.php`:
-```php
-[
-    'route'    => '?page=nova_pagina',
-    'label'    => 'Nova Página — Descrição',
-    'auth'     => true,
-    'contains' => ['<html'],  // strings esperadas (opcional)
-],
-```
-
-#### 2. (Opcional) Criar testes específicos em `tests/Pages/`:
-```php
-<?php
-namespace Akti\Tests\Pages;
-
-use Akti\Tests\TestCase;
-
-class NovaFuncionalidadeTest extends TestCase
-{
-    /** @test */
-    public function nova_pagina_carrega(): void
-    {
-        $response = $this->httpGet('?page=nova_pagina', true);
-
-        $this->assertStatusOk($response['status'], 'Nova Página');
-        $this->assertNoPhpErrors($response['body'], 'Nova Página');
-        $this->assertValidHtml($response['body'], 'Nova Página');
-        $this->assertNotLoginPage($response['body'], 'Nova Página');
-    }
-}
-```
-
-#### 3. Executar os testes:
-```bash
-php vendor/bin/phpunit
-```
-
-### Interpretando Falhas
-
-| Mensagem | Causa Provável | Solução |
-|----------|---------------|---------|
-| `Login falhou — HTTP 200` | Credenciais incorretas ou tenant inválido | Verificar `phpunit.xml` e se o servidor está rodando |
-| `Página 'X' retornou HTTP 500` | Erro PHP na página | Verificar logs do Apache/PHP |
-| `Erro PHP detectado: Fatal error` | Classe não encontrada, require faltando | Verificar namespaces e autoloader |
-| `Página 'X' retornou a tela de login` | Sessão expirada ou permissão negada | Verificar se a rota exige permissão especial |
-| `não contém o texto esperado` | Conteúdo da página mudou | Atualizar o array `contains` em `routes_test.php` |
-
-### Helpers Disponíveis no TestCase
-
-| Método | Descrição |
-|--------|-----------|
-| `assertStatusOk($status, $label)` | Status HTTP = 200 |
-| `assertNoPhpErrors($body, $label)` | Sem Fatal error, Warning, Notice, etc. |
-| `assertValidHtml($body, $label)` | Contém `<html` |
-
-| `assertNotLoginPage($body, $label)` | Não é a tela de login |
-| `assertBodyContains($needles, $body, $label)` | Contém strings esperadas |
-| `httpGet($route, $auth)` | Requisição GET autenticada |
-| `isLoginPage($body)` | Verifica se é a tela de login |
-| `loadRoutes()` | Carrega rotas de `routes_test.php` |
-
-### Pré-requisitos
-- **Apache/XAMPP rodando** com o sistema acessível na URL configurada
-- **Composer instalado** (`composer install` para baixar PHPUnit)
-- **Banco de dados** configurado e populado com dados mínimos (usuário admin)
-- **Extensão cURL** habilitada no PHP
-
-### Rodar teste Windows
-d:\xampp\php\php.exe d:\xampp\htdocs\teste.akti.com\vendor\bin\phpunit --no-coverage --testdox 2>&1
-
 ## Módulo: Segurança — Proteção CSRF
 
 ### Conceito
@@ -1115,217 +971,97 @@ O sistema implementa proteção **CSRF (Cross-Site Request Forgery)** em todas a
 
 ### Arquitetura
 
-| Componente | Arquivo | Responsabilidade |
-|------------|---------|------------------|
-| **Security** | `app/core/Security.php` | Geração, validação e log de tokens CSRF |
-| **CsrfMiddleware** | `app/middleware/CsrfMiddleware.php` | Intercepta requisições e valida o token antes do Router |
-| **form_helper** | `app/utils/form_helper.php` | Funções helper para injeção de token em views |
-| **Página 403** | `app/views/errors/403.php` | Página de erro personalizada para falhas CSRF |
-| **Log de segurança** | `storage/logs/security.log` | Registro de todas as falhas de validação |
+| Componente | Arquivo | Namespace | Responsabilidade |
+|------------|---------|-----------|------------------|
+| **Security** | `app/core/Security.php` | `Akti\Core` | Geração, validação e log de tokens CSRF |
+| **CsrfMiddleware** | `app/middleware/CsrfMiddleware.php` | `Akti\Middleware` | Intercepta requisições e valida o token antes do Router |
+| **form_helper** | `app/utils/form_helper.php` | *(sem namespace)* | Funções helper para injeção de token em views |
+| **Página 403** | `app/views/errors/403.php` | — | Página de erro personalizada para falhas CSRF |
+| **Log de segurança** | `storage/logs/security.log` | — | Registro de todas as falhas de validação |
 
-### Namespace e Autoload
-```php
-namespace Akti\Core;      // Security
-namespace Akti\Middleware; // CsrfMiddleware
-```
-Ambas as classes são carregadas automaticamente pelo autoloader PSR-4. O `form_helper.php` (sem namespace) é carregado via `require_once` no `autoload.php`.
+### Classes
 
-### Fluxo de Proteção
+#### `Akti\Core\Security`
+- `generateCsrfToken()`: Gera um novo token CSRF e armazena na sessão.
+- `validateCsrfToken($token)`: Valida um token CSRF recebido em relação ao armazenado na sessão.
+- `getCsrfToken()`: Retorna o token CSRF atual da sessão.
 
-```
-Requisição HTTP
-      │
-      ▼
-  index.php
-      │
-      ├── 1. autoload.php carrega Security + helpers
-      ├── 2. session_start()
-      ├── 3. Security::generateCsrfToken() — gera/renova token na sessão
-      ├── 4. CsrfMiddleware::handle() — valida token para POST/PUT/PATCH/DELETE
-      │       │
-      │       ├── Método GET/HEAD/OPTIONS → passa direto ✓
-      │       ├── Rota isenta → passa direto ✓
-      │       ├── Token válido → passa direto ✓
-      │       └── Token inválido → loga + retorna 403 ✗
-      │
-      └── 5. Router dispatch (switch/case de rotas)
-```
+#### `Akti\Middleware\CsrfMiddleware`
+- `handle()`: Intercepta a requisição e valida o token CSRF para métodos seguros (POST, PUT, DELETE). Retorna 403 se inválido.
+- `addExemptRoute($route)`: Adiciona uma rota à lista de isentas de verificação CSRF.
 
-### Geração do Token
+### Fluxo de Proteção CSRF
 
-- **Algoritmo:** `bin2hex(random_bytes(32))` — 64 caracteres hexadecimais
-- **Armazenamento:** `$_SESSION['csrf_token']` e `$_SESSION['csrf_token_time']`
-- **Lifetime:** 30 minutos (`TOKEN_LIFETIME = 1800`). Após expirar, um novo token é gerado automaticamente na próxima requisição.
-- **Reutilização:** Dentro do lifetime, o mesmo token é reutilizado para não invalidar formulários abertos em múltiplas abas.
+1. **Geração do Token**:
+   - O token CSRF é gerado na inicialização da sessão pelo método `Security::generateCsrfToken()`.
+   - O token é um valor aleatório, único por sessão, e tem um tempo de vida definido (ex: 2 horas).
 
-### Validação do Token
+2. **Injeção do Token**:
+   - O token deve ser incluído em todos os formulários que fazem requisições que alteram o estado (POST, PUT, DELETE).
+   - Exemplo em um formulário:
+     ```php
+     <form method="POST" action="/salvar">
+         <?= csrf_field() ?>
+         <!-- outros campos -->
+         <button type="submit">Salvar</button>
+     </form>
+     ```
 
-- Usa `hash_equals()` para comparação constant-time (proteção contra timing attacks).
-- O token é buscado na seguinte ordem:
-  1. Campo POST `csrf_token` (formulários HTML)
-  2. Header HTTP `X-CSRF-TOKEN` (requisições AJAX)
-- Se o token não for encontrado ou não corresponder ao token da sessão, a requisição é bloqueada.
+3. **Validação do Token**:
+   - Ao receber uma requisição, o middleware `CsrfMiddleware` valida o token:
+     - Se o método for seguro (POST, PUT, DELETE), o middleware verifica a presença e validade do token CSRF.
+     - O token é comparado com o valor armazenado na sessão usando `Security::validateCsrfToken($token)`.
+     - Se o token for inválido ou estiver ausente, a requisição é rejeitada com erro 403 (Forbidden).
 
-### Como Usar em Formulários (Views)
+4. **Exceções**:
+   - Algumas rotas podem ser isentas da verificação CSRF (ex: webhooks, APIs públicas).
+   - Essas rotas devem ser registradas no middleware usando `addExemptRoute()`.
 
-Todo formulário que usa `method="POST"` (ou PUT/PATCH/DELETE) **deve** incluir o token CSRF:
+5. **Logs de Segurança**:
+   - Todas as falhas de validação CSRF são registradas em `storage/logs/security.log` para auditoria.
 
-```php
-<form method="POST" action="?page=products&action=store">
-    <?= csrf_field() ?>
-    <!-- campos do formulário -->
-    <button type="submit">Salvar</button>
-</form>
-```
+### Como Usar CSRF em Formulários
 
-O helper `csrf_field()` gera:
-```html
-<input type="hidden" name="csrf_token" value="TOKEN_64_CHARS_AQUI">
-```
+- Em cada formulário que faz uma requisição POST, inclua o token CSRF usando a função `csrf_field()`:
+  ```php
+  <form method="POST" action="/atualizar">
+      <?= csrf_field() ?>
+      <!-- campos do formulário -->
+      <button type="submit">Atualizar</button>
+  </form>
+  ```
 
-### Como Usar em Requisições AJAX (jQuery)
+- O token será automaticamente incluído como um campo oculto no formulário.
 
-#### 1. Meta tag no `<head>` (já incluída no `header.php`)
-```php
-<!-- app/views/layout/header.php -->
-<head>
-    <?= csrf_meta() ?>
-</head>
-```
+### Como Funciona em Requisições AJAX
 
-Saída:
-```html
-<meta name="csrf-token" content="TOKEN_64_CHARS_AQUI">
-```
+- Para requisições AJAX, o token CSRF deve ser incluído no cabeçalho da requisição:
+  ```javascript
+  $.ajax({
+      url: '/api/dados',
+      method: 'POST',
+      headers: {
+          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      },
+      data: {
+          // dados da requisição
+      },
+      success: function(response) {
+          // tratar resposta
+      }
+  });
+  ```
 
-#### 2. Envio automático via jQuery (já configurado no `script.js`)
-O `script.js` configura automaticamente o envio do token em **todas** as requisições AJAX via `$.ajaxSetup`:
+- O token é lido da meta tag `csrf-token` e enviado no cabeçalho `X-CSRF-TOKEN`.
 
-```javascript
-// assets/js/script.js
-var csrfToken = $('meta[name="csrf-token"]').attr('content');
-if (csrfToken) {
-    $.ajaxSetup({
-        headers: { 'X-CSRF-TOKEN': csrfToken }
-    });
-}
-```
+### Exceções e Isenções
 
-#### 3. Tratamento de erro 403 no AJAX
-Se o token expirar durante uma sessão, o AJAX recebe status 403. O `script.js` intercepta automaticamente e exibe alerta:
+- Algumas rotas podem ser isentas da verificação CSRF, como webhooks ou APIs públicas.
+- Essas rotas devem ser registradas no middleware CSRF usando o método `addExemptRoute()`.
 
-```javascript
-$(document).ajaxError(function(event, jqXHR) {
-    if (jqXHR.status === 403) {
-        var resp = jqXHR.responseJSON;
-        if (resp && resp.csrf_error) {
-            alert(resp.message || 'Sessão expirada. Atualize a página.');
-            location.reload();
-        }
-    }
-});
-```
+### Logs de Segurança
 
-### Formulários Dinâmicos (JavaScript)
-
-Formulários criados dinamicamente via JavaScript **devem** injetar o token CSRF lido da meta tag:
-
-```javascript
-var csrfToken = $('meta[name="csrf-token"]').attr('content');
-
-// Exemplo: form criado via jQuery
-var $form = $('<form method="POST" action="?page=example&action=store">');
-$form.append('<input type="hidden" name="csrf_token" value="' + csrfToken + '">');
-$form.append('<!-- demais campos -->');
-```
-
-### Helpers Disponíveis
-
-| Função | Retorno | Uso |
-|--------|---------|-----|
-| `csrf_field()` | `<input type="hidden" name="csrf_token" value="...">` | Dentro de `<form>` |
-| `csrf_meta()` | `<meta name="csrf-token" content="...">` | Dentro de `<head>` |
-| `csrf_token()` | String pura com o token | Em scripts inline ou `data-*` |
-
-### Rotas Isentas de CSRF
-
-Algumas rotas (ex: webhooks, callbacks de APIs externas) podem ser isentas. Para isentar, adicione ao array `$exemptRoutes` em `CsrfMiddleware.php`:
-
-```php
-// app/middleware/CsrfMiddleware.php
-private static array $exemptRoutes = [
-    'webhook:*',          // Isenta todas as actions da page 'webhook'
-    'api:callback',       // Isenta apenas a action 'callback' da page 'api'
-];
-```
-Ou em runtime:
-```php
-\Akti\Middleware\CsrfMiddleware::addExemptRoute('webhook:receive');
-```
-
-### Resposta para Token Inválido
-
-| Tipo de Requisição | Resposta |
-|-------------------|----------|
-| **Requisição normal (HTML)** | HTTP 403 + renderiza `app/views/errors/403.php` |
-| **Requisição AJAX** | HTTP 403 + JSON: `{"success": false, "message": "...", "csrf_error": true}` |
-
-### Log de Falhas CSRF
-
-Toda falha de validação é registrada em `storage/logs/security.log` com as seguintes informações:
-
-```
-[2025-01-15 14:30:22] CSRF validation failed | IP: 192.168.1.100 | Route: ?page=orders&action=store | Method: POST | Token: a1b2c3d4... | User: 5
-```
-
-Campos registrados:
-- **Timestamp** — data e hora da tentativa
-- **IP** — IP real do cliente (com suporte a proxies/Cloudflare)
-- **Route** — página e ação acessadas
-- **Method** — método HTTP usado
-- **Token** — primeiros 8 caracteres do token recebido (ou `(empty)`)
-- **User** — ID do usuário autenticado (ou `anonymous`)
-
-### Integração com o Router (`index.php`)
-
-O middleware CSRF é chamado **antes** do dispatch do Router no `index.php`:
-
-```php
-// index.php — Ordem de execução
-require_once __DIR__ . '/app/bootstrap/autoload.php';
-
-session_start();
-
-// 1. Gerar/renovar token CSRF (antes de qualquer output)
-\Akti\Core\Security::generateCsrfToken();
-
-// 2. Validar CSRF em requisições POST/PUT/PATCH/DELETE
-\Akti\Middleware\CsrfMiddleware::handle();
-
-// 3. Router dispatch (switch/case)
-$page   = $_GET['page'] ?? 'home';
-$action = $_GET['action'] ?? 'index';
-// ...
-```
-
-### Regras Obrigatórias
-
-- **NUNCA** submeter formulários POST/PUT/PATCH/DELETE sem `<?= csrf_field() ?>`.
-- **SEMPRE** incluir `<?= csrf_meta() ?>` no `<head>` do layout principal (já feito em `header.php`).
-- **SEMPRE** configurar `$.ajaxSetup` com o header `X-CSRF-TOKEN` para requisições AJAX (já feito em `script.js`).
-- **Formulários dinâmicos** (criados via JS) devem ler o token da meta tag e incluir como campo hidden.
-- **NUNCA** desabilitar a validação CSRF exceto para rotas genuinamente isentas (webhooks, APIs externas).
-- **SEMPRE** verificar `storage/logs/security.log` se houver relatos de erros 403 inesperados.
-- O token é **por sessão** (não por request), então múltiplas abas funcionam normalmente.
-- O token expira após **30 minutos** — sessões longas renovam automaticamente.
-
-### Checklist para Novas Views com Formulários
-
-1. ☐ Adicionar `<?= csrf_field() ?>` logo após `<form method="POST">`.
-2. ☐ Se o formulário é criado via JavaScript, injetar o token da meta tag.
-3. ☐ Se a view usa AJAX com `$.ajax()` ou `$.post()`, garantir que `script.js` está carregado (configuração global do header).
-4. ☐ Testar submissão do formulário — deve funcionar normalmente.
-5. ☐ Testar sem o token (remover campo) — deve retornar 403.
+- Todas as falhas de validação CSRF são registradas em `storage/logs/security.log` com detalhes da requisição e do erro.
 
 ---
 
@@ -1363,3 +1099,661 @@ $action = $_GET['action'] ?? 'index';
 2. Toda aba modular em `settings` deve passar por `sanitizeSettingsTab()`.
 3. Menus de módulos devem ser ocultados quando módulo estiver desativado.
 4. Se houver mudança de banco para suportar módulo, criar SQL em `/sql/update_YYYYMMDD_*.sql`.
+
+---
+
+## Sistema de Eventos (Event Dispatcher)
+
+### Visão Geral
+O Akti possui um **Event Dispatcher nativo** em PHP puro, sem dependências externas, compatível com **PHP 7.4+**. Ele permite que qualquer camada (Models, Controllers, Core, Middleware) emita eventos nomeados e que módulos futuros se inscrevam neles via listeners, sem modificar o código existente.
+
+### Arquitetura
+
+| Componente | Arquivo | Namespace | Responsabilidade |
+|------------|---------|-----------|------------------|
+| **EventDispatcher** | `app/core/EventDispatcher.php` | `Akti\Core` | Classe estática — `listen()`, `dispatch()`, `forget()`, `getRegistered()` |
+| **Event** | `app/core/Event.php` | `Akti\Core` | Value Object imutável com dados do evento |
+| **Bootstrap** | `app/bootstrap/events.php` | *(sem namespace)* | Registro central de listeners, carregado pelo `autoload.php` |
+| **Log** | `storage/logs/events.log` | — | Log de exceções de listeners (fire-and-forget) |
+
+### Classes
+
+#### `Akti\Core\EventDispatcher`
+```php
+// Registrar um listener
+EventDispatcher::listen('model.order.created', function (Event $event) {
+    // $event->name, $event->data, $event->timestamp, $event->userId, $event->tenantDb
+});
+
+// Disparar um evento
+EventDispatcher::dispatch('model.order.created', new Event('model.order.created', [
+    'id' => $newId,
+    'customer_id' => $data['customer_id'],
+]));
+
+// Remover todos os listeners de um evento
+EventDispatcher::forget('model.order.created');
+
+// Listar todos os eventos registrados
+$registered = EventDispatcher::getRegistered();
+```
+
+#### `Akti\Core\Event` (Value Object)
+| Propriedade | Tipo | Descrição |
+|-------------|------|-----------|
+| `$name` | `string` | Nome do evento (convenção: `camada.entidade.acao`) |
+| `$data` | `array` | Dados arbitrários do evento |
+| `$timestamp` | `int` | Timestamp Unix de criação (preenchido automaticamente) |
+| `$userId` | `int\|null` | ID do usuário da sessão (`$_SESSION['user_id']`) |
+| `$tenantDb` | `string\|null` | Nome do banco do tenant (`$_SESSION['db_name']`) |
+
+### Convenção de Nomes de Eventos
+```
+camada.entidade.acao
+```
+
+| Camada | Prefixo | Exemplo |
+|--------|---------|---------|
+| Models | `model.` | `model.order.created` |
+| Controllers | `controller.` | `controller.user.login` |
+| Core | `core.` | `core.security.access_denied` |
+| Middleware | `middleware.` | `middleware.csrf.failed` |
+
+### Ações Padrão
+- `created` → Após INSERT bem-sucedido
+- `updated` → Após UPDATE bem-sucedido
+- `deleted` → Após DELETE bem-sucedido
+- `saved` → Após operação de salvar (batch/bulk)
+- `toggled` → Após alternar estado (ativar/desativar)
+- `completed` → Após concluir um fluxo
+- `skipped` → Após pular um fluxo
+- `failed` → Após falha de validação ou segurança
+
+---
+
+### Comportamento de Segurança
+
+#### Fire-and-Forget
+- Se um listener lançar exceção, o erro é logado em `storage/logs/events.log` e os demais listeners **continuam executando** normalmente.
+- O sistema de eventos **nunca interrompe** o fluxo principal da aplicação.
+
+#### Log de Erros
+Formato do log em `storage/logs/events.log`:
+```
+[2026-03-11 14:30:22] Event listener error | Event: model.order.created | Error: Connection refused | File: /app/modules/webhook.php:45 | User: 5
+```
+
+---
+
+### Como Registrar Listeners
+
+#### Registro Central (`app/bootstrap/events.php`)
+```php
+<?php
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
+
+// Exemplo: Log de auditoria para todos os creates
+EventDispatcher::listen('model.order.created', function (Event $event) {
+    error_log("Pedido #{$event->data['id']} criado por user #{$event->userId}");
+});
+
+// Exemplo: Notificação por e-mail ao mover pedido
+EventDispatcher::listen('model.order.stage_changed', function (Event $event) {
+    $from = $event->data['from_stage'];
+    $to = $event->data['to_stage'];
+    // Enviar e-mail...
+});
+
+// Módulos futuros:
+// require_once AKTI_BASE_PATH . 'app/modules/notificacoes/listeners.php';
+// require_once AKTI_BASE_PATH . 'app/modules/webhooks/listeners.php';
+```
+
+---
+
+### Como Adicionar Eventos em Novo Código
+
+#### Em um Model (operação CRUD)
+```php
+<?php
+namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
+use PDO;
+
+class NovoModel {
+    public function create($data) {
+        // ... INSERT SQL ...
+        $newId = $this->conn->lastInsertId();
+        EventDispatcher::dispatch('model.novo_model.created', new Event('model.novo_model.created', [
+            'id' => $newId,
+            'name' => $data['name'],
+        ]));
+        return $newId;
+    }
+
+    public function update($data) {
+        // ... UPDATE SQL ...
+        if ($result) {
+            EventDispatcher::dispatch('model.novo_model.updated', new Event('model.novo_model.updated', [
+                'id' => $data['id'],
+            ]));
+        }
+        return $result;
+    }
+
+    public function delete($id) {
+        // ... DELETE SQL ...
+        if ($result) {
+            EventDispatcher::dispatch('model.novo_model.deleted', new Event('model.novo_model.deleted', [
+                'id' => $id,
+            ]));
+        }
+        return $result;
+    }
+}
+```
+
+#### Em um Controller
+```php
+<?php
+namespace Akti\Controllers;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
+
+class NovoController {
+    public function algumaAcao() {
+        // ... lógica ...
+        EventDispatcher::dispatch('controller.novo.acao_realizada', new Event('controller.novo.acao_realizada', [
+            'user_id' => $_SESSION['user_id'] ?? null,
+        ]));
+    }
+}
+```
+
+---
+
+### Regras Obrigatórias para Eventos
+
+1. **SEMPRE** usar a convenção `camada.entidade.acao` para nomes de eventos.
+2. **SEMPRE** adicionar `use Akti\Core\EventDispatcher;` e `use Akti\Core\Event;` no topo do arquivo.
+3. **SEMPRE** disparar eventos **após** a operação bem-sucedida (não antes).
+4. **SEMPRE** incluir pelo menos o `id` do recurso afetado nos dados do evento.
+5. **NUNCA** fazer o fluxo principal depender do retorno de um listener.
+6. **NUNCA** lançar exceções dentro de listeners que devam interromper o fluxo.
+7. **NUNCA** fazer queries pesadas ou chamadas HTTP síncronas dentro de listeners sem considerar performance.
+8. Listeners devem ser registrados **apenas** em `app/bootstrap/events.php` ou em arquivos de listeners de módulos.
+9. Ao criar novo Model com CRUD, **documentar os eventos neste arquivo** (catálogo de eventos).
+10. Ao criar novo módulo, registrar listeners via `require_once AKTI_BASE_PATH . 'app/modules/nome/listeners.php';` no `events.php`.
+
+---
+
+### Models SEM Eventos (Infraestrutura)
+
+Os seguintes models são de **infraestrutura/segurança** e **não emitem eventos** intencionalmente para evitar loops ou problemas de recursão:
+
+| Model | Arquivo | Motivo |
+|-------|---------|--------|
+| `Logger` | `Logger.php` | Classe de logging — emitir evento aqui causaria loop |
+| `IpGuard` | `IpGuard.php` | Proteção contra flood — opera no nível de infraestrutura |
+| `LoginAttempt` | `LoginAttempt.php` | Rate-limiting de login — opera antes da sessão estar disponível |
+
+---
+
+### Testes Automatizados de Eventos
+
+#### Conceito
+Os testes unitários do EventDispatcher verificam:
+- Registro e disparo correto de listeners (FIFO)
+- Dados do Event (name, data, timestamp, userId, tenantDb)
+- Isolamento de falhas — exceção em listener não interrompe outros
+- Método `forget()` remove listeners corretamente
+- Convenção de nomes (`camada.entidade.acao`)
+- Presença de `use EventDispatcher` e `dispatch()` nos Models/Controllers que devem emitir eventos
+
+#### Executar
+```bash
+php vendor/bin/phpunit tests/Unit/EventDispatcherTest.php --testdox
+```
+
+#### Arquivo
+`tests/Unit/EventDispatcherTest.php`
+
+---
+
+### Fluxo de Carregamento
+
+```
+index.php
+  └── require autoload.php
+        ├── spl_autoload_register()  (PSR-4: Akti\Core, Akti\Models, etc.)
+        ├── require session.php      (SessionGuard)
+        ├── require tenant.php       (TenantManager)
+        ├── require database.php     (Database)
+        ├── require form_helper.php  (csrf_field, csrf_meta, csrf_token)
+        ├── require escape_helper.php (e, eAttr, eJs, eNum, eUrl)
+        └── require events.php       (registro de listeners — EventDispatcher já autoloaded)
+```
+
+---
+
+## Módulo: Sanitização, Validação e Escape de Saída
+
+### Conceito
+O sistema implementa uma estratégia de segurança em **três camadas** para prevenir **SQL Injection**, **XSS (Cross-Site Scripting)** e dados inconsistentes:
+
+1. **Sanitização de Entrada** — Limpa e normaliza dados recebidos do usuário (`Sanitizer`, `Input`)
+2. **Validação** — Verifica regras de negócio e acumula erros (`Validator`)
+3. **Escape de Saída** — Codifica dados ao exibi-los em HTML/JS/URL (`Escape`, helpers globais)
+
+> ⚠️ **REGRA CRÍTICA — Nunca confiar em dados do usuário**
+>
+> - **Controllers:** SEMPRE usar `Input::post()` / `Input::get()` em vez de `$_POST` / `$_GET` direto
+> - **Views:** SEMPRE usar `e()`, `eAttr()`, `eJs()`, `eNum()` para exibir qualquer dado dinâmico
+> - **Models:** SEMPRE usar prepared statements com parâmetros (`?` ou `:nome`). Nunca concatenar strings em SQL
+> - **Nunca** usar `htmlspecialchars()` diretamente — usar os helpers de escape
+
+### Arquitetura
+
+| Componente | Arquivo | Namespace | Responsabilidade |
+|------------|---------|-----------|------------------|
+| **Sanitizer** | `app/utils/Sanitizer.php` | `Akti\Utils` | Sanitização estática de valores (string, int, float, email, etc.) |
+| **Validator** | `app/utils/Validator.php` | `Akti\Utils` | Validação encadeável com acúmulo de erros (pt-BR) |
+| **Input** | `app/utils/Input.php` | `Akti\Utils` | Wrapper seguro para `$_POST`/`$_GET` com sanitização automática |
+| **Escape** | `app/utils/Escape.php` | `Akti\Utils` | Escape de saída para HTML, atributos, JS, URL, CSS |
+| **escape_helper.php** | `app/utils/escape_helper.php` | *(sem namespace)* | Funções globais `e()`, `eAttr()`, `eJs()`, `eNum()`, `eUrl()` |
+
+### Fluxo de Dados Seguro
+
+```
+[Requisição HTTP]
+       │
+       ▼
+  Controller ──── Input::post('name')         ← SANITIZAÇÃO automática
+       │         Input::post('price', 'float')
+       │         Input::post('role', 'enum', 'user', ['admin','user'])
+       │
+       ▼
+  Validator ──── $v->required('name', $name, 'Nome')  ← VALIDAÇÃO
+       │         $v->email('email', $email, 'E-mail')
+       │         $v->maxLength('name', $name, 191, 'Nome')
+       │
+       ▼
+  Model ────── $stmt->execute([':name' => $name])  ← PREPARED STATEMENT
+       │
+       ▼
+  View ──────── <?= e($customer['name']) ?>    ← ESCAPE de saída
+                <input value="<?= eAttr($v) ?>">
+```
+
+---
+
+### Classe: `Akti\Utils\Sanitizer`
+
+Classe **estática** com métodos de sanitização por tipo. Não lança exceções — sempre retorna um valor limpo ou o default.
+
+#### Métodos — Tipos Primitivos
+
+| Método | Entrada | Retorno | Descrição |
+|--------|---------|---------|-----------|
+| `string($value, $default)` | `mixed` | `string` | `trim()` + `strip_tags()` |
+| `richText($value, $allowedTags)` | `mixed` | `string` | `strip_tags()` preservando tags permitidas |
+| `int($value, $default)` | `mixed` | `int\|null` | `FILTER_VALIDATE_INT` |
+| `float($value, $default)` | `mixed` | `float\|null` | Aceita formato PT-BR (`1.234,56`) |
+| `bool($value)` | `mixed` | `bool` | Aceita `1`, `'true'`, `'on'`, `'yes'`, `'sim'` |
+
+#### Métodos — Tipos Específicos
+
+| Método | Entrada | Retorno | Descrição |
+|--------|---------|---------|-----------|
+| `email($value, $default)` | `mixed` | `string` | `trim` + `lowercase` + `FILTER_SANITIZE_EMAIL` |
+| `phone($value)` | `mixed` | `string` | Mantém apenas dígitos, `+`, `(`, `)`, `-`, espaço |
+| `document($value)` | `mixed` | `string` | Apenas dígitos (CPF/CNPJ) |
+| `cep($value)` | `mixed` | `string` | Apenas dígitos |
+| `url($value)` | `mixed` | `string` | `FILTER_SANITIZE_URL` |
+| `date($value, $default)` | `mixed` | `string\|null` | Valida formato `Y-m-d` |
+| `datetime($value, $default)` | `mixed` | `string\|null` | Valida formato `Y-m-d H:i:s` |
+| `slug($value)` | `mixed` | `string` | Lowercase, sem acentos, apenas `a-z`, `0-9`, `-` |
+| `filename($value)` | `mixed` | `string` | Remove path traversal, caracteres perigosos |
+| `json($value, $default)` | `mixed` | `string\|null` | Decode + re-encode para validar formato |
+
+#### Métodos — Arrays e Helpers
+
+| Método | Entrada | Retorno | Descrição |
+|--------|---------|---------|-----------|
+| `intArray($value)` | `mixed` | `array<int>` | Array de inteiros válidos |
+| `stringArray($value)` | `mixed` | `array<string>` | Array de strings sanitizadas |
+| `enum($value, $allowed, $default)` | `mixed` | `mixed` | Valor se está na whitelist, senão `$default` |
+
+---
+
+### Classe: `Akti\Utils\Input`
+
+Wrapper **estático** que acessa `$_POST` / `$_GET` / `$_REQUEST` aplicando sanitização automática via `Sanitizer`. **Substitui completamente o acesso direto a superglobais.**
+
+#### Métodos Principais
+
+| Método | Descrição |
+|--------|-----------|
+| `post($key, $type, $default, $options)` | Obtém valor de `$_POST` com sanitização |
+| `get($key, $type, $default, $options)` | Obtém valor de `$_GET` com sanitização |
+| `request($key, $type, $default, $options)` | Obtém valor de `$_REQUEST` com sanitização |
+| `hasPost($key)` | Verifica se campo existe e não é vazio em `$_POST` |
+| `hasGet($key)` | Verifica se campo existe e não é vazio em `$_GET` |
+| `allPost($fields)` | Múltiplos campos de `$_POST` de uma vez |
+| `allGet($fields)` | Múltiplos campos de `$_GET` de uma vez |
+| `postRaw($key, $default)` | Valor sem sanitização (senhas, rich text) |
+| `getRaw($key, $default)` | Valor sem sanitização de `$_GET` |
+| `postArray($key)` | Array de `$_POST` (ex: `grades[]`, `items[]`) |
+| `getArray($key)` | Array de `$_GET` |
+
+#### Tipos de Sanitização (parâmetro `$type`)
+
+| Tipo | Sanitizer chamado | Exemplo |
+|------|-------------------|---------|
+| `'string'` (default) | `Sanitizer::string()` | `Input::post('name')` |
+| `'int'` / `'integer'` | `Sanitizer::int()` | `Input::post('id', 'int')` |
+| `'float'` / `'decimal'` / `'number'` | `Sanitizer::float()` | `Input::post('price', 'float')` |
+| `'bool'` / `'boolean'` | `Sanitizer::bool()` | `Input::post('active', 'bool')` |
+| `'email'` | `Sanitizer::email()` | `Input::post('email', 'email')` |
+| `'phone'` | `Sanitizer::phone()` | `Input::post('phone', 'phone')` |
+| `'document'` / `'cpf'` / `'cnpj'` | `Sanitizer::document()` | `Input::post('cpf', 'document')` |
+| `'cep'` | `Sanitizer::cep()` | `Input::post('cep', 'cep')` |
+| `'url'` | `Sanitizer::url()` | `Input::post('website', 'url')` |
+| `'date'` | `Sanitizer::date()` | `Input::post('deadline', 'date')` |
+| `'datetime'` | `Sanitizer::datetime()` | `Input::post('scheduled', 'datetime')` |
+| `'slug'` | `Sanitizer::slug()` | `Input::post('slug', 'slug')` |
+| `'filename'` | `Sanitizer::filename()` | `Input::post('file', 'filename')` |
+| `'json'` | `Sanitizer::json()` | `Input::post('config', 'json')` |
+| `'enum'` | `Sanitizer::enum()` | `Input::post('role', 'enum', 'user', ['admin', 'user'])` |
+| `'intArray'` | `Sanitizer::intArray()` | `Input::post('ids', 'intArray')` |
+| `'stringArray'` | `Sanitizer::stringArray()` | `Input::post('names', 'stringArray')` |
+| `'raw'` | *(nenhum)* | `Input::post('password', 'raw')` |
+
+#### Exemplos de Uso
+
+```php
+use Akti\Utils\Input;
+
+// Campos individuais com tipo
+$name     = Input::post('name');                       // string sanitizada
+$email    = Input::post('email', 'email');              // email sanitizado
+$price    = Input::post('price', 'float');              // float (aceita PT-BR)
+$id       = Input::get('id', 'int');                    // inteiro ou null
+$role     = Input::post('role', 'enum', 'user', ['admin', 'user']); // whitelist
+$password = Input::postRaw('password');                 // raw (sem sanitizar)
+
+// Campos em lote
+$data = Input::allPost([
+    'name'  => 'string',
+    'email' => 'email',
+    'price' => 'float',
+    'phone' => 'phone',
+]);
+
+// Verificação de existência
+if (Input::hasPost('discount')) {
+    $discount = Input::post('discount', 'float', 0.0);
+}
+
+// Arrays
+$grades = Input::postArray('grades');     // retorna array ou []
+$ids    = Input::post('ids', 'intArray'); // retorna [1, 2, 3]
+```
+
+---
+
+### Classe: `Akti\Utils\Validator`
+
+Classe de validação **encadeável** que acumula erros por campo. Mensagens em **português do Brasil**. Apenas o primeiro erro por campo é registrado.
+
+#### Métodos de Estado
+
+| Método | Retorno | Descrição |
+|--------|---------|-----------|
+| `fails()` | `bool` | `true` se existem erros |
+| `passes()` | `bool` | `true` se não há erros |
+| `errors()` | `array` | `['campo' => 'mensagem', ...]` |
+| `error($field)` | `string\|null` | Primeiro erro de um campo |
+| `addError($field, $message)` | `self` | Adiciona erro manualmente |
+| `reset()` | `self` | Limpa todos os erros |
+
+#### Regras de Validação (encadeáveis, retornam `$this`)
+
+| Método | Parâmetros | Descrição |
+|--------|-----------|-----------|
+| `required($field, $value, $label)` | campo, valor, rótulo | Campo obrigatório |
+| `minLength($field, $value, $min, $label)` | | Comprimento mínimo |
+| `maxLength($field, $value, $max, $label)` | | Comprimento máximo |
+| `email($field, $value, $label)` | | E-mail válido |
+| `integer($field, $value, $label)` | | Inteiro válido |
+| `numeric($field, $value, $label)` | | Valor numérico |
+| `min($field, $value, $min, $label)` | | Valor mínimo |
+| `max($field, $value, $max, $label)` | | Valor máximo |
+| `inList($field, $value, $allowed, $label)` | | Valor na lista permitida |
+| `date($field, $value, $label)` | | Data `Y-m-d` válida |
+| `url($field, $value, $label)` | | URL válida |
+| `regex($field, $value, $pattern, $label, $message)` | | Regex customizado |
+| `cpf($field, $value, $label)` | | CPF com dígito verificador |
+| `cnpj($field, $value, $label)` | | CNPJ com dígito verificador |
+| `cpfOrCnpj($field, $value, $label)` | | CPF ou CNPJ (detecta pelo tamanho) |
+
+#### Helpers Estáticos
+
+| Método | Descrição |
+|--------|-----------|
+| `Validator::isValidCpf($cpf)` | Valida CPF (dígitos verificadores) |
+| `Validator::isValidCnpj($cnpj)` | Valida CNPJ (dígitos verificadores) |
+
+#### Exemplo Completo em Controller
+
+```php
+use Akti\Utils\Input;
+use Akti\Utils\Validator;
+
+public function store() {
+    $name  = Input::post('name');
+    $email = Input::post('email', 'email');
+    $price = Input::post('price', 'float', 0);
+
+    $v = new Validator();
+    $v->required('name', $name, 'Nome')
+      ->maxLength('name', $name, 191, 'Nome')
+      ->required('email', $email, 'E-mail')
+      ->email('email', $email, 'E-mail')
+      ->required('price', $price, 'Preço')
+      ->min('price', $price, 0.01, 'Preço');
+
+    if ($v->fails()) {
+        $_SESSION['errors'] = $v->errors();
+        $_SESSION['old'] = $_POST;
+        header('Location: ?page=products&action=create');
+        exit;
+    }
+    // Salvar no banco...
+}
+```
+
+---
+
+### Classe: `Akti\Utils\Escape`
+
+Classe **estática** de escape de saída. Cada método corresponde a um contexto de renderização.
+
+#### Métodos
+
+| Método | Contexto | Uso em View |
+|--------|----------|-------------|
+| `html($value)` | Conteúdo HTML (entre tags) | `<?= Escape::html($name) ?>` |
+| `attr($value)` | Atributos HTML (`value=`, `data-*=`, `alt=`) | `value="<?= Escape::attr($name) ?>"` |
+| `js($value)` | JavaScript inline (`<script>`) | `var x = <?= Escape::js($data) ?>;` |
+| `url($value)` | Query string / URL | `href="?search=<?= Escape::url($q) ?>"` |
+| `css($value)` | CSS inline (`style=`) | `color: <?= Escape::css($color) ?>` |
+| `number($value, $decimals, $decSep, $thousSep)` | Números formatados (BR) | `R$ <?= Escape::number($price) ?>` |
+
+---
+
+### Funções Globais de Escape (`escape_helper.php`)
+
+Atalhos para uso direto em views (**sem namespace**, carregados pelo autoload):
+
+| Função | Classe chamada | Contexto |
+|--------|---------------|----------|
+| `e($value)` | `Escape::html()` | Conteúdo HTML |
+| `eAttr($value)` | `Escape::attr()` | Atributos HTML |
+| `eJs($value)` | `Escape::js()` | JavaScript inline |
+| `eNum($value, $decimals)` | `Escape::number()` | Números formatados |
+| `eUrl($value)` | `Escape::url()` | URL / query string |
+
+#### Exemplos de Uso em Views
+
+```php
+<!-- Conteúdo HTML -->
+<td><?= e($customer['name']) ?></td>
+<span class="badge"><?= e($order['status']) ?></span>
+
+<!-- Atributos HTML -->
+<input type="text" name="name" value="<?= eAttr($product['name']) ?>">
+<button data-id="<?= eAttr($item['id']) ?>" data-name="<?= eAttr($item['name']) ?>">
+<img src="<?= eAttr($product['image_path']) ?>" alt="<?= eAttr($product['name']) ?>">
+
+<!-- JavaScript inline -->
+<script>
+var orderId = <?= eJs($order['id']) ?>;
+var config = <?= eJs(['stages' => $stages, 'goals' => $goals]) ?>;
+</script>
+
+<!-- Números formatados (BR) -->
+<td>R$ <?= eNum($order['total_amount']) ?></td>
+<td><?= eNum($quantity, 0) ?> un</td>
+
+<!-- URL -->
+<a href="?page=products&search=<?= eUrl($searchTerm) ?>">Buscar</a>
+```
+
+---
+
+### Regras Obrigatórias — Sanitização e Escape
+
+#### Para Controllers (Entrada)
+1. **NUNCA** acessar `$_POST`, `$_GET` ou `$_REQUEST` diretamente. Sempre usar `Input::post()`, `Input::get()` ou `Input::request()`.
+2. **SEMPRE** especificar o tipo correto no `Input::post()`: `'int'` para IDs, `'float'` para preços, `'email'` para e-mails, `'enum'` para valores de whitelist.
+3. **SEMPRE** usar `Input::postRaw()` apenas para senhas (que não devem ser sanitizadas antes do hash).
+4. **SEMPRE** validar com `Validator` antes de salvar dados no banco.
+5. **SEMPRE** adicionar `use Akti\Utils\Input;` e `use Akti\Utils\Validator;` no topo do controller.
+6. Para arrays (ex: `grades[]`, `items[]`), usar `Input::postArray('key')` e sanitizar cada item individualmente.
+7. Para dados em lote, usar `Input::allPost(['field1' => 'type1', 'field2' => 'type2'])`.
+
+#### Para Views (Saída)
+1. **NUNCA** exibir dados do banco ou da sessão sem escape.
+2. **NUNCA** usar `htmlspecialchars()` diretamente — sempre usar `e()` ou `eAttr()`.
+3. **SEMPRE** usar `e()` para conteúdo HTML (texto entre tags).
+4. **SEMPRE** usar `eAttr()` para atributos HTML (`value=`, `data-*=`, `src=`, `alt=`, `title=`, `content=`).
+5. **SEMPRE** usar `eJs()` para dados embutidos em `<script>`.
+6. **SEMPRE** usar `eNum()` para exibição de valores numéricos formatados.
+7. **SEMPRE** usar `eUrl()` para valores inseridos em query strings.
+8. Em views, as funções `e()`, `eAttr()`, `eJs()`, `eNum()`, `eUrl()` são globais — não precisam de `use`.
+
+#### Para Models (Banco de Dados)
+1. **SEMPRE** usar prepared statements com `?` ou `:parametro`.
+2. **NUNCA** concatenar variáveis em strings SQL.
+3. Para cláusulas `IN (...)`, usar `array_fill(0, count($ids), '?')` para gerar placeholders.
+4. Referências a `$this->table_name` ou `$this->table` (propriedades da classe) são seguras.
+5. Para `LIMIT`, usar `intval()` ou `PDO::PARAM_INT`.
+
+#### Para Novos Módulos
+1. Ao criar novo Controller, importar `Input` e `Validator`:
+   ```php
+   use Akti\Utils\Input;
+   use Akti\Utils\Validator;
+   ```
+2. Ao criar nova View, usar `e()`, `eAttr()`, `eJs()`, `eNum()` para toda saída dinâmica.
+3. Ao criar novo Model, usar exclusivamente prepared statements.
+
+---
+
+### Mapeamento de Campos por Módulo (Referência)
+
+#### Customers (Clientes)
+
+| Campo | Tipo Input | Validação |
+|-------|-----------|-----------|
+| `name` | `post('name')` | `required`, `maxLength(191)` |
+| `email` | `post('email', 'email')` | `email` |
+| `phone` | `post('phone', 'phone')` | — |
+| `document` | `post('document', 'document')` | — |
+| `cep` | `post('cep', 'cep')` | — |
+
+#### Products (Produtos)
+
+| Campo | Tipo Input | Validação |
+|-------|-----------|-----------|
+| `name` | `post('name')` | `required`, `maxLength(191)` |
+| `price` | `post('price', 'float')` | `min(0)` |
+| `category_id` | `post('category_id', 'int')` | `required` |
+| `sku` | `post('sku')` | `maxLength(50)` |
+
+#### Orders (Pedidos)
+
+| Campo | Tipo Input | Validação |
+|-------|-----------|-----------|
+| `customer_id` | `post('customer_id', 'int')` | `required` |
+| `status` | `post('status', 'enum', 'pendente', [...])` | `inList` |
+| `total_amount` | `post('total_amount', 'float')` | `min(0)` |
+| `deadline` | `post('deadline', 'date')` | `date` |
+| `discount` | `post('discount', 'float', 0)` | `min(0)` |
+
+#### Users (Usuários)
+
+| Campo | Tipo Input | Validação |
+|-------|-----------|-----------|
+| `name` | `post('name')` | `required`, `maxLength(191)` |
+| `email` | `post('email', 'email')` | `required`, `email` |
+| `password` | `postRaw('password')` | `required`, `minLength(6)` |
+| `role` | `post('role', 'enum', 'user', [...])` | `inList` |
+
+#### Financial (Financeiro)
+
+| Campo | Tipo Input | Validação |
+|-------|-----------|-----------|
+| `amount` | `post('amount', 'float')` | `required`, `min(0.01)` |
+| `type` | `post('type', 'enum', ..., ['entrada','saida'])` | `required`, `inList` |
+| `category` | `post('category', 'enum', ...)` | `required` |
+| `transaction_date` | `post('transaction_date', 'date')` | `required`, `date` |
+
+---
+
+### Tratamento de Erros de Validação
+
+#### Padrão no Controller
+```php
+if ($v->fails()) {
+    $_SESSION['errors'] = $v->errors();
+    $_SESSION['old'] = $_POST;
+    header('Location: ?page=modulo&action=create');
+    exit;
+}
+```
+
+#### Exibição na View
+```php
+<?php if (!empty($_SESSION['errors'])): ?>
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            <?php foreach ($_SESSION['errors'] as $field => $msg): ?>
+                <li><?= e($msg) ?></li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+    <?php unset($_SESSION['errors']); ?>
+<?php endif; ?>
+```
+
+#### Repopulação de Formulários
+```php
+<input type="text" name="name" value="<?= eAttr($_SESSION['old']['name'] ?? '') ?>">
+<?php unset($_SESSION['old']); ?>
+```

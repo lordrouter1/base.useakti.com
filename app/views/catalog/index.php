@@ -25,35 +25,35 @@ $cartCount = count($cartItems);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($companyName) ?> — Catálogo</title>
+    <title><?= e($companyName) ?> — Catálogo</title>
 
     <!-- SEO -->
-    <meta name="description" content="Catálogo de produtos de <?= htmlspecialchars($companyName) ?>. Navegue e monte sua lista de produtos.">
+    <meta name="description" content="Catálogo de produtos de <?= eAttr($companyName) ?>. Navegue e monte sua lista de produtos.">
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#2c3e50">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="<?= htmlspecialchars($companyName) ?> — Catálogo de Produtos">
+    <meta property="og:title" content="<?= eAttr($companyName) ?> — Catálogo de Produtos">
     <meta property="og:description" content="Navegue pelo catálogo e monte sua lista de produtos.">
     <?php if ($companyLogo): ?>
-    <meta property="og:image" content="<?= htmlspecialchars($companyLogo) ?>">
+    <meta property="og:image" content="<?= eAttr($companyLogo) ?>">
     <?php endif; ?>
     <meta property="og:locale" content="pt_BR">
 
     <!-- X (Twitter) Card -->
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="<?= htmlspecialchars($companyName) ?> — Catálogo">
+    <meta name="twitter:title" content="<?= eAttr($companyName) ?> — Catálogo">
     <meta name="twitter:description" content="Navegue pelo catálogo e monte sua lista de produtos.">
     <?php if ($companyLogo): ?>
-    <meta name="twitter:image" content="<?= htmlspecialchars($companyLogo) ?>">
+    <meta name="twitter:image" content="<?= eAttr($companyLogo) ?>">
     <?php endif; ?>
 
     <!-- Web App -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="<?= htmlspecialchars($companyName) ?>">
+    <meta name="apple-mobile-web-app-title" content="<?= eAttr($companyName) ?>">
     <link rel="icon" type="image/x-icon" href="assets/logos/akti-icon-dark.ico">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -335,16 +335,16 @@ $cartCount = count($cartItems);
         <div class="d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-3">
                 <?php if ($companyLogo): ?>
-                <img src="<?= htmlspecialchars($companyLogo) ?>" alt="Logo" class="logo-img">
+                <img src="<?= eAttr($companyLogo) ?>" alt="Logo" class="logo-img">
                 <?php else: ?>
                 <div class="d-flex align-items-center justify-content-center rounded-circle bg-white bg-opacity-10" style="width:42px;height:42px;">
                     <i class="fas fa-store text-white"></i>
                 </div>
                 <?php endif; ?>
                 <div>
-                    <h1><?= htmlspecialchars($companyName) ?></h1>
+                    <h1><?= e($companyName) ?></h1>
                     <div class="welcome-text">
-                        <i class="fas fa-user me-1"></i> Olá, <?= htmlspecialchars($customerName) ?>! Monte sua lista de produtos.
+                        <i class="fas fa-user me-1"></i> Olá, <?= e($customerName) ?>! Monte sua lista de produtos.
                     </div>
                 </div>
             </div>
@@ -377,7 +377,7 @@ $cartCount = count($cartItems);
                     </span>
                     <?php foreach ($categories as $cat): ?>
                     <span class="category-pill" data-category="<?= $cat['id'] ?>">
-                        <?= htmlspecialchars($cat['name']) ?>
+                        <?= e($cat['name']) ?>
                     </span>
                     <?php endforeach; ?>
                 </div>
@@ -412,7 +412,7 @@ $cartCount = count($cartItems);
         <div class="product-card" 
              data-product-id="<?= $prod['id'] ?>" 
              data-category="<?= $prod['category_id'] ?>"
-             data-name="<?= htmlspecialchars(strtolower($prod['name'])) ?>"
+             data-name="<?= eAttr(strtolower($prod['name'])) ?>"
              data-price="<?= $displayPrice ?>"
              data-has-combos="<?= !empty($productCombinations[$prod['id']]) ? '1' : '0' ?>">
             
@@ -428,16 +428,16 @@ $cartCount = count($cartItems);
             
             <div class="card-img-wrap">
                 <?php if ($mainImage): ?>
-                <img src="<?= htmlspecialchars($mainImage) ?>" alt="<?= htmlspecialchars($prod['name']) ?>" loading="lazy">
+                <img src="<?= eAttr($mainImage) ?>" alt="<?= eAttr($prod['name']) ?>" loading="lazy">
                 <?php else: ?>
                 <div class="no-image"><i class="fas fa-image"></i></div>
                 <?php endif; ?>
             </div>
             
             <div class="card-body">
-                <div class="product-name"><?= htmlspecialchars($prod['name']) ?></div>
+                <div class="product-name"><?= e($prod['name']) ?></div>
                 <?php if (!empty($prod['description'])): ?>
-                <div class="product-desc"><?= htmlspecialchars(mb_strimwidth($prod['description'], 0, 80, '...')) ?></div>
+                <div class="product-desc"><?= e(mb_strimwidth($prod['description'], 0, 80, '...')) ?></div>
                 <?php endif; ?>
                 
                 <?php if ($showPrices): ?>
@@ -451,9 +451,9 @@ $cartCount = count($cartItems);
                         <option value="">Selecione a variação...</option>
                         <?php foreach ($productCombinations[$prod['id']] as $combo): ?>
                         <option value="<?= $combo['id'] ?>" 
-                                data-label="<?= htmlspecialchars($combo['combination_label']) ?>"
+                                data-label="<?= e($combo['combination_label']) ?>"
                                 data-price="<?= $combo['price_override'] !== null ? $combo['price_override'] : '' ?>">
-                            <?= htmlspecialchars($combo['combination_label']) ?>
+                            <?= e($combo['combination_label']) ?>
                             <?php if ($showPrices && $combo['price_override'] !== null): ?>
                             — R$ <?= number_format($combo['price_override'], 2, ',', '.') ?>
                             <?php endif; ?>
@@ -515,16 +515,16 @@ $cartCount = count($cartItems);
             ?>
             <div class="cart-item" data-item-id="<?= $ci['id'] ?>" data-product-id="<?= $ci['product_id'] ?>">
                 <?php if ($ciMainImg): ?>
-                <img src="<?= htmlspecialchars($ciMainImg) ?>" class="cart-item-img" alt="">
+                <img src="<?= eAttr($ciMainImg) ?>" class="cart-item-img" alt="">
                 <?php else: ?>
                 <div class="cart-item-img d-flex align-items-center justify-content-center">
                     <i class="fas fa-image text-muted"></i>
                 </div>
                 <?php endif; ?>
                 <div class="cart-item-info">
-                    <div class="cart-item-name"><?= htmlspecialchars($ci['product_name']) ?></div>
+                    <div class="cart-item-name"><?= e($ci['product_name']) ?></div>
                     <?php if (!empty($ci['combination_label']) || !empty($ci['grade_description'])): ?>
-                    <div class="small text-info"><i class="fas fa-layer-group me-1"></i><?= htmlspecialchars($ci['combination_label'] ?? $ci['grade_description']) ?></div>
+                    <div class="small text-info"><i class="fas fa-layer-group me-1"></i><?= e($ci['combination_label'] ?? $ci['grade_description']) ?></div>
                     <?php endif; ?>
                     <?php if ($showPrices): ?>
                     <div class="cart-item-price">R$ <?= number_format($ci['unit_price'], 2, ',', '.') ?> × <?= $ci['quantity'] ?></div>
@@ -575,7 +575,7 @@ $cartCount = count($cartItems);
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-const TOKEN = '<?= htmlspecialchars($token) ?>';
+const TOKEN = '<?= e($token) ?>';
 const SHOW_PRICES = <?= $showPrices ? 'true' : 'false' ?>;
 const BASE_URL = '?page=catalog';
 

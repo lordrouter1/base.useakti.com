@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 class Subcategory {
@@ -34,6 +37,11 @@ class Subcategory {
 
         if($stmt->execute()) {
              $this->id = $this->conn->lastInsertId();
+            EventDispatcher::dispatch('model.subcategory.created', new Event('model.subcategory.created', [
+                'id' => $this->id,
+                'name' => $this->name,
+                'category_id' => $this->category_id,
+            ]));
             return true;
         }
         return false;
@@ -55,16 +63,28 @@ class Subcategory {
 
     public function update($id, $name, $categoryId) {
         $stmt = $this->conn->prepare("UPDATE subcategories SET name = :name, category_id = :cat WHERE id = :id");
-        return $stmt->execute([
+        $result = $stmt->execute([
             ':name' => htmlspecialchars(strip_tags($name)),
             ':cat'  => $categoryId,
             ':id'   => $id,
         ]);
+        if ($result) {
+            EventDispatcher::dispatch('model.subcategory.updated', new Event('model.subcategory.updated', [
+                'id' => $id,
+                'name' => $name,
+                'category_id' => $categoryId,
+            ]));
+        }
+        return $result;
     }
 
     public function delete($id) {
         $stmt = $this->conn->prepare("DELETE FROM subcategories WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        $result = $stmt->execute([':id' => $id]);
+        if ($result) {
+            EventDispatcher::dispatch('model.subcategory.deleted', new Event('model.subcategory.deleted', ['id' => $id]));
+        }
+        return $result;
     }
 
     public function countProducts($subId) {

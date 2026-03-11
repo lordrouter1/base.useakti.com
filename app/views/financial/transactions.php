@@ -29,9 +29,6 @@ $methodLabels = [
 <div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-2 mb-4 border-bottom">
     <h1 class="h2 mb-0"><i class="fas fa-exchange-alt me-2 text-success"></i>Entradas e Saídas</h1>
     <div class="btn-toolbar gap-2">
-        <a href="?page=financial" class="btn btn-sm btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i> Dashboard
-        </a>
         <a href="?page=financial&action=payments" class="btn btn-sm btn-outline-primary">
             <i class="fas fa-file-invoice-dollar me-1"></i> Pagamentos
         </a>
@@ -189,8 +186,8 @@ $methodLabels = [
                                 <span class="badge bg-danger"><i class="fas fa-arrow-up me-1"></i>Saída</span>
                             <?php endif; ?>
                         </td>
-                        <td class="small"><?= htmlspecialchars($allCats[$t['category']] ?? ucfirst($t['category'])) ?></td>
-                        <td class="small"><?= htmlspecialchars($t['description']) ?></td>
+                        <td class="small"><?= e($allCats[$t['category']] ?? ucfirst($t['category'])) ?></td>
+                        <td class="small"><?= e($t['description']) ?></td>
                         <td class="fw-bold <?= $isRegistro ? 'text-secondary' : ($t['type']==='entrada' ? 'text-success' : 'text-danger') ?>">
                             <?php if ($isRegistro): ?>
                                 — R$ <?= number_format($t['amount'], 2, ',', '.') ?>
@@ -201,7 +198,7 @@ $methodLabels = [
                             <?php endif; ?>
                         </td>
                         <td class="small"><?= $methodLabels[$t['payment_method'] ?? ''] ?? ($t['payment_method'] ? ucfirst($t['payment_method']) : '—') ?></td>
-                        <td class="small"><?= htmlspecialchars($t['user_name'] ?? '—') ?></td>
+                        <td class="small"><?= e($t['user_name'] ?? '—') ?></td>
                         <td class="text-end pe-3">
                             <?php if (empty($t['reference_type']) || $t['reference_type'] === 'manual'): ?>
                             <form method="post" action="?page=financial&action=deleteTransaction" class="d-inline">

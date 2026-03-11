@@ -38,7 +38,7 @@
         <div class="card h-100 shadow-sm warehouse-card <?= $wh['is_active'] ? '' : 'opacity-50' ?>">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
                 <h5 class="mb-0">
-                    <i class="fas fa-warehouse me-2 text-primary"></i><?= htmlspecialchars($wh['name']) ?>
+                    <i class="fas fa-warehouse me-2 text-primary"></i><?= e($wh['name']) ?>
                     <?php if (!empty($wh['is_default'])): ?>
                         <span class="badge bg-success ms-1"><i class="fas fa-star me-1"></i>Padrão</span>
                     <?php endif; ?>
@@ -49,20 +49,20 @@
                 <div class="btn-group btn-group-sm">
                     <?php if (empty($wh['is_default']) && $wh['is_active']): ?>
                     <button type="button" class="btn btn-outline-success btn-set-default-wh"
-                            data-id="<?= $wh['id'] ?>" data-name="<?= htmlspecialchars($wh['name']) ?>"
+                            data-id="<?= $wh['id'] ?>" data-name="<?= eAttr($wh['name']) ?>"
                             title="Definir como padrão">
                         <i class="fas fa-star"></i>
                     </button>
                     <?php endif; ?>
                     <button type="button" class="btn btn-outline-primary btn-edit-wh"
                             data-id="<?= $wh['id'] ?>"
-                            data-name="<?= htmlspecialchars($wh['name']) ?>"
-                            data-address="<?= htmlspecialchars($wh['address'] ?? '') ?>"
-                            data-city="<?= htmlspecialchars($wh['city'] ?? '') ?>"
-                            data-state="<?= htmlspecialchars($wh['state'] ?? '') ?>"
-                            data-zip="<?= htmlspecialchars($wh['zip_code'] ?? '') ?>"
-                            data-phone="<?= htmlspecialchars($wh['phone'] ?? '') ?>"
-                            data-notes="<?= htmlspecialchars($wh['notes'] ?? '') ?>"
+                            data-name="<?= eAttr($wh['name']) ?>"
+                            data-address="<?= eAttr($wh['address'] ?? '') ?>"
+                            data-city="<?= eAttr($wh['city'] ?? '') ?>"
+                            data-state="<?= eAttr($wh['state'] ?? '') ?>"
+                            data-zip="<?= eAttr($wh['zip_code'] ?? '') ?>"
+                            data-phone="<?= eAttr($wh['phone'] ?? '') ?>"
+                            data-notes="<?= eAttr($wh['notes'] ?? '') ?>"
                             data-active="<?= $wh['is_active'] ?>"
                             data-default="<?= $wh['is_default'] ?? 0 ?>"
                             title="Editar">
@@ -70,7 +70,7 @@
                     </button>
                     <?php if ($wh['total_items'] == 0): ?>
                     <button type="button" class="btn btn-outline-danger btn-delete-wh"
-                            data-id="<?= $wh['id'] ?>" data-name="<?= htmlspecialchars($wh['name']) ?>" title="Excluir">
+                            data-id="<?= $wh['id'] ?>" data-name="<?= eAttr($wh['name']) ?>" title="Excluir">
                         <i class="fas fa-trash"></i>
                     </button>
                     <?php endif; ?>
@@ -78,19 +78,19 @@
             </div>
             <div class="card-body py-3">
                 <?php if ($wh['address']): ?>
-                <p class="mb-1 small"><i class="fas fa-map-marker-alt text-danger me-2 opacity-50"></i><?= htmlspecialchars($wh['address']) ?></p>
+                <p class="mb-1 small"><i class="fas fa-map-marker-alt text-danger me-2 opacity-50"></i><?= e($wh['address']) ?></p>
                 <?php endif; ?>
                 <?php if ($wh['city'] || $wh['state']): ?>
-                <p class="mb-1 small"><i class="fas fa-city text-muted me-2 opacity-50"></i><?= htmlspecialchars(trim($wh['city'] . ' - ' . $wh['state'], ' - ')) ?></p>
+                <p class="mb-1 small"><i class="fas fa-city text-muted me-2 opacity-50"></i><?= e(trim($wh['city'] . ' - ' . $wh['state'], ' - ')) ?></p>
                 <?php endif; ?>
                 <?php if ($wh['zip_code']): ?>
-                <p class="mb-1 small"><i class="fas fa-envelope text-muted me-2 opacity-50"></i>CEP: <?= htmlspecialchars($wh['zip_code']) ?></p>
+                <p class="mb-1 small"><i class="fas fa-envelope text-muted me-2 opacity-50"></i>CEP: <?= e($wh['zip_code']) ?></p>
                 <?php endif; ?>
                 <?php if ($wh['phone']): ?>
-                <p class="mb-1 small"><i class="fas fa-phone text-muted me-2 opacity-50"></i><?= htmlspecialchars($wh['phone']) ?></p>
+                <p class="mb-1 small"><i class="fas fa-phone text-muted me-2 opacity-50"></i><?= e($wh['phone']) ?></p>
                 <?php endif; ?>
                 <?php if ($wh['notes']): ?>
-                <p class="mb-0 small text-muted fst-italic mt-2"><?= htmlspecialchars($wh['notes']) ?></p>
+                <p class="mb-0 small text-muted fst-italic mt-2"><?= e($wh['notes']) ?></p>
                 <?php endif; ?>
             </div>
             <div class="card-footer bg-light d-flex justify-content-between small text-muted">

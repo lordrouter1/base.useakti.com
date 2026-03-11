@@ -65,22 +65,22 @@
             ?>
             <tr>
                 <td class="ps-4 fw-bold">
-                    <a href="?page=pipeline&action=detail&id=<?= $order['id'] ?>" class="text-decoration-none text-dark">
-                        #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?>
+                    <a href="?page=pipeline&action=detail&id=<?= (int)$order['id'] ?>" class="text-decoration-none text-dark">
+                        #<?= str_pad((int)$order['id'], 4, '0', STR_PAD_LEFT) ?>
                     </a>
                 </td>
                 <td>
-                    <a href="?page=pipeline&action=detail&id=<?= $order['id'] ?>" class="text-decoration-none text-dark">
+                    <a href="?page=pipeline&action=detail&id=<?= (int)$order['id'] ?>" class="text-decoration-none text-dark">
                         <div class="d-flex align-items-center">
                             <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 30px; height: 30px; font-size: 0.75rem;">
-                                <?= $order['customer_name'] ? strtoupper(substr($order['customer_name'], 0, 1)) : '?' ?>
+                                <?= $order['customer_name'] ? e(strtoupper(substr($order['customer_name'], 0, 1))) : '?' ?>
                             </div>
-                            <?= $order['customer_name'] ?: '<span class="text-muted">Cliente Removido</span>' ?>
+                            <?= $order['customer_name'] ? e($order['customer_name']) : '<span class="text-muted">Cliente Removido</span>' ?>
                         </div>
                     </a>
                 </td>
                 <td class="small"><?= date('d/m/Y H:i', strtotime($order['created_at'])) ?></td>
-                <td class="fw-bold">R$ <?= number_format($order['total_amount'], 2, ',', '.') ?></td>
+                <td class="fw-bold">R$ <?= eNum($order['total_amount']) ?></td>
                 <td>
                     <a href="?page=pipeline&action=detail&id=<?= $order['id'] ?>" class="text-decoration-none">
                         <span class="badge rounded-pill px-2 py-1" style="background:<?= $stageData['color'] ?>;font-size:0.72rem;">
@@ -117,10 +117,10 @@
                         <a href="?page=pipeline&action=detail&id=<?= $order['id'] ?>" class="btn btn-sm btn-outline-info" title="Ver Pedido">
                             <i class="fas fa-eye"></i>
                         </a>
-                        <a href="?page=orders&action=edit&id=<?= $order['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
+                        <a href="?page=orders&action=edit&id=<?= (int)$order['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-order" data-id="<?= $order['id'] ?>" title="Excluir">
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-order" data-id="<?= (int)$order['id'] ?>" title="Excluir">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>

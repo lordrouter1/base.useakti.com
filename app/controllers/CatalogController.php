@@ -7,6 +7,8 @@ use Akti\Models\Product;
 use Akti\Models\PriceTable;
 use Akti\Models\CompanySettings;
 use Akti\Models\Logger;
+use Akti\Utils\Input;
+use Akti\Utils\Sanitizer;
 use Database;
 use PDOException;
 use PDO;
@@ -31,7 +33,7 @@ class CatalogController {
      * Página pública do catálogo (não precisa de login)
      */
     public function index() {
-        $token = $_GET['token'] ?? '';
+        $token = Input::get('token');
         
         $catalogModel = new CatalogLink($this->db);
         $link = $catalogModel->findByToken($token);
@@ -101,9 +103,9 @@ class CatalogController {
             exit;
         }
 
-        $orderId = $_POST['order_id'] ?? null;
-        $showPrices = isset($_POST['show_prices']) ? (bool)$_POST['show_prices'] : true;
-        $expiresIn = $_POST['expires_in'] ?? null; // dias até expirar
+        $orderId = Input::post('order_id', 'int');
+        $showPrices = Input::post('show_prices', 'bool');
+        $expiresIn = Input::post('expires_in', 'int');
 
         if (!$orderId) {
             echo json_encode(['success' => false, 'message' => 'Pedido não informado']);
@@ -144,7 +146,7 @@ class CatalogController {
     public function deactivate() {
         header('Content-Type: application/json');
 
-        $orderId = $_POST['order_id'] ?? $_GET['order_id'] ?? null;
+        $orderId = Input::post('order_id', 'int') ?: Input::get('order_id', 'int');
         if (!$orderId) {
             echo json_encode(['success' => false, 'message' => 'Pedido não informado']);
             exit;
@@ -166,7 +168,7 @@ class CatalogController {
     public function getLink() {
         header('Content-Type: application/json');
 
-        $orderId = $_GET['order_id'] ?? null;
+        $orderId = Input::get('order_id', 'int');
         if (!$orderId) {
             echo json_encode(['success' => false]);
             exit;
@@ -197,11 +199,11 @@ class CatalogController {
     public function addToCart() {
         header('Content-Type: application/json');
 
-        $token = $_POST['token'] ?? '';
-        $productId = $_POST['product_id'] ?? null;
-        $quantity = (int)($_POST['quantity'] ?? 1);
-        $combinationId = !empty($_POST['combination_id']) ? (int)$_POST['combination_id'] : null;
-        $gradeDescription = $_POST['grade_description'] ?? null;
+        $token = Input::post('token');
+        $productId = Input::post('product_id', 'int');
+        $quantity = Input::post('quantity', 'int', 1);
+        $combinationId = Input::post('combination_id', 'int') ?: null;
+        $gradeDescription = Input::post('grade_description');
 
         $catalogModel = new CatalogLink($this->db);
         $link = $catalogModel->findByToken($token);
@@ -266,8 +268,8 @@ class CatalogController {
     public function removeFromCart() {
         header('Content-Type: application/json');
 
-        $token = $_POST['token'] ?? '';
-        $itemId = $_POST['item_id'] ?? null;
+        $token = Input::post('token');
+        $itemId = Input::post('item_id', 'int');
 
         $catalogModel = new CatalogLink($this->db);
         $link = $catalogModel->findByToken($token);
@@ -314,9 +316,9 @@ class CatalogController {
     public function updateCartItem() {
         header('Content-Type: application/json');
 
-        $token = $_POST['token'] ?? '';
-        $itemId = $_POST['item_id'] ?? null;
-        $quantity = (int)($_POST['quantity'] ?? 1);
+        $token = Input::post('token');
+        $itemId = Input::post('item_id', 'int');
+        $quantity = Input::post('quantity', 'int', 1);
 
         $catalogModel = new CatalogLink($this->db);
         $link = $catalogModel->findByToken($token);
@@ -328,7 +330,6 @@ class CatalogController {
 
         if ($quantity < 1) {
             // Se quantidade zero, remover
-            $_POST['item_id'] = $itemId;
             $this->removeFromCart();
             return;
         }
@@ -369,7 +370,7 @@ class CatalogController {
     public function getCart() {
         header('Content-Type: application/json');
 
-        $token = $_GET['token'] ?? '';
+        $token = Input::get('token');
         $catalogModel = new CatalogLink($this->db);
         $link = $catalogModel->findByToken($token);
 

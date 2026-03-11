@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 class Product {
@@ -90,7 +93,14 @@ class Product {
         }
 
         if($stmt->execute()) {
-            return $this->conn->lastInsertId();
+            $newId = $this->conn->lastInsertId();
+            EventDispatcher::dispatch('model.product.created', new Event('model.product.created', [
+                'id' => $newId,
+                'name' => $data['name'],
+                'category_id' => $data['category_id'],
+                'price' => $data['price'],
+            ]));
+            return $newId;
         }
         return false;
     }
@@ -152,14 +162,27 @@ class Product {
             }
         }
 
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result) {
+            EventDispatcher::dispatch('model.product.updated', new Event('model.product.updated', [
+                'id' => $data['id'],
+                'name' => $data['name'],
+                'category_id' => $data['category_id'],
+                'price' => $data['price'],
+            ]));
+        }
+        return $result;
     }
 
     function delete($id) {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result) {
+            EventDispatcher::dispatch('model.product.deleted', new Event('model.product.deleted', ['id' => $id]));
+        }
+        return $result;
     }
     
     function deleteImage($imageId) {

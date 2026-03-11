@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 class Category {
@@ -29,6 +32,10 @@ class Category {
 
         if($stmt->execute()) {
             $this->id = $this->conn->lastInsertId();
+            EventDispatcher::dispatch('model.category.created', new Event('model.category.created', [
+                'id' => $this->id,
+                'name' => $this->name,
+            ]));
             return true;
         }
         return false;
@@ -52,12 +59,23 @@ class Category {
 
     public function update($id, $name) {
         $stmt = $this->conn->prepare("UPDATE categories SET name = :name WHERE id = :id");
-        return $stmt->execute([':name' => htmlspecialchars(strip_tags($name)), ':id' => $id]);
+        $result = $stmt->execute([':name' => htmlspecialchars(strip_tags($name)), ':id' => $id]);
+        if ($result) {
+            EventDispatcher::dispatch('model.category.updated', new Event('model.category.updated', [
+                'id' => $id,
+                'name' => $name,
+            ]));
+        }
+        return $result;
     }
 
     public function delete($id) {
         $stmt = $this->conn->prepare("DELETE FROM categories WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        $result = $stmt->execute([':id' => $id]);
+        if ($result) {
+            EventDispatcher::dispatch('model.category.deleted', new Event('model.category.deleted', ['id' => $id]));
+        }
+        return $result;
     }
 
     public function countProducts($categoryId) {

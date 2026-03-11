@@ -244,19 +244,19 @@ $prioLabels = ['urgente'=>'URGENTE','alta'=>'Alta','normal'=>'Normal','baixa'=>'
                     <td class="checkbox-col"><input type="checkbox"></td>
                     <td><strong>#<?= str_pad($c['id'], 4, '0', STR_PAD_LEFT) ?></strong></td>
                     <td>
-                        <strong><?= htmlspecialchars($c['customer_name']) ?></strong>
+                        <strong><?= e($c['customer_name']) ?></strong>
                         <?php if (!empty($c['customer_document'])): ?>
-                            <div class="contact-detail">Doc: <?= htmlspecialchars($c['customer_document']) ?></div>
+                            <div class="contact-detail">Doc: <?= e($c['customer_document']) ?></div>
                         <?php endif; ?>
                         <?php if (!empty($c['customer_address'])): ?>
                             <?php $fmtAddr = \Akti\Models\CompanySettings::formatCustomerAddress($c['customer_address']); ?>
                             <?php if ($fmtAddr): ?>
-                            <div class="contact-detail">📍 <?= htmlspecialchars(mb_substr($fmtAddr, 0, 50)) ?></div>
+                            <div class="contact-detail">📍 <?= e(mb_substr($fmtAddr, 0, 50)) ?></div>
                             <?php endif; ?>
                         <?php endif; ?>
                     </td>
-                    <td><?= htmlspecialchars($c['customer_phone'] ?? '—') ?></td>
-                    <td class="contact-detail"><?= htmlspecialchars($c['customer_email'] ?? '—') ?></td>
+                    <td><?= e($c['customer_phone'] ?? '—') ?></td>
+                    <td class="contact-detail"><?= e($c['customer_email'] ?? '—') ?></td>
                     <td>
                         <span class="priority-<?= $c['priority'] ?>">
                             <?= $prioLabels[$c['priority']] ?? 'Normal' ?>
@@ -264,7 +264,7 @@ $prioLabels = ['urgente'=>'URGENTE','alta'=>'Alta','normal'=>'Normal','baixa'=>'
                     </td>
                     <td>
                         <?php if (!empty($c['notes'])): ?>
-                            <div class="contact-notes"><?= nl2br(htmlspecialchars($c['notes'])) ?></div>
+                            <div class="contact-notes"><?= nl2br(e($c['notes'])) ?></div>
                         <?php else: ?>
                             <span style="color:#ccc;">—</span>
                         <?php endif; ?>

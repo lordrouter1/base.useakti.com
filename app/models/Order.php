@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 class Order {
@@ -39,6 +42,12 @@ class Order {
         $stmt->bindParam(':scheduled_date', $scheduledDate);
         if ($stmt->execute()) {
             $this->id = $this->conn->lastInsertId();
+            EventDispatcher::dispatch('model.order.created', new Event('model.order.created', [
+                'id' => $this->id,
+                'customer_id' => $this->customer_id,
+                'total_amount' => $this->total_amount,
+                'pipeline_stage' => $pipelineStage,
+            ]));
             return true;
         }
         return false;
@@ -122,14 +131,27 @@ class Order {
         $stmt->bindParam(':total_amount', $this->total_amount);
         $stmt->bindParam(':status', $this->status);
         $stmt->bindParam(':id', $this->id);
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result) {
+            EventDispatcher::dispatch('model.order.updated', new Event('model.order.updated', [
+                'id' => $this->id,
+                'customer_id' => $this->customer_id,
+                'total_amount' => $this->total_amount,
+                'status' => $this->status,
+            ]));
+        }
+        return $result;
     }
 
     public function delete($id) {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result) {
+            EventDispatcher::dispatch('model.order.deleted', new Event('model.order.deleted', ['id' => $id]));
+        }
+        return $result;
     }
 
     /**

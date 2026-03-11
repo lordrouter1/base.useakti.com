@@ -184,4 +184,48 @@ $(document).ready(function() {
         }
     }
 
+    // ═══════════════════════════════════════════════════
+    // EVENT BUS — Integração global com AktiModules
+    // ═══════════════════════════════════════════════════
+    // Ao carregar, aplicar regras de módulos a elementos com data-akti-module
+    // Convenção:
+    //   data-akti-module="boleto"           → guarda o clique (mostra alert se desabilitado)
+    //   data-akti-module-hide="nfe"         → oculta o elemento se módulo desabilitado
+    //   data-akti-module-disable="boleto"   → desabilita o botão se módulo desabilitado
+    if (window.AktiModules && window.AktiEvents) {
+
+        // ── Desabilitar botões com data-akti-module-disable ──
+        $('[data-akti-module-disable]').each(function() {
+            var slug = $(this).data('akti-module-disable');
+            if (!AktiModules.isEnabled(slug)) {
+                $(this).prop('disabled', true)
+                       .addClass('btn-outline-secondary')
+                       .removeClass('btn-outline-primary btn-primary btn-success btn-outline-success')
+                       .attr('title', 'Módulo ' + AktiModules.getLabel(slug) + ' inativo');
+            }
+        });
+
+        // ── Ocultar elementos com data-akti-module-hide ──
+        $('[data-akti-module-hide]').each(function() {
+            var slug = $(this).data('akti-module-hide');
+            if (!AktiModules.isEnabled(slug)) {
+                $(this).addClass('d-none');
+            }
+        });
+
+        // ── Guardar clique em elementos com data-akti-module ──
+        $(document).on('click', '[data-akti-module]', function(e) {
+            var slug = $(this).data('akti-module');
+            if (!AktiModules.isEnabled(slug)) {
+                e.preventDefault();
+                e.stopPropagation();
+                AktiModules.showDisabledAlert(slug);
+                return false;
+            }
+        });
+
+        // ── Emitir evento de pronto para módulos ──
+        AktiEvents.emit('modules:ready');
+    }
+
 });

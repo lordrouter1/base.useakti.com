@@ -84,3 +84,10 @@ require_once AKTI_BASE_PATH . 'app/config/database.php';
 // ── Carregar helpers globais (funções utilitárias sem namespace) ──
 // form_helper.php define csrf_field(), csrf_meta(), csrf_token()
 require_once AKTI_BASE_PATH . 'app/utils/form_helper.php';
+
+// escape_helper.php define e(), eAttr(), eJs(), eNum(), eUrl() para escape de saída em views
+require_once AKTI_BASE_PATH . 'app/utils/escape_helper.php';
+
+// ── Carregar bootstrap de eventos (registro de listeners) ──
+// events.php registra listeners globais e futuramente inclui listeners de módulos
+require_once AKTI_BASE_PATH . 'app/bootstrap/events.php';

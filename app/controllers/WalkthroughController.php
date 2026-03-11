@@ -3,6 +3,7 @@ namespace Akti\Controllers;
 
 use Akti\Models\Walkthrough;
 use Akti\Models\UserGroup;
+use Akti\Utils\Input;
 use Database;
 
 class WalkthroughController {
@@ -97,7 +98,7 @@ class WalkthroughController {
         }
 
         $userId = (int) $_SESSION['user_id'];
-        $step = isset($_POST['step']) ? (int) $_POST['step'] : 0;
+        $step = Input::post('step', 'int', 0);
         $result = $this->walkthroughModel->saveStep($userId, $step);
         echo json_encode(['success' => $result]);
     }

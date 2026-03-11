@@ -29,6 +29,7 @@ class ComposerStaticInitebeac99ebddc893c5a201d8ace38367f
             'Akti\\Security\\' => 14,
             'Akti\\Models\\' => 12,
             'Akti\\Middleware\\' => 16,
+            'Akti\\Core\\' => 10,
             'Akti\\Controllers\\' => 17,
             'Akti\\Config\\' => 12,
         ),
@@ -71,6 +72,10 @@ class ComposerStaticInitebeac99ebddc893c5a201d8ace38367f
         array (
             0 => __DIR__ . '/../..' . '/app/middleware',
         ),
+        'Akti\\Core\\' =>
+        array (
+            0 => __DIR__ . '/../..' . '/app/core',
+        ),
         'Akti\\Controllers\\' =>
         array (
             0 => __DIR__ . '/../..' . '/app/controllers',
@@ -96,6 +101,12 @@ class ComposerStaticInitebeac99ebddc893c5a201d8ace38367f
         'Akti\\Controllers\\StockController' => __DIR__ . '/../..' . '/app/controllers/StockController.php',
         'Akti\\Controllers\\UserController' => __DIR__ . '/../..' . '/app/controllers/UserController.php',
         'Akti\\Controllers\\WalkthroughController' => __DIR__ . '/../..' . '/app/controllers/WalkthroughController.php',
+        'Akti\\Core\\Event' => __DIR__ . '/../..' . '/app/core/Event.php',
+        'Akti\\Core\\EventDispatcher' => __DIR__ . '/../..' . '/app/core/EventDispatcher.php',
+        'Akti\\Core\\ModuleBootloader' => __DIR__ . '/../..' . '/app/core/ModuleBootloader.php',
+        'Akti\\Core\\Router' => __DIR__ . '/../..' . '/app/core/Router.php',
+        'Akti\\Core\\Security' => __DIR__ . '/../..' . '/app/core/Security.php',
+        'Akti\\Middleware\\CsrfMiddleware' => __DIR__ . '/../..' . '/app/middleware/CsrfMiddleware.php',
         'Akti\\Models\\CatalogLink' => __DIR__ . '/../..' . '/app/models/CatalogLink.php',
         'Akti\\Models\\Category' => __DIR__ . '/../..' . '/app/models/Category.php',
         'Akti\\Models\\CategoryGrade' => __DIR__ . '/../..' . '/app/models/CategoryGrade.php',
@@ -128,6 +139,7 @@ class ComposerStaticInitebeac99ebddc893c5a201d8ace38367f
         'Akti\\Tests\\Pages\\StockFinancialTest' => __DIR__ . '/../..' . '/tests/Pages/StockFinancialTest.php',
         'Akti\\Tests\\Pages\\UserTest' => __DIR__ . '/../..' . '/tests/Pages/UserTest.php',
         'Akti\\Tests\\TestCase' => __DIR__ . '/../..' . '/tests/TestCase.php',
+        'Akti\\Tests\\Unit\\EventDispatcherTest' => __DIR__ . '/../..' . '/tests/Unit/EventDispatcherTest.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'Database' => __DIR__ . '/../..' . '/app/config/database.php',
         'DeepCopy\\DeepCopy' => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy/DeepCopy.php',

@@ -101,7 +101,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
                     <div class="col-md-3">
                         <label for="fiscal_ncm" class="form-label fw-bold small text-muted">NCM</label>
                         <input type="text" class="form-control" id="fiscal_ncm" name="fiscal_ncm" 
-                               value="<?= htmlspecialchars($p['fiscal_ncm'] ?? '') ?>" 
+                               value="<?= eAttr($p['fiscal_ncm'] ?? '') ?>" 
                                placeholder="00000000" maxlength="10"
                                title="Nomenclatura Comum do Mercosul (8 dígitos)">
                         <small class="text-muted" style="font-size:0.65rem;">8 dígitos. Ex: 49019900</small>
@@ -109,7 +109,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
                     <div class="col-md-3">
                         <label for="fiscal_cest" class="form-label fw-bold small text-muted">CEST</label>
                         <input type="text" class="form-control" id="fiscal_cest" name="fiscal_cest" 
-                               value="<?= htmlspecialchars($p['fiscal_cest'] ?? '') ?>" 
+                               value="<?= eAttr($p['fiscal_cest'] ?? '') ?>" 
                                placeholder="0000000" maxlength="10"
                                title="Código Especificador da Substituição Tributária (7 dígitos)">
                         <small class="text-muted" style="font-size:0.65rem;">7 dígitos (se aplicável)</small>
@@ -117,7 +117,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
                     <div class="col-md-3">
                         <label for="fiscal_cfop" class="form-label fw-bold small text-muted">CFOP</label>
                         <input type="text" class="form-control" id="fiscal_cfop" name="fiscal_cfop" 
-                               value="<?= htmlspecialchars($p['fiscal_cfop'] ?? '') ?>" 
+                               value="<?= eAttr($p['fiscal_cfop'] ?? '') ?>" 
                                placeholder="5102" maxlength="10"
                                title="Código Fiscal de Operações e Prestações">
                         <small class="text-muted" style="font-size:0.65rem;">Ex: 5102 (venda merc.)</small>
@@ -125,7 +125,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
                     <div class="col-md-3">
                         <label for="fiscal_ean" class="form-label fw-bold small text-muted">EAN/GTIN</label>
                         <input type="text" class="form-control" id="fiscal_ean" name="fiscal_ean" 
-                               value="<?= htmlspecialchars($p['fiscal_ean'] ?? '') ?>" 
+                               value="<?= eAttr($p['fiscal_ean'] ?? '') ?>" 
                                placeholder="Código de barras" maxlength="14">
                         <small class="text-muted" style="font-size:0.65rem;">Código de barras (se houver)</small>
                     </div>
@@ -159,7 +159,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
                     <div class="col-md-3">
                         <label for="fiscal_beneficio" class="form-label fw-bold small text-muted">Código Benefício Fiscal</label>
                         <input type="text" class="form-control" id="fiscal_beneficio" name="fiscal_beneficio" 
-                               value="<?= htmlspecialchars($p['fiscal_beneficio'] ?? '') ?>" 
+                               value="<?= eAttr($p['fiscal_beneficio'] ?? '') ?>" 
                                placeholder="cBenef" maxlength="20">
                     </div>
                 </div>
@@ -195,7 +195,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
                         <label for="fiscal_aliq_icms" class="form-label fw-bold small text-muted">Alíquota ICMS (%)</label>
                         <div class="input-group">
                             <input type="number" step="0.01" class="form-control" id="fiscal_aliq_icms" name="fiscal_aliq_icms" 
-                                   value="<?= htmlspecialchars($p['fiscal_aliq_icms'] ?? '') ?>" placeholder="0.00" min="0" max="100">
+                                   value="<?= eAttr($p['fiscal_aliq_icms'] ?? '') ?>" placeholder="0.00" min="0" max="100">
                             <span class="input-group-text">%</span>
                         </div>
                     </div>
@@ -222,7 +222,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
                         <label for="fiscal_aliq_pis" class="form-label fw-bold small text-muted">Alíq. PIS (%)</label>
                         <div class="input-group input-group-sm">
                             <input type="number" step="0.0001" class="form-control" id="fiscal_aliq_pis" name="fiscal_aliq_pis" 
-                                   value="<?= htmlspecialchars($p['fiscal_aliq_pis'] ?? '') ?>" placeholder="0.65" min="0" max="100">
+                                   value="<?= eAttr($p['fiscal_aliq_pis'] ?? '') ?>" placeholder="0.65" min="0" max="100">
                             <span class="input-group-text">%</span>
                         </div>
                     </div>
@@ -238,7 +238,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
                         <label for="fiscal_aliq_cofins" class="form-label fw-bold small text-muted">Alíq. COFINS (%)</label>
                         <div class="input-group input-group-sm">
                             <input type="number" step="0.0001" class="form-control" id="fiscal_aliq_cofins" name="fiscal_aliq_cofins" 
-                                   value="<?= htmlspecialchars($p['fiscal_aliq_cofins'] ?? '') ?>" placeholder="3.00" min="0" max="100">
+                                   value="<?= eAttr($p['fiscal_aliq_cofins'] ?? '') ?>" placeholder="3.00" min="0" max="100">
                             <span class="input-group-text">%</span>
                         </div>
                     </div>
@@ -254,7 +254,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
                         <label for="fiscal_aliq_ipi" class="form-label fw-bold small text-muted">Alíq. IPI (%)</label>
                         <div class="input-group input-group-sm">
                             <input type="number" step="0.01" class="form-control" id="fiscal_aliq_ipi" name="fiscal_aliq_ipi" 
-                                   value="<?= htmlspecialchars($p['fiscal_aliq_ipi'] ?? '') ?>" placeholder="0.00" min="0" max="100">
+                                   value="<?= eAttr($p['fiscal_aliq_ipi'] ?? '') ?>" placeholder="0.00" min="0" max="100">
                             <span class="input-group-text">%</span>
                         </div>
                     </div>
@@ -272,7 +272,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
                     <div class="col-12">
                         <label for="fiscal_info_adicional" class="form-label fw-bold small text-muted">Informações Adicionais do Produto (NF-e)</label>
                         <textarea class="form-control" id="fiscal_info_adicional" name="fiscal_info_adicional" rows="2" 
-                                  placeholder="Texto livre que aparecerá na NF-e como info adicional do produto"><?= htmlspecialchars($p['fiscal_info_adicional'] ?? '') ?></textarea>
+                                  placeholder="Texto livre que aparecerá na NF-e como info adicional do produto"><?= e($p['fiscal_info_adicional'] ?? '') ?></textarea>
                     </div>
                 </div>
             </div>

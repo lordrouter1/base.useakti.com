@@ -114,7 +114,7 @@ $isLowStock = isset($_GET['low_stock']) && $_GET['low_stock'] == '1';
         <strong>Estoque Baixo:</strong>
         <?php foreach ($lowStockItems as $lsi): ?>
             <span class="badge bg-danger ms-1">
-                <?= htmlspecialchars($lsi['product_name']) ?>
+                <?= e($lsi['product_name']) ?>
                 <?= $lsi['combination_label'] ? '(' . $lsi['combination_label'] . ')' : '' ?>
                 — <?= intval($lsi['quantity']) ?>/<?= intval($lsi['min_quantity']) ?>
                 <small>(<?= $lsi['warehouse_name'] ?>)</small>
@@ -134,7 +134,7 @@ $isLowStock = isset($_GET['low_stock']) && $_GET['low_stock'] == '1';
             <option value="">Todos os Armazéns</option>
             <?php foreach ($warehouses as $wh): ?>
                 <option value="<?= $wh['id'] ?>" <?= $currentWarehouse == $wh['id'] ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($wh['name']) ?> (<?= $wh['total_items'] ?> itens)
+                    <?= e($wh['name']) ?> (<?= $wh['total_items'] ?> itens)
                 </option>
             <?php endforeach; ?>
         </select>
@@ -143,7 +143,7 @@ $isLowStock = isset($_GET['low_stock']) && $_GET['low_stock'] == '1';
         <label class="form-label small fw-bold">Buscar</label>
         <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="fas fa-search"></i></span>
-            <input type="text" name="search" class="form-control" placeholder="Produto, variação ou localização..." value="<?= htmlspecialchars($currentSearch) ?>">
+            <input type="text" name="search" class="form-control" placeholder="Produto, variação ou localização..." value="<?= eAttr($currentSearch) ?>">
         </div>
     </div>
     <div class="col-md-2">
@@ -188,16 +188,16 @@ $isLowStock = isset($_GET['low_stock']) && $_GET['low_stock'] == '1';
                         <?php endif; ?>
                     </div>
                 </td>
-                <td class="fw-bold"><?= htmlspecialchars($si['product_name']) ?></td>
+                <td class="fw-bold"><?= e($si['product_name']) ?></td>
                 <td>
                     <?php if ($si['combination_label']): ?>
-                        <span class="badge bg-info bg-opacity-75"><?= htmlspecialchars($si['combination_label']) ?></span>
+                        <span class="badge bg-info bg-opacity-75"><?= e($si['combination_label']) ?></span>
                     <?php else: ?>
                         <span class="text-muted small">—</span>
                     <?php endif; ?>
                 </td>
                 <td>
-                    <span class="badge bg-light text-dark border"><?= htmlspecialchars($si['warehouse_name']) ?></span>
+                    <span class="badge bg-light text-dark border"><?= e($si['warehouse_name']) ?></span>
                 </td>
                 <td class="text-center">
                     <?php if ($isLow): ?>
@@ -212,15 +212,15 @@ $isLowStock = isset($_GET['low_stock']) && $_GET['low_stock'] == '1';
                     <span class="text-muted small"><?= $si['min_quantity'] > 0 ? number_format($si['min_quantity'], 0) : '—' ?></span>
                 </td>
                 <td>
-                    <span class="text-muted small"><?= $si['location_code'] ? htmlspecialchars($si['location_code']) : '—' ?></span>
+                    <span class="text-muted small"><?= $si['location_code'] ? e($si['location_code']) : '—' ?></span>
                 </td>
                 <td class="text-end pe-4">
                     <div class="btn-group btn-group-sm">
                         <button type="button" class="btn btn-outline-secondary btn-edit-meta"
                                 data-id="<?= $si['id'] ?>"
                                 data-min="<?= $si['min_quantity'] ?>"
-                                data-loc="<?= htmlspecialchars($si['location_code'] ?? '') ?>"
-                                data-name="<?= htmlspecialchars($si['product_name']) ?>"
+                                data-loc="<?= eAttr($si['location_code'] ?? '') ?>"
+                                data-name="<?= eAttr($si['product_name']) ?>"
                                 title="Editar mínimo/localização">
                             <i class="fas fa-cog"></i>
                         </button>

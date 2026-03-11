@@ -15,6 +15,8 @@ use Akti\Models\PreparationStep;
 use Akti\Models\CompanySettings;
 use Akti\Models\Financial;
 use Akti\Core\ModuleBootloader;
+use Akti\Utils\Input;
+use Akti\Utils\Sanitizer;
 use Database;
 use PDO;
 
@@ -243,16 +245,16 @@ class PipelineController {
      * Integra lógica de dedução/devolução de estoque conforme zona.
      */
     public function move() {
-        if (!isset($_GET['id']) || !isset($_GET['stage'])) {
+        $orderId = Input::get('id', 'int');
+        $newStage = Input::get('stage');
+        if (!$orderId || !$newStage) {
             header('Location: ?page=pipeline');
             exit;
         }
 
-        $orderId = $_GET['id'];
-        $newStage = $_GET['stage'];
-        $notes = $_POST['notes'] ?? ($_GET['notes'] ?? '');
+        $notes = Input::post('notes') ?: Input::get('notes', 'string', '');
         $userId = $_SESSION['user_id'] ?? null;
-        $warehouseId = $_GET['warehouse_id'] ?? $_POST['warehouse_id'] ?? null;
+        $warehouseId = Input::get('warehouse_id', 'int') ?: Input::post('warehouse_id', 'int');
 
         // Buscar etapa atual do pedido
         $stmtCurrent = $this->db->prepare("SELECT pipeline_stage FROM orders WHERE id = :id");
@@ -290,10 +292,10 @@ class PipelineController {
     public function moveAjax() {
         header('Content-Type: application/json');
 
-        $orderId = $_POST['order_id'] ?? null;
-        $newStage = $_POST['stage'] ?? null;
+        $orderId = Input::post('order_id', 'int');
+        $newStage = Input::post('stage');
         $userId = $_SESSION['user_id'] ?? null;
-        $warehouseId = $_POST['warehouse_id'] ?? null;
+        $warehouseId = Input::post('warehouse_id', 'int');
 
         if (!$orderId || !$newStage) {
             echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos']);
@@ -353,18 +355,19 @@ class PipelineController {
      * Detalhes de um pedido no pipeline
      */
     public function detail() {
-        if (!isset($_GET['id'])) {
+        $detailId = Input::get('id', 'int');
+        if (!$detailId) {
             header('Location: ?page=pipeline');
             exit;
         }
 
-        $order = $this->pipelineModel->getOrderDetail($_GET['id']);
+        $order = $this->pipelineModel->getOrderDetail($detailId);
         if (!$order) {
             header('Location: ?page=pipeline');
             exit;
         }
 
-        $history = $this->pipelineModel->getHistory($_GET['id']);
+        $history = $this->pipelineModel->getHistory($detailId);
         $stages = Pipeline::$stages;
         $goals = $this->pipelineModel->getStageGoals();
 
@@ -388,8 +391,8 @@ class PipelineController {
         }
 
         $orderModel = new Order($this->db);
-        $orderItems = $orderModel->getItems($_GET['id']);
-        $extraCosts = $orderModel->getExtraCosts($_GET['id']);
+        $orderItems = $orderModel->getItems($detailId);
+        $extraCosts = $orderModel->getExtraCosts($detailId);
 
         // Carregar preços específicos do cliente (tabela de preço)
         $priceTableModel = new PriceTable($this->db);
@@ -416,21 +419,21 @@ class PipelineController {
         $isProduction = in_array($order['pipeline_stage'], ['producao', 'preparacao']);
         if ($isProduction) {
             // Garantir que setores existam (para pedidos que já estavam em produção antes do recurso)
-            $this->pipelineModel->initOrderProductionSectors($_GET['id']);
+            $this->pipelineModel->initOrderProductionSectors($detailId);
         }
         // Carregar setores mesmo em concluido/cancelado para exibição read-only
-        $orderProductionSectors = $this->pipelineModel->getOrderProductionSectors($_GET['id']);
+        $orderProductionSectors = $this->pipelineModel->getOrderProductionSectors($detailId);
         $userAllowedSectorIds = $userModel->getAllowedSectorIds($_SESSION['user_id'] ?? 0);
 
         // Carregar logs dos itens do pedido
         $logModel = new OrderItemLog($this->db);
         $logModel->createTableIfNotExists();
-        $orderItemLogs = $logModel->getLogsByOrder($_GET['id']);
-        $orderItemLogCounts = $logModel->countLogsByOrderGrouped($_GET['id']);
+        $orderItemLogs = $logModel->getLogsByOrder($detailId);
+        $orderItemLogCounts = $logModel->countLogsByOrderGrouped($detailId);
 
         // Carregar checklist de preparação do pedido
         $prepModel = new OrderPreparation($this->db);
-        $orderPreparationChecklist = $prepModel->getChecklist($_GET['id']);
+        $orderPreparationChecklist = $prepModel->getChecklist($detailId);
 
         // Carregar etapas de preparo configuráveis (globais)
         $prepStepModel = new PreparationStep($this->db);
@@ -446,11 +449,11 @@ class PipelineController {
         $defaultWarehouse = $this->stockModel->getDefaultWarehouse();
 
         // Carregar deduções ativas do pedido (para exibição no detalhe)
-        $activeDeductions = $this->stockModel->getActiveDeductions($_GET['id']);
+        $activeDeductions = $this->stockModel->getActiveDeductions($detailId);
 
         // Carregar contagem de parcelas existentes (order_installments)
         $financialModel = new Financial($this->db);
-        $existingInstallmentCount = $financialModel->countInstallments($_GET['id']);
+        $existingInstallmentCount = $financialModel->countInstallments($detailId);
 
         require 'app/views/layout/header.php';
         require 'app/views/pipeline/detail.php';
@@ -463,28 +466,28 @@ class PipelineController {
     public function updateDetails() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = [
-                'id' => $_POST['id'],
-                'priority' => $_POST['priority'] ?? 'normal',
-                'assigned_to' => !empty($_POST['assigned_to']) ? $_POST['assigned_to'] : null,
-                'internal_notes' => $_POST['internal_notes'] ?? '',
-                'quote_notes' => $_POST['quote_notes'] ?? '',
-                'deadline' => !empty($_POST['deadline']) ? $_POST['deadline'] : null,
-                'payment_status' => $_POST['payment_status'] ?? 'pendente',
-                'payment_method' => $_POST['payment_method'] ?? null,
-                'installments' => !empty($_POST['installments']) ? (int)$_POST['installments'] : null,
-                'installment_value' => !empty($_POST['installment_value']) ? (float)$_POST['installment_value'] : null,
-                'discount' => $_POST['discount'] ?? 0,
-                'down_payment' => !empty($_POST['down_payment']) ? (float)$_POST['down_payment'] : 0,
-                'shipping_type' => $_POST['shipping_type'] ?? 'retirada',
-                'shipping_address' => $_POST['shipping_address'] ?? '',
-                'tracking_code' => $_POST['tracking_code'] ?? '',
-                'price_table_id' => !empty($_POST['price_table_id']) ? $_POST['price_table_id'] : null,
+                'id' => Input::post('id', 'int'),
+                'priority' => Input::post('priority', 'enum', 'normal', ['baixa', 'normal', 'alta', 'urgente']),
+                'assigned_to' => Input::post('assigned_to', 'int') ?: null,
+                'internal_notes' => Input::post('internal_notes'),
+                'quote_notes' => Input::post('quote_notes'),
+                'deadline' => Input::post('deadline', 'date') ?: null,
+                'payment_status' => Input::post('payment_status', 'enum', 'pendente', ['pendente', 'parcial', 'pago']),
+                'payment_method' => Input::post('payment_method'),
+                'installments' => Input::post('installments', 'int') ?: null,
+                'installment_value' => Input::post('installment_value', 'float') ?: null,
+                'discount' => Input::post('discount', 'float', 0),
+                'down_payment' => Input::post('down_payment', 'float', 0),
+                'shipping_type' => Input::post('shipping_type', 'enum', 'retirada', ['retirada', 'entrega', 'correios']),
+                'shipping_address' => Input::post('shipping_address'),
+                'tracking_code' => Input::post('tracking_code'),
+                'price_table_id' => Input::post('price_table_id', 'int') ?: null,
                 // Campos fiscais (NF-e)
-                'nf_number' => $_POST['nf_number'] ?? null,
-                'nf_series' => $_POST['nf_series'] ?? null,
-                'nf_status' => $_POST['nf_status'] ?? null,
-                'nf_access_key' => $_POST['nf_access_key'] ?? null,
-                'nf_notes' => $_POST['nf_notes'] ?? null,
+                'nf_number' => Input::post('nf_number'),
+                'nf_series' => Input::post('nf_series'),
+                'nf_status' => Input::post('nf_status'),
+                'nf_access_key' => Input::post('nf_access_key'),
+                'nf_notes' => Input::post('nf_notes'),
             ];
 
             $this->pipelineModel->updateOrderDetails($data);
@@ -492,21 +495,73 @@ class PipelineController {
             $logger = new Logger($this->db);
             $logger->log('PIPELINE_UPDATE', "Updated order details #" . $data['id']);
 
-            // ═══ AUTO-GERAR PARCELAS ═══
-            // Se o pedido está em etapa financeiro/concluido e tem forma de pagamento,
-            // gerar parcelas automaticamente (se ainda não existirem)
+            // ═══ AUTO-GERAR/REGENERAR PARCELAS ═══
             $orderId = $data['id'];
-            $stmtStage = $this->db->prepare("SELECT pipeline_stage FROM orders WHERE id = :id");
+            $stmtStage = $this->db->prepare("SELECT pipeline_stage, total_amount FROM orders WHERE id = :id");
             $stmtStage->execute([':id' => $orderId]);
             $currentOrderData = $stmtStage->fetch(PDO::FETCH_ASSOC);
             $currentOrderStage = $currentOrderData['pipeline_stage'] ?? '';
 
             if (in_array($currentOrderStage, ['venda', 'financeiro', 'concluido']) && !empty($data['payment_method'])) {
-                $this->autoGenerateInstallments($orderId);
+                $financialModel = new Financial($this->db);
+                $existingCount = $financialModel->countInstallments($orderId);
+
+                if ($existingCount === 0) {
+                    // Nenhuma parcela existe — gerar automaticamente
+                    $this->autoGenerateInstallments($orderId);
+                } else {
+                    // Parcelas existem — verificar se a configuração de pagamento mudou
+                    // Comparar com os dados reais das parcelas no banco
+                    $existingInstallments = $financialModel->getInstallments($orderId);
+                    // Contar apenas parcelas regulares (excluir entrada — installment_number = 0)
+                    $regularInstallments = array_filter($existingInstallments, function($i) {
+                        return (int)$i['installment_number'] > 0;
+                    });
+                    $existingRegularCount = count($regularInstallments);
+                    $hasExistingDownPayment = !empty(array_filter($existingInstallments, function($i) {
+                        return (int)$i['installment_number'] === 0;
+                    }));
+
+                    // Verificar se alguma parcela já foi paga — se sim, não regenerar automaticamente
+                    $anyPaid = false;
+                    foreach ($existingInstallments as $inst) {
+                        if ($inst['status'] === 'pago') {
+                            $anyPaid = true;
+                            break;
+                        }
+                    }
+
+                    if (!$anyPaid) {
+                        // Nenhuma parcela paga — podemos regenerar se a config mudou
+                        $newInstallments = (int)($data['installments'] ?? 0);
+                        $newDownPayment = (float)($data['down_payment'] ?? 0);
+
+                        // Determinar numero esperado de parcelas com base na forma de pagamento
+                        $parcelableMethods = ['cartao_credito'];
+                        if (ModuleBootloader::isModuleEnabled('boleto')) {
+                            $parcelableMethods[] = 'boleto';
+                        }
+                        $isParcelable = in_array($data['payment_method'], $parcelableMethods);
+                        $expectedRegularCount = ($isParcelable && $newInstallments >= 2) ? $newInstallments : 1;
+                        $expectDownPayment = ($newDownPayment > 0);
+
+                        // Regenerar se: número de parcelas mudou OU status da entrada mudou
+                        $needsRegeneration = ($existingRegularCount !== $expectedRegularCount)
+                            || ($hasExistingDownPayment !== $expectDownPayment);
+
+                        if ($needsRegeneration) {
+                            $totalAmount = (float)($currentOrderData['total_amount'] ?? 0) - (float)($data['discount'] ?? 0);
+                            if ($totalAmount > 0) {
+                                $financialModel->generateInstallments($orderId, $totalAmount, $expectedRegularCount, $newDownPayment);
+                                $logger->log('INSTALLMENTS_REGENERATED', "Regenerated installments for order #$orderId (method: {$data['payment_method']}, count: $expectedRegularCount, down_payment: $newDownPayment)");
+                            }
+                        }
+                    }
+                }
             }
 
             // Se veio do botão "Imprimir Nota de Pedido", redirecionar com flag para abrir a nota
-            $printOrder = !empty($_POST['print_order_after_save']);
+            $printOrder = Input::post('print_order_after_save', 'bool');
             $redirectUrl = '?page=pipeline&action=detail&id=' . $data['id'] . '&status=success';
             if ($printOrder) {
                 $redirectUrl .= '&print_order=1';
@@ -522,7 +577,7 @@ class PipelineController {
      */
     public function countInstallments() {
         header('Content-Type: application/json');
-        $orderId = $_GET['order_id'] ?? null;
+        $orderId = Input::get('order_id', 'int');
         if (!$orderId) {
             echo json_encode(['success' => false, 'message' => 'ID do pedido não informado']);
             exit;
@@ -538,7 +593,7 @@ class PipelineController {
      */
     public function deleteInstallments() {
         header('Content-Type: application/json');
-        $orderId = $_POST['order_id'] ?? null;
+        $orderId = Input::post('order_id', 'int');
         if (!$orderId) {
             echo json_encode(['success' => false, 'message' => 'ID do pedido não informado']);
             exit;
@@ -564,7 +619,7 @@ class PipelineController {
     public function generateMercadoPagoLink() {
         header('Content-Type: application/json');
 
-        $orderId = $_POST['order_id'] ?? null;
+        $orderId = Input::post('order_id', 'int');
         if (!$orderId) {
             echo json_encode(['success' => false, 'message' => 'Pedido não informado.']);
             exit;
@@ -719,8 +774,9 @@ class PipelineController {
      */
     public function saveSettings() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            foreach ($_POST['max_hours'] as $stage => $hours) {
-                $this->pipelineModel->updateStageGoal($stage, (int)$hours);
+            $maxHours = Input::postArray('max_hours');
+            foreach ($maxHours as $stage => $hours) {
+                $this->pipelineModel->updateStageGoal(Sanitizer::string($stage), Sanitizer::int($hours, 0));
             }
 
             $logger = new Logger($this->db);
@@ -746,8 +802,8 @@ class PipelineController {
      */
     public function getPricesByTable() {
         $priceTableModel = new PriceTable($this->db);
-        $tableId = $_GET['table_id'] ?? null;
-        $customerId = $_GET['customer_id'] ?? null;
+        $tableId = Input::get('table_id', 'int');
+        $customerId = Input::get('customer_id', 'int');
 
         $prices = [];
         if ($tableId) {
@@ -777,8 +833,8 @@ class PipelineController {
     public function checkOrderStock() {
         header('Content-Type: application/json');
 
-        $orderId = $_GET['order_id'] ?? null;
-        $warehouseId = $_GET['warehouse_id'] ?? null;
+        $orderId = Input::get('order_id', 'int');
+        $warehouseId = Input::get('warehouse_id', 'int');
 
         if (!$orderId) {
             echo json_encode(['success' => false, 'message' => 'Pedido não informado']);
@@ -845,9 +901,9 @@ class PipelineController {
      */
     public function addExtraCost() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $orderId = $_POST['order_id'] ?? null;
-            $description = $_POST['extra_description'] ?? '';
-            $amount = (float)($_POST['extra_amount'] ?? 0);
+            $orderId = Input::post('order_id', 'int');
+            $description = Input::post('extra_description');
+            $amount = Input::post('extra_amount', 'float', 0);
 
             if ($orderId && $description && $amount != 0) {
                 $orderModel = new Order($this->db);
@@ -863,8 +919,8 @@ class PipelineController {
      * Remover custo extra do pedido
      */
     public function deleteExtraCost() {
-        $costId = $_GET['cost_id'] ?? null;
-        $orderId = $_GET['order_id'] ?? null;
+        $costId = Input::get('cost_id', 'int');
+        $orderId = Input::get('order_id', 'int');
 
         if ($costId) {
             $orderModel = new Order($this->db);
@@ -881,10 +937,10 @@ class PipelineController {
     public function moveSector() {
         header('Content-Type: application/json');
         
-        $orderId = $_POST['order_id'] ?? $_GET['order_id'] ?? null;
-        $orderItemId = $_POST['order_item_id'] ?? $_GET['order_item_id'] ?? null;
-        $sectorId = $_POST['sector_id'] ?? $_GET['sector_id'] ?? null;
-        $action = $_POST['move_action'] ?? $_GET['move_action'] ?? 'advance'; // advance, revert
+        $orderId = Input::post('order_id', 'int') ?: Input::get('order_id', 'int');
+        $orderItemId = Input::post('order_item_id', 'int') ?: Input::get('order_item_id', 'int');
+        $sectorId = Input::post('sector_id', 'int') ?: Input::get('sector_id', 'int');
+        $action = Input::post('move_action') ?: Input::get('move_action', 'string', 'advance');
         $userId = $_SESSION['user_id'] ?? null;
 
         if (!$orderId || !$orderItemId || !$sectorId) {
@@ -970,7 +1026,7 @@ class PipelineController {
         $logModel = new OrderItemLog($this->db);
         $logModel->createTableIfNotExists();
 
-        $orderItemId = $_GET['order_item_id'] ?? null;
+        $orderItemId = Input::get('order_item_id', 'int');
         if (!$orderItemId) {
             echo json_encode(['success' => false, 'message' => 'Item não informado']);
             exit;
@@ -990,11 +1046,11 @@ class PipelineController {
         $logModel = new OrderItemLog($this->db);
         $logModel->createTableIfNotExists();
 
-        $orderId = $_POST['order_id'] ?? null;
-        $orderItemId = $_POST['order_item_id'] ?? null;
-        $allItems = $_POST['all_items'] ?? null;
-        $orderItemIds = $_POST['order_item_ids'] ?? [];
-        $message = trim($_POST['message'] ?? '');
+        $orderId = Input::post('order_id', 'int');
+        $orderItemId = Input::post('order_item_id', 'int');
+        $allItems = Input::post('all_items');
+        $orderItemIds = Input::postArray('order_item_ids');
+        $message = Input::post('message');
         $userId = $_SESSION['user_id'] ?? null;
 
         if (!$orderId) {
@@ -1057,7 +1113,7 @@ class PipelineController {
         header('Content-Type: application/json');
         $logModel = new OrderItemLog($this->db);
 
-        $logId = $_POST['log_id'] ?? null;
+        $logId = Input::post('log_id', 'int');
         $userId = $_SESSION['user_id'] ?? null;
 
         if (!$logId) {
@@ -1074,26 +1130,27 @@ class PipelineController {
      * Imprimir Ordem de Produção
      */
     public function printProductionOrder() {
-        if (!isset($_GET['id'])) {
+        $printId = Input::get('id', 'int');
+        if (!$printId) {
             header('Location: ?page=pipeline');
             exit;
         }
 
-        $order = $this->pipelineModel->getOrderDetail($_GET['id']);
+        $order = $this->pipelineModel->getOrderDetail($printId);
         if (!$order) {
             header('Location: ?page=pipeline');
             exit;
         }
 
         // Inicializar setores se ainda não existem
-        $this->pipelineModel->initOrderProductionSectors($_GET['id']);
+        $this->pipelineModel->initOrderProductionSectors($printId);
 
         // Carregar setores de produção do pedido
-        $orderProductionSectors = $this->pipelineModel->getOrderProductionSectors($_GET['id']);
+        $orderProductionSectors = $this->pipelineModel->getOrderProductionSectors($printId);
 
         // Carregar itens do pedido
         $orderModel = new Order($this->db);
-        $orderItems = $orderModel->getItems($_GET['id']);
+        $orderItems = $orderModel->getItems($printId);
 
         // Carregar imagens em destaque dos produtos do pedido
         $productModel = new Product($this->db);
@@ -1120,7 +1177,7 @@ class PipelineController {
 
         // Carregar checklist de preparação do pedido
         $prepModel = new OrderPreparation($this->db);
-        $orderPreparationChecklist = $prepModel->getChecklist($_GET['id']);
+        $orderPreparationChecklist = $prepModel->getChecklist($printId);
 
         // Carregar etapas de preparo configuráveis (globais)
         $prepStepModel = new PreparationStep($this->db);
@@ -1129,7 +1186,7 @@ class PipelineController {
         // Carregar logs dos itens do pedido
         $logModel = new OrderItemLog($this->db);
         $logModel->createTableIfNotExists();
-        $orderItemLogs = $logModel->getLogsByOrder($_GET['id']);
+        $orderItemLogs = $logModel->getLogsByOrder($printId);
 
         // Renderizar a view de impressão (sem header/footer do sistema)
         require 'app/views/pipeline/print_production_order.php';
@@ -1142,8 +1199,8 @@ class PipelineController {
         header('Content-Type: application/json');
         $prepModel = new OrderPreparation($this->db);
 
-        $orderId = $_POST['order_id'] ?? null;
-        $key = $_POST['key'] ?? null;
+        $orderId = Input::post('order_id', 'int');
+        $key = Input::post('key');
         $userId = $_SESSION['user_id'] ?? null;
 
         if (!$orderId || !$key) {

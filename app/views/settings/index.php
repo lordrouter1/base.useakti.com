@@ -60,23 +60,23 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Nome da Empresa</label>
-                            <input type="text" class="form-control" name="company_name" value="<?= htmlspecialchars($settings['company_name'] ?? '') ?>" required>
+                            <input type="text" class="form-control" name="company_name" value="<?= eAttr($settings['company_name'] ?? '') ?>" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">CNPJ / CPF</label>
-                            <input type="text" class="form-control" name="company_document" value="<?= htmlspecialchars($settings['company_document'] ?? '') ?>" placeholder="00.000.000/0000-00">
+                            <input type="text" class="form-control" name="company_document" value="<?= eAttr($settings['company_document'] ?? '') ?>" placeholder="00.000.000/0000-00">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Telefone</label>
-                            <input type="text" class="form-control" name="company_phone" value="<?= htmlspecialchars($settings['company_phone'] ?? '') ?>" placeholder="(00) 00000-0000">
+                            <input type="text" class="form-control" name="company_phone" value="<?= eAttr($settings['company_phone'] ?? '') ?>" placeholder="(00) 00000-0000">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">E-mail</label>
-                            <input type="email" class="form-control" name="company_email" value="<?= htmlspecialchars($settings['company_email'] ?? '') ?>">
+                            <input type="email" class="form-control" name="company_email" value="<?= eAttr($settings['company_email'] ?? '') ?>">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Website</label>
-                            <input type="text" class="form-control" name="company_website" value="<?= htmlspecialchars($settings['company_website'] ?? '') ?>" placeholder="https://">
+                            <input type="text" class="form-control" name="company_website" value="<?= eAttr($settings['company_website'] ?? '') ?>" placeholder="https://">
                         </div>
                     </div>
                 </fieldset>
@@ -89,7 +89,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">CEP</label>
-                            <input type="text" class="form-control" name="company_zipcode" value="<?= htmlspecialchars($settings['company_zipcode'] ?? '') ?>" placeholder="00000-000">
+                            <input type="text" class="form-control" name="company_zipcode" value="<?= eAttr($settings['company_zipcode'] ?? '') ?>" placeholder="00000-000">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Tipo Logradouro</label>
@@ -103,27 +103,27 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Nome do Logradouro</label>
-                            <input type="text" class="form-control" name="company_address_name" value="<?= htmlspecialchars($settings['company_address_name'] ?? '') ?>">
+                            <input type="text" class="form-control" name="company_address_name" value="<?= eAttr($settings['company_address_name'] ?? '') ?>">
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fw-bold small text-muted">Número</label>
-                            <input type="text" class="form-control" name="company_address_number" value="<?= htmlspecialchars($settings['company_address_number'] ?? '') ?>">
+                            <input type="text" class="form-control" name="company_address_number" value="<?= eAttr($settings['company_address_number'] ?? '') ?>">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Bairro</label>
-                            <input type="text" class="form-control" name="company_neighborhood" value="<?= htmlspecialchars($settings['company_neighborhood'] ?? '') ?>">
+                            <input type="text" class="form-control" name="company_neighborhood" value="<?= eAttr($settings['company_neighborhood'] ?? '') ?>">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Complemento</label>
-                            <input type="text" class="form-control" name="company_complement" value="<?= htmlspecialchars($settings['company_complement'] ?? '') ?>">
+                            <input type="text" class="form-control" name="company_complement" value="<?= eAttr($settings['company_complement'] ?? '') ?>">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Cidade</label>
-                            <input type="text" class="form-control" name="company_city" value="<?= htmlspecialchars($settings['company_city'] ?? '') ?>">
+                            <input type="text" class="form-control" name="company_city" value="<?= eAttr($settings['company_city'] ?? '') ?>">
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fw-bold small text-muted">Estado (UF)</label>
-                            <input type="text" class="form-control" name="company_state" value="<?= htmlspecialchars($settings['company_state'] ?? '') ?>" maxlength="2" placeholder="SP">
+                            <input type="text" class="form-control" name="company_state" value="<?= eAttr($settings['company_state'] ?? '') ?>" maxlength="2" placeholder="SP">
                         </div>
                     </div>
                 </fieldset>
@@ -136,11 +136,11 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Validade (dias)</label>
-                            <input type="number" class="form-control" name="quote_validity_days" value="<?= htmlspecialchars($settings['quote_validity_days'] ?? '15') ?>" min="1">
+                            <input type="number" class="form-control" name="quote_validity_days" value="<?= eAttr($settings['quote_validity_days'] ?? '15') ?>" min="1">
                         </div>
                         <div class="col-md-9">
                             <label class="form-label fw-bold small text-muted">Nota de Rodapé do Orçamento</label>
-                            <textarea class="form-control" name="quote_footer_note" rows="2"><?= htmlspecialchars($settings['quote_footer_note'] ?? '') ?></textarea>
+                            <textarea class="form-control" name="quote_footer_note" rows="2"><?= eAttr($settings['quote_footer_note'] ?? '') ?></textarea>
                         </div>
                     </div>
                 </fieldset>
@@ -189,7 +189,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                         <?php else: ?>
                             <i class="fas fa-print me-2 text-primary" style="font-size:1.5rem;"></i>
                         <?php endif; ?>
-                        <div class="fw-bold"><?= htmlspecialchars($settings['company_name'] ?? 'Minha Gráfica') ?></div>
+                        <div class="fw-bold"><?= eAttr($settings['company_name'] ?? 'Minha Gráfica') ?></div>
                         <?php if (!empty($settings['company_document'])): ?>
                         <small class="text-muted d-block"><?= $settings['company_document'] ?></small>
                         <?php endif; ?>
@@ -249,8 +249,8 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                                 <?php else: ?>
                                 <?php foreach ($priceTables as $pt): ?>
                                 <tr>
-                                    <td class="fw-bold"><?= htmlspecialchars($pt['name']) ?></td>
-                                    <td class="text-muted small"><?= htmlspecialchars($pt['description'] ?? '') ?></td>
+                                    <td class="fw-bold"><?= eAttr($pt['name']) ?></td>
+                                    <td class="text-muted small"><?= eAttr($pt['description'] ?? '') ?></td>
                                     <td class="text-center">
                                         <span class="badge bg-primary rounded-pill"><?= $pt['item_count'] ?></span>
                                     </td>
@@ -367,14 +367,14 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                                     <td class="text-center">
                                         <span class="d-inline-flex align-items-center justify-content-center rounded-circle" 
                                               style="width:32px;height:32px;background:<?= $step['is_active'] ? '#e0f7f1' : '#f0f0f0' ?>;">
-                                            <i class="<?= htmlspecialchars($step['icon']) ?>" style="color:<?= $step['is_active'] ? '#1abc9c' : '#999' ?>;font-size:0.85rem;"></i>
+                                            <i class="<?= eAttr($step['icon']) ?>" style="color:<?= $step['is_active'] ? '#1abc9c' : '#999' ?>;font-size:0.85rem;"></i>
                                         </span>
                                     </td>
                                     <td class="fw-bold <?= !$step['is_active'] ? 'text-muted text-decoration-line-through' : '' ?>">
-                                        <?= htmlspecialchars($step['label']) ?>
-                                        <div class="small text-muted" style="font-size:0.7rem;">Chave: <code><?= htmlspecialchars($step['step_key']) ?></code></div>
+                                        <?= eAttr($step['label']) ?>
+                                        <div class="small text-muted" style="font-size:0.7rem;">Chave: <code><?= eAttr($step['step_key']) ?></code></div>
                                     </td>
-                                    <td class="small text-muted"><?= htmlspecialchars($step['description']) ?></td>
+                                    <td class="small text-muted"><?= eAttr($step['description']) ?></td>
                                     <td class="text-center">
                                         <button type="button" class="btn btn-sm btn-toggle-step <?= $step['is_active'] ? 'btn-success' : 'btn-outline-secondary' ?>" 
                                                 data-step-id="<?= $step['id'] ?>" title="<?= $step['is_active'] ? 'Ativa' : 'Inativa' ?>">
@@ -386,9 +386,9 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                                         <div class="btn-group btn-group-sm">
                                             <button type="button" class="btn btn-outline-primary btn-edit-step" 
                                                     data-id="<?= $step['id'] ?>"
-                                                    data-label="<?= htmlspecialchars($step['label']) ?>"
-                                                    data-description="<?= htmlspecialchars($step['description']) ?>"
-                                                    data-icon="<?= htmlspecialchars($step['icon']) ?>"
+                                                    data-label="<?= eAttr($step['label']) ?>"
+                                                    data-description="<?= eAttr($step['description']) ?>"
+                                                    data-icon="<?= eAttr($step['icon']) ?>"
                                                     data-sort="<?= $step['sort_order'] ?>"
                                                     data-active="<?= $step['is_active'] ?>"
                                                     title="Editar">
@@ -446,12 +446,12 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     <div class="d-flex align-items-center gap-2 p-2 border-bottom">
                         <span class="d-flex align-items-center justify-content-center rounded-circle border border-2" 
                               style="width:24px;height:24px;min-width:24px;border-color:#ccc !important;">
-                            <i class="<?= htmlspecialchars($step['icon']) ?> text-muted" style="font-size:0.6rem;"></i>
+                            <i class="<?= eAttr($step['icon']) ?> text-muted" style="font-size:0.6rem;"></i>
                         </span>
                         <div>
-                            <div class="fw-bold" style="font-size:0.8rem;"><?= htmlspecialchars($step['label']) ?></div>
+                            <div class="fw-bold" style="font-size:0.8rem;"><?= eAttr($step['label']) ?></div>
                             <?php if (!empty($step['description'])): ?>
-                            <div class="text-muted" style="font-size:0.65rem;"><?= htmlspecialchars($step['description']) ?></div>
+                            <div class="text-muted" style="font-size:0.65rem;"><?= eAttr($step['description']) ?></div>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -622,25 +622,25 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Agência</label>
-                            <input type="text" class="form-control" name="boleto_agencia" value="<?= htmlspecialchars($settings['boleto_agencia'] ?? '') ?>" placeholder="0000" maxlength="10">
+                            <input type="text" class="form-control" name="boleto_agencia" value="<?= eAttr($settings['boleto_agencia'] ?? '') ?>" placeholder="0000" maxlength="10">
                             <small class="text-muted" style="font-size:0.65rem;">Sem dígito verificador</small>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Dígito Agência</label>
-                            <input type="text" class="form-control" name="boleto_agencia_dv" value="<?= htmlspecialchars($settings['boleto_agencia_dv'] ?? '') ?>" placeholder="0" maxlength="1">
+                            <input type="text" class="form-control" name="boleto_agencia_dv" value="<?= eAttr($settings['boleto_agencia_dv'] ?? '') ?>" placeholder="0" maxlength="1">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Conta Corrente</label>
-                            <input type="text" class="form-control" name="boleto_conta" value="<?= htmlspecialchars($settings['boleto_conta'] ?? '') ?>" placeholder="00000000" maxlength="15">
+                            <input type="text" class="form-control" name="boleto_conta" value="<?= eAttr($settings['boleto_conta'] ?? '') ?>" placeholder="00000000" maxlength="15">
                             <small class="text-muted" style="font-size:0.65rem;">Sem dígito verificador</small>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fw-bold small text-muted">Dígito Conta</label>
-                            <input type="text" class="form-control" name="boleto_conta_dv" value="<?= htmlspecialchars($settings['boleto_conta_dv'] ?? '') ?>" placeholder="0" maxlength="1">
+                            <input type="text" class="form-control" name="boleto_conta_dv" value="<?= eAttr($settings['boleto_conta_dv'] ?? '') ?>" placeholder="0" maxlength="1">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Carteira</label>
-                            <input type="text" class="form-control" name="boleto_carteira" value="<?= htmlspecialchars($settings['boleto_carteira'] ?? '109') ?>" placeholder="Ex: 109, 17, RG" maxlength="5">
+                            <input type="text" class="form-control" name="boleto_carteira" value="<?= eAttr($settings['boleto_carteira'] ?? '109') ?>" placeholder="Ex: 109, 17, RG" maxlength="5">
                             <small class="text-muted" style="font-size:0.65rem;">Consulte o banco</small>
                         </div>
                         <div class="col-md-3">
@@ -661,21 +661,21 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Nome/Razão Social do Cedente</label>
-                            <input type="text" class="form-control" name="boleto_cedente" value="<?= htmlspecialchars($settings['boleto_cedente'] ?? $settings['company_name'] ?? '') ?>" placeholder="Nome conforme registrado no banco">
+                            <input type="text" class="form-control" name="boleto_cedente" value="<?= eAttr($settings['boleto_cedente'] ?? $settings['company_name'] ?? '') ?>" placeholder="Nome conforme registrado no banco">
                             <small class="text-muted" style="font-size:0.65rem;">Conforme registrado junto ao banco</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">CNPJ/CPF do Cedente</label>
-                            <input type="text" class="form-control" name="boleto_cedente_documento" value="<?= htmlspecialchars($settings['boleto_cedente_documento'] ?? $settings['company_document'] ?? '') ?>" placeholder="00.000.000/0000-00">
+                            <input type="text" class="form-control" name="boleto_cedente_documento" value="<?= eAttr($settings['boleto_cedente_documento'] ?? $settings['company_document'] ?? '') ?>" placeholder="00.000.000/0000-00">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Código do Cedente / Convênio</label>
-                            <input type="text" class="form-control" name="boleto_convenio" value="<?= htmlspecialchars($settings['boleto_convenio'] ?? '') ?>" placeholder="Ex: 1234567" maxlength="20">
+                            <input type="text" class="form-control" name="boleto_convenio" value="<?= eAttr($settings['boleto_convenio'] ?? '') ?>" placeholder="Ex: 1234567" maxlength="20">
                             <small class="text-muted" style="font-size:0.65rem;">Fornecido pelo banco ao contratar o serviço de cobrança</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Nosso Número (Próximo)</label>
-                            <input type="number" class="form-control" name="boleto_nosso_numero" value="<?= htmlspecialchars($settings['boleto_nosso_numero'] ?? '1') ?>" placeholder="1" min="1">
+                            <input type="number" class="form-control" name="boleto_nosso_numero" value="<?= eAttr($settings['boleto_nosso_numero'] ?? '1') ?>" placeholder="1" min="1">
                             <small class="text-muted" style="font-size:0.65rem;">Será incrementado automaticamente a cada boleto gerado</small>
                         </div>
                         <div class="col-md-4">
@@ -698,20 +698,20 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label fw-bold small text-muted">Instruções de Pagamento (aparece no boleto)</label>
-                            <textarea class="form-control" name="boleto_instrucoes" rows="3" placeholder="Linha 1: Não receber após o vencimento.&#10;Linha 2: Multa de 2% após vencimento.&#10;Linha 3: Juros de 1% ao mês."><?= htmlspecialchars($settings['boleto_instrucoes'] ?? "Não receber após o vencimento.\nMulta de 2% após o vencimento.\nJuros de 1% ao mês.") ?></textarea>
+                            <textarea class="form-control" name="boleto_instrucoes" rows="3" placeholder="Linha 1: Não receber após o vencimento.&#10;Linha 2: Multa de 2% após vencimento.&#10;Linha 3: Juros de 1% ao mês."><?= eAttr($settings['boleto_instrucoes'] ?? "Não receber após o vencimento.\nMulta de 2% após o vencimento.\nJuros de 1% ao mês.") ?></textarea>
                             <small class="text-muted" style="font-size:0.65rem;">Cada linha será exibida separadamente. Máximo 3 linhas recomendado.</small>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Multa (%)</label>
                             <div class="input-group">
-                                <input type="number" class="form-control" name="boleto_multa" step="0.01" min="0" max="100" value="<?= htmlspecialchars($settings['boleto_multa'] ?? '2.00') ?>">
+                                <input type="number" class="form-control" name="boleto_multa" step="0.01" min="0" max="100" value="<?= eAttr($settings['boleto_multa'] ?? '2.00') ?>">
                                 <span class="input-group-text">%</span>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Juros ao Mês (%)</label>
                             <div class="input-group">
-                                <input type="number" class="form-control" name="boleto_juros" step="0.01" min="0" max="100" value="<?= htmlspecialchars($settings['boleto_juros'] ?? '1.00') ?>">
+                                <input type="number" class="form-control" name="boleto_juros" step="0.01" min="0" max="100" value="<?= eAttr($settings['boleto_juros'] ?? '1.00') ?>">
                                 <span class="input-group-text">%</span>
                             </div>
                         </div>
@@ -734,15 +734,15 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-bold small text-muted">Demonstrativo (opcional)</label>
-                            <textarea class="form-control" name="boleto_demonstrativo" rows="2" placeholder="Texto descritivo do serviço/produto (opcional)"><?= htmlspecialchars($settings['boleto_demonstrativo'] ?? '') ?></textarea>
+                            <textarea class="form-control" name="boleto_demonstrativo" rows="2" placeholder="Texto descritivo do serviço/produto (opcional)"><?= eAttr($settings['boleto_demonstrativo'] ?? '') ?></textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Local de Pagamento</label>
-                            <input type="text" class="form-control" name="boleto_local_pagamento" value="<?= htmlspecialchars($settings['boleto_local_pagamento'] ?? 'Pagável em qualquer banco até o vencimento') ?>" placeholder="Pagável em qualquer banco até o vencimento">
+                            <input type="text" class="form-control" name="boleto_local_pagamento" value="<?= eAttr($settings['boleto_local_pagamento'] ?? 'Pagável em qualquer banco até o vencimento') ?>" placeholder="Pagável em qualquer banco até o vencimento">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Endereço do Cedente no Boleto</label>
-                            <input type="text" class="form-control" name="boleto_cedente_endereco" value="<?= htmlspecialchars($settings['boleto_cedente_endereco'] ?? '') ?>" placeholder="Deixe em branco para usar o endereço da empresa">
+                            <input type="text" class="form-control" name="boleto_cedente_endereco" value="<?= eAttr($settings['boleto_cedente_endereco'] ?? '') ?>" placeholder="Deixe em branco para usar o endereço da empresa">
                             <small class="text-muted" style="font-size:0.65rem;">Se vazio, será usado o endereço cadastrado em Dados da Empresa</small>
                         </div>
 
@@ -753,12 +753,12 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Access Token (Secret)</label>
-                            <input type="password" class="form-control" name="mercadopago_access_token" value="<?= htmlspecialchars($settings['mercadopago_access_token'] ?? '') ?>" placeholder="APP_USR-...">
+                            <input type="password" class="form-control" name="mercadopago_access_token" value="<?= eAttr($settings['mercadopago_access_token'] ?? '') ?>" placeholder="APP_USR-...">
                             <small class="text-muted" style="font-size:0.65rem;">Necessário para criar preferência de pagamento na API.</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Public Key (Opcional)</label>
-                            <input type="text" class="form-control" name="mercadopago_public_key" value="<?= htmlspecialchars($settings['mercadopago_public_key'] ?? '') ?>" placeholder="APP_USR-...">
+                            <input type="text" class="form-control" name="mercadopago_public_key" value="<?= eAttr($settings['mercadopago_public_key'] ?? '') ?>" placeholder="APP_USR-...">
                             <small class="text-muted" style="font-size:0.65rem;">Opcional para futuras integrações checkout no front.</small>
                         </div>
                     </div>
@@ -799,14 +799,14 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     <div class="card-body p-3">
                         <div class="border rounded p-3 bg-light" style="font-size:0.75rem;">
                             <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
-                                <strong><?= htmlspecialchars($settings['boleto_cedente'] ?? $settings['company_name'] ?? '(Cedente)') ?></strong>
-                                <span class="badge" style="background:#f39c12;color:#fff;"><?= htmlspecialchars($settings['boleto_banco'] ?? '---') ?></span>
+                                <strong><?= eAttr($settings['boleto_cedente'] ?? $settings['company_name'] ?? '(Cedente)') ?></strong>
+                                <span class="badge" style="background:#f39c12;color:#fff;"><?= eAttr($settings['boleto_banco'] ?? '---') ?></span>
                             </div>
-                            <div class="mb-1"><strong>Ag:</strong> <?= htmlspecialchars(($settings['boleto_agencia'] ?? '----') . '-' . ($settings['boleto_agencia_dv'] ?? '0')) ?></div>
-                            <div class="mb-1"><strong>CC:</strong> <?= htmlspecialchars(($settings['boleto_conta'] ?? '------') . '-' . ($settings['boleto_conta_dv'] ?? '0')) ?></div>
-                            <div class="mb-1"><strong>Carteira:</strong> <?= htmlspecialchars($settings['boleto_carteira'] ?? '---') ?></div>
-                            <div class="mb-1"><strong>Convênio:</strong> <?= htmlspecialchars($settings['boleto_convenio'] ?? '---') ?></div>
-                            <div class="mb-1"><strong>Nosso Nº:</strong> <?= htmlspecialchars($settings['boleto_nosso_numero'] ?? '1') ?></div>
+                            <div class="mb-1"><strong>Ag:</strong> <?= eAttr(($settings['boleto_agencia'] ?? '----') . '-' . ($settings['boleto_agencia_dv'] ?? '0')) ?></div>
+                            <div class="mb-1"><strong>CC:</strong> <?= eAttr(($settings['boleto_conta'] ?? '------') . '-' . ($settings['boleto_conta_dv'] ?? '0')) ?></div>
+                            <div class="mb-1"><strong>Carteira:</strong> <?= eAttr($settings['boleto_carteira'] ?? '---') ?></div>
+                            <div class="mb-1"><strong>Convênio:</strong> <?= eAttr($settings['boleto_convenio'] ?? '---') ?></div>
+                            <div class="mb-1"><strong>Nosso Nº:</strong> <?= eAttr($settings['boleto_nosso_numero'] ?? '1') ?></div>
                             <hr class="my-2">
                             <div class="text-muted" style="font-size:0.65rem;">
                                 <i class="fas fa-barcode me-1"></i>
@@ -834,28 +834,28 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Razão Social</label>
-                            <input type="text" class="form-control" name="fiscal_razao_social" value="<?= htmlspecialchars($settings['fiscal_razao_social'] ?? '') ?>" placeholder="Razão social conforme CNPJ">
+                            <input type="text" class="form-control" name="fiscal_razao_social" value="<?= eAttr($settings['fiscal_razao_social'] ?? '') ?>" placeholder="Razão social conforme CNPJ">
                             <small class="text-muted" style="font-size:0.65rem;">Conforme registrado na Receita Federal</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Nome Fantasia</label>
-                            <input type="text" class="form-control" name="fiscal_nome_fantasia" value="<?= htmlspecialchars($settings['fiscal_nome_fantasia'] ?? '') ?>" placeholder="Nome fantasia">
+                            <input type="text" class="form-control" name="fiscal_nome_fantasia" value="<?= eAttr($settings['fiscal_nome_fantasia'] ?? '') ?>" placeholder="Nome fantasia">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">CNPJ</label>
-                            <input type="text" class="form-control" name="fiscal_cnpj" value="<?= htmlspecialchars($settings['fiscal_cnpj'] ?? '') ?>" placeholder="00.000.000/0000-00" maxlength="18">
+                            <input type="text" class="form-control" name="fiscal_cnpj" value="<?= eAttr($settings['fiscal_cnpj'] ?? '') ?>" placeholder="00.000.000/0000-00" maxlength="18">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Inscrição Estadual (IE)</label>
-                            <input type="text" class="form-control" name="fiscal_ie" value="<?= htmlspecialchars($settings['fiscal_ie'] ?? '') ?>" placeholder="Inscrição Estadual" maxlength="20">
+                            <input type="text" class="form-control" name="fiscal_ie" value="<?= eAttr($settings['fiscal_ie'] ?? '') ?>" placeholder="Inscrição Estadual" maxlength="20">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Inscrição Municipal (IM)</label>
-                            <input type="text" class="form-control" name="fiscal_im" value="<?= htmlspecialchars($settings['fiscal_im'] ?? '') ?>" placeholder="Inscrição Municipal" maxlength="20">
+                            <input type="text" class="form-control" name="fiscal_im" value="<?= eAttr($settings['fiscal_im'] ?? '') ?>" placeholder="Inscrição Municipal" maxlength="20">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">CNAE Principal</label>
-                            <input type="text" class="form-control" name="fiscal_cnae" value="<?= htmlspecialchars($settings['fiscal_cnae'] ?? '') ?>" placeholder="0000-0/00" maxlength="12">
+                            <input type="text" class="form-control" name="fiscal_cnae" value="<?= eAttr($settings['fiscal_cnae'] ?? '') ?>" placeholder="0000-0/00" maxlength="12">
                             <small class="text-muted" style="font-size:0.65rem;">Classificação Nacional de Atividades Econômicas</small>
                         </div>
                         <div class="col-md-4">
@@ -883,48 +883,48 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     <div class="row g-3">
                         <div class="col-md-5">
                             <label class="form-label fw-bold small text-muted">Logradouro</label>
-                            <input type="text" class="form-control" name="fiscal_endereco_logradouro" value="<?= htmlspecialchars($settings['fiscal_endereco_logradouro'] ?? '') ?>" placeholder="Rua, Av, Travessa...">
+                            <input type="text" class="form-control" name="fiscal_endereco_logradouro" value="<?= eAttr($settings['fiscal_endereco_logradouro'] ?? '') ?>" placeholder="Rua, Av, Travessa...">
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fw-bold small text-muted">Número</label>
-                            <input type="text" class="form-control" name="fiscal_endereco_numero" value="<?= htmlspecialchars($settings['fiscal_endereco_numero'] ?? '') ?>" placeholder="Nº">
+                            <input type="text" class="form-control" name="fiscal_endereco_numero" value="<?= eAttr($settings['fiscal_endereco_numero'] ?? '') ?>" placeholder="Nº">
                         </div>
                         <div class="col-md-5">
                             <label class="form-label fw-bold small text-muted">Complemento</label>
-                            <input type="text" class="form-control" name="fiscal_endereco_complemento" value="<?= htmlspecialchars($settings['fiscal_endereco_complemento'] ?? '') ?>" placeholder="Sala, Andar, Bloco...">
+                            <input type="text" class="form-control" name="fiscal_endereco_complemento" value="<?= eAttr($settings['fiscal_endereco_complemento'] ?? '') ?>" placeholder="Sala, Andar, Bloco...">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Bairro</label>
-                            <input type="text" class="form-control" name="fiscal_endereco_bairro" value="<?= htmlspecialchars($settings['fiscal_endereco_bairro'] ?? '') ?>">
+                            <input type="text" class="form-control" name="fiscal_endereco_bairro" value="<?= eAttr($settings['fiscal_endereco_bairro'] ?? '') ?>">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Cidade</label>
-                            <input type="text" class="form-control" name="fiscal_endereco_cidade" value="<?= htmlspecialchars($settings['fiscal_endereco_cidade'] ?? '') ?>">
+                            <input type="text" class="form-control" name="fiscal_endereco_cidade" value="<?= eAttr($settings['fiscal_endereco_cidade'] ?? '') ?>">
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fw-bold small text-muted">UF</label>
-                            <input type="text" class="form-control" name="fiscal_endereco_uf" value="<?= htmlspecialchars($settings['fiscal_endereco_uf'] ?? '') ?>" maxlength="2" placeholder="SP">
+                            <input type="text" class="form-control" name="fiscal_endereco_uf" value="<?= eAttr($settings['fiscal_endereco_uf'] ?? '') ?>" maxlength="2" placeholder="SP">
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fw-bold small text-muted">CEP</label>
-                            <input type="text" class="form-control" name="fiscal_endereco_cep" value="<?= htmlspecialchars($settings['fiscal_endereco_cep'] ?? '') ?>" placeholder="00000-000" maxlength="9">
+                            <input type="text" class="form-control" name="fiscal_endereco_cep" value="<?= eAttr($settings['fiscal_endereco_cep'] ?? '') ?>" placeholder="00000-000" maxlength="9">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Código do Município (IBGE)</label>
-                            <input type="text" class="form-control" name="fiscal_endereco_cod_municipio" value="<?= htmlspecialchars($settings['fiscal_endereco_cod_municipio'] ?? '') ?>" placeholder="0000000" maxlength="7">
+                            <input type="text" class="form-control" name="fiscal_endereco_cod_municipio" value="<?= eAttr($settings['fiscal_endereco_cod_municipio'] ?? '') ?>" placeholder="0000000" maxlength="7">
                             <small class="text-muted" style="font-size:0.65rem;">7 dígitos IBGE. Ex: 3550308 (São Paulo)</small>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fw-bold small text-muted">Cód. País</label>
-                            <input type="text" class="form-control" name="fiscal_endereco_cod_pais" value="<?= htmlspecialchars($settings['fiscal_endereco_cod_pais'] ?? '1058') ?>" placeholder="1058" maxlength="4">
+                            <input type="text" class="form-control" name="fiscal_endereco_cod_pais" value="<?= eAttr($settings['fiscal_endereco_cod_pais'] ?? '1058') ?>" placeholder="1058" maxlength="4">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">País</label>
-                            <input type="text" class="form-control" name="fiscal_endereco_pais" value="<?= htmlspecialchars($settings['fiscal_endereco_pais'] ?? 'Brasil') ?>" placeholder="Brasil">
+                            <input type="text" class="form-control" name="fiscal_endereco_pais" value="<?= eAttr($settings['fiscal_endereco_pais'] ?? 'Brasil') ?>" placeholder="Brasil">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Telefone</label>
-                            <input type="text" class="form-control" name="fiscal_endereco_fone" value="<?= htmlspecialchars($settings['fiscal_endereco_fone'] ?? '') ?>" placeholder="(00) 00000-0000">
+                            <input type="text" class="form-control" name="fiscal_endereco_fone" value="<?= eAttr($settings['fiscal_endereco_fone'] ?? '') ?>" placeholder="(00) 00000-0000">
                         </div>
                     </div>
                 </fieldset>
@@ -944,11 +944,11 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Senha do Certificado</label>
-                            <input type="password" class="form-control" name="fiscal_certificado_senha" value="<?= htmlspecialchars($settings['fiscal_certificado_senha'] ?? '') ?>" placeholder="••••••••" autocomplete="new-password">
+                            <input type="password" class="form-control" name="fiscal_certificado_senha" value="<?= eAttr($settings['fiscal_certificado_senha'] ?? '') ?>" placeholder="••••••••" autocomplete="new-password">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-muted">Validade do Certificado</label>
-                            <input type="date" class="form-control" name="fiscal_certificado_validade" value="<?= htmlspecialchars($settings['fiscal_certificado_validade'] ?? '') ?>">
+                            <input type="date" class="form-control" name="fiscal_certificado_validade" value="<?= eAttr($settings['fiscal_certificado_validade'] ?? '') ?>">
                             <?php 
                             $validade = $settings['fiscal_certificado_validade'] ?? '';
                             if ($validade && strtotime($validade) < strtotime('+30 days')): ?>
@@ -981,11 +981,11 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Série</label>
-                            <input type="number" class="form-control" name="fiscal_serie_nfe" value="<?= htmlspecialchars($settings['fiscal_serie_nfe'] ?? '1') ?>" min="1" max="999">
+                            <input type="number" class="form-control" name="fiscal_serie_nfe" value="<?= eAttr($settings['fiscal_serie_nfe'] ?? '1') ?>" min="1" max="999">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Próximo Nº NF-e</label>
-                            <input type="number" class="form-control" name="fiscal_proximo_numero_nfe" value="<?= htmlspecialchars($settings['fiscal_proximo_numero_nfe'] ?? '1') ?>" min="1">
+                            <input type="number" class="form-control" name="fiscal_proximo_numero_nfe" value="<?= eAttr($settings['fiscal_proximo_numero_nfe'] ?? '1') ?>" min="1">
                             <small class="text-muted" style="font-size:0.65rem;">Incrementado automaticamente</small>
                         </div>
                         <div class="col-md-3">
@@ -1010,7 +1010,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Natureza da Operação</label>
-                            <input type="text" class="form-control" name="fiscal_nat_operacao" value="<?= htmlspecialchars($settings['fiscal_nat_operacao'] ?? 'Venda de mercadoria') ?>" placeholder="Venda de mercadoria">
+                            <input type="text" class="form-control" name="fiscal_nat_operacao" value="<?= eAttr($settings['fiscal_nat_operacao'] ?? 'Venda de mercadoria') ?>" placeholder="Venda de mercadoria">
                         </div>
                     </div>
                 </fieldset>
@@ -1028,28 +1028,28 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Alíq. ICMS Padrão (%)</label>
                             <div class="input-group">
-                                <input type="number" step="0.01" class="form-control" name="fiscal_aliq_icms_padrao" value="<?= htmlspecialchars($settings['fiscal_aliq_icms_padrao'] ?? '') ?>" placeholder="0.00" min="0" max="100">
+                                <input type="number" step="0.01" class="form-control" name="fiscal_aliq_icms_padrao" value="<?= eAttr($settings['fiscal_aliq_icms_padrao'] ?? '') ?>" placeholder="0.00" min="0" max="100">
                                 <span class="input-group-text">%</span>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Alíq. PIS Padrão (%)</label>
                             <div class="input-group">
-                                <input type="number" step="0.01" class="form-control" name="fiscal_aliq_pis_padrao" value="<?= htmlspecialchars($settings['fiscal_aliq_pis_padrao'] ?? '0.65') ?>" placeholder="0.65" min="0" max="100">
+                                <input type="number" step="0.01" class="form-control" name="fiscal_aliq_pis_padrao" value="<?= eAttr($settings['fiscal_aliq_pis_padrao'] ?? '0.65') ?>" placeholder="0.65" min="0" max="100">
                                 <span class="input-group-text">%</span>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Alíq. COFINS Padrão (%)</label>
                             <div class="input-group">
-                                <input type="number" step="0.01" class="form-control" name="fiscal_aliq_cofins_padrao" value="<?= htmlspecialchars($settings['fiscal_aliq_cofins_padrao'] ?? '3.00') ?>" placeholder="3.00" min="0" max="100">
+                                <input type="number" step="0.01" class="form-control" name="fiscal_aliq_cofins_padrao" value="<?= eAttr($settings['fiscal_aliq_cofins_padrao'] ?? '3.00') ?>" placeholder="3.00" min="0" max="100">
                                 <span class="input-group-text">%</span>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Alíq. ISS Padrão (%)</label>
                             <div class="input-group">
-                                <input type="number" step="0.01" class="form-control" name="fiscal_aliq_iss_padrao" value="<?= htmlspecialchars($settings['fiscal_aliq_iss_padrao'] ?? '') ?>" placeholder="0.00" min="0" max="100">
+                                <input type="number" step="0.01" class="form-control" name="fiscal_aliq_iss_padrao" value="<?= eAttr($settings['fiscal_aliq_iss_padrao'] ?? '') ?>" placeholder="0.00" min="0" max="100">
                                 <span class="input-group-text">%</span>
                             </div>
                             <small class="text-muted" style="font-size:0.65rem;">Para prestação de serviços</small>
@@ -1065,7 +1065,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label fw-bold small text-muted">Informações Complementares Padrão (NF-e)</label>
-                            <textarea class="form-control" name="fiscal_info_complementar" rows="3" placeholder="Texto padrão que aparecerá no campo de Informações Complementares de todas as NF-e emitidas."><?= htmlspecialchars($settings['fiscal_info_complementar'] ?? '') ?></textarea>
+                            <textarea class="form-control" name="fiscal_info_complementar" rows="3" placeholder="Texto padrão que aparecerá no campo de Informações Complementares de todas as NF-e emitidas."><?= eAttr($settings['fiscal_info_complementar'] ?? '') ?></textarea>
                             <small class="text-muted" style="font-size:0.65rem;">Ex: "Documento emitido por ME ou EPP optante pelo Simples Nacional..."</small>
                         </div>
                     </div>
@@ -1105,14 +1105,14 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     </div>
                     <div class="card-body p-3">
                         <div class="border rounded p-3 bg-light" style="font-size:0.75rem;">
-                            <div class="fw-bold mb-2"><?= htmlspecialchars($settings['fiscal_razao_social'] ?? '(Razão Social)') ?></div>
+                            <div class="fw-bold mb-2"><?= eAttr($settings['fiscal_razao_social'] ?? '(Razão Social)') ?></div>
                             <?php if (!empty($settings['fiscal_nome_fantasia'])): ?>
-                            <div class="text-muted mb-1"><i class="fas fa-store me-1"></i><?= htmlspecialchars($settings['fiscal_nome_fantasia']) ?></div>
+                            <div class="text-muted mb-1"><i class="fas fa-store me-1"></i><?= eAttr($settings['fiscal_nome_fantasia']) ?></div>
                             <?php endif; ?>
-                            <div class="mb-1"><strong>CNPJ:</strong> <?= htmlspecialchars($settings['fiscal_cnpj'] ?? '—') ?></div>
-                            <div class="mb-1"><strong>IE:</strong> <?= htmlspecialchars($settings['fiscal_ie'] ?? '—') ?></div>
+                            <div class="mb-1"><strong>CNPJ:</strong> <?= eAttr($settings['fiscal_cnpj'] ?? '—') ?></div>
+                            <div class="mb-1"><strong>IE:</strong> <?= eAttr($settings['fiscal_ie'] ?? '—') ?></div>
                             <?php if (!empty($settings['fiscal_im'])): ?>
-                            <div class="mb-1"><strong>IM:</strong> <?= htmlspecialchars($settings['fiscal_im']) ?></div>
+                            <div class="mb-1"><strong>IM:</strong> <?= eAttr($settings['fiscal_im']) ?></div>
                             <?php endif; ?>
                             <div class="mb-2"><strong>CRT:</strong> 
                                 <?php 
@@ -1128,8 +1128,8 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                                 </span>
                             </div>
                             <div class="mb-1"><strong>Modelo:</strong> <?= ($settings['fiscal_modelo_nfe'] ?? '55') == '55' ? 'NF-e (55)' : 'NFC-e (65)' ?></div>
-                            <div class="mb-1"><strong>Série:</strong> <?= htmlspecialchars($settings['fiscal_serie_nfe'] ?? '1') ?></div>
-                            <div class="mb-1"><strong>Próx. Nº:</strong> <?= htmlspecialchars($settings['fiscal_proximo_numero_nfe'] ?? '1') ?></div>
+                            <div class="mb-1"><strong>Série:</strong> <?= eAttr($settings['fiscal_serie_nfe'] ?? '1') ?></div>
+                            <div class="mb-1"><strong>Próx. Nº:</strong> <?= eAttr($settings['fiscal_proximo_numero_nfe'] ?? '1') ?></div>
                             <?php if (!empty($settings['fiscal_certificado_validade'])): 
                                 $certDate = strtotime($settings['fiscal_certificado_validade']);
                                 $isExpired = $certDate < time();
@@ -1184,7 +1184,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-hourglass-half"></i></span>
                                 <input type="number" class="form-control" name="session_timeout_minutes"
-                                       value="<?= htmlspecialchars($settings['session_timeout_minutes'] ?? '60') ?>"
+                                       value="<?= eAttr($settings['session_timeout_minutes'] ?? '60') ?>"
                                        min="5" max="1440" step="1">
                                 <span class="input-group-text">min</span>
                             </div>

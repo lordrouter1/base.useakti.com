@@ -38,9 +38,9 @@
                     <div class="d-flex align-items-center">
                         <i class="fas fa-grip-vertical me-2 text-muted grade-drag-handle" style="cursor:grab;"></i>
                         <i class="<?= $grade['type_icon'] ?> me-2 text-info"></i>
-                        <span class="fw-bold small grade-type-label"><?= htmlspecialchars($grade['type_name']) ?></span>
+                        <span class="fw-bold small grade-type-label"><?= e($grade['type_name']) ?></span>
                         <input type="hidden" name="grades[<?= $gIdx ?>][grade_type_id]" value="<?= $grade['grade_type_id'] ?>">
-                        <input type="hidden" name="grades[<?= $gIdx ?>][type_name]" value="<?= htmlspecialchars($grade['type_name']) ?>">
+                        <input type="hidden" name="grades[<?= $gIdx ?>][type_name]" value="<?= eAttr($grade['type_name']) ?>">
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 btn-remove-grade" title="Remover grade">
                         <i class="fas fa-trash-alt" style="font-size:0.75rem;"></i>
@@ -48,14 +48,14 @@
                 </div>
                 <div class="card-body p-3">
                     <label class="form-label small fw-bold text-muted mb-2">
-                        Valores da grade "<?= htmlspecialchars($grade['type_name']) ?>"
+                        Valores da grade "<?= e($grade['type_name']) ?>"
                     </label>
                     <div class="grade-values-container d-flex flex-wrap gap-2 mb-2">
                         <?php foreach ($grade['values'] as $vIdx => $val): ?>
                         <div class="input-group input-group-sm grade-value-item" style="width:auto; max-width:180px;">
                             <input type="text" class="form-control form-control-sm grade-value-input" 
                                    name="grades[<?= $gIdx ?>][values][]" 
-                                   value="<?= htmlspecialchars($val['value']) ?>" 
+                                   value="<?= eAttr($val['value']) ?>" 
                                    placeholder="Valor" required style="min-width:80px;">
                             <button type="button" class="btn btn-outline-danger btn-sm btn-remove-value" title="Remover">
                                 <i class="fas fa-times" style="font-size:0.65rem;"></i>
@@ -81,8 +81,8 @@
             foreach ($gradeTypes as $gt): 
                 $isUsed = in_array($gt['id'], $usedTypeIds);
             ?>
-            <option value="<?= $gt['id'] ?>" data-icon="<?= $gt['icon'] ?>" data-name="<?= htmlspecialchars($gt['name']) ?>" <?= $isUsed ? 'disabled' : '' ?>>
-                <?= htmlspecialchars($gt['name']) ?> <?= $isUsed ? '(já adicionada)' : '' ?>
+            <option value="<?= (int)$gt['id'] ?>" data-icon="<?= eAttr($gt['icon']) ?>" data-name="<?= eAttr($gt['name']) ?>" <?= $isUsed ? 'disabled' : '' ?>>
+                <?= e($gt['name']) ?> <?= $isUsed ? '(já adicionada)' : '' ?>
             </option>
             <?php endforeach; ?>
             <option value="new">+ Criar novo tipo de grade</option>
@@ -143,29 +143,29 @@
                 <?php foreach ($productCombinations as $combo): ?>
                 <tr class="<?= !$combo['is_active'] ? 'table-danger' : '' ?>">
                     <td class="text-center">
-                        <input type="hidden" name="combinations[<?= htmlspecialchars($combo['combination_key']) ?>][is_active]" value="<?= $combo['is_active'] ?>">
+                        <input type="hidden" name="combinations[<?= eAttr($combo['combination_key']) ?>][is_active]" value="<?= $combo['is_active'] ?>">
                         <div class="form-check form-switch d-flex justify-content-center mb-0">
                             <input class="form-check-input combo-active-toggle" type="checkbox"
-                                   data-combo-key="<?= htmlspecialchars($combo['combination_key']) ?>"
+                                   data-combo-key="<?= eAttr($combo['combination_key']) ?>"
                                    <?= $combo['is_active'] ? 'checked' : '' ?>
                                    style="cursor:pointer;">
                         </div>
                     </td>
                     <td class="small align-middle">
                         <i class="fas fa-cube text-muted me-1"></i>
-                        <span class="combo-label-text <?= !$combo['is_active'] ? 'text-decoration-line-through text-muted' : '' ?>"><?= htmlspecialchars($combo['combination_label']) ?></span>
+                        <span class="combo-label-text <?= !$combo['is_active'] ? 'text-decoration-line-through text-muted' : '' ?>"><?= e($combo['combination_label']) ?></span>
                     </td>
                     <td>
                         <input type="text" class="form-control form-control-sm" 
-                               name="combinations[<?= htmlspecialchars($combo['combination_key']) ?>][sku]" 
-                               value="<?= htmlspecialchars($combo['sku'] ?? '') ?>" 
+                               name="combinations[<?= eAttr($combo['combination_key']) ?>][sku]" 
+                               value="<?= eAttr($combo['sku'] ?? '') ?>" 
                                placeholder="SKU">
                     </td>
                     <td>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text" style="font-size:0.75rem;">R$</span>
                             <input type="number" step="0.01" class="form-control form-control-sm" 
-                                   name="combinations[<?= htmlspecialchars($combo['combination_key']) ?>][price]" 
+                                   name="combinations[<?= e($combo['combination_key']) ?>][price]" 
                                    value="<?= $combo['price_override'] !== null ? number_format($combo['price_override'], 2, '.', '') : '' ?>" 
                                    placeholder="Padrão">
                         </div>

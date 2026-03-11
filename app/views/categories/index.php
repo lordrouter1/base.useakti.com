@@ -45,7 +45,7 @@
                                 <?php endif; ?>
                                 <div class="mb-3">
                                     <label class="form-label fw-bold small">Nome da Categoria</label>
-                                    <input type="text" class="form-control" name="name" required placeholder="Ex: Impressão Digital" value="<?= isset($editCategory) ? htmlspecialchars($editCategory['name']) : '' ?>">
+                                    <input type="text" class="form-control" name="name" required placeholder="Ex: Impressão Digital" value="<?= isset($editCategory) ? eAttr($editCategory['name']) : '' ?>">
                                 </div>
 
                                 <!-- Setores de Produção -->
@@ -63,7 +63,7 @@
                                         ?>
                                         <div class="sector-item badge d-inline-flex align-items-center me-1 mb-1 px-2 py-1" data-id="<?= $sector['id'] ?>" style="background-color: <?= $sector['color'] ?>; cursor: grab; font-size: 0.8rem;">
                                             <i class="<?= $sector['icon'] ?> me-1"></i>
-                                            <?= htmlspecialchars($sector['name']) ?>
+                                            <?= e($sector['name']) ?>
                                             <button type="button" class="btn-close btn-close-white ms-1 sector-remove" style="font-size: 0.5rem;" data-id="<?= $sector['id'] ?>"></button>
                                             <input type="hidden" name="sector_ids[]" value="<?= $sector['id'] ?>">
                                         </div>
@@ -76,11 +76,11 @@
                                             $isSelected = in_array($sector['id'], $editCatSectorIds);
                                         ?>
                                         <button type="button" class="btn btn-sm sector-add-btn <?= $isSelected ? 'd-none' : '' ?>" 
-                                                data-id="<?= $sector['id'] ?>" data-name="<?= htmlspecialchars($sector['name']) ?>"
+                                                data-id="<?= $sector['id'] ?>" data-name="<?= eAttr($sector['name']) ?>"
                                                 data-icon="<?= $sector['icon'] ?>" data-color="<?= $sector['color'] ?>"
                                                 style="border: 1px solid <?= $sector['color'] ?>; color: <?= $sector['color'] ?>; font-size: 0.75rem; padding: 2px 8px;">
                                             <i class="fas fa-plus me-1" style="font-size: 0.6rem;"></i>
-                                            <i class="<?= $sector['icon'] ?> me-1"></i><?= htmlspecialchars($sector['name']) ?>
+                                            <i class="<?= $sector['icon'] ?> me-1"></i><?= e($sector['name']) ?>
                                         </button>
                                         <?php endforeach; ?>
                                     </div>
@@ -103,7 +103,7 @@
                                     <?php if(isset($editCategory)): ?>
                                         <?php if(!empty($editCategoryGrades) || !empty($editCategorySectors)): ?>
                                         <button type="button" class="btn btn-outline-info btn-sm btn-export-to-products" 
-                                                data-type="category" data-id="<?= $editCategory['id'] ?>" data-name="<?= htmlspecialchars($editCategory['name']) ?>">
+                                                data-type="category" data-id="<?= $editCategory['id'] ?>" data-name="<?= eAttr($editCategory['name']) ?>">
                                             <i class="fas fa-share-alt me-1"></i>Exportar Grades/Setores para Produtos
                                         </button>
                                         <?php endif; ?>
@@ -138,7 +138,7 @@
                                             <tr>
                                                 <td class="ps-4">
                                                     <i class="fas fa-folder text-warning me-2"></i>
-                                                    <strong><?= htmlspecialchars($cat['name']) ?></strong>
+                                                    <strong><?= e($cat['name']) ?></strong>
                                                     <?php if(!empty($categoryGradesMap[$cat['id']])): ?>
                                                         <span class="badge bg-info ms-1" style="font-size:0.6rem;" title="Possui grades padrão">
                                                             <i class="fas fa-th-large me-1"></i>Grades
@@ -152,7 +152,7 @@
                                                     <?php if(!empty($catSectorsData)): ?>
                                                         <?php foreach($catSectorsData as $cs): ?>
                                                             <span class="badge me-1" style="background-color: <?= $cs['color'] ?>; font-size: 0.65rem;">
-                                                                <i class="<?= $cs['icon'] ?> me-1"></i><?= htmlspecialchars($cs['sector_name']) ?>
+                                                                <i class="<?= $cs['icon'] ?> me-1"></i><?= e($cs['sector_name']) ?>
                                                             </span>
                                                         <?php endforeach; ?>
                                                     <?php else: ?>
@@ -169,7 +169,7 @@
                                                     <div class="btn-group btn-group-sm" role="group">
                                                         <?php if(!empty($categoryGradesMap[$cat['id']]) || !empty($catSectorsData)): ?>
                                                         <button class="btn btn-outline-info btn-export-to-products" 
-                                                                data-type="category" data-id="<?= $cat['id'] ?>" data-name="<?= htmlspecialchars($cat['name']) ?>"
+                                                                data-type="category" data-id="<?= $cat['id'] ?>" data-name="<?= eAttr($cat['name']) ?>"
                                                                 title="Exportar grades/setores para produtos">
                                                             <i class="fas fa-share-alt"></i>
                                                         </button>
@@ -177,7 +177,7 @@
                                                         <a href="?page=categories&action=edit&id=<?= $cat['id'] ?>" class="btn btn-outline-primary" title="Editar">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
-                                                        <button class="btn btn-outline-danger btn-delete-cat" data-id="<?= $cat['id'] ?>" data-name="<?= htmlspecialchars($cat['name']) ?>" data-products="<?= $cat['product_count'] ?>" title="Excluir">
+                                                        <button class="btn btn-outline-danger btn-delete-cat" data-id="<?= $cat['id'] ?>" data-name="<?= eAttr($cat['name']) ?>" data-products="<?= $cat['product_count'] ?>" title="Excluir">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </div>
@@ -221,14 +221,14 @@
                                         <option value="">Selecione...</option>
                                         <?php foreach($categories as $cat): ?>
                                         <option value="<?= $cat['id'] ?>" <?= (isset($editSubcategory) && $editSubcategory['category_id'] == $cat['id']) ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($cat['name']) ?>
+                                            <?= e($cat['name']) ?>
                                         </option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-bold small">Nome da Subcategoria</label>
-                                    <input type="text" class="form-control" name="name" required placeholder="Ex: Banner Lona" value="<?= isset($editSubcategory) ? htmlspecialchars($editSubcategory['name']) : '' ?>">
+                                    <input type="text" class="form-control" name="name" required placeholder="Ex: Banner Lona" value="<?= isset($editSubcategory) ? eAttr($editSubcategory['name']) : '' ?>">
                                 </div>
 
                                 <!-- Setores de Produção -->
@@ -246,7 +246,7 @@
                                         ?>
                                         <div class="sector-item badge d-inline-flex align-items-center me-1 mb-1 px-2 py-1" data-id="<?= $sector['id'] ?>" style="background-color: <?= $sector['color'] ?>; cursor: grab; font-size: 0.8rem;">
                                             <i class="<?= $sector['icon'] ?> me-1"></i>
-                                            <?= htmlspecialchars($sector['name']) ?>
+                                            <?= e($sector['name']) ?>
                                             <button type="button" class="btn-close btn-close-white ms-1 sector-remove" style="font-size: 0.5rem;" data-id="<?= $sector['id'] ?>"></button>
                                             <input type="hidden" name="sector_ids[]" value="<?= $sector['id'] ?>">
                                         </div>
@@ -259,11 +259,11 @@
                                             $isSelected = in_array($sector['id'], $editSubSectorIds);
                                         ?>
                                         <button type="button" class="btn btn-sm sector-add-btn <?= $isSelected ? 'd-none' : '' ?>"
-                                                data-id="<?= $sector['id'] ?>" data-name="<?= htmlspecialchars($sector['name']) ?>"
+                                                data-id="<?= $sector['id'] ?>" data-name="<?= eAttr($sector['name']) ?>"
                                                 data-icon="<?= $sector['icon'] ?>" data-color="<?= $sector['color'] ?>"
                                                 style="border: 1px solid <?= $sector['color'] ?>; color: <?= $sector['color'] ?>; font-size: 0.75rem; padding: 2px 8px;">
                                             <i class="fas fa-plus me-1" style="font-size: 0.6rem;"></i>
-                                            <i class="<?= $sector['icon'] ?> me-1"></i><?= htmlspecialchars($sector['name']) ?>
+                                            <i class="<?= $sector['icon'] ?> me-1"></i><?= e($sector['name']) ?>
                                         </button>
                                         <?php endforeach; ?>
                                     </div>
@@ -286,7 +286,7 @@
                                     <?php if(isset($editSubcategory)): ?>
                                         <?php if(!empty($editSubcategoryGrades) || !empty($editSubcategorySectors)): ?>
                                         <button type="button" class="btn btn-outline-info btn-sm btn-export-to-products" 
-                                                data-type="subcategory" data-id="<?= $editSubcategory['id'] ?>" data-name="<?= htmlspecialchars($editSubcategory['name']) ?>">
+                                                data-type="subcategory" data-id="<?= $editSubcategory['id'] ?>" data-name="<?= eAttr($editSubcategory['name']) ?>">
                                             <i class="fas fa-share-alt me-1"></i>Exportar Grades/Setores para Produtos
                                         </button>
                                         <?php endif; ?>
@@ -320,7 +320,7 @@
                                             <tr>
                                                 <td class="ps-4">
                                                     <i class="fas fa-sitemap text-success me-2"></i>
-                                                    <strong><?= htmlspecialchars($sub['name']) ?></strong>
+                                                    <strong><?= e($sub['name']) ?></strong>
                                                     <?php if(!empty($subcategoryGradesMap[$sub['id']])): ?>
                                                         <span class="badge bg-info ms-1" style="font-size:0.6rem;" title="Possui grades padrão">
                                                             <i class="fas fa-th-large me-1"></i>Grades
@@ -328,7 +328,7 @@
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-warning text-dark"><i class="fas fa-folder me-1"></i><?= htmlspecialchars($sub['category_name']) ?></span>
+                                                    <span class="badge bg-warning text-dark"><i class="fas fa-folder me-1"></i><?= e($sub['category_name']) ?></span>
                                                 </td>
                                                 <td>
                                                     <?php 
@@ -337,7 +337,7 @@
                                                     <?php if(!empty($subSectorsData)): ?>
                                                         <?php foreach($subSectorsData as $ss): ?>
                                                             <span class="badge me-1" style="background-color: <?= $ss['color'] ?>; font-size: 0.65rem;">
-                                                                <i class="<?= $ss['icon'] ?> me-1"></i><?= htmlspecialchars($ss['sector_name']) ?>
+                                                                <i class="<?= $ss['icon'] ?> me-1"></i><?= e($ss['sector_name']) ?>
                                                             </span>
                                                         <?php endforeach; ?>
                                                     <?php else: ?>
@@ -348,7 +348,7 @@
                                                     <div class="btn-group btn-group-sm" role="group">
                                                         <?php if(!empty($subcategoryGradesMap[$sub['id']]) || !empty($subSectorsData)): ?>
                                                         <button class="btn btn-outline-info btn-export-to-products" 
-                                                                data-type="subcategory" data-id="<?= $sub['id'] ?>" data-name="<?= htmlspecialchars($sub['name']) ?>"
+                                                                data-type="subcategory" data-id="<?= $sub['id'] ?>" data-name="<?= eAttr($sub['name']) ?>"
                                                                 title="Exportar grades/setores para produtos">
                                                             <i class="fas fa-share-alt"></i>
                                                         </button>
@@ -356,7 +356,7 @@
                                                         <a href="?page=categories&action=editSub&id=<?= $sub['id'] ?>&tab=subcategories" class="btn btn-outline-primary" title="Editar">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
-                                                        <button class="btn btn-outline-danger btn-delete-sub" data-id="<?= $sub['id'] ?>" data-name="<?= htmlspecialchars($sub['name']) ?>" title="Excluir">
+                                                        <button class="btn btn-outline-danger btn-delete-sub" data-id="<?= $sub['id'] ?>" data-name="<?= eAttr($sub['name']) ?>" title="Excluir">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </div>

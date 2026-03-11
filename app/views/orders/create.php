@@ -300,12 +300,12 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                                                 $popoverContent .= '<div class=&quot;mb-2 pb-2 border-bottom&quot;>';
                                                 $popoverContent .= '<strong>#' . str_pad($c['id'], 4, '0', STR_PAD_LEFT) . '</strong> ';
                                                 $popoverContent .= '<span class=&quot;badge bg-' . $pColor . ' rounded-pill&quot; style=&quot;font-size:0.65rem&quot;>' . ucfirst($c['priority']) . '</span><br>';
-                                                $popoverContent .= '<i class=&quot;fas fa-user me-1&quot;></i>' . htmlspecialchars($c['customer_name']) . '<br>';
+                                                $popoverContent .= '<i class=&quot;fas fa-user me-1&quot;></i>' . e($c['customer_name']) . '<br>';
                                                 if (!empty($c['customer_phone'])) {
-                                                    $popoverContent .= '<i class=&quot;fas fa-phone me-1&quot;></i>' . htmlspecialchars($c['customer_phone']) . '<br>';
+                                                    $popoverContent .= '<i class=&quot;fas fa-phone me-1&quot;></i>' . e($c['customer_phone']) . '<br>';
                                                 }
                                                 if (!empty($c['notes'])) {
-                                                    $popoverContent .= '<small class=&quot;text-muted&quot;>' . htmlspecialchars(mb_substr($c['notes'], 0, 60)) . '...</small>';
+                                                    $popoverContent .= '<small class=&quot;text-muted&quot;>' . e(mb_substr($c['notes'], 0, 60)) . '...</small>';
                                                 }
                                                 $popoverContent .= '</div>';
                                             }
@@ -372,17 +372,17 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                                  style="border-color:<?= $uc['priority'] === 'urgente' ? '#e74c3c' : ($uc['priority'] === 'alta' ? '#f39c12' : '#9b59b6') ?> !important;">
                                 <div class="flex-grow-1">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <strong class="small">#<?= str_pad($uc['id'], 4, '0', STR_PAD_LEFT) ?> - <?= htmlspecialchars($uc['customer_name']) ?></strong>
+                                        <strong class="small">#<?= str_pad($uc['id'], 4, '0', STR_PAD_LEFT) ?> - <?= e($uc['customer_name']) ?></strong>
                                         <span class="badge bg-<?= $pColor ?> rounded-pill" style="font-size:0.6rem;"><?= ucfirst($uc['priority']) ?></span>
                                     </div>
                                     <small class="text-muted">
                                         <i class="fas fa-calendar me-1"></i><?= date('d/m/Y', strtotime($uc['scheduled_date'])) ?>
                                         <?php if(!empty($uc['customer_phone'])): ?>
-                                            &middot; <i class="fas fa-phone me-1"></i><?= htmlspecialchars($uc['customer_phone']) ?>
+                                            &middot; <i class="fas fa-phone me-1"></i><?= e($uc['customer_phone']) ?>
                                         <?php endif; ?>
                                     </small>
                                     <?php if (!empty($uc['notes'])): ?>
-                                        <div class="small text-muted mt-1"><i class="fas fa-sticky-note me-1"></i><?= htmlspecialchars(mb_substr($uc['notes'], 0, 80)) ?></div>
+                                        <div class="small text-muted mt-1"><i class="fas fa-sticky-note me-1"></i><?= e(mb_substr($uc['notes'], 0, 80)) ?></div>
                                     <?php endif; ?>
                                 </div>
                             </div>

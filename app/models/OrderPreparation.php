@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 /**
@@ -81,6 +84,12 @@ class OrderPreparation {
                 ':oid' => $orderId,
                 ':key' => $key
             ]);
+            EventDispatcher::dispatch('model.preparation_checklist.toggled', new Event('model.preparation_checklist.toggled', [
+                'order_id' => $orderId,
+                'check_key' => $key,
+                'checked' => $newChecked,
+                'user_id' => $userId,
+            ]));
             return $newChecked;
         } else {
             // Inserir como marcado
@@ -92,6 +101,12 @@ class OrderPreparation {
                 ':key' => $key,
                 ':uid' => $userId
             ]);
+            EventDispatcher::dispatch('model.preparation_checklist.toggled', new Event('model.preparation_checklist.toggled', [
+                'order_id' => $orderId,
+                'check_key' => $key,
+                'checked' => 1,
+                'user_id' => $userId,
+            ]));
             return 1;
         }
     }

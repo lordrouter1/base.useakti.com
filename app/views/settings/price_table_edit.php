@@ -2,7 +2,7 @@
     <?php $refPage = $_GET['ref'] ?? 'settings'; ?>
     <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">
-            <i class="fas fa-tags me-2"></i>Tabela: <?= htmlspecialchars($table['name']) ?>
+            <i class="fas fa-tags me-2"></i>Tabela: <?= e($table['name']) ?>
             <?php if ($table['is_default']): ?>
                 <span class="badge bg-success ms-2 fs-6"><i class="fas fa-star me-1"></i>Padrão</span>
             <?php endif; ?>
@@ -13,7 +13,7 @@
     </div>
 
     <?php if (!empty($table['description'])): ?>
-    <p class="text-muted mb-4"><?= htmlspecialchars($table['description']) ?></p>
+    <p class="text-muted mb-4"><?= e($table['description']) ?></p>
     <?php endif; ?>
 
     <div class="row g-4">
@@ -45,7 +45,7 @@
                                         : 0;
                                 ?>
                                 <tr>
-                                    <td class="ps-3 fw-bold"><?= htmlspecialchars($item['product_name']) ?></td>
+                                    <td class="ps-3 fw-bold"><?= e($item['product_name']) ?></td>
                                     <td class="text-end text-muted">R$ <?= number_format($item['product_default_price'], 2, ',', '.') ?></td>
                                     <td class="text-end fw-bold text-primary">R$ <?= number_format($item['price'], 2, ',', '.') ?></td>
                                     <td class="text-center">
@@ -96,7 +96,7 @@
                                 <?php foreach ($products as $prod): ?>
                                 <option value="<?= $prod['id'] ?>" data-price="<?= $prod['price'] ?>" 
                                     <?= isset($existingProducts[$prod['id']]) ? 'class="text-primary"' : '' ?>>
-                                    <?= htmlspecialchars($prod['name']) ?> — R$ <?= number_format($prod['price'], 2, ',', '.') ?>
+                                    <?= e($prod['name']) ?> — R$ <?= number_format($prod['price'], 2, ',', '.') ?>
                                     <?= isset($existingProducts[$prod['id']]) ? ' ✓' : '' ?>
                                 </option>
                                 <?php endforeach; ?>

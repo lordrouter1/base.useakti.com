@@ -62,7 +62,7 @@
                             <select class="form-select" id="category_id" name="category_id">
                                 <option value="">Selecione...</option>
                                 <?php foreach ($categories as $category): ?>
-                                    <option value="<?= $category['id'] ?>"><?= $category['name'] ?></option>
+                                    <option value="<?= (int)$category['id'] ?>"><?= e($category['name']) ?></option>
                                 <?php endforeach; ?>
                                 <option value="new">+ Nova Categoria</option>
                             </select>
@@ -144,7 +144,7 @@
                         <?php foreach ($priceTables as $pt): ?>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">
-                                <?= htmlspecialchars($pt['name']) ?>
+                                <?= e($pt['name']) ?>
                                 <?php if ($pt['is_default']): ?>
                                     <span class="badge bg-success" style="font-size:0.65rem;">Padrão</span>
                                 <?php endif; ?>
@@ -224,11 +224,11 @@
                     <div class="d-flex flex-wrap gap-1 mt-2" id="prod-sectors-available">
                         <?php foreach ($allSectors as $sector): ?>
                         <button type="button" class="btn btn-sm sector-add-btn"
-                                data-id="<?= $sector['id'] ?>" data-name="<?= htmlspecialchars($sector['name']) ?>"
-                                data-icon="<?= $sector['icon'] ?>" data-color="<?= $sector['color'] ?>"
-                                style="border: 1px solid <?= $sector['color'] ?>; color: <?= $sector['color'] ?>; font-size: 0.8rem; padding: 3px 10px;">
+                                data-id="<?= (int)$sector['id'] ?>" data-name="<?= eAttr($sector['name']) ?>"
+                                data-icon="<?= eAttr($sector['icon']) ?>" data-color="<?= eAttr($sector['color']) ?>"
+                                style="border: 1px solid <?= eAttr($sector['color']) ?>; color: <?= eAttr($sector['color']) ?>; font-size: 0.8rem; padding: 3px 10px;">
                             <i class="fas fa-plus me-1" style="font-size: 0.65rem;"></i>
-                            <i class="<?= $sector['icon'] ?> me-1"></i><?= htmlspecialchars($sector['name']) ?>
+                            <i class="<?= eAttr($sector['icon']) ?> me-1"></i><?= e($sector['name']) ?>
                         </button>
                         <?php endforeach; ?>
                     </div>
@@ -258,6 +258,7 @@
         <!-- ════════════════════════════════════════════════════
              SEÇÃO 7 — INFORMAÇÕES FISCAIS (colapsável)
              ════════════════════════════════════════════════════ -->
+        <?php if (\Akti\Core\ModuleBootloader::isModuleEnabled('nfe')): ?>
         <div class="card mb-4 shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center section-toggle" 
                  data-bs-toggle="collapse" data-bs-target="#collapseFiscal" aria-expanded="false" role="button">
@@ -270,6 +271,16 @@
                 </div>
             </div>
         </div>
+        <?php else: ?>
+        <!-- Módulo NF-e desabilitado — card informativo -->
+        <div class="card mb-4 shadow-sm border-0 opacity-75">
+            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center" 
+                 role="button" onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('nfe') ?>">
+                <h5 class="mb-0 text-muted"><i class="fas fa-file-invoice me-2"></i>Informações Fiscais (NF-e) <span class="badge bg-secondary ms-2" style="font-size:0.65rem;">Módulo Inativo</span></h5>
+                <i class="fas fa-lock text-muted"></i>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <!-- ════════════════════════════════════════════════════
              BOTÕES DE AÇÃO

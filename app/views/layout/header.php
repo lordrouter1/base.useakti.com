@@ -71,6 +71,7 @@
             display: none;
         }
     </style>
+    <?= \Akti\Core\ModuleBootloader::injectJS() ?>
 </head>
 <body>
 
@@ -309,7 +310,7 @@
                             <div class="fw-bold" style="font-size:0.82rem;color:#333;">
                                 <?= $pEmoji ?> #<?= str_pad($dOrder['id'], 4, '0', STR_PAD_LEFT) ?>
                                 <?php if (!empty($dOrder['customer_name'])): ?>
-                                — <?= htmlspecialchars(mb_substr($dOrder['customer_name'], 0, 20)) ?>
+                                — <?= e(mb_substr($dOrder['customer_name'], 0, 20)) ?>
                                 <?php endif; ?>
                             </div>
                             <div style="font-size:0.72rem;">
@@ -358,16 +359,16 @@
                     </span>
                     <div style="font-size:0.78rem;">
                         <div class="fw-bold" style="color:#333;">
-                            <?= htmlspecialchars(mb_substr($dProd['product_name'], 0, 25)) ?> 
+                            <?= e(mb_substr($dProd['product_name'], 0, 25)) ?> 
                             <span class="text-muted fw-normal">(×<?= $dProd['quantity'] ?>)</span>
                         </div>
                         <div style="font-size:0.68rem;">
                             <span class="text-muted">Pedido #<?= str_pad($dProd['order_id'], 4, '0', STR_PAD_LEFT) ?></span>
                             <?php if (!empty($dProd['customer_name'])): ?>
-                            — <span class="text-muted"><?= htmlspecialchars(mb_substr($dProd['customer_name'], 0, 15)) ?></span>
+                            — <span class="text-muted"><?= e(mb_substr($dProd['customer_name'], 0, 15)) ?></span>
                             <?php endif; ?>
                             <span class="badge px-1 py-0 ms-1" style="background:<?= $dProd['sector_color'] ?? '#e67e22' ?>;color:#fff;font-size:0.6rem;">
-                                <i class="fas fa-map-pin me-1"></i><?= htmlspecialchars($dProd['sector_name']) ?>
+                                <i class="fas fa-map-pin me-1"></i><?= e($dProd['sector_name']) ?>
                             </span>
                         </div>
                     </div>

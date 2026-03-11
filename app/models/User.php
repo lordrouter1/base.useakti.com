@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 class User {
@@ -73,6 +76,11 @@ class User {
         $stmt->bindParam(':group_id', $this->group_id);
 
         if($stmt->execute()) {
+            EventDispatcher::dispatch('model.user.created', new Event('model.user.created', [
+                'name' => $this->name,
+                'email' => $this->email,
+                'role' => $this->role,
+            ]));
             return true;
         }
         return false;
@@ -131,6 +139,12 @@ class User {
         }
 
         if($stmt->execute()) {
+            EventDispatcher::dispatch('model.user.updated', new Event('model.user.updated', [
+                'id' => $this->id,
+                'name' => $this->name,
+                'email' => $this->email,
+                'role' => $this->role,
+            ]));
             return true;
         }
         return false;
@@ -142,6 +156,7 @@ class User {
         $stmt->bindParam(':id', $id);
         
         if($stmt->execute()) {
+            EventDispatcher::dispatch('model.user.deleted', new Event('model.user.deleted', ['id' => $id]));
             return true;
         }
         return false;

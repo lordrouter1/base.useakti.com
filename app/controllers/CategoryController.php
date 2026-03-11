@@ -8,6 +8,7 @@ use Akti\Models\ProductGrade;
 use Akti\Models\CategoryGrade;
 use Akti\Models\Logger;
 use Akti\Models\Product;
+use Akti\Utils\Input;
 use Database;
 
 class CategoryController {
@@ -68,17 +69,19 @@ class CategoryController {
         $editSubcategoryGrades = [];
         $editSubcategoryCombinations = [];
 
-        if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
-            $editCategory = $this->categoryModel->getCategory($_GET['id']);
-            $editCategorySectors = $this->sectorModel->getCategorySectors($_GET['id']);
-            $editCategoryGrades = $this->categoryGradeModel->getCategoryGradesWithValues($_GET['id']);
-            $editCategoryCombinations = $this->categoryGradeModel->getCategoryCombinations($_GET['id']);
+        if (Input::get('action') === 'edit' && Input::hasGet('id')) {
+            $editId = Input::get('id', 'int');
+            $editCategory = $this->categoryModel->getCategory($editId);
+            $editCategorySectors = $this->sectorModel->getCategorySectors($editId);
+            $editCategoryGrades = $this->categoryGradeModel->getCategoryGradesWithValues($editId);
+            $editCategoryCombinations = $this->categoryGradeModel->getCategoryCombinations($editId);
         }
-        if (isset($_GET['action']) && $_GET['action'] === 'editSub' && isset($_GET['id'])) {
-            $editSubcategory = $this->subcategoryModel->readOne($_GET['id']);
-            $editSubcategorySectors = $this->sectorModel->getSubcategorySectors($_GET['id']);
-            $editSubcategoryGrades = $this->categoryGradeModel->getSubcategoryGradesWithValues($_GET['id']);
-            $editSubcategoryCombinations = $this->categoryGradeModel->getSubcategoryCombinations($_GET['id']);
+        if (Input::get('action') === 'editSub' && Input::hasGet('id')) {
+            $editSubId = Input::get('id', 'int');
+            $editSubcategory = $this->subcategoryModel->readOne($editSubId);
+            $editSubcategorySectors = $this->sectorModel->getSubcategorySectors($editSubId);
+            $editSubcategoryGrades = $this->categoryGradeModel->getSubcategoryGradesWithValues($editSubId);
+            $editSubcategoryCombinations = $this->categoryGradeModel->getSubcategoryCombinations($editSubId);
         }
 
         require 'app/views/layout/header.php';
@@ -87,17 +90,19 @@ class CategoryController {
     }
 
     public function store() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['name'])) {
-            $this->categoryModel->name = $_POST['name'];
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('name')) {
+            $this->categoryModel->name = Input::post('name');
             if ($this->categoryModel->create()) {
-                $this->logger->log('CREATE_CATEGORY', 'Created category: ' . $_POST['name']);
+                $this->logger->log('CREATE_CATEGORY', 'Created category: ' . Input::post('name'));
                 // Salvar setores vinculados
-                if (isset($_POST['sector_ids']) && is_array($_POST['sector_ids'])) {
-                    $this->sectorModel->saveCategorySectors($this->categoryModel->id, $_POST['sector_ids']);
+                $sectorIds = Input::postArray('sector_ids');
+                if (!empty($sectorIds)) {
+                    $this->sectorModel->saveCategorySectors($this->categoryModel->id, $sectorIds);
                 }
                 // Salvar grades da categoria
-                if (!empty($_POST['category_grades']) && is_array($_POST['category_grades'])) {
-                    $this->categoryGradeModel->saveCategoryGrades($this->categoryModel->id, $_POST['category_grades']);
+                $categoryGrades = Input::postArray('category_grades');
+                if (!empty($categoryGrades)) {
+                    $this->categoryGradeModel->saveCategoryGrades($this->categoryModel->id, $categoryGrades);
                 }
             }
         }
@@ -106,18 +111,20 @@ class CategoryController {
     }
 
     public function update() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['id'])) {
-            $this->categoryModel->update($_POST['id'], $_POST['name']);
-            $this->logger->log('UPDATE_CATEGORY', 'Updated category ID: ' . $_POST['id']);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('id')) {
+            $id = Input::post('id', 'int');
+            $this->categoryModel->update($id, Input::post('name'));
+            $this->logger->log('UPDATE_CATEGORY', 'Updated category ID: ' . $id);
             // Salvar setores vinculados
-            $sectorIds = isset($_POST['sector_ids']) && is_array($_POST['sector_ids']) ? $_POST['sector_ids'] : [];
-            $this->sectorModel->saveCategorySectors($_POST['id'], $sectorIds);
+            $sectorIds = Input::postArray('sector_ids');
+            $this->sectorModel->saveCategorySectors($id, $sectorIds);
             // Salvar grades da categoria
-            $gradesData = isset($_POST['category_grades']) && is_array($_POST['category_grades']) ? $_POST['category_grades'] : [];
-            $this->categoryGradeModel->saveCategoryGrades($_POST['id'], $gradesData);
+            $gradesData = Input::postArray('category_grades');
+            $this->categoryGradeModel->saveCategoryGrades($id, $gradesData);
             // Salvar estado de combinações (ativo/inativo)
-            if (!empty($_POST['category_combinations']) && is_array($_POST['category_combinations'])) {
-                $this->saveCategoryCombinationsState($_POST['id'], $_POST['category_combinations']);
+            $categoryCombinations = Input::postArray('category_combinations');
+            if (!empty($categoryCombinations)) {
+                $this->saveCategoryCombinationsState($id, $categoryCombinations);
             }
         }
         header('Location: ?page=categories&status=success');
@@ -125,27 +132,30 @@ class CategoryController {
     }
 
     public function delete() {
-        if (isset($_GET['id'])) {
-            $this->categoryModel->delete($_GET['id']);
-            $this->logger->log('DELETE_CATEGORY', 'Deleted category ID: ' . $_GET['id']);
+        $id = Input::get('id', 'int');
+        if ($id) {
+            $this->categoryModel->delete($id);
+            $this->logger->log('DELETE_CATEGORY', 'Deleted category ID: ' . $id);
         }
         header('Location: ?page=categories&status=success');
         exit;
     }
 
     public function storeSub() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['name']) && !empty($_POST['category_id'])) {
-            $this->subcategoryModel->name = $_POST['name'];
-            $this->subcategoryModel->category_id = $_POST['category_id'];
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('name') && Input::hasPost('category_id')) {
+            $this->subcategoryModel->name = Input::post('name');
+            $this->subcategoryModel->category_id = Input::post('category_id', 'int');
             if ($this->subcategoryModel->create()) {
-                $this->logger->log('CREATE_SUBCATEGORY', 'Created subcategory: ' . $_POST['name']);
+                $this->logger->log('CREATE_SUBCATEGORY', 'Created subcategory: ' . Input::post('name'));
                 // Salvar setores vinculados
-                if (isset($_POST['sector_ids']) && is_array($_POST['sector_ids'])) {
-                    $this->sectorModel->saveSubcategorySectors($this->subcategoryModel->id, $_POST['sector_ids']);
+                $sectorIds = Input::postArray('sector_ids');
+                if (!empty($sectorIds)) {
+                    $this->sectorModel->saveSubcategorySectors($this->subcategoryModel->id, $sectorIds);
                 }
                 // Salvar grades da subcategoria
-                if (!empty($_POST['subcategory_grades']) && is_array($_POST['subcategory_grades'])) {
-                    $this->categoryGradeModel->saveSubcategoryGrades($this->subcategoryModel->id, $_POST['subcategory_grades']);
+                $subcategoryGrades = Input::postArray('subcategory_grades');
+                if (!empty($subcategoryGrades)) {
+                    $this->categoryGradeModel->saveSubcategoryGrades($this->subcategoryModel->id, $subcategoryGrades);
                 }
             }
         }
@@ -154,18 +164,20 @@ class CategoryController {
     }
 
     public function updateSub() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['id'])) {
-            $this->subcategoryModel->update($_POST['id'], $_POST['name'], $_POST['category_id']);
-            $this->logger->log('UPDATE_SUBCATEGORY', 'Updated subcategory ID: ' . $_POST['id']);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('id')) {
+            $id = Input::post('id', 'int');
+            $this->subcategoryModel->update($id, Input::post('name'), Input::post('category_id', 'int'));
+            $this->logger->log('UPDATE_SUBCATEGORY', 'Updated subcategory ID: ' . $id);
             // Salvar setores vinculados
-            $sectorIds = isset($_POST['sector_ids']) && is_array($_POST['sector_ids']) ? $_POST['sector_ids'] : [];
-            $this->sectorModel->saveSubcategorySectors($_POST['id'], $sectorIds);
+            $sectorIds = Input::postArray('sector_ids');
+            $this->sectorModel->saveSubcategorySectors($id, $sectorIds);
             // Salvar grades da subcategoria
-            $gradesData = isset($_POST['subcategory_grades']) && is_array($_POST['subcategory_grades']) ? $_POST['subcategory_grades'] : [];
-            $this->categoryGradeModel->saveSubcategoryGrades($_POST['id'], $gradesData);
+            $gradesData = Input::postArray('subcategory_grades');
+            $this->categoryGradeModel->saveSubcategoryGrades($id, $gradesData);
             // Salvar estado de combinações (ativo/inativo)
-            if (!empty($_POST['subcategory_combinations']) && is_array($_POST['subcategory_combinations'])) {
-                $this->saveSubcategoryCombinationsState($_POST['id'], $_POST['subcategory_combinations']);
+            $subcategoryCombinations = Input::postArray('subcategory_combinations');
+            if (!empty($subcategoryCombinations)) {
+                $this->saveSubcategoryCombinationsState($id, $subcategoryCombinations);
             }
         }
         header('Location: ?page=categories&tab=subcategories&status=success');
@@ -173,9 +185,10 @@ class CategoryController {
     }
 
     public function deleteSub() {
-        if (isset($_GET['id'])) {
-            $this->subcategoryModel->delete($_GET['id']);
-            $this->logger->log('DELETE_SUBCATEGORY', 'Deleted subcategory ID: ' . $_GET['id']);
+        $id = Input::get('id', 'int');
+        if ($id) {
+            $this->subcategoryModel->delete($id);
+            $this->logger->log('DELETE_SUBCATEGORY', 'Deleted subcategory ID: ' . $id);
         }
         header('Location: ?page=categories&tab=subcategories&status=success');
         exit;
@@ -216,8 +229,8 @@ class CategoryController {
     // ─────────────────────────────────────────────────────
 
     public function getInheritedGradesAjax() {
-        $subcategoryId = $_GET['subcategory_id'] ?? null;
-        $categoryId = $_GET['category_id'] ?? null;
+        $subcategoryId = Input::get('subcategory_id', 'int');
+        $categoryId = Input::get('category_id', 'int');
 
         $result = $this->categoryGradeModel->getInheritedGrades($subcategoryId, $categoryId);
         echo json_encode([
@@ -233,8 +246,8 @@ class CategoryController {
     // AJAX: Toggle combination for category
     public function toggleCategoryCombinationAjax() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['id'] ?? null;
-            $isActive = isset($_POST['is_active']) ? (int)$_POST['is_active'] : 1;
+            $id = Input::post('id', 'int');
+            $isActive = Input::post('is_active', 'int', 1);
             if ($id) {
                 $this->categoryGradeModel->toggleCategoryCombination($id, $isActive);
                 echo json_encode(['success' => true]);
@@ -248,8 +261,8 @@ class CategoryController {
     // AJAX: Toggle combination for subcategory
     public function toggleSubcategoryCombinationAjax() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['id'] ?? null;
-            $isActive = isset($_POST['is_active']) ? (int)$_POST['is_active'] : 1;
+            $id = Input::post('id', 'int');
+            $isActive = Input::post('is_active', 'int', 1);
             if ($id) {
                 $this->categoryGradeModel->toggleSubcategoryCombination($id, $isActive);
                 echo json_encode(['success' => true]);
@@ -266,8 +279,8 @@ class CategoryController {
 
     public function getProductsForExport() {
         header('Content-Type: application/json');
-        $type = $_GET['type'] ?? ''; // 'category' or 'subcategory'
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        $type = Input::get('type', 'enum', '', ['category', 'subcategory']);
+        $id = Input::get('id', 'int', 0);
 
         if (!$id || !in_array($type, ['category', 'subcategory'])) {
             echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos.']);
@@ -324,11 +337,11 @@ class CategoryController {
             exit;
         }
 
-        $type = $_POST['type'] ?? ''; // 'category' or 'subcategory'
-        $sourceId = isset($_POST['source_id']) ? (int)$_POST['source_id'] : 0;
-        $productIds = $_POST['product_ids'] ?? [];
-        $exportGrades = !empty($_POST['export_grades']);
-        $exportSectors = !empty($_POST['export_sectors']);
+        $type = Input::post('type', 'enum', '', ['category', 'subcategory']);
+        $sourceId = Input::post('source_id', 'int', 0);
+        $productIds = Input::post('product_ids', 'intArray');
+        $exportGrades = Input::post('export_grades', 'bool');
+        $exportSectors = Input::post('export_sectors', 'bool');
 
         if (!$sourceId || !in_array($type, ['category', 'subcategory']) || empty($productIds)) {
             echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos.']);
@@ -405,8 +418,8 @@ class CategoryController {
 
     public function getInheritedSectorsAjax() {
         header('Content-Type: application/json');
-        $subcategoryId = $_GET['subcategory_id'] ?? null;
-        $categoryId = $_GET['category_id'] ?? null;
+        $subcategoryId = Input::get('subcategory_id', 'int');
+        $categoryId = Input::get('category_id', 'int');
 
         $sectors = [];
         $source = null;

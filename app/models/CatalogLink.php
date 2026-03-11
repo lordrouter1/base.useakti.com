@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 /**
@@ -35,8 +38,13 @@ class CatalogLink {
         $stmt->bindParam(':expires_at', $expiresAt);
         
         if ($stmt->execute()) {
+            $newId = $this->conn->lastInsertId();
+            EventDispatcher::dispatch('model.catalog_link.created', new Event('model.catalog_link.created', [
+                'id' => $newId,
+                'order_id' => $orderId,
+            ]));
             return [
-                'id' => $this->conn->lastInsertId(),
+                'id' => $newId,
                 'order_id' => $orderId,
                 'token' => $token,
                 'show_prices' => $showPricesInt,

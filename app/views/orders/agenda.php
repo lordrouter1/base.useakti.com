@@ -99,9 +99,9 @@ $prioIcons  = ['urgente'=>'🔴','alta'=>'🟡','normal'=>'🔵','baixa'=>'🟢'
                                                     $pc = $prioColors[$c['priority']] ?? 'primary';
                                                 ?>
                                                     <div class="small mb-1 p-1 rounded bg-white border-start border-2 border-<?= $pc ?>" style="font-size:0.68rem; line-height:1.2;">
-                                                        <strong><?= htmlspecialchars(mb_substr($c['customer_name'], 0, 15)) ?></strong>
+                                                        <strong><?= e(mb_substr($c['customer_name'], 0, 15)) ?></strong>
                                                         <?php if(!empty($c['customer_phone'])): ?>
-                                                            <br><i class="fas fa-phone" style="font-size:0.55rem;"></i> <?= htmlspecialchars($c['customer_phone']) ?>
+                                                            <br><i class="fas fa-phone" style="font-size:0.55rem;"></i> <?= e($c['customer_phone']) ?>
                                                         <?php endif; ?>
                                                     </div>
                                                 <?php endforeach; ?>
@@ -173,16 +173,16 @@ $prioIcons  = ['urgente'=>'🔴','alta'=>'🟡','normal'=>'🔵','baixa'=>'🟢'
                                                 <span class="badge bg-danger rounded-pill" style="font-size:0.6rem;">Atrasado</span>
                                             <?php endif; ?>
                                         </div>
-                                        <div class="small fw-bold"><?= htmlspecialchars($c['customer_name']) ?></div>
+                                        <div class="small fw-bold"><?= e($c['customer_name']) ?></div>
                                         <div class="small text-muted">
                                             <i class="fas fa-calendar me-1"></i><?= date('d/m/Y', strtotime($c['scheduled_date'])) ?>
                                             <?php if (!empty($c['customer_phone'])): ?>
-                                                &middot; <i class="fas fa-phone me-1"></i><?= htmlspecialchars($c['customer_phone']) ?>
+                                                &middot; <i class="fas fa-phone me-1"></i><?= e($c['customer_phone']) ?>
                                             <?php endif; ?>
                                         </div>
                                         <?php if (!empty($c['notes'])): ?>
                                             <div class="small text-muted mt-1">
-                                                <i class="fas fa-sticky-note me-1"></i><?= htmlspecialchars(mb_substr($c['notes'], 0, 60)) ?>
+                                                <i class="fas fa-sticky-note me-1"></i><?= e(mb_substr($c['notes'], 0, 60)) ?>
                                             </div>
                                         <?php endif; ?>
                                     </div>

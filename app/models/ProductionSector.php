@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 class ProductionSector {
@@ -40,12 +43,17 @@ class ProductionSector {
             ':color' => $data['color'] ?? '#6c757d',
             ':sort'  => $data['sort_order'] ?? 0,
         ]);
-        return $this->conn->lastInsertId();
+        $newId = $this->conn->lastInsertId();
+        EventDispatcher::dispatch('model.production_sector.created', new Event('model.production_sector.created', [
+            'id' => $newId,
+            'name' => $data['name'],
+        ]));
+        return $newId;
     }
 
     public function update($data) {
         $stmt = $this->conn->prepare("UPDATE {$this->table} SET name = :name, description = :desc, icon = :icon, color = :color, sort_order = :sort, is_active = :active WHERE id = :id");
-        return $stmt->execute([
+        $result = $stmt->execute([
             ':name'   => $data['name'],
             ':desc'   => $data['description'] ?? '',
             ':icon'   => $data['icon'] ?? 'fas fa-cogs',
@@ -54,11 +62,22 @@ class ProductionSector {
             ':active' => $data['is_active'] ?? 1,
             ':id'     => $data['id'],
         ]);
+        if ($result) {
+            EventDispatcher::dispatch('model.production_sector.updated', new Event('model.production_sector.updated', [
+                'id' => $data['id'],
+                'name' => $data['name'],
+            ]));
+        }
+        return $result;
     }
 
     public function delete($id) {
         $stmt = $this->conn->prepare("DELETE FROM {$this->table} WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        $result = $stmt->execute([':id' => $id]);
+        if ($result) {
+            EventDispatcher::dispatch('model.production_sector.deleted', new Event('model.production_sector.deleted', ['id' => $id]));
+        }
+        return $result;
     }
 
     /** Retorna os setores vinculados a um produto */

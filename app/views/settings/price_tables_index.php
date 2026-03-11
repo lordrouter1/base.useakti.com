@@ -46,8 +46,8 @@
                                 <?php else: ?>
                                 <?php foreach ($priceTables as $pt): ?>
                                 <tr>
-                                    <td class="ps-3 fw-bold"><?= htmlspecialchars($pt['name']) ?></td>
-                                    <td class="text-muted small"><?= htmlspecialchars($pt['description'] ?? '') ?></td>
+                                    <td class="ps-3 fw-bold"><?= e($pt['name']) ?></td>
+                                    <td class="text-muted small"><?= e($pt['description'] ?? '') ?></td>
                                     <td class="text-center">
                                         <span class="badge bg-primary rounded-pill"><?= $pt['item_count'] ?></span>
                                     </td>

@@ -111,7 +111,7 @@
                                 <option value="">Usar tabela padrão</option>
                                 <?php if (!empty($priceTables)): ?>
                                 <?php foreach ($priceTables as $pt): ?>
-                                <option value="<?= $pt['id'] ?>"><?= htmlspecialchars($pt['name']) ?> <?= $pt['is_default'] ? '(Padrão)' : '' ?></option>
+                                <option value="<?= (int)$pt['id'] ?>"><?= e($pt['name']) ?> <?= $pt['is_default'] ? '(Padrão)' : '' ?></option>
                                 <?php endforeach; ?>
                                 <?php endif; ?>
                             </select>

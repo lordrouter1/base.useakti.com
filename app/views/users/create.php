@@ -34,7 +34,7 @@
                             <select class="form-select" name="group_id">
                                 <option value="">Selecione um grupo...</option>
                                 <?php foreach($groups as $grp): ?>
-                                    <option value="<?= $grp['id'] ?>"><?= $grp['name'] ?></option>
+                                    <option value="<?= (int)$grp['id'] ?>"><?= e($grp['name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                             <div class="form-text">Define quais páginas este usuário pode acessar.</div>

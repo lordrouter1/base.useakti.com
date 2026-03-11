@@ -155,11 +155,11 @@
                             ?>
                             <tr data-item-id="<?= $item['id'] ?>">
                                 <td>
-                                    <strong><?= htmlspecialchars($item['product_name']) ?></strong>
+                                    <strong><?= e($item['product_name']) ?></strong>
                                     <?php if (!empty($item['combination_label'])): ?>
-                                    <br><small class="text-info"><i class="fas fa-layer-group me-1"></i><?= htmlspecialchars($item['combination_label']) ?></small>
+                                    <br><small class="text-info"><i class="fas fa-layer-group me-1"></i><?= e($item['combination_label']) ?></small>
                                     <?php elseif (!empty($item['grade_description'])): ?>
-                                    <br><small class="text-info"><i class="fas fa-layer-group me-1"></i><?= htmlspecialchars($item['grade_description']) ?></small>
+                                    <br><small class="text-info"><i class="fas fa-layer-group me-1"></i><?= e($item['grade_description']) ?></small>
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-center">
@@ -236,7 +236,7 @@
                                         ?>
                                         <option value="<?= $prod['id'] ?>" data-price="<?= $displayPrice ?>" data-original-price="<?= $prod['price'] ?>"
                                                 data-has-combos="<?= !empty($productCombinations[$prod['id']]) ? '1' : '0' ?>">
-                                            <?= htmlspecialchars($prod['name']) ?> — R$ <?= number_format($displayPrice, 2, ',', '.') ?>
+                                            <?= e($prod['name']) ?> — R$ <?= number_format($displayPrice, 2, ',', '.') ?>
                                             <?php if (isset($customerPrices[$prod['id']]) && $customerPrices[$prod['id']] != $prod['price']): ?>
                                             (base: R$ <?= number_format($prod['price'], 2, ',', '.') ?>)
                                             <?php endif; ?>

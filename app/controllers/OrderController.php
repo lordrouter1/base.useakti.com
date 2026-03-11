@@ -9,6 +9,8 @@ use Akti\Models\Logger;
 use Akti\Models\PriceTable;
 use Akti\Models\CompanySettings;
 use Akti\Models\Financial;
+use Akti\Utils\Input;
+use Akti\Utils\Validator;
 use Database;
 use PDO;
 
@@ -54,8 +56,8 @@ class OrderController {
         $customers = $stmt_customers->fetchAll(PDO::FETCH_ASSOC);
 
         // Buscar contatos agendados para a agenda
-        $agendaMonth = isset($_GET['agenda_month']) ? (int)$_GET['agenda_month'] : (int)date('m');
-        $agendaYear = isset($_GET['agenda_year']) ? (int)$_GET['agenda_year'] : (int)date('Y');
+        $agendaMonth = Input::get('agenda_month', 'int') ?: (int)date('m');
+        $agendaYear = Input::get('agenda_year', 'int') ?: (int)date('Y');
         $scheduledContacts = $this->orderModel->getScheduledContacts($agendaMonth, $agendaYear);
 
         require 'app/views/layout/header.php';
@@ -65,21 +67,19 @@ class OrderController {
 
     public function store() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $initialStage = $_POST['initial_stage'] ?? 'contato';
+            $initialStage = Input::post('initial_stage', 'enum', 'contato', ['contato', 'orcamento']);
             
-            $this->orderModel->customer_id = $_POST['customer_id'];
-            $this->orderModel->priority = $_POST['priority'] ?? 'normal';
-            $this->orderModel->internal_notes = $_POST['notes'] ?? null;
+            $this->orderModel->customer_id = Input::post('customer_id', 'int');
+            $this->orderModel->priority = Input::post('priority', 'enum', 'normal', ['baixa', 'normal', 'alta', 'urgente']);
+            $this->orderModel->internal_notes = Input::post('notes');
             
             if ($initialStage === 'contato') {
-                // Contato: sem produtos, valor zerado, com agendamento opcional
                 $this->orderModel->total_amount = 0;
                 $this->orderModel->status = 'orcamento';
                 $this->orderModel->pipeline_stage = 'contato';
-                $this->orderModel->scheduled_date = !empty($_POST['scheduled_date']) ? $_POST['scheduled_date'] : null;
+                $this->orderModel->scheduled_date = Input::post('scheduled_date', 'date');
             } else {
-                // Orçamento: com produtos e valor
-                $this->orderModel->total_amount = $_POST['total_amount'] ?? 0;
+                $this->orderModel->total_amount = Input::post('total_amount', 'float', 0);
                 $this->orderModel->status = 'orcamento';
                 $this->orderModel->pipeline_stage = 'orcamento';
                 $this->orderModel->scheduled_date = null;
@@ -87,16 +87,16 @@ class OrderController {
             
             if ($this->orderModel->create()) {
                 // Se criou como orçamento, salvar os itens do pedido
-                if ($initialStage === 'orcamento' && !empty($_POST['items'])) {
-                    foreach ($_POST['items'] as $item) {
+                if ($initialStage === 'orcamento' && !empty(Input::postArray('items'))) {
+                    foreach (Input::postArray('items') as $item) {
                         if (!empty($item['product_id']) && !empty($item['quantity']) && isset($item['price'])) {
-                            $combId = !empty($item['combination_id']) ? (int)$item['combination_id'] : null;
-                            $gradeDesc = $item['grade_description'] ?? null;
+                            $combId = !empty($item['combination_id']) ? \Akti\Utils\Sanitizer::int($item['combination_id']) : null;
+                            $gradeDesc = isset($item['grade_description']) ? \Akti\Utils\Sanitizer::string($item['grade_description']) : null;
                             $this->orderModel->addItem(
                                 $this->orderModel->id,
-                                (int)$item['product_id'],
-                                (int)$item['quantity'],
-                                (float)$item['price'],
+                                \Akti\Utils\Sanitizer::int($item['product_id']),
+                                \Akti\Utils\Sanitizer::int($item['quantity'], 1),
+                                \Akti\Utils\Sanitizer::float($item['price'], 0),
                                 $combId,
                                 $gradeDesc
                             );
@@ -124,11 +124,12 @@ class OrderController {
     }
 
     public function edit() {
-        if (!isset($_GET['id'])) {
+        $id = Input::get('id', 'int');
+        if (!$id) {
             header('Location: ?page=orders');
             exit;
         }
-        $order = $this->orderModel->readOne($_GET['id']);
+        $order = $this->orderModel->readOne($id);
         if (!$order) {
             header('Location: ?page=orders');
             exit;
@@ -171,15 +172,15 @@ class OrderController {
 
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->orderModel->id = $_POST['id'];
-            $this->orderModel->customer_id = $_POST['customer_id'];
-            $this->orderModel->total_amount = $_POST['total_amount'] ?? 0;
-            $this->orderModel->status = $_POST['status'];
+            $id = Input::post('id', 'int');
+            $this->orderModel->id = $id;
+            $this->orderModel->customer_id = Input::post('customer_id', 'int');
+            $this->orderModel->total_amount = Input::post('total_amount', 'float', 0);
+            $this->orderModel->status = Input::post('status');
             
             if ($this->orderModel->update()) {
-                // Se veio do botão "Imprimir Nota de Pedido", redirecionar com flag para abrir a nota
-                $printOrder = !empty($_POST['print_order_after_save']);
-                $redirectUrl = '?page=orders&action=edit&id=' . $_POST['id'] . '&status=success';
+                $printOrder = Input::post('print_order_after_save', 'bool');
+                $redirectUrl = '?page=orders&action=edit&id=' . $id . '&status=success';
                 if ($printOrder) {
                     $redirectUrl .= '&print_order=1';
                 }
@@ -196,16 +197,16 @@ class OrderController {
      */
     public function addItem() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $orderId = $_POST['order_id'];
-            $productId = $_POST['product_id'];
-            $quantity = (int)($_POST['quantity'] ?? 1);
-            $unitPrice = (float)($_POST['unit_price'] ?? 0);
-            $combinationId = !empty($_POST['combination_id']) ? (int)$_POST['combination_id'] : null;
-            $gradeDescription = $_POST['grade_description'] ?? null;
+            $orderId = Input::post('order_id', 'int');
+            $productId = Input::post('product_id', 'int');
+            $quantity = Input::post('quantity', 'int', 1);
+            $unitPrice = Input::post('unit_price', 'float', 0);
+            $combinationId = Input::post('combination_id', 'int');
+            $gradeDescription = Input::post('grade_description');
 
-            $this->orderModel->addItem($orderId, $productId, $quantity, $unitPrice, $combinationId, $gradeDescription);
+            $this->orderModel->addItem($orderId, $productId, $quantity, $unitPrice, $combinationId ?: null, $gradeDescription ?: null);
 
-            $redirect = $_POST['redirect'] ?? 'orders';
+            $redirect = Input::post('redirect', 'enum', 'orders', ['orders', 'pipeline']);
             if ($redirect === 'pipeline') {
                 header('Location: ?page=pipeline&action=detail&id=' . $orderId . '&status=item_added');
             } else {
@@ -220,14 +221,14 @@ class OrderController {
      */
     public function updateItem() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $itemId = $_POST['item_id'];
-            $quantity = (int)($_POST['quantity'] ?? 1);
-            $unitPrice = (float)($_POST['unit_price'] ?? 0);
-            $orderId = $_POST['order_id'];
+            $itemId = Input::post('item_id', 'int');
+            $quantity = Input::post('quantity', 'int', 1);
+            $unitPrice = Input::post('unit_price', 'float', 0);
+            $orderId = Input::post('order_id', 'int');
 
             $this->orderModel->updateItem($itemId, $quantity, $unitPrice);
 
-            $redirect = $_POST['redirect'] ?? 'orders';
+            $redirect = Input::post('redirect', 'enum', 'orders', ['orders', 'pipeline']);
             if ($redirect === 'pipeline') {
                 header('Location: ?page=pipeline&action=detail&id=' . $orderId . '&status=item_updated');
             } else {
@@ -241,9 +242,9 @@ class OrderController {
      * Remover item do pedido
      */
     public function deleteItem() {
-        $itemId = $_GET['item_id'] ?? null;
-        $orderId = $_GET['order_id'] ?? null;
-        $redirect = $_GET['redirect'] ?? 'orders';
+        $itemId = Input::get('item_id', 'int');
+        $orderId = Input::get('order_id', 'int');
+        $redirect = Input::get('redirect', 'enum', 'orders', ['orders', 'pipeline']);
 
         if ($itemId) {
             $this->orderModel->deleteItem($itemId);
@@ -263,8 +264,8 @@ class OrderController {
     public function updateItemQty() {
         header('Content-Type: application/json');
 
-        $itemId = $_POST['item_id'] ?? null;
-        $quantity = $_POST['quantity'] ?? 1;
+        $itemId = Input::post('item_id', 'int');
+        $quantity = Input::post('quantity', 'int', 1);
 
         if (!$itemId) {
             echo json_encode(['success' => false, 'message' => 'ID do item não informado']);
@@ -303,8 +304,8 @@ class OrderController {
     public function updateItemDiscount() {
         header('Content-Type: application/json');
 
-        $itemId = $_POST['item_id'] ?? null;
-        $discount = $_POST['discount'] ?? 0;
+        $itemId = Input::post('item_id', 'int');
+        $discount = Input::post('discount', 'float', 0);
 
         if (!$itemId) {
             echo json_encode(['success' => false, 'message' => 'ID do item não informado']);
@@ -340,7 +341,7 @@ class OrderController {
      * Imprimir orçamento
      */
     public function printQuote() {
-        $orderId = $_GET['id'] ?? null;
+        $orderId = Input::get('id', 'int');
         if (!$orderId) {
             header('Location: ?page=orders');
             exit;
@@ -368,7 +369,7 @@ class OrderController {
      * Disponível nas etapas: venda e financeiro
      */
     public function printOrder() {
-        $orderId = $_GET['id'] ?? null;
+        $orderId = Input::get('id', 'int');
         if (!$orderId) {
             header('Location: ?page=orders');
             exit;
@@ -396,8 +397,9 @@ class OrderController {
     }
 
     public function delete() {
-        if (isset($_GET['id'])) {
-            $this->orderModel->delete($_GET['id']);
+        $id = Input::get('id', 'int');
+        if ($id) {
+            $this->orderModel->delete($id);
             header('Location: ?page=orders&status=success');
             exit;
         }
@@ -407,8 +409,8 @@ class OrderController {
      * Agenda de contatos agendados
      */
     public function agenda() {
-        $agendaMonth = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('m');
-        $agendaYear = isset($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
+        $agendaMonth = Input::get('month', 'int', (int)date('m'));
+        $agendaYear = Input::get('year', 'int', (int)date('Y'));
         
         $scheduledContacts = $this->orderModel->getScheduledContacts($agendaMonth, $agendaYear);
         
@@ -421,7 +423,7 @@ class OrderController {
      * Relatório de contatos para impressão
      */
     public function report() {
-        $date = $_GET['date'] ?? date('Y-m-d');
+        $date = Input::get('date', 'date', date('Y-m-d'));
         $contacts = $this->orderModel->getScheduledContactsByDate($date);
         
         require 'app/views/orders/report.php';

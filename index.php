@@ -67,9 +67,12 @@ if (isset($_SESSION['user_id'])) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// Inicializar Token CSRF (gera se não existir na sessão)
+// CSRF — Validar ANTES de rotacionar o token.
+// Em requisições POST/PUT/PATCH/DELETE o token do formulário precisa
+// ser comparado com o token ATUAL da sessão. Só depois da validação
+// é seguro gerar/rotacionar o token (para servir nas próximas views).
 // ══════════════════════════════════════════════════════════════════
-Security::generateCsrfToken();
+// (a geração será feita APÓS o CsrfMiddleware::handle())
 
 // ══════════════════════════════════════════════════════════════════
 // Inicializar Router baseado em mapa de rotas
@@ -97,6 +100,7 @@ if ($router->isPublicPage() || $router->hasBeforeAuth()) {
     // Catálogo: sempre público, despachar e sair
     if ($router->isPublicPage() && $page !== 'login') {
         CsrfMiddleware::handle();
+        Security::generateCsrfToken();
         $router->dispatch();
         exit;
     }
@@ -110,6 +114,7 @@ if (!isset($_SESSION['user_id'])) {
     }
     // Não logado + page=login → despachar login (POST de login precisa de CSRF)
     CsrfMiddleware::handle();
+    Security::generateCsrfToken();
     $router->dispatch();
     exit;
 } else {
@@ -174,6 +179,11 @@ if ($needsPermission && !in_array($action, $permissionBypassActions)) {
 // CSRF Middleware — validar token em requisições POST/PUT/PATCH/DELETE
 // ══════════════════════════════════════════════════════════════════
 CsrfMiddleware::handle();
+
+// ══════════════════════════════════════════════════════════════════
+// Gerar/rotacionar token CSRF APÓS a validação (para servir nas views)
+// ══════════════════════════════════════════════════════════════════
+Security::generateCsrfToken();
 
 // ══════════════════════════════════════════════════════════════════
 // Despachar rota autenticada

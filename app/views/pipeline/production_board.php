@@ -130,8 +130,8 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
             <button class="nav-link <?= $isActive ? 'active' : '' ?> d-flex align-items-center gap-2 py-2 px-3" 
                     id="tab-sector-<?= $sid ?>" data-bs-toggle="tab" data-bs-target="#panel-sector-<?= $sid ?>" 
                     type="button" role="tab" aria-selected="<?= $isActive ? 'true' : 'false' ?>">
-                <i class="<?= htmlspecialchars($sector['icon'] ?: 'fas fa-cog') ?>" style="color:<?= htmlspecialchars($sector['color'] ?: '#666') ?>;"></i>
-                <span class="fw-bold"><?= htmlspecialchars($sector['name']) ?></span>
+                <i class="<?= eAttr($sector['icon'] ?: 'fas fa-cog') ?>" style="color:<?= eAttr($sector['color'] ?: '#666') ?>;"></i>
+                <span class="fw-bold"><?= e($sector['name']) ?></span>
                 <?php if ($badgeTotal > 0): ?>
                 <span class="badge rounded-pill bg-secondary" style="font-size:0.7rem;">
                     <?= $badgeTotal ?>
@@ -159,11 +159,11 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <div class="d-flex align-items-center gap-2">
                     <span class="rounded-circle d-inline-flex align-items-center justify-content-center" 
-                          style="width:40px;height:40px;background:<?= htmlspecialchars($sector['color'] ?: '#666') ?>;color:#fff;font-size:1rem;">
-                        <i class="<?= htmlspecialchars($sector['icon'] ?: 'fas fa-cog') ?>"></i>
+                          style="width:40px;height:40px;background:<?= eAttr($sector['color'] ?: '#666') ?>;color:#fff;font-size:1rem;">
+                        <i class="<?= eAttr($sector['icon'] ?: 'fas fa-cog') ?>"></i>
                     </span>
                     <div>
-                        <h5 class="mb-0 fw-bold"><?= htmlspecialchars($sector['name']) ?></h5>
+                        <h5 class="mb-0 fw-bold"><?= e($sector['name']) ?></h5>
                         <small class="text-muted">
                             <?= count($pendentes) ?> pendentes · 
                             <?= count($concluidos) ?> concluídos
@@ -193,7 +193,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                 <?php foreach ($pendentes as $item): 
                     // O model já calculou se há setor anterior concluído
                     $hasCompletedPrevious = !empty($item['has_previous_concluded']);
-                    $sectorColor = htmlspecialchars($sector['color'] ?: '#e67e22');
+                    $sectorColor = eAttr($sector['color'] ?: '#e67e22');
                     $productImg = !empty($item['product_image']) ? $item['product_image'] : '';
                     $isUrgent = (!empty($item['priority']) && $item['priority'] === 'urgente');
                     $isHighPriority = (!empty($item['priority']) && in_array($item['priority'], ['urgente', 'alta']));
@@ -226,8 +226,8 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                                 <!-- Thumbnail do Produto -->
                                 <?php if ($productImg): ?>
                                 <div class="board-item-thumb flex-shrink-0">
-                                    <img src="<?= htmlspecialchars($productImg) ?>" 
-                                         alt="<?= htmlspecialchars($item['product_name']) ?>"
+                                    <img src="<?= eAttr($productImg) ?>" 
+                                         alt="<?= eAttr($item['product_name']) ?>"
                                          class="rounded border" 
                                          style="width:56px;height:56px;object-fit:cover;">
                                 </div>
@@ -242,12 +242,12 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
 
                                 <!-- Info do Produto -->
                                 <div class="flex-grow-1 min-width-0">
-                                    <h6 class="mb-1 fw-bold text-truncate" title="<?= htmlspecialchars($item['product_name']) ?>" style="font-size:0.88rem;">
-                                        <?= htmlspecialchars($item['product_name']) ?>
+                                    <h6 class="mb-1 fw-bold text-truncate" title="<?= eAttr($item['product_name']) ?>" style="font-size:0.88rem;">
+                                        <?= e($item['product_name']) ?>
                                     </h6>
                                     <?php if (!empty($item['grade_description'])): ?>
                                     <span class="badge bg-info bg-opacity-10 text-info-emphasis mb-1" style="font-size:0.65rem;">
-                                        <i class="fas fa-layer-group me-1"></i><?= htmlspecialchars($item['grade_description']) ?>
+                                        <i class="fas fa-layer-group me-1"></i><?= e($item['grade_description']) ?>
                                     </span>
                                     <?php endif; ?>
                                     <div class="small text-muted" style="font-size:0.75rem;">
@@ -259,7 +259,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                             <!-- Detalhes Secundários -->
                             <div class="board-item-details small text-muted mb-2" style="font-size:0.72rem;">
                                 <?php if (!empty($item['customer_name'])): ?>
-                                <div class="text-truncate"><i class="fas fa-user me-1 text-primary opacity-50"></i><?= htmlspecialchars($item['customer_name']) ?></div>
+                                <div class="text-truncate"><i class="fas fa-user me-1 text-primary opacity-50"></i><?= e($item['customer_name']) ?></div>
                                 <?php endif; ?>
                                 <div class="d-flex gap-3">
                                     <span><i class="fas fa-calendar-plus me-1 text-primary opacity-50"></i><?= date('d/m H:i', strtotime($item['order_created_at'])) ?></span>
@@ -288,7 +288,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                                         data-item-id="<?= $item['order_item_id'] ?>"
                                         data-sector-id="<?= $item['sector_id'] ?>"
                                         data-action="revert"
-                                        data-sector-name="<?= htmlspecialchars($sector['name']) ?>">
+                                        data-sector-name="<?= eAttr($sector['name']) ?>">
                                     <i class="fas fa-undo me-1"></i> Retroceder
                                 </button>
                                 <?php endif; ?>
@@ -296,8 +296,8 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                                 <button type="button" class="btn btn-sm btn-outline-info btn-open-log position-relative"
                                         data-order-id="<?= $item['order_id'] ?>"
                                         data-item-id="<?= $item['order_item_id'] ?>"
-                                        data-product-name="<?= htmlspecialchars($item['product_name']) ?>"
-                                        data-customer-name="<?= htmlspecialchars($item['customer_name'] ?? '') ?>"
+                                        data-product-name="<?= eAttr($item['product_name']) ?>"
+                                        data-customer-name="<?= eAttr($item['customer_name'] ?? '') ?>"
                                         data-quantity="<?= $item['quantity'] ?>"
                                         title="Histórico do produto">
                                     <i class="fas fa-history"></i>
@@ -313,7 +313,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                                     data-item-id="<?= $item['order_item_id'] ?>"
                                     data-sector-id="<?= $item['sector_id'] ?>"
                                     data-action="advance"
-                                    data-sector-name="<?= htmlspecialchars($sector['name']) ?>">
+                                    data-sector-name="<?= eAttr($sector['name']) ?>">
                                 <i class="fas fa-check me-1"></i> Concluir
                             </button>
                         </div>
@@ -353,8 +353,8 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                                     <!-- Thumbnail do Produto -->
                                     <?php if ($productImg): ?>
                                     <div class="board-item-thumb flex-shrink-0">
-                                        <img src="<?= htmlspecialchars($productImg) ?>" 
-                                             alt="<?= htmlspecialchars($item['product_name']) ?>"
+                                        <img src="<?= eAttr($productImg) ?>" 
+                                             alt="<?= eAttr($item['product_name']) ?>"
                                              class="rounded border" 
                                              style="width:48px;height:48px;object-fit:cover;opacity:0.7;">
                                     </div>
@@ -368,12 +368,12 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                                     <?php endif; ?>
 
                                     <div class="flex-grow-1 min-width-0">
-                                        <h6 class="mb-1 fw-bold text-truncate text-success" title="<?= htmlspecialchars($item['product_name']) ?>" style="font-size:0.85rem;">
-                                            <?= htmlspecialchars($item['product_name']) ?>
+                                        <h6 class="mb-1 fw-bold text-truncate text-success" title="<?= eAttr($item['product_name']) ?>" style="font-size:0.85rem;">
+                                            <?= e($item['product_name']) ?>
                                         </h6>
                                         <?php if (!empty($item['grade_description'])): ?>
                                         <span class="badge bg-info bg-opacity-10 text-info-emphasis" style="font-size:0.6rem;">
-                                            <i class="fas fa-layer-group me-1"></i><?= htmlspecialchars($item['grade_description']) ?>
+                                            <i class="fas fa-layer-group me-1"></i><?= e($item['grade_description']) ?>
                                         </span>
                                         <?php endif; ?>
                                     </div>
@@ -381,7 +381,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
 
                                 <div class="small text-muted" style="font-size:0.72rem;">
                                     <?php if (!empty($item['customer_name'])): ?>
-                                    <span class="me-2"><i class="fas fa-user me-1"></i><?= htmlspecialchars($item['customer_name']) ?></span>
+                                    <span class="me-2"><i class="fas fa-user me-1"></i><?= e($item['customer_name']) ?></span>
                                     <?php endif; ?>
                                     <span class="me-2"><i class="fas fa-cubes me-1"></i>Qtd: <?= $item['quantity'] ?></span>
                                 </div>
@@ -390,7 +390,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                                     <i class="fas fa-check-circle text-success me-1"></i>
                                     <?= date('d/m/Y H:i', strtotime($item['completed_at'])) ?>
                                     <?php if (!empty($item['completed_by_name'])): ?>
-                                    por <strong><?= htmlspecialchars($item['completed_by_name']) ?></strong>
+                                    por <strong><?= e($item['completed_by_name']) ?></strong>
                                     <?php endif; ?>
                                 </div>
                                 <?php endif; ?>
@@ -403,15 +403,15 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                                         data-item-id="<?= $item['order_item_id'] ?>"
                                         data-sector-id="<?= $item['sector_id'] ?>"
                                         data-action="revert"
-                                        data-sector-name="<?= htmlspecialchars($sector['name']) ?>">
+                                        data-sector-name="<?= e($sector['name']) ?>">
                                     <i class="fas fa-undo me-1"></i> Retroceder
                                 </button>
                                 <?php $logCount = $itemLogCounts[$item['order_item_id']] ?? 0; ?>
                                 <button type="button" class="btn btn-sm btn-outline-info btn-open-log position-relative"
                                         data-order-id="<?= $item['order_id'] ?>"
                                         data-item-id="<?= $item['order_item_id'] ?>"
-                                        data-product-name="<?= htmlspecialchars($item['product_name']) ?>"
-                                        data-customer-name="<?= htmlspecialchars($item['customer_name'] ?? '') ?>"
+                                        data-product-name="<?= e($item['product_name']) ?>"
+                                        data-customer-name="<?= e($item['customer_name'] ?? '') ?>"
                                         data-quantity="<?= $item['quantity'] ?>"
                                         title="Histórico do produto">
                                     <i class="fas fa-history"></i>

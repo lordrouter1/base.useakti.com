@@ -41,7 +41,7 @@
                         <select class="form-select" id="selWarehouse" required>
                             <option value="">Selecione o armazém...</option>
                             <?php foreach ($warehouses as $wh): ?>
-                                <option value="<?= $wh['id'] ?>"><?= htmlspecialchars($wh['name']) ?></option>
+                                <option value="<?= $wh['id'] ?>"><?= e($wh['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -50,7 +50,7 @@
                         <select class="form-select" id="selDestWarehouse">
                             <option value="">Selecione o destino...</option>
                             <?php foreach ($warehouses as $wh): ?>
-                                <option value="<?= $wh['id'] ?>"><?= htmlspecialchars($wh['name']) ?></option>
+                                <option value="<?= $wh['id'] ?>"><?= e($wh['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -73,9 +73,9 @@
                         <select class="form-select form-select-sm" id="selProduct">
                             <option value="">Selecione um produto...</option>
                             <?php foreach ($products as $p): ?>
-                                <option value="<?= $p['id'] ?>" data-name="<?= htmlspecialchars($p['name']) ?>" data-cat="<?= htmlspecialchars($p['category_name'] ?? '') ?>">
-                                    <?= htmlspecialchars($p['name']) ?>
-                                    <?= $p['category_name'] ? ' (' . $p['category_name'] . ')' : '' ?>
+                                <option value="<?= $p['id'] ?>" data-name="<?= eAttr($p['name']) ?>" data-cat="<?= eAttr($p['category_name'] ?? '') ?>">
+                                    <?= e($p['name']) ?>
+                                    <?= $p['category_name'] ? ' (' . e($p['category_name']) . ')' : '' ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

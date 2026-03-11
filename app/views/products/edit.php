@@ -6,7 +6,7 @@
     
     <form id="productForm" method="post" action="?page=products&action=update" enctype="multipart/form-data">
         <?= csrf_field() ?>
-        <input type="hidden" name="id" value="<?= $product['id'] ?>">
+        <input type="hidden" name="id" value="<?= (int)$product['id'] ?>">
 
         <!-- ════════════════════════════════════════════════════
              SEÇÃO 1 — CAMPOS OBRIGATÓRIOS (sempre visíveis)
@@ -20,12 +20,12 @@
                     <!-- Nome do Produto -->
                     <div class="col-md-8">
                         <label for="name" class="form-label fw-bold">Nome do Produto <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-lg" id="name" name="name" required placeholder="Ex: Cartão de Visita, Banner, Adesivo..." value="<?= htmlspecialchars($product['name']) ?>">
+                        <input type="text" class="form-control form-control-lg" id="name" name="name" required placeholder="Ex: Cartão de Visita, Banner, Adesivo..." value="<?= eAttr($product['name']) ?>">
                         <div class="form-text"><i class="fas fa-info-circle me-1"></i>Nome principal que identifica o produto.</div>
                     </div>
                     <div class="col-md-4">
                         <label for="sku" class="form-label fw-bold">SKU</label>
-                        <input type="text" class="form-control form-control-lg" id="sku" name="sku" placeholder="Ex: CART-VIS-001" value="<?= htmlspecialchars($product['sku'] ?? '') ?>">
+                        <input type="text" class="form-control form-control-lg" id="sku" name="sku" placeholder="Ex: CART-VIS-001" value="<?= eAttr($product['sku'] ?? '') ?>">
                         <div class="form-text"><i class="fas fa-barcode me-1"></i>Código único do produto (opcional).</div>
                     </div>
 
@@ -63,7 +63,7 @@
                             <select class="form-select" id="category_id" name="category_id">
                                 <option value="">Selecione...</option>
                                 <?php foreach ($categories as $category): ?>
-                                    <option value="<?= $category['id'] ?>" <?= $product['category_id'] == $category['id'] ? 'selected' : '' ?>><?= $category['name'] ?></option>
+                                    <option value="<?= (int)$category['id'] ?>" <?= $product['category_id'] == $category['id'] ? 'selected' : '' ?>><?= e($category['name']) ?></option>
                                 <?php endforeach; ?>
                                 <option value="new">+ Nova Categoria</option>
                             </select>
@@ -77,7 +77,7 @@
                             <select class="form-select" id="subcategory_id" name="subcategory_id">
                                 <option value="">Selecione...</option>
                                 <?php foreach($subcategories as $sub): ?>
-                                    <option value="<?= $sub['id'] ?>" <?= $product['subcategory_id'] == $sub['id'] ? 'selected' : '' ?>><?= $sub['name'] ?></option>
+                                    <option value="<?= (int)$sub['id'] ?>" <?= $product['subcategory_id'] == $sub['id'] ? 'selected' : '' ?>><?= e($sub['name']) ?></option>
                                 <?php endforeach; ?>
                                 <option value="new">+ Nova Subcategoria</option>
                             </select>
@@ -88,7 +88,7 @@
                     <!-- Descrição -->
                     <div class="col-12">
                         <label for="description" class="form-label fw-bold">Descrição</label>
-                        <textarea class="form-control" id="description" name="description" rows="2" placeholder="Detalhes do produto, acabamentos, etc."><?= htmlspecialchars($product['description']) ?></textarea>
+                        <textarea class="form-control" id="description" name="description" rows="2" placeholder="Detalhes do produto, acabamentos, etc."><?= e($product['description']) ?></textarea>
                     </div>
                 </div>
             </div>
@@ -116,7 +116,7 @@
                     <div class="d-flex flex-wrap gap-2 mb-3" id="existing-images">
                         <?php foreach($images as $img): ?>
                         <div class="position-relative border rounded p-1" id="img-cont-<?= $img['id'] ?>" style="width: 80px; height: 80px;">
-                            <img src="<?= $img['image_path'] ?>" class="w-100 h-100 object-fit-cover rounded">
+                            <img src="<?= eAttr($img['image_path']) ?>" class="w-100 h-100 object-fit-cover rounded">
                             <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 p-0 d-flex align-items-center justify-content-center" 
                                     style="width: 20px; height: 20px; transform: translate(30%, -30%); border-radius: 50%;"
                                     onclick="deleteImage(<?= $img['id'] ?>)">
@@ -180,7 +180,7 @@
                         <?php foreach ($priceTables as $pt): ?>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">
-                                <?= htmlspecialchars($pt['name']) ?>
+                                <?= e($pt['name']) ?>
                                 <?php if ($pt['is_default']): ?>
                                     <span class="badge bg-success" style="font-size:0.65rem;">Padrão</span>
                                 <?php endif; ?>
@@ -227,11 +227,11 @@
                     <div class="row g-3">
                          <div class="col-md-6">
                             <label for="format" class="form-label">Formato/Dimensões</label>
-                            <input type="text" class="form-control" id="format" name="format" placeholder="Ex: A4, 9x5cm" value="<?= htmlspecialchars($product['format'] ?? '') ?>">
+                            <input type="text" class="form-control" id="format" name="format" placeholder="Ex: A4, 9x5cm" value="<?= eAttr($product['format'] ?? '') ?>">
                          </div>
                          <div class="col-md-6">
                             <label for="material" class="form-label">Material/Papel</label>
-                            <input type="text" class="form-control" id="material" name="material" placeholder="Ex: Couché 300g" value="<?= htmlspecialchars($product['material'] ?? '') ?>">
+                            <input type="text" class="form-control" id="material" name="material" placeholder="Ex: Couché 300g" value="<?= eAttr($product['material'] ?? '') ?>">
                          </div>
                     </div>
                 </div>
@@ -283,9 +283,9 @@
                         <div class="sector-item badge d-inline-flex align-items-center me-1 mb-1 px-2 py-2" data-id="<?= $sector['id'] ?>" style="background-color: <?= $sector['color'] ?>; cursor: grab; font-size: 0.85rem;">
                             <i class="fas fa-grip-vertical me-1" style="opacity:0.6; font-size:0.7rem;"></i>
                             <i class="<?= $sector['icon'] ?> me-1"></i>
-                            <?= htmlspecialchars($sector['name']) ?>
-                            <button type="button" class="btn-close btn-close-white ms-2 sector-remove" style="font-size: 0.5rem;" data-id="<?= $sector['id'] ?>"></button>
-                            <input type="hidden" name="sector_ids[]" value="<?= $sector['id'] ?>">
+                            <?= e($sector['name']) ?>
+                            <button type="button" class="btn-close btn-close-white ms-2 sector-remove" style="font-size: 0.5rem;" data-id="<?= (int)$sector['id'] ?>"></button>
+                            <input type="hidden" name="sector_ids[]" value="<?= (int)$sector['id'] ?>">
                         </div>
                         <?php endforeach; ?>
                         <?php if (empty($productSectors)): ?>
@@ -298,11 +298,11 @@
                             $isLinked = in_array($sector['id'], $linkedSectorIds);
                         ?>
                         <button type="button" class="btn btn-sm sector-add-btn <?= $isLinked ? 'd-none' : '' ?>" 
-                                data-id="<?= $sector['id'] ?>" data-name="<?= htmlspecialchars($sector['name']) ?>"
-                                data-icon="<?= $sector['icon'] ?>" data-color="<?= $sector['color'] ?>"
-                                style="border: 1px solid <?= $sector['color'] ?>; color: <?= $sector['color'] ?>; font-size: 0.8rem; padding: 3px 10px;">
+                                data-id="<?= (int)$sector['id'] ?>" data-name="<?= eAttr($sector['name']) ?>"
+                                data-icon="<?= eAttr($sector['icon']) ?>" data-color="<?= eAttr($sector['color']) ?>"
+                                style="border: 1px solid <?= eAttr($sector['color']) ?>; color: <?= eAttr($sector['color']) ?>; font-size: 0.8rem; padding: 3px 10px;">
                             <i class="fas fa-plus me-1" style="font-size: 0.65rem;"></i>
-                            <i class="<?= $sector['icon'] ?> me-1"></i><?= htmlspecialchars($sector['name']) ?>
+                            <i class="<?= eAttr($sector['icon']) ?> me-1"></i><?= e($sector['name']) ?>
                         </button>
                         <?php endforeach; ?>
                     </div>
@@ -338,6 +338,7 @@
         <!-- ════════════════════════════════════════════════════
              SEÇÃO 7 — INFORMAÇÕES FISCAIS (colapsável)
              ════════════════════════════════════════════════════ -->
+        <?php if (\Akti\Core\ModuleBootloader::isModuleEnabled('nfe')): ?>
         <?php $hasFiscal = !empty($product['fiscal_ncm']); ?>
         <div class="card mb-4 shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center section-toggle" 
@@ -351,6 +352,16 @@
                 </div>
             </div>
         </div>
+        <?php else: ?>
+        <!-- Módulo NF-e desabilitado — card informativo -->
+        <div class="card mb-4 shadow-sm border-0 opacity-75">
+            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center" 
+                 role="button" onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('nfe') ?>">
+                <h5 class="mb-0 text-muted"><i class="fas fa-file-invoice me-2"></i>Informações Fiscais (NF-e) <span class="badge bg-secondary ms-2" style="font-size:0.65rem;">Módulo Inativo</span></h5>
+                <i class="fas fa-lock text-muted"></i>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <!-- ════════════════════════════════════════════════════
              BOTÕES DE AÇÃO

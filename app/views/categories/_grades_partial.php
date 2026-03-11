@@ -34,9 +34,9 @@
                 <div class="card-header bg-light d-flex align-items-center justify-content-between py-1 px-2" style="font-size:0.8rem;">
                     <div class="d-flex align-items-center">
                         <i class="<?= $grade['type_icon'] ?> me-1 text-info" style="font-size:0.75rem;"></i>
-                        <span class="fw-bold <?= $prefix ?>-type-label"><?= htmlspecialchars($grade['type_name']) ?></span>
+                        <span class="fw-bold <?= $prefix ?>-type-label"><?= e($grade['type_name']) ?></span>
                         <input type="hidden" name="<?= $fieldName ?>[<?= $gIdx ?>][grade_type_id]" value="<?= $grade['grade_type_id'] ?>">
-                        <input type="hidden" name="<?= $fieldName ?>[<?= $gIdx ?>][type_name]" value="<?= htmlspecialchars($grade['type_name']) ?>">
+                        <input type="hidden" name="<?= $fieldName ?>[<?= $gIdx ?>][type_name]" value="<?= eAttr($grade['type_name']) ?>">
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1 <?= $prefix ?>-remove-grade" title="Remover" style="font-size:0.65rem;">
                         <i class="fas fa-trash-alt"></i>
@@ -48,7 +48,7 @@
                         <div class="input-group input-group-sm <?= $prefix ?>-value-item" style="width:auto; max-width:140px;">
                             <input type="text" class="form-control form-control-sm <?= $prefix ?>-value-input"
                                    name="<?= $fieldName ?>[<?= $gIdx ?>][values][]"
-                                   value="<?= htmlspecialchars($val['value']) ?>"
+                                   value="<?= eAttr($val['value']) ?>"
                                    placeholder="Valor" required style="min-width:60px; font-size:0.75rem;">
                             <button type="button" class="btn btn-outline-danger btn-sm <?= $prefix ?>-remove-value" title="Remover" style="font-size:0.6rem;">
                                 <i class="fas fa-times"></i>
@@ -74,8 +74,8 @@
             foreach ($gradeTypes as $gt):
                 $isUsed = in_array($gt['id'], $usedTypeIds);
             ?>
-            <option value="<?= $gt['id'] ?>" data-icon="<?= $gt['icon'] ?>" data-name="<?= htmlspecialchars($gt['name']) ?>" <?= $isUsed ? 'disabled' : '' ?>>
-                <?= htmlspecialchars($gt['name']) ?> <?= $isUsed ? '(usada)' : '' ?>
+            <option value="<?= (int)$gt['id'] ?>" data-icon="<?= eAttr($gt['icon']) ?>" data-name="<?= eAttr($gt['name']) ?>" <?= $isUsed ? 'disabled' : '' ?>>
+                <?= e($gt['name']) ?> <?= $isUsed ? '(usada)' : '' ?>
             </option>
             <?php endforeach; ?>
         </select>
@@ -105,17 +105,17 @@
                     <?php foreach ($entityCombinations as $combo): ?>
                     <tr class="<?= !$combo['is_active'] ? 'table-danger text-decoration-line-through' : '' ?>">
                         <td class="text-center">
-                            <input type="hidden" name="<?= $combosFieldName ?>[<?= htmlspecialchars($combo['combination_key']) ?>][is_active]" value="<?= $combo['is_active'] ?>">
+                            <input type="hidden" name="<?= $combosFieldName ?>[<?= e($combo['combination_key']) ?>][is_active]" value="<?= $combo['is_active'] ?>">
                             <div class="form-check form-switch d-flex justify-content-center mb-0">
                                 <input class="form-check-input <?= $prefix ?>-combo-toggle" type="checkbox"
-                                       data-combo-key="<?= htmlspecialchars($combo['combination_key']) ?>"
+                                       data-combo-key="<?= eAttr($combo['combination_key']) ?>"
                                        <?= $combo['is_active'] ? 'checked' : '' ?>
                                        style="cursor:pointer;">
                             </div>
                         </td>
                         <td>
                             <i class="fas fa-cube text-muted me-1"></i>
-                            <?= htmlspecialchars($combo['combination_label']) ?>
+                            <?= e($combo['combination_label']) ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>

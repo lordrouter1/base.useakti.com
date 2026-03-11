@@ -13,13 +13,13 @@
         <div class="card shadow-sm border-0">
             <div class="card-body text-center p-4">
                 <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow" style="width: 120px; height: 120px; font-size: 3rem;">
-                    <?= strtoupper(substr($user['name'], 0, 1)) ?>
+                    <?= e(strtoupper(substr($user['name'], 0, 1))) ?>
                 </div>
-                <h5 class="mb-1"><?= $user['name'] ?></h5>
-                <p class="text-muted small mb-2"><?= $user['email'] ?></p>
-                <span class="badge bg-light text-dark border">ID: #<?= $user['id'] ?></span>
+                <h5 class="mb-1"><?= e($user['name']) ?></h5>
+                <p class="text-muted small mb-2"><?= e($user['email']) ?></p>
+                <span class="badge bg-light text-dark border">ID: #<?= (int)$user['id'] ?></span>
                 <?php if(!empty($user['group_name'])): ?>
-                    <div class="mt-2"><span class="badge bg-info text-white"><?= $user['group_name'] ?></span></div>
+                    <div class="mt-2"><span class="badge bg-info text-white"><?= e($user['group_name']) ?></span></div>
                 <?php endif; ?>
                 <hr>
                 <p class="text-muted small mb-0"><i class="fas fa-calendar me-1"></i>Membro desde</p>
@@ -40,11 +40,11 @@
                     
                     <div class="mb-3">
                         <label class="form-label fw-bold small text-muted">Nome Completo</label>
-                        <input type="text" class="form-control" name="name" required value="<?= $user['name'] ?>" placeholder="Seu nome completo">
+                        <input type="text" class="form-control" name="name" required value="<?= eAttr($user['name']) ?>" placeholder="Seu nome completo">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small text-muted">Email</label>
-                        <input type="email" class="form-control" name="email" required value="<?= $user['email'] ?>" placeholder="seu@email.com">
+                        <input type="email" class="form-control" name="email" required value="<?= eAttr($user['email']) ?>" placeholder="seu@email.com">
                     </div>
                     
                     <hr>

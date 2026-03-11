@@ -164,7 +164,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
                                 <a href="?page=financial&action=installments&order_id=<?= $pc['order_id'] ?>" class="text-decoration-none fw-bold small">
                                     #<?= str_pad($pc['order_id'], 4, '0', STR_PAD_LEFT) ?>
                                 </a>
-                                <span class="text-muted small ms-1"><?= htmlspecialchars($pc['customer_name'] ?? '') ?></span>
+                                <span class="text-muted small ms-1"><?= e($pc['customer_name'] ?? '') ?></span>
                                 <div class="text-muted" style="font-size:0.7rem;">Parcela <?= $pc['installment_number'] ?> — R$ <?= number_format($pc['paid_amount'] ?? $pc['amount'], 2, ',', '.') ?></div>
                             </div>
                             <form method="post" action="?page=financial&action=confirmPayment" class="d-inline confirm-form">
@@ -232,7 +232,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
                         <td class="ps-3 fw-bold">
                             <a href="?page=financial&action=installments&order_id=<?= $ov['order_id'] ?>" class="text-decoration-none">#<?= str_pad($ov['order_id'], 4, '0', STR_PAD_LEFT) ?></a>
                         </td>
-                        <td class="small"><?= htmlspecialchars($ov['customer_name'] ?? '—') ?></td>
+                        <td class="small"><?= e($ov['customer_name'] ?? '—') ?></td>
                         <td><span class="badge bg-secondary"><?= $ov['installment_number'] ?>ª</span></td>
                         <td class="small text-danger fw-bold"><?= date('d/m/Y', strtotime($ov['due_date'])) ?></td>
                         <td class="fw-bold">R$ <?= number_format($ov['amount'], 2, ',', '.') ?></td>
@@ -276,7 +276,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
                         <td class="ps-3 fw-bold">
                             <a href="?page=financial&action=installments&order_id=<?= $up['order_id'] ?>" class="text-decoration-none">#<?= str_pad($up['order_id'], 4, '0', STR_PAD_LEFT) ?></a>
                         </td>
-                        <td class="small"><?= htmlspecialchars($up['customer_name'] ?? '—') ?></td>
+                        <td class="small"><?= e($up['customer_name'] ?? '—') ?></td>
                         <td><span class="badge bg-secondary"><?= $up['installment_number'] ?>ª</span></td>
                         <td class="small"><?= date('d/m/Y', strtotime($up['due_date'])) ?></td>
                         <td class="fw-bold">R$ <?= number_format($up['amount'], 2, ',', '.') ?></td>

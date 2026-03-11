@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 /**
@@ -51,6 +54,9 @@ class CompanySettings {
         foreach ($data as $key => $value) {
             $this->set($key, $value);
         }
+        EventDispatcher::dispatch('model.company_settings.updated', new Event('model.company_settings.updated', [
+            'keys' => array_keys($data),
+        ]));
     }
 
     /**

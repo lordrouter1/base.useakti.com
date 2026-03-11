@@ -119,7 +119,13 @@ abstract class TestCase extends PHPUnitTestCase
             $tenantKey = $m[1];
         }
 
-        // ── Passo 2: POST de login com credenciais e tenant_key ──
+        // Extrair csrf_token do formulário (proteção CSRF)
+        $csrfToken = '';
+        if (preg_match('/name="csrf_token"\s+value="([^"]*)"/', $loginPageBody, $m)) {
+            $csrfToken = $m[1];
+        }
+
+        // ── Passo 2: POST de login com credenciais, tenant_key e csrf_token ──
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL            => $loginUrl,
@@ -128,6 +134,7 @@ abstract class TestCase extends PHPUnitTestCase
                 'email'      => $email,
                 'password'   => $password,
                 'tenant_key' => $tenantKey,
+                'csrf_token' => $csrfToken,
             ]),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HEADER         => true,

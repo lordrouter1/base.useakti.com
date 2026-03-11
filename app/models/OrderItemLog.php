@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 use TenantManager;
 
@@ -59,7 +62,14 @@ class OrderItemLog {
             ':fname' => $fileName,
             ':ftype' => $fileType
         ]);
-        return $this->conn->lastInsertId();
+        $newId = $this->conn->lastInsertId();
+        EventDispatcher::dispatch('model.order_item_log.created', new Event('model.order_item_log.created', [
+            'id' => $newId,
+            'order_id' => $orderId,
+            'order_item_id' => $orderItemId,
+            'user_id' => $userId,
+        ]));
+        return $newId;
     }
 
     /**
@@ -146,7 +156,15 @@ class OrderItemLog {
 
         $del = $this->conn->prepare("DELETE FROM order_item_logs WHERE id = :id");
         $del->execute([':id' => $logId]);
-        return $del->rowCount() > 0;
+        $deleted = $del->rowCount() > 0;
+        if ($deleted) {
+            EventDispatcher::dispatch('model.order_item_log.deleted', new Event('model.order_item_log.deleted', [
+                'id' => $logId,
+                'order_id' => $log['order_id'] ?? null,
+                'order_item_id' => $log['order_item_id'] ?? null,
+            ]));
+        }
+        return $deleted;
     }
 
     /**

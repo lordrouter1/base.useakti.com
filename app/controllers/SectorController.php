@@ -3,6 +3,7 @@ namespace Akti\Controllers;
 
 use Akti\Models\ProductionSector;
 use Akti\Models\Logger;
+use Akti\Utils\Input;
 use Database;
 use TenantManager;
 
@@ -42,8 +43,11 @@ class SectorController {
         $limitInfo = $limitReached ? ['current' => $currentSectors, 'max' => $maxSectors] : null;
 
         $editSector = null;
-        if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
-            $editSector = $this->sectorModel->readOne($_GET['id']);
+        if (Input::get('action') === 'edit') {
+            $editId = Input::get('id', 'int');
+            if ($editId) {
+                $editSector = $this->sectorModel->readOne($editId);
+            }
         }
         require 'app/views/layout/header.php';
         require 'app/views/sectors/index.php';
@@ -51,7 +55,7 @@ class SectorController {
     }
 
     public function store() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['name'])) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('name')) {
             // Verificar limite de setores do tenant
             $maxSectors = TenantManager::getTenantLimit('max_sectors');
             if ($maxSectors !== null) {
@@ -63,25 +67,26 @@ class SectorController {
             }
 
             $this->sectorModel->create($_POST);
-            $this->logger->log('CREATE_SECTOR', 'Created sector: ' . $_POST['name']);
+            $this->logger->log('CREATE_SECTOR', 'Created sector: ' . Input::post('name'));
         }
         header('Location: ?page=sectors&status=success');
         exit;
     }
 
     public function update() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['id'])) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('id')) {
             $this->sectorModel->update($_POST);
-            $this->logger->log('UPDATE_SECTOR', 'Updated sector ID: ' . $_POST['id']);
+            $this->logger->log('UPDATE_SECTOR', 'Updated sector ID: ' . Input::post('id', 'int'));
         }
         header('Location: ?page=sectors&status=success');
         exit;
     }
 
     public function delete() {
-        if (isset($_GET['id'])) {
-            $this->sectorModel->delete($_GET['id']);
-            $this->logger->log('DELETE_SECTOR', 'Deleted sector ID: ' . $_GET['id']);
+        $id = Input::get('id', 'int');
+        if ($id) {
+            $this->sectorModel->delete($id);
+            $this->logger->log('DELETE_SECTOR', 'Deleted sector ID: ' . $id);
         }
         header('Location: ?page=sectors&status=success');
         exit;

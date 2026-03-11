@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 /**
@@ -146,11 +149,12 @@ class CategoryGrade {
 
         // Generate combinations
         $this->generateCategoryCombinations($categoryId);
-    }
 
-    /**
-     * Generate combinations for a category
-     */
+        EventDispatcher::dispatch('model.category_grade.saved', new Event('model.category_grade.saved', [
+            'category_id' => $categoryId,
+            'grades_count' => count($gradesData),
+        ]));
+    }
     public function generateCategoryCombinations($categoryId) {
         $grades = $this->getCategoryGradesWithValues($categoryId);
 
@@ -388,11 +392,12 @@ class CategoryGrade {
         }
 
         $this->generateSubcategoryCombinations($subcategoryId);
-    }
 
-    /**
-     * Generate combinations for a subcategory
-     */
+        EventDispatcher::dispatch('model.subcategory_grade.saved', new Event('model.subcategory_grade.saved', [
+            'subcategory_id' => $subcategoryId,
+            'grades_count' => count($gradesData),
+        ]));
+    }
     public function generateSubcategoryCombinations($subcategoryId) {
         $grades = $this->getSubcategoryGradesWithValues($subcategoryId);
 

@@ -8,6 +8,9 @@ use Akti\Models\ProductionSector;
 use Akti\Models\ProductGrade;
 use Akti\Models\Logger;
 use Akti\Models\PriceTable;
+use Akti\Utils\Input;
+use Akti\Utils\Sanitizer;
+use Akti\Utils\Validator;
 use Database;
 use PDO;
 use TenantManager;
@@ -86,18 +89,18 @@ class ProductController {
             }
 
             // Handle dynamically added category
-            $category_id = $_POST['category_id'] ?? null;
-            if ($category_id === 'new' && !empty($_POST['new_category_name'])) {
-                 $this->categoryModel->name = $_POST['new_category_name'];
+            $category_id = Input::post('category_id');
+            if ($category_id === 'new' && Input::hasPost('new_category_name')) {
+                 $this->categoryModel->name = Input::post('new_category_name');
                  if ($this->categoryModel->create()) {
                      $category_id = $this->categoryModel->id;
                  }
             }
 
             // Handle dynamically added subcategory
-            $subcategory_id = $_POST['subcategory_id'] ?? null;
-             if ($subcategory_id === 'new' && !empty($_POST['new_subcategory_name']) && $category_id) {
-                 $this->subcategoryModel->name = $_POST['new_subcategory_name'];
+            $subcategory_id = Input::post('subcategory_id');
+             if ($subcategory_id === 'new' && Input::hasPost('new_subcategory_name') && $category_id) {
+                 $this->subcategoryModel->name = Input::post('new_subcategory_name');
                  $this->subcategoryModel->category_id = $category_id;
                  if ($this->subcategoryModel->create()) {
                      $subcategory_id = $this->subcategoryModel->id;
@@ -105,19 +108,19 @@ class ProductController {
             }
 
             $data = [
-                'name' => $_POST['name'],
-                'sku' => $_POST['sku'] ?? null,
-                'description' => $_POST['description'],
+                'name' => Input::post('name'),
+                'sku' => Input::post('sku'),
+                'description' => Input::post('description'),
                 'category_id' => $category_id ? $category_id : null,
                 'subcategory_id' => $subcategory_id ? $subcategory_id : null,
-                'price' => $_POST['price'],
-                'use_stock_control' => isset($_POST['use_stock_control']) ? 1 : 0
+                'price' => Input::post('price', 'float', 0),
+                'use_stock_control' => Input::post('use_stock_control', 'bool') ? 1 : 0
             ];
 
             // Coletar campos fiscais
             foreach (Product::$fiscalFields as $f) {
-                if (isset($_POST[$f])) {
-                    $data[$f] = trim($_POST[$f]);
+                if (Input::hasPost($f)) {
+                    $data[$f] = Input::post($f);
                 }
             }
 
@@ -128,29 +131,33 @@ class ProductController {
                 $this->logger->log('CREATE_PRODUCT', 'Created product ID: ' . $productId . ' Name: ' . $data['name']);
 
                 // Salvar setores de produção vinculados
-                if (isset($_POST['sector_ids']) && is_array($_POST['sector_ids'])) {
-                    $this->sectorModel->saveProductSectors($productId, $_POST['sector_ids']);
+                $sectorIds = Input::postArray('sector_ids');
+                if (!empty($sectorIds)) {
+                    $this->sectorModel->saveProductSectors($productId, Sanitizer::intArray($sectorIds));
                 }
 
                 // Salvar grades (variações) do produto
-                if (!empty($_POST['grades']) && is_array($_POST['grades'])) {
-                    $this->gradeModel->saveProductGrades($productId, $_POST['grades']);
+                $grades = Input::postArray('grades');
+                if (!empty($grades)) {
+                    $this->gradeModel->saveProductGrades($productId, $grades);
                 }
 
                 // Salvar dados das combinações (preço/estoque por combinação)
-                if (!empty($_POST['combinations']) && is_array($_POST['combinations'])) {
-                    $this->gradeModel->saveCombinationsData($productId, $_POST['combinations']);
+                $combinations = Input::postArray('combinations');
+                if (!empty($combinations)) {
+                    $this->gradeModel->saveCombinationsData($productId, $combinations);
                 }
 
                 // Salvar preços das tabelas de preço
-                if (!empty($_POST['table_prices']) && is_array($_POST['table_prices'])) {
+                $tablePrices = Input::postArray('table_prices');
+                if (!empty($tablePrices)) {
                                 $dbPT = (new Database())->getConnection();
                     $ptModel = new PriceTable($dbPT);
-                    $ptModel->saveProductPrices($productId, $_POST['table_prices']);
+                    $ptModel->saveProductPrices($productId, $tablePrices);
                 }
 
                 // Upload das fotos
-                $this->handlePhotoUpload($productId, $_FILES['product_photos'] ?? null, $_POST['main_image_index'] ?? 0);
+                $this->handlePhotoUpload($productId, $_FILES['product_photos'] ?? null, Input::post('main_image_index', 'int', 0));
                 
                 header('Location: ?page=products&status=success');
                 exit;
@@ -162,8 +169,9 @@ class ProductController {
     
     // AJAX for subcategories
     public function getSubcategories() {
-        if (isset($_GET['category_id'])) {
-            $stmt = $this->categoryModel->getSubcategories($_GET['category_id']);
+        $categoryId = Input::get('category_id', 'int');
+        if ($categoryId) {
+            $stmt = $this->categoryModel->getSubcategories($categoryId);
             echo json_encode($stmt);
             exit;
         }
@@ -171,10 +179,11 @@ class ProductController {
     
     // AJAX for create category on the fly
     public function createCategoryAjax() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'])) {
-            $this->categoryModel->name = $_POST['name'];
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('name')) {
+            $name = Input::post('name');
+            $this->categoryModel->name = $name;
             if ($this->categoryModel->create()) {
-                echo json_encode(['success' => true, 'id' => $this->categoryModel->id, 'name' => $_POST['name']]);
+                echo json_encode(['success' => true, 'id' => $this->categoryModel->id, 'name' => $name]);
             } else {
                 echo json_encode(['success' => false]);
             }
@@ -183,12 +192,12 @@ class ProductController {
     }
 
     public function edit() {
-        if (!isset($_GET['id'])) {
+        $id = Input::get('id', 'int');
+        if (!$id) {
              header('Location: ?page=products');
              exit;
         }
 
-        $id = $_GET['id'];
         $product = $this->productModel->readOne($id);
 
         if (!$product) {
@@ -231,19 +240,18 @@ class ProductController {
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Handle content update similar to store
-             $category_id = $_POST['category_id'] ?? null;
-             // ... Logic for new categories ...
-             if ($category_id === 'new' && !empty($_POST['new_category_name'])) {
-                 $this->categoryModel->name = $_POST['new_category_name'];
+             $category_id = Input::post('category_id');
+             if ($category_id === 'new' && Input::hasPost('new_category_name')) {
+                 $this->categoryModel->name = Input::post('new_category_name');
                  if ($this->categoryModel->create()) {
                      $category_id = $this->categoryModel->id;
                  }
             }
 
             // Handle dynamically added subcategory
-            $subcategory_id = $_POST['subcategory_id'] ?? null;
-             if ($subcategory_id === 'new' && !empty($_POST['new_subcategory_name']) && $category_id) {
-                 $this->subcategoryModel->name = $_POST['new_subcategory_name'];
+            $subcategory_id = Input::post('subcategory_id');
+             if ($subcategory_id === 'new' && Input::hasPost('new_subcategory_name') && $category_id) {
+                 $this->subcategoryModel->name = Input::post('new_subcategory_name');
                  $this->subcategoryModel->category_id = $category_id;
                  if ($this->subcategoryModel->create()) {
                      $subcategory_id = $this->subcategoryModel->id;
@@ -251,20 +259,20 @@ class ProductController {
             }
             
             $data = [
-                 'id' => $_POST['id'],
-                 'name' => $_POST['name'],
-                 'sku' => $_POST['sku'] ?? null,
-                 'description' => $_POST['description'],
+                 'id' => Input::post('id', 'int'),
+                 'name' => Input::post('name'),
+                 'sku' => Input::post('sku'),
+                 'description' => Input::post('description'),
                  'category_id' => $category_id ?: null,
                  'subcategory_id' => $subcategory_id ?: null,
-                 'price' => $_POST['price'],
-                 'use_stock_control' => isset($_POST['use_stock_control']) ? 1 : 0
+                 'price' => Input::post('price', 'float', 0),
+                 'use_stock_control' => Input::post('use_stock_control', 'bool') ? 1 : 0
             ];
 
             // Coletar campos fiscais
             foreach (Product::$fiscalFields as $f) {
-                if (isset($_POST[$f])) {
-                    $data[$f] = trim($_POST[$f]);
+                if (Input::hasPost($f)) {
+                    $data[$f] = Input::post($f);
                 }
             }
 
@@ -272,35 +280,37 @@ class ProductController {
                 $this->logger->log('UPDATE_PRODUCT', 'Updated product ID: ' . $data['id']);
 
                 // Atualizar imagem principal entre as existentes
-                if (!empty($_POST['main_image_id'])) {
-                    $this->productModel->setMainImage($data['id'], $_POST['main_image_id']);
+                if (Input::hasPost('main_image_id')) {
+                    $this->productModel->setMainImage($data['id'], Input::post('main_image_id', 'int'));
                 }
 
                 // Upload de novas fotos
-                $this->handlePhotoUpload($data['id'], $_FILES['product_photos'] ?? null, $_POST['main_image_index'] ?? null);
+                $this->handlePhotoUpload($data['id'], $_FILES['product_photos'] ?? null, Input::post('main_image_index', 'int'));
 
                 // Salvar setores de produção vinculados (limpa se vazio)
-                $sectorIds = isset($_POST['sector_ids']) && is_array($_POST['sector_ids']) ? $_POST['sector_ids'] : [];
+                $sectorIds = Sanitizer::intArray(Input::postArray('sector_ids'));
                 $this->sectorModel->saveProductSectors($data['id'], $sectorIds);
 
                 // Salvar grades (variações) do produto
-                if (isset($_POST['grades']) && is_array($_POST['grades'])) {
-                    $this->gradeModel->saveProductGrades($data['id'], $_POST['grades']);
+                $grades = Input::postArray('grades');
+                if (!empty($grades)) {
+                    $this->gradeModel->saveProductGrades($data['id'], $grades);
                 } else {
-                    // Se nenhuma grade enviada, limpar todas
                     $this->gradeModel->saveProductGrades($data['id'], []);
                 }
 
                 // Salvar dados das combinações (preço/estoque por combinação)
-                if (!empty($_POST['combinations']) && is_array($_POST['combinations'])) {
-                    $this->gradeModel->saveCombinationsData($data['id'], $_POST['combinations']);
+                $combinations = Input::postArray('combinations');
+                if (!empty($combinations)) {
+                    $this->gradeModel->saveCombinationsData($data['id'], $combinations);
                 }
 
                 // Salvar preços das tabelas de preço
-                if (isset($_POST['table_prices']) && is_array($_POST['table_prices'])) {
+                $tablePrices = Input::postArray('table_prices');
+                if (!empty($tablePrices)) {
                                 $dbPT = (new Database())->getConnection();
                     $ptModel = new PriceTable($dbPT);
-                    $ptModel->saveProductPrices($data['id'], $_POST['table_prices']);
+                    $ptModel->saveProductPrices($data['id'], $tablePrices);
                 }
 
                 header('Location: ?page=products&status=success');
@@ -395,8 +405,8 @@ class ProductController {
     }
 
     public function delete() {
-        if (isset($_GET['id'])) {
-            $id = $_GET['id'];
+        $id = Input::get('id', 'int');
+        if ($id) {
             // remove images first
             $images = $this->productModel->getImages($id);
             foreach($images as $img) {
@@ -414,14 +424,19 @@ class ProductController {
     }
 
     public function deleteImage() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['image_id'])) {
-            $image = $this->productModel->getImage($_POST['image_id']);
-            if ($image) {
-                if (file_exists($image['image_path'])) {
-                    unlink($image['image_path']);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $imageId = Input::post('image_id', 'int');
+            if ($imageId) {
+                $image = $this->productModel->getImage($imageId);
+                if ($image) {
+                    if (file_exists($image['image_path'])) {
+                        unlink($image['image_path']);
+                    }
+                    $this->productModel->deleteImage($imageId);
+                    echo json_encode(['success' => true]);
+                } else {
+                    echo json_encode(['success' => false]);
                 }
-                $this->productModel->deleteImage($_POST['image_id']);
-                echo json_encode(['success' => true]);
             } else {
                 echo json_encode(['success' => false]);
             }
@@ -751,10 +766,13 @@ class ProductController {
      * AJAX: Create a new grade type on the fly
      */
     public function createGradeTypeAjax() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['name'])) {
-            $id = $this->gradeModel->createGradeType($_POST['name'], $_POST['description'] ?? null, $_POST['icon'] ?? 'fas fa-th');
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('name')) {
+            $name = Input::post('name');
+            $description = Input::post('description');
+            $icon = Input::post('icon', 'string', 'fas fa-th');
+            $id = $this->gradeModel->createGradeType($name, $description ?: null, $icon);
             if ($id) {
-                echo json_encode(['success' => true, 'id' => $id, 'name' => $_POST['name'], 'icon' => $_POST['icon'] ?? 'fas fa-th']);
+                echo json_encode(['success' => true, 'id' => $id, 'name' => $name, 'icon' => $icon]);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Tipo de grade já existe ou erro ao criar.']);
             }
@@ -778,7 +796,7 @@ class ProductController {
      */
     public function generateCombinationsAjax() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $gradesData = $_POST['grades'] ?? [];
+            $gradesData = Input::postArray('grades');
             // Build combinations client-side from the grades data provided
             $gradeArrays = [];
             foreach ($gradesData as $grade) {

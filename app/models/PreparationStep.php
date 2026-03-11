@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 /**
@@ -100,13 +103,21 @@ class PreparationStep {
         $sql = "INSERT INTO preparation_steps (step_key, label, description, icon, sort_order) 
                 VALUES (:key, :label, :desc, :icon, :sort)";
         $stmt = $this->conn->prepare($sql);
-        return $stmt->execute([
+        $result = $stmt->execute([
             ':key'   => $key,
             ':label' => $label,
             ':desc'  => $description,
             ':icon'  => $icon,
             ':sort'  => $sortOrder,
         ]);
+        if ($result) {
+            EventDispatcher::dispatch('model.preparation_step.created', new Event('model.preparation_step.created', [
+                'id' => $this->conn->lastInsertId(),
+                'key' => $key,
+                'label' => $label,
+            ]));
+        }
+        return $result;
     }
 
     /**
@@ -117,7 +128,7 @@ class PreparationStep {
                 SET label = :label, description = :desc, icon = :icon, sort_order = :sort, is_active = :active 
                 WHERE id = :id";
         $stmt = $this->conn->prepare($sql);
-        return $stmt->execute([
+        $result = $stmt->execute([
             ':label'  => $label,
             ':desc'   => $description,
             ':icon'   => $icon,
@@ -125,6 +136,13 @@ class PreparationStep {
             ':active' => $isActive ? 1 : 0,
             ':id'     => $id,
         ]);
+        if ($result) {
+            EventDispatcher::dispatch('model.preparation_step.updated', new Event('model.preparation_step.updated', [
+                'id' => $id,
+                'label' => $label,
+            ]));
+        }
+        return $result;
     }
 
     /**
@@ -132,7 +150,11 @@ class PreparationStep {
      */
     public function delete($id) {
         $stmt = $this->conn->prepare("DELETE FROM preparation_steps WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        $result = $stmt->execute([':id' => $id]);
+        if ($result) {
+            EventDispatcher::dispatch('model.preparation_step.deleted', new Event('model.preparation_step.deleted', ['id' => $id]));
+        }
+        return $result;
     }
 
     /**

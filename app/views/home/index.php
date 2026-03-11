@@ -95,7 +95,7 @@
     <!-- ══════ Saudação + Atalhos rápidos ══════ -->
     <div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-2 mb-4 border-bottom" id="home-header">
         <div>
-            <h1 class="h2 mb-0"><i class="fas fa-hand-sparkles me-2 text-warning"></i>Olá, <?= htmlspecialchars($_SESSION['user_name'] ?? 'Usuário') ?>!</h1>
+            <h1 class="h2 mb-0"><i class="fas fa-hand-sparkles me-2 text-warning"></i>Olá, <?= e($_SESSION['user_name'] ?? 'Usuário') ?>!</h1>
             <small class="text-muted"><?= ucfirst(strftime('%A, %d de %B de %Y')) ?></small>
         </div>
         <div class="btn-toolbar gap-2 mt-2 mt-md-0" id="home-shortcuts">
@@ -277,7 +277,7 @@
                                     </span>
                                     <div>
                                         <span class="fw-bold small">#<?= str_pad($dOrder['id'], 4, '0', STR_PAD_LEFT) ?></span>
-                                        <span class="ms-1 small text-muted"><?= htmlspecialchars($dOrder['customer_name'] ?? '') ?></span>
+                                        <span class="ms-1 small text-muted"><?= e($dOrder['customer_name'] ?? '') ?></span>
                                     </div>
                                 </div>
                                 <span class="badge bg-danger rounded-pill" style="font-size:0.65rem;">+<?= $dOrder['delay_hours'] ?>h</span>
@@ -314,7 +314,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <span class="fw-bold small">#<?= str_pad($contato['id'], 4, '0', STR_PAD_LEFT) ?></span>
-                                    <span class="ms-1 small"><?= htmlspecialchars($contato['customer_name'] ?? 'Cliente') ?></span>
+                                    <span class="ms-1 small"><?= e($contato['customer_name'] ?? 'Cliente') ?></span>
                                 </div>
                                 <?php if ($isToday): ?>
                                 <span class="badge bg-warning text-dark" style="font-size:0.65rem;">HOJE</span>
@@ -356,7 +356,7 @@
                                     </span>
                                     <div>
                                         <span class="fw-bold small">#<?= str_pad($mov['order_id'], 4, '0', STR_PAD_LEFT) ?></span>
-                                        <span class="ms-1 small text-muted"><?= htmlspecialchars($mov['customer_name'] ?? '') ?></span>
+                                        <span class="ms-1 small text-muted"><?= e($mov['customer_name'] ?? '') ?></span>
                                     </div>
                                 </div>
                                 <div class="text-end">

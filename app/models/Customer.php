@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 class Customer {
@@ -42,7 +45,13 @@ class Customer {
             $data['photo'],
             !empty($data['price_table_id']) ? $data['price_table_id'] : null
         ]);
-        return $this->conn->lastInsertId();
+        $newId = $this->conn->lastInsertId();
+        EventDispatcher::dispatch('model.customer.created', new Event('model.customer.created', [
+            'id' => $newId,
+            'name' => $data['name'],
+            'email' => $data['email'],
+        ]));
+        return $newId;
     }
 
     public function update($data) {
@@ -59,14 +68,26 @@ class Customer {
         $params[] = $data['id'];
         
         $stmt = $this->conn->prepare($query);
-        return $stmt->execute($params);
+        $result = $stmt->execute($params);
+        if ($result) {
+            EventDispatcher::dispatch('model.customer.updated', new Event('model.customer.updated', [
+                'id' => $data['id'],
+                'name' => $data['name'],
+                'email' => $data['email'],
+            ]));
+        }
+        return $result;
     }
 
     public function delete($id) {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result) {
+            EventDispatcher::dispatch('model.customer.deleted', new Event('model.customer.deleted', ['id' => $id]));
+        }
+        return $result;
     }
 
     /**

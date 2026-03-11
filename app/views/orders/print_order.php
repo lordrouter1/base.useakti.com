@@ -79,12 +79,12 @@
                     <img src="<?= $company['company_logo'] ?>" alt="Logo">
                 </div>
                 <?php endif; ?>
-                <div class="company-name"><?= htmlspecialchars($company['company_name'] ?? 'Minha Empresa') ?></div>
+                <div class="company-name"><?= e($company['company_name'] ?? 'Minha Empresa') ?></div>
                 <?php if (!empty($company['company_document'])): ?>
-                <div class="text-muted small"><?= htmlspecialchars($company['company_document']) ?></div>
+                <div class="text-muted small"><?= e($company['company_document']) ?></div>
                 <?php endif; ?>
                 <?php if (!empty($companyAddress)): ?>
-                <div class="text-muted small"><?= htmlspecialchars($companyAddress) ?></div>
+                <div class="text-muted small"><?= e($companyAddress) ?></div>
                 <?php endif; ?>
                 <div class="text-muted small">
                     <?php if (!empty($company['company_phone'])): ?>
@@ -117,7 +117,7 @@
                 <div class="row g-2">
                     <div class="col-md-6">
                         <span class="info-label">Cliente</span>
-                        <div class="info-value"><?= htmlspecialchars($order['customer_name'] ?? '—') ?></div>
+                        <div class="info-value"><?= e($order['customer_name'] ?? '—') ?></div>
                     </div>
                     <div class="col-md-3">
                         <span class="info-label">Telefone</span>
@@ -130,13 +130,13 @@
                     <?php if (!empty($order['customer_email'])): ?>
                     <div class="col-md-6">
                         <span class="info-label">E-mail</span>
-                        <div class="info-value"><?= htmlspecialchars($order['customer_email']) ?></div>
+                        <div class="info-value"><?= e($order['customer_email']) ?></div>
                     </div>
                     <?php endif; ?>
                     <?php if (!empty($customerFormattedAddress)): ?>
                     <div class="col-md-6">
                         <span class="info-label">Endereço</span>
-                        <div class="info-value"><?= htmlspecialchars($customerFormattedAddress) ?></div>
+                        <div class="info-value"><?= e($customerFormattedAddress) ?></div>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -279,11 +279,11 @@
                             <tr>
                                 <td class="ps-3 text-muted"><?= $idx++ ?></td>
                                 <td>
-                                    <strong><?= htmlspecialchars($item['product_name']) ?></strong>
+                                    <strong><?= e($item['product_name']) ?></strong>
                                     <?php if (!empty($item['combination_label'])): ?>
-                                    <br><small class="text-muted"><i class="fas fa-layer-group me-1"></i><?= htmlspecialchars($item['combination_label']) ?></small>
+                                    <br><small class="text-muted"><i class="fas fa-layer-group me-1"></i><?= e($item['combination_label']) ?></small>
                                     <?php elseif (!empty($item['grade_description'])): ?>
-                                    <br><small class="text-muted"><i class="fas fa-layer-group me-1"></i><?= htmlspecialchars($item['grade_description']) ?></small>
+                                    <br><small class="text-muted"><i class="fas fa-layer-group me-1"></i><?= e($item['grade_description']) ?></small>
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-center"><?= $item['quantity'] ?></td>
@@ -331,7 +331,7 @@
                             <?php foreach ($extraCosts as $ec): ?>
                             <tr>
                                 <td colspan="<?= $footColspan ?>" class="text-end pe-2 text-muted">
-                                    <i class="fas fa-plus-circle me-1"></i><?= htmlspecialchars($ec['description']) ?>:
+                                    <i class="fas fa-plus-circle me-1"></i><?= e($ec['description']) ?>:
                                 </td>
                                 <td class="text-end pe-3">R$ <?= number_format($ec['amount'], 2, ',', '.') ?></td>
                             </tr>
@@ -369,7 +369,7 @@
                 <h6 class="mb-0 text-primary fw-bold"><i class="fas fa-sticky-note me-2"></i>Observações</h6>
             </div>
             <div class="card-body py-3">
-                <p class="mb-0"><?= nl2br(htmlspecialchars($order['quote_notes'])) ?></p>
+                <p class="mb-0"><?= nl2br(e($order['quote_notes'])) ?></p>
             </div>
         </div>
         <?php endif; ?>
@@ -377,9 +377,9 @@
         <!-- Rodapé / Notas legais -->
         <div class="footer-note text-center">
             <?php if (!empty($company['order_footer_note'])): ?>
-            <p class="text-muted small mb-1"><?= htmlspecialchars($company['order_footer_note']) ?></p>
+            <p class="text-muted small mb-1"><?= e($company['order_footer_note']) ?></p>
             <?php elseif (!empty($company['quote_footer_note'])): ?>
-            <p class="text-muted small mb-1"><?= htmlspecialchars($company['quote_footer_note']) ?></p>
+            <p class="text-muted small mb-1"><?= e($company['quote_footer_note']) ?></p>
             <?php endif; ?>
             <p class="text-muted small mb-0">Documento gerado em <?= date('d/m/Y \à\s H:i') ?></p>
         </div>
@@ -388,7 +388,7 @@
         <div class="row mt-5 pt-4">
             <div class="col-6 text-center">
                 <div style="border-top: 1px solid #333; width: 80%; margin: 0 auto; padding-top: 5px;">
-                    <small class="text-muted"><?= htmlspecialchars($company['company_name'] ?? 'Assinatura da Empresa') ?></small>
+                    <small class="text-muted"><?= e($company['company_name'] ?? 'Assinatura da Empresa') ?></small>
                 </div>
             </div>
             <div class="col-6 text-center">

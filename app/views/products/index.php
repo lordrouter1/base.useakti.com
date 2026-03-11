@@ -134,22 +134,22 @@
                 <td class="ps-4">
                     <div class="bg-light rounded d-flex align-items-center justify-content-center border" style="width: 50px; height: 50px; overflow: hidden;">
                         <?php if(!empty($product['main_image_path'])): ?>
-                            <img src="<?= $product['main_image_path'] ?>" class="w-100 h-100 object-fit-cover">
+                            <img src="<?= eAttr($product['main_image_path']) ?>" class="w-100 h-100 object-fit-cover">
                         <?php else: ?>
                             <i class="fas fa-image text-secondary"></i>
                         <?php endif; ?>
                     </div>
                 </td>
-                <td class="fw-bold"><?= $product['name'] ?></td>
+                <td class="fw-bold"><?= e($product['name']) ?></td>
                 <td>
                     <span class="badge bg-light text-dark border">
-                        <?= !empty($product['category_name']) ? $product['category_name'] : 'Geral' ?>
+                        <?= !empty($product['category_name']) ? e($product['category_name']) : 'Geral' ?>
                     </span>
                     <?php if(!empty($product['subcategory_name'])): ?>
-                    <small class="text-muted d-block mt-1"><?= $product['subcategory_name'] ?></small>
+                    <small class="text-muted d-block mt-1"><?= e($product['subcategory_name']) ?></small>
                     <?php endif; ?>
                 </td>
-                <td class="fw-bold">R$ <?= number_format($product['price'], 2, ',', '.') ?></td>
+                <td class="fw-bold">R$ <?= eNum($product['price']) ?></td>
                 <td>
                     <?php if(!empty($product['use_stock_control'])): ?>
                         <span class="badge bg-info px-3"><i class="fas fa-boxes me-1"></i>Controle ativo</span>
@@ -159,10 +159,10 @@
                 </td>
                 <td class="text-end pe-4">
                     <div class="btn-group">
-                        <a href="?page=products&action=edit&id=<?= $product['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
+                        <a href="?page=products&action=edit&id=<?= (int)$product['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-product" data-id="<?= $product['id'] ?>" data-name="<?= $product['name'] ?>" title="Excluir">
+                        <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-product" data-id="<?= (int)$product['id'] ?>" data-name="<?= eAttr($product['name']) ?>" title="Excluir">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>

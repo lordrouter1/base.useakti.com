@@ -1,6 +1,9 @@
 <?php
 namespace Akti\Core;
 
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
+
 /**
  * Security — Proteção CSRF centralizada para o sistema Akti.
  *
@@ -32,6 +35,13 @@ class Security
     private const TOKEN_LIFETIME = 1800;
 
     /**
+     * Tempo de graça para o token anterior em segundos (5 minutos).
+     * Permite que formulários abertos antes da rotação ainda sejam aceitos
+     * (ex: usuário com múltiplas abas abertas).
+     */
+    private const TOKEN_GRACE_PERIOD = 300;
+
+    /**
      * Caminho do arquivo de log de segurança (relativo à raiz do projeto).
      */
     private const LOG_FILE = 'storage/logs/security.log';
@@ -44,7 +54,8 @@ class Security
      * Gera (ou reutiliza) um token CSRF criptograficamente seguro.
      *
      * Se o token atual ainda é válido (dentro do lifetime), retorna o existente.
-     * Caso contrário, gera um novo token e armazena na sessão.
+     * Caso contrário, gera um novo token, salva o anterior como grace token
+     * e armazena na sessão.
      *
      * @return string Token CSRF (64 caracteres hexadecimais)
      */
@@ -56,6 +67,12 @@ class Security
             && (time() - $_SESSION['csrf_token_time']) < self::TOKEN_LIFETIME
         ) {
             return $_SESSION['csrf_token'];
+        }
+
+        // Salvar token anterior como grace token (para formulários abertos em outras abas)
+        if (isset($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token_previous']      = $_SESSION['csrf_token'];
+            $_SESSION['csrf_token_previous_time']  = $_SESSION['csrf_token_time'] ?? time();
         }
 
         // Gerar novo token criptograficamente seguro
@@ -85,6 +102,10 @@ class Security
     /**
      * Valida o token CSRF recebido contra o token da sessão.
      *
+     * Aceita tanto o token atual quanto o token anterior (grace period)
+     * para evitar falsos positivos quando o token é rotacionado entre
+     * o carregamento do formulário e a submissão.
+     *
      * Usa hash_equals() para evitar timing attacks.
      *
      * @param  string|null $token Token recebido do formulário ou header
@@ -96,14 +117,25 @@ class Security
             return false;
         }
 
+        // 1. Validar contra o token atual
         $sessionToken = $_SESSION['csrf_token'] ?? null;
-
-        if ($sessionToken === null) {
-            return false;
+        if ($sessionToken !== null && hash_equals($sessionToken, $token)) {
+            return true;
         }
 
-        // Comparação segura (constant-time) para evitar timing attacks
-        return hash_equals($sessionToken, $token);
+        // 2. Validar contra o token anterior (grace period)
+        $previousToken = $_SESSION['csrf_token_previous'] ?? null;
+        $previousTime  = $_SESSION['csrf_token_previous_time'] ?? 0;
+
+        if (
+            $previousToken !== null
+            && (time() - $previousTime) < (self::TOKEN_LIFETIME + self::TOKEN_GRACE_PERIOD)
+            && hash_equals($previousToken, $token)
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -171,6 +203,12 @@ class Security
     {
         // Registrar falha no log
         self::logCsrfFailure($receivedToken);
+
+        EventDispatcher::dispatch('core.security.access_denied', new Event('core.security.access_denied', [
+            'page' => $_GET['page'] ?? '',
+            'action' => $_GET['action'] ?? '',
+            'reason' => 'csrf_failure',
+        ]));
 
         http_response_code(403);
 

@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Models;
 
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use Akti\Models\ProductionSector;
 use PDO;
 
@@ -137,6 +139,13 @@ class Pipeline {
             if ($newStage === 'producao') {
                 $this->initOrderProductionSectors($orderId);
             }
+
+            EventDispatcher::dispatch('model.order.stage_changed', new Event('model.order.stage_changed', [
+                'id' => $orderId,
+                'from_stage' => $fromStage,
+                'to_stage' => $newStage,
+                'user_id' => $userId,
+            ]));
         }
 
         return $result;

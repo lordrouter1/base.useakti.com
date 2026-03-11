@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Middleware;
 
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use Akti\Core\Security;
 
 /**
@@ -75,6 +77,14 @@ class CsrfMiddleware
 
         // Validar
         if (!Security::validateCsrfToken($token)) {
+            $ip = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['HTTP_X_REAL_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+            $page   = $_GET['page'] ?? 'home';
+            $action = $_GET['action'] ?? 'index';
+            EventDispatcher::dispatch('middleware.csrf.failed', new Event('middleware.csrf.failed', [
+                'ip' => $ip,
+                'route' => "?page={$page}&action={$action}",
+                'method' => $method,
+            ]));
             Security::handleCsrfFailure($token);
             // handleCsrfFailure chama exit, mas por segurança:
             exit;

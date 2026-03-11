@@ -12,6 +12,11 @@
         <testsuite name="Pages">
             <directory>tests/Pages</directory>
         </testsuite>
+
+        <!-- Suíte unitária: testa componentes internos (EventDispatcher, etc.) -->
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
     </testsuites>
 
     <php>

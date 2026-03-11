@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 class Walkthrough {
@@ -74,7 +77,13 @@ class Walkthrough {
         $query = "UPDATE {$this->table} SET completed = 1, skipped = 0, completed_at = NOW() WHERE user_id = :user_id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result) {
+            EventDispatcher::dispatch('model.walkthrough.completed', new Event('model.walkthrough.completed', [
+                'user_id' => $userId,
+            ]));
+        }
+        return $result;
     }
 
     /**
@@ -86,7 +95,13 @@ class Walkthrough {
         $query = "UPDATE {$this->table} SET skipped = 1, completed_at = NOW() WHERE user_id = :user_id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result) {
+            EventDispatcher::dispatch('model.walkthrough.skipped', new Event('model.walkthrough.skipped', [
+                'user_id' => $userId,
+            ]));
+        }
+        return $result;
     }
 
     /**

@@ -189,13 +189,13 @@
                         <?php if (!empty($order['customer_email'])): ?>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-muted">E-mail</label>
-                            <input type="text" class="form-control" value="<?= htmlspecialchars($order['customer_email']) ?>" disabled>
+                            <input type="text" class="form-control" value="<?= e($order['customer_email']) ?>" disabled>
                         </div>
                         <?php endif; ?>
                         <?php if (!empty($customerFormattedAddress)): ?>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-muted">Endereço</label>
-                            <input type="text" class="form-control" value="<?= htmlspecialchars($customerFormattedAddress) ?>" disabled>
+                            <input type="text" class="form-control" value="<?= e($customerFormattedAddress) ?>" disabled>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -304,7 +304,7 @@
                                     <option value="">Padrão do cliente</option>
                                     <?php foreach ($priceTables as $pt): ?>
                                     <option value="<?= $pt['id'] ?>" <?= ($currentPriceTableId == $pt['id']) ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($pt['name']) ?> <?= $pt['is_default'] ? '(Padrão)' : '' ?>
+                                        <?= e($pt['name']) ?> <?= $pt['is_default'] ? '(Padrão)' : '' ?>
                                     </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -353,11 +353,11 @@
                                 ?>
                                 <tr data-item-id="<?= $item['id'] ?>">
                                     <td>
-                                        <strong><?= htmlspecialchars($item['product_name']) ?></strong>
+                                        <strong><?= e($item['product_name']) ?></strong>
                                         <?php if (!empty($item['combination_label'])): ?>
-                                        <br><small class="text-info"><i class="fas fa-layer-group me-1"></i><?= htmlspecialchars($item['combination_label']) ?></small>
+                                        <br><small class="text-info"><i class="fas fa-layer-group me-1"></i><?= e($item['combination_label']) ?></small>
                                         <?php elseif (!empty($item['grade_description'])): ?>
-                                        <br><small class="text-info"><i class="fas fa-layer-group me-1"></i><?= htmlspecialchars($item['grade_description']) ?></small>
+                                        <br><small class="text-info"><i class="fas fa-layer-group me-1"></i><?= e($item['grade_description']) ?></small>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
@@ -440,7 +440,7 @@
                                         ?>
                                         <option value="<?= $prod['id'] ?>" data-price="<?= $displayPrice ?>" data-original-price="<?= $prod['price'] ?>"
                                                 data-has-combos="<?= !empty($productCombinations[$prod['id']]) ? '1' : '0' ?>">
-                                            <?= htmlspecialchars($prod['name']) ?> — R$ <?= number_format($displayPrice, 2, ',', '.') ?>
+                                            <?= e($prod['name']) ?> — R$ <?= number_format($displayPrice, 2, ',', '.') ?>
                                             <?php if (isset($customerPrices[$prod['id']]) && $customerPrices[$prod['id']] != $prod['price']): ?>
                                             (base: R$ <?= number_format($prod['price'], 2, ',', '.') ?>)
                                             <?php endif; ?>
@@ -498,7 +498,7 @@
                                         <?php foreach ($extraCosts as $ec): ?>
                                         <?php $totalExtras += $ec['amount']; ?>
                                         <tr>
-                                            <td><?= htmlspecialchars($ec['description']) ?></td>
+                                            <td><?= e($ec['description']) ?></td>
                                             <td class="text-end fw-bold <?= $ec['amount'] < 0 ? 'text-danger' : '' ?>">
                                                 <?= $ec['amount'] < 0 ? '- R$ ' . number_format(abs($ec['amount']), 2, ',', '.') : 'R$ ' . number_format($ec['amount'], 2, ',', '.') ?>
                                             </td>
@@ -558,7 +558,7 @@
                 </fieldset>
                 <?php else: ?>
                 <!-- Manter valores atuais nos campos ocultos quando a seção de produtos não aparece -->
-                <input type="hidden" name="quote_notes" value="<?= htmlspecialchars($order['quote_notes'] ?? '') ?>">
+                <input type="hidden" name="quote_notes" value="<?= e($order['quote_notes'] ?? '') ?>">
                 <input type="hidden" name="price_table_id" value="<?= $order['price_table_id'] ?? '' ?>">
                 <?php endif; ?>
 
@@ -676,7 +676,7 @@
                                         </span>
                                     <?php endif; ?>
                                     <div>
-                                        <h6 class="mb-0 fw-bold"><?= htmlspecialchars($itemData['product_name']) ?></h6>
+                                        <h6 class="mb-0 fw-bold"><?= e($itemData['product_name']) ?></h6>
                                         <small class="text-muted">Qtd: <?= $itemData['quantity'] ?></small>
                                     </div>
                                 </div>
@@ -685,7 +685,7 @@
                                         <span class="badge bg-success px-3 py-1"><i class="fas fa-check-double me-1"></i>Concluído</span>
                                     <?php elseif ($currentSector): ?>
                                         <span class="badge py-1 px-2" style="background:<?= $currentSector['color'] ?>;">
-                                            <i class="<?= $currentSector['icon'] ?> me-1"></i><?= htmlspecialchars($currentSector['sector_name']) ?>
+                                            <i class="<?= $currentSector['icon'] ?> me-1"></i><?= e($currentSector['sector_name']) ?>
                                         </span>
                                     <?php else: ?>
                                         <span class="badge bg-secondary bg-opacity-50 px-2 py-1"><i class="fas fa-pause me-1"></i>Aguardando</span>
@@ -726,7 +726,7 @@
                                 <!-- Step -->
                                 <div class="production-step text-center position-relative flex-shrink-0" 
                                      data-bs-toggle="tooltip" data-bs-placement="top"
-                                     title="<?= htmlspecialchars($sec['sector_name']) ?><?= $isDone && !empty($sec['completed_at']) ? ' — Concluído em '.date('d/m H:i', strtotime($sec['completed_at'])) : '' ?>">
+                                     title="<?= e($sec['sector_name']) ?><?= $isDone && !empty($sec['completed_at']) ? ' — Concluído em '.date('d/m H:i', strtotime($sec['completed_at'])) : '' ?>">
                                     <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto
                                         <?= $isActive ? 'sector-pulse' : '' ?>"
                                         style="width:36px;height:36px;font-size:0.8rem;
@@ -742,7 +742,7 @@
                                     <div class="small mt-1 <?= $isActive ? 'fw-bold' : ($isPending ? 'text-muted' : '') ?>" 
                                          style="font-size:0.65rem;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
                                          color:<?= $isDone ? '#27ae60' : ($isActive ? $sec['color'] : '#999') ?>;">
-                                        <?= htmlspecialchars($sec['sector_name']) ?>
+                                        <?= e($sec['sector_name']) ?>
                                     </div>
                                 </div>
                                 <?php endforeach; ?>
@@ -769,7 +769,7 @@
                                             data-item-id="<?= $itemId ?>"
                                             data-sector-id="<?= $revertSector['sector_id'] ?>"
                                             data-action="revert"
-                                            data-sector-name="<?= htmlspecialchars($revertSector['sector_name']) ?>">
+                                            data-sector-name="<?= e($revertSector['sector_name']) ?>">
                                         <i class="fas fa-undo me-1"></i> Retroceder
                                     </button>
                                     <?php endif; ?>
@@ -780,13 +780,13 @@
                                             data-item-id="<?= $itemId ?>"
                                             data-sector-id="<?= $currentSector['sector_id'] ?>"
                                             data-action="advance"
-                                            data-sector-name="<?= htmlspecialchars($currentSector['sector_name']) ?>">
-                                        <i class="fas fa-check me-1"></i> Concluir <strong><?= htmlspecialchars($currentSector['sector_name']) ?></strong>
+                                            data-sector-name="<?= e($currentSector['sector_name']) ?>">
+                                        <i class="fas fa-check me-1"></i> Concluir <strong><?= e($currentSector['sector_name']) ?></strong>
                                         <?php 
                                         $nextIdx = $currentSectorIdx + 1;
                                         if ($nextIdx < $totalItemSectors):
                                         ?>
-                                        <span class="ms-1 opacity-75">→ <?= htmlspecialchars($sectors[$nextIdx]['sector_name']) ?></span>
+                                        <span class="ms-1 opacity-75">→ <?= e($sectors[$nextIdx]['sector_name']) ?></span>
                                         <?php endif; ?>
                                     </button>
                                 </div>
@@ -804,8 +804,8 @@
                                         data-item-id="<?= $itemId ?>"
                                         data-sector-id="<?= $lastSec['sector_id'] ?>"
                                         data-action="revert"
-                                        data-sector-name="<?= htmlspecialchars($lastSec['sector_name']) ?>">
-                                    <i class="fas fa-undo me-1"></i> Retroceder <strong><?= htmlspecialchars($lastSec['sector_name']) ?></strong>
+                                        data-sector-name="<?= e($lastSec['sector_name']) ?>">
+                                    <i class="fas fa-undo me-1"></i> Retroceder <strong><?= e($lastSec['sector_name']) ?></strong>
                                 </button>
                             </div>
                             <?php endif; ?>
@@ -853,7 +853,7 @@
                     </legend>
                     <div class="alert alert-info py-2 mb-3">
                         <i class="fas fa-info-circle me-1"></i>
-                        <small>Os itens abaixo foram deduzidos do armazém <strong><?= htmlspecialchars($warehouseName) ?></strong> ao entrar em preparação. Se o pedido for retrocedido, o estoque será automaticamente devolvido.</small>
+                        <small>Os itens abaixo foram deduzidos do armazém <strong><?= e($warehouseName) ?></strong> ao entrar em preparação. Se o pedido for retrocedido, o estoque será automaticamente devolvido.</small>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover mb-0">
@@ -869,10 +869,10 @@
                             <tbody>
                                 <?php foreach ($activeDeductions as $ded): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($ded['product_name']) ?></td>
-                                    <td><?= $ded['combination_label'] ? htmlspecialchars($ded['combination_label']) : '<span class="text-muted">—</span>' ?></td>
+                                    <td><?= e($ded['product_name']) ?></td>
+                                    <td><?= $ded['combination_label'] ? e($ded['combination_label']) : '<span class="text-muted">—</span>' ?></td>
                                     <td class="text-center fw-bold text-danger"><?= number_format($ded['quantity'], 0, ',', '.') ?></td>
-                                    <td><i class="fas fa-warehouse me-1 text-muted"></i><?= htmlspecialchars($ded['warehouse_name']) ?></td>
+                                    <td><i class="fas fa-warehouse me-1 text-muted"></i><?= e($ded['warehouse_name']) ?></td>
                                     <td class="text-muted small"><?= date('d/m/Y H:i', strtotime($ded['deducted_at'])) ?></td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -927,7 +927,7 @@
                         <div class="mt-1">
                             <?php foreach ($orderItems as $oi): ?>
                             <span class="badge bg-light text-dark border me-1 mb-1" style="font-size:0.75rem;">
-                                <i class="fas fa-box me-1 text-muted"></i><?= htmlspecialchars($oi['product_name']) ?> 
+                                <i class="fas fa-box me-1 text-muted"></i><?= e($oi['product_name']) ?> 
                                 <strong class="ms-1">×<?= $oi['quantity'] ?></strong>
                             </span>
                             <?php endforeach; ?>
@@ -964,7 +964,7 @@
                                         <div class="text-muted" style="font-size:0.7rem;"><?= $pItem['desc'] ?></div>
                                         <?php if ($isChecked && $checkedBy): ?>
                                         <div class="text-muted mt-1" style="font-size:0.6rem;">
-                                            <i class="fas fa-user me-1"></i><?= htmlspecialchars($checkedBy) ?>
+                                            <i class="fas fa-user me-1"></i><?= e($checkedBy) ?>
                                             <?php if ($checkedAt): ?>
                                                 · <?= date('d/m H:i', strtotime($checkedAt)) ?>
                                             <?php endif; ?>
@@ -1131,9 +1131,9 @@
                                     ?>
                                     <tr>
                                         <td>
-                                            <i class="fas fa-box me-1 text-muted"></i><?= htmlspecialchars($oi['product_name']) ?>
+                                            <i class="fas fa-box me-1 text-muted"></i><?= e($oi['product_name']) ?>
                                             <?php if (!empty($oi['combination_label'])): ?>
-                                            <small class="text-info ms-1"><?= htmlspecialchars($oi['combination_label']) ?></small>
+                                            <small class="text-info ms-1"><?= e($oi['combination_label']) ?></small>
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-center"><?= $oi['quantity'] ?></td>
@@ -1198,9 +1198,7 @@
                                 <option value="pix" <?= ($order['payment_method'] ?? '') == 'pix' ? 'selected' : '' ?>>📱 PIX</option>
                                 <option value="cartao_credito" <?= ($order['payment_method'] ?? '') == 'cartao_credito' ? 'selected' : '' ?>>💳 Cartão Crédito</option>
                                 <option value="cartao_debito" <?= ($order['payment_method'] ?? '') == 'cartao_debito' ? 'selected' : '' ?>>💳 Cartão Débito</option>
-                                <?php if ($canUseBoletoModule): ?>
                                 <option value="boleto" <?= ($order['payment_method'] ?? '') == 'boleto' ? 'selected' : '' ?>>📄 Boleto</option>
-                                <?php endif; ?>
                                 <option value="transferencia" <?= ($order['payment_method'] ?? '') == 'transferencia' ? 'selected' : '' ?>>🏦 Transferência</option>
                             </select>
                         </div>
@@ -1256,9 +1254,16 @@
                             <div id="boletoInstallmentTable" class="mt-3" style="display:none;">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h6 class="mb-0 small fw-bold text-muted"><i class="fas fa-list-ol me-1"></i>Detalhamento das Parcelas</h6>
+                                    <?php if ($canUseBoletoModule): ?>
                                     <button type="button" class="btn btn-sm btn-outline-dark" id="btnPrintBoletos" style="font-size:0.7rem;">
                                         <i class="fas fa-print me-1"></i> Imprimir Boletos
                                     </button>
+                                    <?php else: ?>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" style="font-size:0.7rem;"
+                                            onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('boleto') ?>">
+                                        <i class="fas fa-print me-1"></i> Imprimir Boletos <i class="fas fa-lock ms-1" style="font-size:0.6rem;"></i>
+                                    </button>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table table-sm table-hover align-middle mb-0" id="boletoTableBody">
@@ -1334,14 +1339,14 @@
                                     <label class="form-label small fw-bold text-muted">Nº da Nota Fiscal</label>
                                     <input type="text" class="form-control" name="nf_number" id="nfNumber"
                                            placeholder="Ex: 000123"
-                                           value="<?= htmlspecialchars($order['nf_number'] ?? '') ?>"
+                                           value="<?= e($order['nf_number'] ?? '') ?>"
                                            <?= $isReadOnly ? 'disabled' : '' ?>>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label small fw-bold text-muted">Série</label>
                                     <input type="text" class="form-control" name="nf_series" id="nfSeries"
                                            placeholder="Ex: 1"
-                                           value="<?= htmlspecialchars($order['nf_series'] ?? '') ?>"
+                                           value="<?= e($order['nf_series'] ?? '') ?>"
                                            <?= $isReadOnly ? 'disabled' : '' ?>>
                                 </div>
                                 <div class="col-md-4">
@@ -1357,14 +1362,14 @@
                                     <label class="form-label small fw-bold text-muted">Chave de Acesso (NFe)</label>
                                     <input type="text" class="form-control" name="nf_access_key" id="nfAccessKey"
                                            placeholder="44 dígitos da chave da NFe..."
-                                           value="<?= htmlspecialchars($order['nf_access_key'] ?? '') ?>"
+                                           value="<?= e($order['nf_access_key'] ?? '') ?>"
                                            <?= $isReadOnly ? 'disabled' : '' ?>>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold text-muted">Observações Fiscais</label>
                                     <input type="text" class="form-control" name="nf_notes" id="nfNotes"
                                            placeholder="Observações sobre a nota fiscal..."
-                                           value="<?= htmlspecialchars($order['nf_notes'] ?? '') ?>"
+                                           value="<?= e($order['nf_notes'] ?? '') ?>"
                                            <?= $isReadOnly ? 'disabled' : '' ?>>
                                 </div>
                             </div>
@@ -1394,6 +1399,21 @@
                         </div>
                     </div>
                     <?php endif; ?>
+                    <?php if (!$canUseFiscalModule || !$canUseNfeModule): ?>
+                    <!-- NF-e desabilitado — card informativo -->
+                    <div class="card mt-3 border-0 shadow-sm opacity-75" role="button"
+                         onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('nfe') ?>">
+                        <div class="card-header py-2 bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 text-muted" style="font-size:0.85rem;">
+                                    <i class="fas fa-file-invoice me-2"></i>Fiscal / Nota Fiscal
+                                    <span class="badge bg-secondary ms-2" style="font-size:0.6rem;">Módulo Inativo</span>
+                                </h6>
+                                <i class="fas fa-lock text-muted" style="font-size:0.75rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </fieldset>
                 <?php else: ?>
                 <!-- Manter valores atuais nos campos ocultos para não perder ao salvar -->
@@ -1403,11 +1423,11 @@
                 <input type="hidden" name="installments" value="<?= $order['installments'] ?? '' ?>">
                 <input type="hidden" name="installment_value" value="<?= $order['installment_value'] ?? '' ?>">
                 <input type="hidden" name="down_payment" value="<?= $order['down_payment'] ?? '0' ?>">
-                <input type="hidden" name="nf_number" value="<?= htmlspecialchars($order['nf_number'] ?? '') ?>">
-                <input type="hidden" name="nf_series" value="<?= htmlspecialchars($order['nf_series'] ?? '') ?>">
+                <input type="hidden" name="nf_number" value="<?= e($order['nf_number'] ?? '') ?>">
+                <input type="hidden" name="nf_series" value="<?= e($order['nf_series'] ?? '') ?>">
                 <input type="hidden" name="nf_status" value="<?= $order['nf_status'] ?? '' ?>">
-                <input type="hidden" name="nf_access_key" value="<?= htmlspecialchars($order['nf_access_key'] ?? '') ?>">
-                <input type="hidden" name="nf_notes" value="<?= htmlspecialchars($order['nf_notes'] ?? '') ?>">
+                <input type="hidden" name="nf_access_key" value="<?= e($order['nf_access_key'] ?? '') ?>">
+                <input type="hidden" name="nf_notes" value="<?= e($order['nf_notes'] ?? '') ?>">
                 <?php endif; ?>
 
                 <?php if ($showShipping): ?>
@@ -1445,7 +1465,7 @@
                         <div class="mt-1">
                             <?php foreach ($orderItems as $oi): ?>
                             <span class="badge bg-light text-dark border me-1 mb-1" style="font-size:0.75rem;">
-                                <i class="fas fa-box me-1 text-muted"></i><?= htmlspecialchars($oi['product_name']) ?>
+                                <i class="fas fa-box me-1 text-muted"></i><?= e($oi['product_name']) ?>
                                 <strong class="ms-1">×<?= $oi['quantity'] ?></strong>
                             </span>
                             <?php endforeach; ?>
@@ -1470,7 +1490,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-muted"><i class="fas fa-user me-1"></i>Destinatário</label>
-                            <input type="text" class="form-control" value="<?= htmlspecialchars($order['customer_name'] ?? '—') ?> — <?= $order['customer_phone'] ?? '' ?>" disabled>
+                            <input type="text" class="form-control" value="<?= e($order['customer_name'] ?? '—') ?> — <?= $order['customer_phone'] ?? '' ?>" disabled>
                         </div>
                     </div>
 
@@ -1507,20 +1527,20 @@
                             <textarea class="form-control form-control-lg" name="shipping_address" id="shippingAddressTextarea" rows="2" 
                                       placeholder="Endereço completo de entrega..." 
                                       style="font-size:0.95rem;"
-                                      <?= $isReadOnly ? 'disabled' : '' ?>><?= htmlspecialchars($shippingAddress) ?></textarea>
+                                      <?= $isReadOnly ? 'disabled' : '' ?>><?= e($shippingAddress) ?></textarea>
                             <?php if (!empty($customerFormattedAddress) && !$isReadOnly): ?>
                             <div class="mt-2">
                                 <button type="button" class="btn btn-sm btn-outline-secondary" id="btnUseCustomerAddress">
                                     <i class="fas fa-user-tag me-1"></i> Usar endereço do cliente
                                 </button>
-                                <small class="text-muted ms-2"><?= htmlspecialchars($customerFormattedAddress) ?></small>
+                                <small class="text-muted ms-2"><?= e($customerFormattedAddress) ?></small>
                             </div>
                             <?php endif; ?>
                         </div>
                     </div>
 
                     <!-- Hidden field para manter o endereço quando retirada está selecionada -->
-                    <input type="hidden" name="shipping_address_backup" id="shippingAddressBackup" value="<?= htmlspecialchars($shippingAddress) ?>"
+                    <input type="hidden" name="shipping_address_backup" id="shippingAddressBackup" value="<?= e($shippingAddress) ?>"
 
                     >
 
@@ -1538,7 +1558,7 @@
                                     <div class="input-group">
                                         <input type="text" class="form-control" name="tracking_code" id="trackingCodeInput"
                                                placeholder="Ex: BR123456789XX" 
-                                               value="<?= htmlspecialchars($trackingCode) ?>" 
+                                               value="<?= e($trackingCode) ?>" 
                                                <?= $isReadOnly ? 'disabled' : '' ?>>
                                         <?php if (!empty($trackingCode)): ?>
                                         <a href="https://www.linkcorreios.com.br/?id=<?= urlencode($trackingCode) ?>" target="_blank" 
@@ -1571,7 +1591,7 @@
                             <?php if (!empty($trackingCode)): ?>
                             <div class="alert alert-info py-2 px-3 mt-2 mb-0 small">
                                 <i class="fas fa-truck me-1"></i>
-                                Código: <strong class="user-select-all"><?= htmlspecialchars($trackingCode) ?></strong>
+                                Código: <strong class="user-select-all"><?= e($trackingCode) ?></strong>
                                 <?php if (!empty($order['customer_phone'])): ?>
                                 <a href="https://wa.me/55<?= preg_replace('/\D/', '', $order['customer_phone']) ?>?text=<?= urlencode('Olá! Seu pedido #' . str_pad($order['id'], 4, '0', STR_PAD_LEFT) . ' foi enviado. Código de rastreio: ' . $trackingCode) ?>" 
                                    target="_blank" class="btn btn-sm btn-success ms-2" style="font-size:0.7rem;">
@@ -1607,7 +1627,7 @@
                 <?php else: ?>
                 <!-- Manter valores atuais nos campos ocultos para não perder ao salvar -->
                 <input type="hidden" name="shipping_type" value="<?= $order['shipping_type'] ?? 'retirada' ?>">
-                <input type="hidden" name="shipping_address" value="<?= htmlspecialchars($order['shipping_address'] ?? '') ?>">
+                <input type="hidden" name="shipping_address" value="<?= e($order['shipping_address'] ?? '') ?>">
                 <input type="hidden" name="tracking_code" value="<?= $order['tracking_code'] ?? '' ?>">
                 <?php endif; ?>
 
@@ -1725,7 +1745,7 @@
                                     <option value="">Selecione o produto...</option>
                                     <option value="all">📋 Todos os Produtos (Registro Geral)</option>
                                     <?php foreach ($orderItems as $oi): ?>
-                                    <option value="<?= $oi['id'] ?>"><?= htmlspecialchars($oi['product_name'] ?? 'Produto #'.$oi['product_id']) ?> (Qtd: <?= $oi['quantity'] ?>)</option>
+                                    <option value="<?= $oi['id'] ?>"><?= e($oi['product_name'] ?? 'Produto #'.$oi['product_id']) ?> (Qtd: <?= $oi['quantity'] ?>)</option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -1778,9 +1798,9 @@
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
                                         <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 me-1" style="font-size:0.6rem;">
-                                            <i class="fas fa-box me-1"></i><?= htmlspecialchars($log['product_name'] ?? 'Produto') ?>
+                                            <i class="fas fa-box me-1"></i><?= e($log['product_name'] ?? 'Produto') ?>
                                         </span>
-                                        <span class="small fw-bold"><?= htmlspecialchars($log['user_name'] ?? 'Sistema') ?></span>
+                                        <span class="small fw-bold"><?= e($log['user_name'] ?? 'Sistema') ?></span>
                                     </div>
                                     <div class="d-flex align-items-center gap-1">
                                         <span class="text-muted" style="font-size:0.6rem;"><?= date('d/m/Y H:i', strtotime($log['created_at'])) ?></span>
@@ -1793,21 +1813,21 @@
                                     </div>
                                 </div>
                                 <?php if (!empty($log['message'])): ?>
-                                <div class="small mt-1" style="white-space:pre-wrap;"><?= htmlspecialchars($log['message']) ?></div>
+                                <div class="small mt-1" style="white-space:pre-wrap;"><?= e($log['message']) ?></div>
                                 <?php endif; ?>
                                 <?php if (!empty($log['file_path'])): ?>
                                     <?php if ($isImage): ?>
                                     <div class="mt-2">
                                         <a href="<?= $log['file_path'] ?>" target="_blank">
                                             <img src="<?= $log['file_path'] ?>" class="rounded border" 
-                                                 style="max-width:100%;max-height:150px;" alt="<?= htmlspecialchars($log['file_name']) ?>">
+                                                 style="max-width:100%;max-height:150px;" alt="<?= e($log['file_name']) ?>">
                                         </a>
-                                        <div class="small text-muted mt-1"><i class="fas fa-image me-1"></i><?= htmlspecialchars($log['file_name']) ?></div>
+                                        <div class="small text-muted mt-1"><i class="fas fa-image me-1"></i><?= e($log['file_name']) ?></div>
                                     </div>
                                     <?php elseif ($isPdf): ?>
                                     <div class="mt-2">
                                         <a href="<?= $log['file_path'] ?>" target="_blank" class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-file-pdf me-1"></i><?= htmlspecialchars($log['file_name']) ?>
+                                            <i class="fas fa-file-pdf me-1"></i><?= e($log['file_name']) ?>
                                         </a>
                                     </div>
                                     <?php endif; ?>
@@ -2585,7 +2605,7 @@ function copyCatalogLink() {
 function shareViaWhatsApp() {
     const url = document.getElementById('catalogLinkUrl').value;
     const phone = '<?= preg_replace('/\D/', '', $order['customer_phone'] ?? '') ?>';
-    const customerName = '<?= htmlspecialchars($order['customer_name'] ?? 'cliente') ?>';
+    const customerName = '<?= e($order['customer_name'] ?? 'cliente') ?>';
     const companyName = 'nossa equipe';
     
     const message = encodeURIComponent(
@@ -2984,7 +3004,7 @@ setInterval(() => {
     const cardTitleText = document.getElementById('installmentCardTitleText');
     
     // Formas de pagamento que aceitam parcelamento
-    const parcelableMethods = ['cartao_credito'<?= $canUseBoletoModule ? ", 'boleto'" : '' ?>];
+    const parcelableMethods = ['cartao_credito','boleto'];
     
     function updateCardTitle() {
         if (!cardTitleText) return;

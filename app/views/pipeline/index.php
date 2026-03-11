@@ -180,7 +180,7 @@
                             <!-- Nome do Cliente -->
                             <div class="small mb-2">
                                 <i class="fas fa-user text-muted me-1" style="font-size:0.7rem;"></i>
-                                <span class="text-truncate d-inline-block" style="max-width: 180px;"><?= htmlspecialchars($order['customer_name'] ?? 'Cliente removido') ?></span>
+                                <span class="text-truncate d-inline-block" style="max-width: 180px;"><?= e($order['customer_name'] ?? 'Cliente removido') ?></span>
                             </div>
 
                             <!-- Tempo na etapa atual -->

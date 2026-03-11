@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 /**
@@ -35,7 +38,12 @@ class ProductGrade {
         $stmt->bindParam(':desc', $description);
         $stmt->bindParam(':icon', $icon);
         if ($stmt->execute()) {
-            return $this->conn->lastInsertId();
+            $newId = $this->conn->lastInsertId();
+            EventDispatcher::dispatch('model.grade_type.created', new Event('model.grade_type.created', [
+                'id' => $newId,
+                'name' => $name,
+            ]));
+            return $newId;
         }
         return false;
     }

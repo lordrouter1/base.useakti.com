@@ -1,10 +1,14 @@
 <?php
 namespace Akti\Controllers;
 
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use Akti\Models\User;
 use Akti\Models\UserGroup;
 use Akti\Models\LoginAttempt;
 use Akti\Models\Logger;
+use Akti\Utils\Input;
+use Akti\Utils\Validator;
 use Database;
 use PDO;
 use TenantManager;
@@ -55,11 +59,32 @@ class UserController {
     public function store() {
         $this->checkAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-             $this->userModel->name = $_POST['name'];
-             $this->userModel->email = $_POST['email'];
-             $this->userModel->password = $_POST['password'];
-             $this->userModel->role = $_POST['role'];
-             $this->userModel->group_id = !empty($_POST['group_id']) ? $_POST['group_id'] : null;
+             $name = Input::post('name');
+             $email = Input::post('email', 'email');
+             $password = Input::postRaw('password');
+             $role = Input::post('role', 'enum', 'user', ['admin', 'user']);
+             $groupId = Input::post('group_id', 'int');
+
+             $v = new Validator();
+             $v->required('name', $name, 'Nome')
+               ->maxLength('name', $name, 191, 'Nome')
+               ->required('email', $email, 'E-mail')
+               ->email('email', $email, 'E-mail')
+               ->required('password', $password, 'Senha')
+               ->minLength('password', $password, 6, 'Senha');
+
+             if ($v->fails()) {
+                 $_SESSION['errors'] = $v->errors();
+                 $_SESSION['old'] = $_POST;
+                 header('Location: ?page=users&action=create');
+                 exit;
+             }
+
+             $this->userModel->name = $name;
+             $this->userModel->email = $email;
+             $this->userModel->password = $password;
+             $this->userModel->role = $role;
+             $this->userModel->group_id = $groupId ?: null;
 
              $maxUsers = TenantManager::getTenantLimit('max_users');
              if ($maxUsers !== null) {
@@ -83,12 +108,12 @@ class UserController {
     public function edit() {
         $this->checkAdmin();
         
-        if (!isset($_GET['id'])) {
+        $id = Input::get('id', 'int');
+        if (!$id) {
             header('Location: ?page=users');
             exit;
         }
         
-        $id = $_GET['id'];
         $user = $this->userModel->readOne($id);
         
         if (!$user) {
@@ -107,15 +132,35 @@ class UserController {
     public function update() {
         $this->checkAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->userModel->id = $_POST['id'];
-            $this->userModel->name = $_POST['name'];
-            $this->userModel->email = $_POST['email'];
-            $this->userModel->role = $_POST['role'];
-            $this->userModel->group_id = !empty($_POST['group_id']) ? $_POST['group_id'] : null;
+            $id = Input::post('id', 'int');
+            $name = Input::post('name');
+            $email = Input::post('email', 'email');
+            $role = Input::post('role', 'enum', 'user', ['admin', 'user']);
+            $groupId = Input::post('group_id', 'int');
+            $password = Input::postRaw('password');
+
+            $v = new Validator();
+            $v->required('id', $id, 'ID')
+              ->required('name', $name, 'Nome')
+              ->maxLength('name', $name, 191, 'Nome')
+              ->required('email', $email, 'E-mail')
+              ->email('email', $email, 'E-mail');
+
+            if ($v->fails()) {
+                $_SESSION['errors'] = $v->errors();
+                header('Location: ?page=users&action=edit&id=' . $id);
+                exit;
+            }
+
+            $this->userModel->id = $id;
+            $this->userModel->name = $name;
+            $this->userModel->email = $email;
+            $this->userModel->role = $role;
+            $this->userModel->group_id = $groupId ?: null;
             
             // Password only if provided
-            if (!empty($_POST['password'])) {
-                $this->userModel->password = $_POST['password'];
+            if (!empty($password)) {
+                $this->userModel->password = $password;
             }
             
             if ($this->userModel->update()) {
@@ -130,8 +175,8 @@ class UserController {
 
     public function delete() {
         $this->checkAdmin();
-        if (isset($_GET['id'])) {
-            $id = $_GET['id'];
+        $id = Input::get('id', 'int');
+        if ($id) {
             if ($this->userModel->delete($id)) {
                 $this->logger->log('DELETE_USER', 'Deleted user ID: ' . $id);
             }
@@ -146,8 +191,9 @@ class UserController {
         
         // If editing a group (show edit form instead of create)
         $editGroup = null;
-        if (isset($_GET['manage_id'])) {
-            $editGroup = $this->groupModel->readOne($_GET['manage_id']);
+        $manageId = Input::get('manage_id', 'int');
+        if ($manageId) {
+            $editGroup = $this->groupModel->readOne($manageId);
             if ($editGroup) {
                  $editGroup['permissions'] = $this->groupModel->getPermissions($editGroup['id']);
             }
@@ -169,15 +215,16 @@ class UserController {
     public function createGroup() {
         $this->checkAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->groupModel->name = $_POST['name'];
-            $this->groupModel->description = $_POST['description'];
+            $this->groupModel->name = Input::post('name');
+            $this->groupModel->description = Input::post('description');
             
             if ($this->groupModel->create()) {
                 $groupId = $this->groupModel->id;
 
-                if (isset($_POST['permissions'])) {
-                    foreach ($_POST['permissions'] as $page) {
-                        $this->groupModel->addPermission($groupId, $page);
+                $permissions = Input::postArray('permissions');
+                if (!empty($permissions)) {
+                    foreach ($permissions as $page) {
+                        $this->groupModel->addPermission($groupId, \Akti\Utils\Sanitizer::string($page));
                     }
                 }
                 header('Location: ?page=users&action=groups&status=success');
@@ -188,17 +235,19 @@ class UserController {
     public function updateGroup() {
         $this->checkAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->groupModel->id = $_POST['id'];
-            $this->groupModel->name = $_POST['name'];
-            $this->groupModel->description = $_POST['description'];
+            $id = Input::post('id', 'int');
+            $this->groupModel->id = $id;
+            $this->groupModel->name = Input::post('name');
+            $this->groupModel->description = Input::post('description');
             
             if ($this->groupModel->update()) {
                 // Update permissions
-                $this->groupModel->deletePermissions($_POST['id']);
+                $this->groupModel->deletePermissions($id);
                 
-                if (isset($_POST['permissions'])) {
-                    foreach ($_POST['permissions'] as $page) {
-                        $this->groupModel->addPermission($_POST['id'], $page);
+                $permissions = Input::postArray('permissions');
+                if (!empty($permissions)) {
+                    foreach ($permissions as $page) {
+                        $this->groupModel->addPermission($id, \Akti\Utils\Sanitizer::string($page));
                     }
                 }
                 header('Location: ?page=users&action=groups&status=success');
@@ -208,8 +257,9 @@ class UserController {
 
     public function deleteGroup() {
         $this->checkAdmin();
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
-            if ($this->groupModel->delete($_POST['id'])) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = Input::post('id', 'int');
+            if ($id && $this->groupModel->delete($id)) {
                 header('Location: ?page=users&action=groups&status=success');
                 exit;
             } else {
@@ -234,31 +284,41 @@ class UserController {
 
     public function updateProfile() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-             // Validar se o usuario esta editando o proprio perfil
              if (!isset($_SESSION['user_id'])) {
                  header('Location: ?page=login');
                  exit;
              }
              
-             // Reuse existing model update logic but safer
-             // Here we are updating currently logged user, not passed ID via hidden input (security risk)
-             // But for now let's use the session ID to be safe
+             $name = Input::post('name');
+             $email = Input::post('email', 'email');
+             $password = Input::postRaw('password');
+
+             $v = new Validator();
+             $v->required('name', $name, 'Nome')
+               ->maxLength('name', $name, 191, 'Nome')
+               ->required('email', $email, 'E-mail')
+               ->email('email', $email, 'E-mail');
+
+             if ($v->fails()) {
+                 $_SESSION['errors'] = $v->errors();
+                 header('Location: ?page=profile');
+                 exit;
+             }
+
              $this->userModel->id = $_SESSION['user_id'];
-             $this->userModel->name = $_POST['name'];
-             $this->userModel->email = $_POST['email'];
+             $this->userModel->name = $name;
+             $this->userModel->email = $email;
              
-             // Keep existing role/group - should not be changeable by user profile in standard logic
-             // Need to fetch current values first to preserve them if model update overwrites all
              $currentUser = $this->userModel->readOne($_SESSION['user_id']);
              $this->userModel->role = $currentUser['role']; 
              $this->userModel->group_id = $currentUser['group_id'];
 
-             if (!empty($_POST['password'])) {
-                 $this->userModel->password = $_POST['password'];
+             if (!empty($password)) {
+                 $this->userModel->password = $password;
              }
              
              if ($this->userModel->update()) {
-                 $_SESSION['user_name'] = $_POST['name'];
+                 $_SESSION['user_name'] = $name;
                  $this->logger->log('UPDATE_PROFILE', 'User updated own profile');
                  header('Location: ?page=profile&success=1');
                  exit;
@@ -293,9 +353,9 @@ class UserController {
         $lockout = null;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-             $email    = trim($_POST['email'] ?? '');
-             $password = $_POST['password'] ?? '';
-             $postedTenant   = $_POST['tenant_key'] ?? '';
+             $email    = Input::post('email', 'email');
+             $password = Input::postRaw('password');
+             $postedTenant   = Input::post('tenant_key');
              $resolvedTenant = $_SESSION['tenant']['key'] ?? '';
 
              // ── Validação de tenant ──
@@ -321,7 +381,7 @@ class UserController {
              // ── Verificar reCAPTCHA (>= 3 falhas) ──
              $showCaptcha = $this->loginAttempt->requiresCaptcha($ip, $email);
              if ($showCaptcha) {
-                 $captchaResponse = $_POST['g-recaptcha-response'] ?? '';
+                 $captchaResponse = Input::postRaw('g-recaptcha-response') ?? '';
                  if (empty($captchaResponse) || !$this->loginAttempt->validateCaptcha($captchaResponse, $ip)) {
                      $this->logger->log('LOGIN_CAPTCHA_FAIL', "reCAPTCHA inválido: $ip / $email");
                      $error = 'Por favor, confirme que você não é um robô.';
@@ -351,12 +411,23 @@ class UserController {
 
                  $this->logger->log('LOGIN', 'User logged in: ' . $email, $this->userModel->id);
                  
+                 EventDispatcher::dispatch('controller.user.login', new Event('controller.user.login', [
+                     'user_id' => $this->userModel->id,
+                     'email' => $email,
+                     'ip' => $ip,
+                 ]));
+
                  header('Location: ?');
                  exit;
              } else {
                  // Falha — registrar tentativa
                  $this->loginAttempt->record($ip, $email, false);
                  $this->logger->log('LOGIN_FAIL', 'Failed login attempt for: ' . $email);
+
+                 EventDispatcher::dispatch('controller.user.login_failed', new Event('controller.user.login_failed', [
+                     'email' => $email,
+                     'ip' => $ip,
+                 ]));
 
                  // Recalcular estado após registrar a falha
                  $lockout = $this->loginAttempt->checkLockout($ip, $email);
@@ -382,6 +453,9 @@ class UserController {
     public function logout() {
         if (isset($_SESSION['user_id'])) {
              $this->logger->log('LOGOUT', 'User logged out', $_SESSION['user_id']);
+             EventDispatcher::dispatch('controller.user.logout', new Event('controller.user.logout', [
+                 'user_id' => $_SESSION['user_id'],
+             ]));
         }
         session_destroy();
         header('Location: ?page=login');

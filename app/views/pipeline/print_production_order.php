@@ -260,15 +260,15 @@ $prioMap = [
             <?php endif; ?>
 
             <div class="company-name">
-                <?= htmlspecialchars($company['company_name'] ?? 'Minha Gráfica') ?>
+                <?= e($company['company_name'] ?? 'Minha Gráfica') ?>
             </div>
 
             <?php if (!empty($company['company_document'])): ?>
-                <div class="text-muted" style="font-size:0.75rem;"><?= htmlspecialchars($company['company_document']) ?></div>
+                <div class="text-muted" style="font-size:0.75rem;"><?= e($company['company_document']) ?></div>
             <?php endif; ?>
 
             <?php if (!empty($companyAddress)): ?>
-                <div class="text-muted" style="font-size:0.75rem;"><?= htmlspecialchars($companyAddress) ?></div>
+                <div class="text-muted" style="font-size:0.75rem;"><?= e($companyAddress) ?></div>
             <?php endif; ?>
         </div>
 
@@ -293,7 +293,7 @@ $prioMap = [
             <td class="lbl">Pedido</td>
             <td><strong>#<?= $orderId ?></strong></td>
             <td class="lbl">Cliente</td>
-            <td><strong><?= htmlspecialchars($order['customer_name'] ?? '—') ?></strong></td>
+            <td><strong><?= e($order['customer_name'] ?? '—') ?></strong></td>
         </tr>
         <tr>
             <td class="lbl">Data</td>
@@ -305,7 +305,7 @@ $prioMap = [
             <td class="lbl">Prioridade</td>
             <td><?= $prioMap[$order['priority'] ?? 'normal'] ?? 'Normal' ?></td>
             <td class="lbl">E-mail</td>
-            <td><?= !empty($order['customer_email']) ? htmlspecialchars($order['customer_email']) : '—' ?></td>
+            <td><?= !empty($order['customer_email']) ? e($order['customer_email']) : '—' ?></td>
         </tr>
         <tr>
             <td class="lbl">Prazo</td>
@@ -313,7 +313,7 @@ $prioMap = [
                 <?= !empty($order['deadline']) ? date('d/m/Y', strtotime($order['deadline'])) : '—' ?>
             </td>
             <td class="lbl">Responsável</td>
-            <td><?= !empty($order['assigned_name']) ? htmlspecialchars($order['assigned_name']) : '—' ?></td>
+            <td><?= !empty($order['assigned_name']) ? e($order['assigned_name']) : '—' ?></td>
         </tr>
     </table>
 
@@ -353,7 +353,7 @@ $prioMap = [
                                 $itemMainImage = $productImages[$item['product_id']] ?? null;
                             ?>
                             <?php if ($itemMainImage && file_exists($itemMainImage)): ?>
-                                <img src="<?= htmlspecialchars($itemMainImage) ?>" alt="" class="production-product-img">
+                                <img src="<?= e($itemMainImage) ?>" alt="" class="production-product-img">
                             <?php else: ?>
                                 <div class="production-product-noimg">
                                     <i class="fas fa-image"></i>
@@ -364,14 +364,14 @@ $prioMap = [
                                 <?= $allDone ? '✓' : $idx ?>
                             </span>
                             <div>
-                                <strong style="font-size:0.85rem;"><?= htmlspecialchars($item['product_name']) ?></strong>
+                                <strong style="font-size:0.85rem;"><?= e($item['product_name']) ?></strong>
                                 <?php if (!empty($item['combination_label'])): ?>
                                     <span class="badge bg-info text-white ms-1" style="font-size:0.68rem;font-weight:600;">
-                                        <i class="fas fa-layer-group me-1" style="font-size:0.55rem;"></i><?= htmlspecialchars($item['combination_label']) ?>
+                                        <i class="fas fa-layer-group me-1" style="font-size:0.55rem;"></i><?= e($item['combination_label']) ?>
                                     </span>
                                 <?php elseif (!empty($item['grade_description'])): ?>
                                     <span class="badge bg-info text-white ms-1" style="font-size:0.68rem;font-weight:600;">
-                                        <i class="fas fa-layer-group me-1" style="font-size:0.55rem;"></i><?= htmlspecialchars($item['grade_description']) ?>
+                                        <i class="fas fa-layer-group me-1" style="font-size:0.55rem;"></i><?= e($item['grade_description']) ?>
                                     </span>
                                 <?php endif; ?>
                                 <small class="text-muted ms-2">
@@ -411,9 +411,9 @@ $prioMap = [
                                 <?php endif; ?>
 
                                 <span class="sector-badge <?= $isDone ? 'done' : ($isCurrentSector ? 'active' : '') ?>">
-                                    <i class="<?= htmlspecialchars($sec['icon'] ?: 'fas fa-cog') ?>"
+                                    <i class="<?= e($sec['icon'] ?: 'fas fa-cog') ?>"
                                        style="font-size:0.6rem;"></i>
-                                    <?= htmlspecialchars($sec['sector_name']) ?>
+                                    <?= e($sec['sector_name']) ?>
                                     <?php if ($isDone): ?>
                                         <i class="fas fa-check" style="font-size:0.55rem;"></i>
                                     <?php endif; ?>
@@ -434,11 +434,11 @@ $prioMap = [
                                         <?php endif; ?>
                                     </span>
                                     <span class="<?= $isDone ? 'text-decoration-line-through text-muted' : 'fw-bold' ?>">
-                                        <?= htmlspecialchars($sec['sector_name']) ?>
+                                        <?= e($sec['sector_name']) ?>
                                     </span>
                                     <?php if ($isDone && !empty($sec['completed_by_name'])): ?>
                                         <span class="text-muted" style="font-size:0.6rem;">
-                                            (<?= htmlspecialchars($sec['completed_by_name']) ?>
+                                            (<?= e($sec['completed_by_name']) ?>
                                             <?php if (!empty($sec['completed_at'])): ?>
                                                 <?= date('d/m H:i', strtotime($sec['completed_at'])) ?>
                                             <?php endif; ?>)
@@ -478,15 +478,15 @@ $prioMap = [
             <?php foreach ($orderItemLogs as $log): ?>
             <div class="d-flex gap-1 px-2 py-1 border-bottom" style="font-size:0.72rem;">
                 <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size:0.58rem;">
-                    <i class="fas fa-box me-1"></i><?= htmlspecialchars($log['product_name'] ?? 'Produto') ?>
+                    <i class="fas fa-box me-1"></i><?= e($log['product_name'] ?? 'Produto') ?>
                 </span>
-                <span class="fw-bold"><?= htmlspecialchars($log['user_name'] ?? 'Sistema') ?></span>
+                <span class="fw-bold"><?= e($log['user_name'] ?? 'Sistema') ?></span>
                 <span class="text-muted"><?= date('d/m H:i', strtotime($log['created_at'])) ?></span>
                 <?php if (!empty($log['message'])): ?>
-                <span>— <?= htmlspecialchars($log['message']) ?></span>
+                <span>— <?= e($log['message']) ?></span>
                 <?php endif; ?>
                 <?php if (!empty($log['file_name'])): ?>
-                <span class="text-muted"><i class="fas fa-paperclip me-1"></i><?= htmlspecialchars($log['file_name']) ?></span>
+                <span class="text-muted"><i class="fas fa-paperclip me-1"></i><?= e($log['file_name']) ?></span>
                 <?php endif; ?>
             </div>
             <?php endforeach; ?>
@@ -536,7 +536,7 @@ $prioMap = [
                     </span>
                     <?php if ($isChecked && $checkedBy): ?>
                         <span class="text-muted" style="font-size:0.6rem;">
-                            (<?= htmlspecialchars($checkedBy) ?>
+                            (<?= e($checkedBy) ?>
                             <?php if ($checkedAt): ?> <?= date('d/m H:i', strtotime($checkedAt)) ?><?php endif; ?>)
                         </span>
                     <?php endif; ?>
@@ -563,7 +563,7 @@ $prioMap = [
                 </h6>
             </div>
             <div class="card-body py-2">
-                <p class="mb-0 small"><?= nl2br(htmlspecialchars($order['internal_notes'])) ?></p>
+                <p class="mb-0 small"><?= nl2br(e($order['internal_notes'])) ?></p>
             </div>
         </div>
     <?php endif; ?>
@@ -574,7 +574,7 @@ $prioMap = [
     <div class="footer-note text-center">
         <p class="text-muted small mb-0">
             <i class="fas fa-industry me-1"></i>
-            Ordem de Produção gerada em <?= date('d/m/Y \à\s H:i') ?> — <?= htmlspecialchars($company['company_name'] ?? '') ?> — Uso interno
+            Ordem de Produção gerada em <?= date('d/m/Y \à\s H:i') ?> — <?= e($company['company_name'] ?? '') ?> — Uso interno
         </p>
     </div>
 

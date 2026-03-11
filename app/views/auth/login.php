@@ -263,7 +263,7 @@
         ?>
         <div class="alert alert-info py-2" style="border-radius: 10px;">
             <i class="fas fa-building me-2"></i>
-            Cliente detectado pelo subdomínio: <strong><?= htmlspecialchars($tenantLabel) ?></strong>
+            Cliente detectado pelo subdomínio: <strong><?= e($tenantLabel) ?></strong>
         </div>
 
         <?php if (isset($error)): ?>
@@ -274,7 +274,7 @@
             ?>
             <div class="alert <?= $alertClass ?> py-2 d-flex align-items-center" style="border-radius: 10px;">
                 <i class="fas <?= $alertIcon ?> me-2"></i>
-                <div><?= htmlspecialchars($error) ?></div>
+                <div><?= e($error) ?></div>
             </div>
         <?php endif; ?>
         
@@ -301,7 +301,7 @@
 
         <form method="POST" action="?page=login">
             <?= csrf_field() ?>
-            <input type="hidden" name="tenant_key" value="<?= htmlspecialchars($tenantInfo['key'] ?? '') ?>">
+            <input type="hidden" name="tenant_key" value="<?= eAttr($tenantInfo['key'] ?? '') ?>">
             <?php
                 $isBlocked = !empty($lockout['blocked']);
                 $formDisabled = ($tenantBlocked || $isBlocked) ? 'disabled' : '';
@@ -311,7 +311,7 @@
             <?php endif; ?>
             <div class="form-floating mb-3">
                 <i class="fas fa-envelope input-icon"></i>
-                <input type="email" class="form-control" id="email" name="email" required placeholder="seu@email.com" autocomplete="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" <?= $formDisabled ?>>
+                <input type="email" class="form-control" id="email" name="email" required placeholder="seu@email.com" autocomplete="email" value="<?= eAttr($_POST['email'] ?? '') ?>" <?= $formDisabled ?>>
                 <label for="email">E-mail</label>
             </div>
             
@@ -323,7 +323,7 @@
 
             <?php if ($captchaEnabled && !$isBlocked): ?>
             <div class="mb-3 d-flex justify-content-center">
-                <div class="g-recaptcha" data-sitekey="<?= htmlspecialchars($recaptchaSiteKey) ?>"></div>
+                <div class="g-recaptcha" data-sitekey="<?= eAttr($recaptchaSiteKey) ?>"></div>
             </div>
             <?php endif; ?>
 

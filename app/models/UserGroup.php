@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 class UserGroup {
@@ -33,6 +36,10 @@ class UserGroup {
         
         if ($stmt->execute()) {
             $this->id = $this->conn->lastInsertId();
+            EventDispatcher::dispatch('model.user_group.created', new Event('model.user_group.created', [
+                'id' => $this->id,
+                'name' => $this->name,
+            ]));
             return true;
         }
         return false;
@@ -67,14 +74,25 @@ class UserGroup {
         $stmt->bindParam(':description', $this->description);
         $stmt->bindParam(':id', $this->id);
         
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result) {
+            EventDispatcher::dispatch('model.user_group.updated', new Event('model.user_group.updated', [
+                'id' => $this->id,
+                'name' => $this->name,
+            ]));
+        }
+        return $result;
     }
 
     public function delete($id) {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result) {
+            EventDispatcher::dispatch('model.user_group.deleted', new Event('model.user_group.deleted', ['id' => $id]));
+        }
+        return $result;
     }
     
     public function addPermission($groupId, $pageName) {

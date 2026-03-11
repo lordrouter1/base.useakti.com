@@ -1,5 +1,8 @@
 <?php
 namespace Akti\Models;
+
+use Akti\Core\EventDispatcher;
+use Akti\Core\Event;
 use PDO;
 
 /**
@@ -66,7 +69,12 @@ class Stock {
         $isDefault = !empty($data['is_default']) ? 1 : 0;
         $stmt->bindParam(':is_default', $isDefault, PDO::PARAM_INT);
         if ($stmt->execute()) {
-            return $this->conn->lastInsertId();
+            $newId = $this->conn->lastInsertId();
+            EventDispatcher::dispatch('model.warehouse.created', new Event('model.warehouse.created', [
+                'id' => $newId,
+                'name' => $data['name'],
+            ]));
+            return $newId;
         }
         return false;
     }
@@ -94,13 +102,24 @@ class Stock {
         $isDefault = !empty($data['is_default']) ? 1 : 0;
         $stmt->bindParam(':is_default', $isDefault, PDO::PARAM_INT);
         $stmt->bindParam(':id', $data['id']);
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result) {
+            EventDispatcher::dispatch('model.warehouse.updated', new Event('model.warehouse.updated', [
+                'id' => $data['id'],
+                'name' => $data['name'],
+            ]));
+        }
+        return $result;
     }
 
     public function deleteWarehouse($id) {
         $stmt = $this->conn->prepare("DELETE FROM warehouses WHERE id = :id");
         $stmt->bindParam(':id', $id);
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result) {
+            EventDispatcher::dispatch('model.warehouse.deleted', new Event('model.warehouse.deleted', ['id' => $id]));
+        }
+        return $result;
     }
 
     // ═══════════════════════════════════════════════

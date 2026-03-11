@@ -3,6 +3,8 @@ namespace Akti\Controllers;
 
 use Akti\Models\Customer;
 use Akti\Models\PriceTable;
+use Akti\Utils\Input;
+use Akti\Utils\Validator;
 use Database;
 use PDO;
 use TenantManager;
@@ -41,22 +43,39 @@ class CustomerController {
             $photoPath = $this->handlePhotoUpload();
 
             $address = json_encode([
-                'zipcode' => $_POST['zipcode'] ?? '',
-                'address_type' => $_POST['address_type'] ?? '',
-                'address_name' => $_POST['address_name'] ?? '',
-                'address_number' => $_POST['address_number'] ?? '',
-                'neighborhood' => $_POST['neighborhood'] ?? '',
-                'complement' => $_POST['complement'] ?? ''
+                'zipcode' => Input::post('zipcode'),
+                'address_type' => Input::post('address_type'),
+                'address_name' => Input::post('address_name'),
+                'address_number' => Input::post('address_number'),
+                'neighborhood' => Input::post('neighborhood'),
+                'complement' => Input::post('complement')
             ]);
             
+            $name = Input::post('name');
+            $email = Input::post('email', 'email');
+            $phone = Input::post('phone', 'phone');
+            $document = Input::post('document', 'document');
+            $priceTableId = Input::post('price_table_id', 'int');
+
+            $v = new Validator();
+            $v->required('name', $name, 'Nome')
+              ->maxLength('name', $name, 191, 'Nome');
+
+            if ($v->fails()) {
+                $_SESSION['errors'] = $v->errors();
+                $_SESSION['old'] = $_POST;
+                header('Location: ?page=customers&action=create');
+                exit;
+            }
+
             $this->customerModel->create([
-                'name' => $_POST['name'],
-                'email' => $_POST['email'],
-                'phone' => $_POST['phone'],
-                'document' => $_POST['document'],
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+                'document' => $document,
                 'address' => $address,
                 'photo' => $photoPath,
-                'price_table_id' => $_POST['price_table_id'] ?? null
+                'price_table_id' => $priceTableId
             ]);
             
             header('Location: ?page=customers&status=success');
@@ -65,12 +84,13 @@ class CustomerController {
     }
 
     public function edit() {
-        if (!isset($_GET['id'])) {
+        $id = Input::get('id', 'int');
+        if (!$id) {
             header('Location: ?page=customers');
             exit;
         }
         
-        $customer = $this->customerModel->readOne($_GET['id']);
+        $customer = $this->customerModel->readOne($id);
         if (!$customer) {
             header('Location: ?page=customers');
             exit;
@@ -92,23 +112,41 @@ class CustomerController {
             $photoPath = $this->handlePhotoUpload();
 
             $address = json_encode([
-                'zipcode' => $_POST['zipcode'] ?? '',
-                'address_type' => $_POST['address_type'] ?? '',
-                'address_name' => $_POST['address_name'] ?? '',
-                'address_number' => $_POST['address_number'] ?? '',
-                'neighborhood' => $_POST['neighborhood'] ?? '',
-                'complement' => $_POST['complement'] ?? ''
+                'zipcode' => Input::post('zipcode'),
+                'address_type' => Input::post('address_type'),
+                'address_name' => Input::post('address_name'),
+                'address_number' => Input::post('address_number'),
+                'neighborhood' => Input::post('neighborhood'),
+                'complement' => Input::post('complement')
             ]);
             
+            $id = Input::post('id', 'int');
+            $name = Input::post('name');
+            $email = Input::post('email', 'email');
+            $phone = Input::post('phone', 'phone');
+            $document = Input::post('document', 'document');
+            $priceTableId = Input::post('price_table_id', 'int');
+
+            $v = new Validator();
+            $v->required('id', $id, 'ID')
+              ->required('name', $name, 'Nome')
+              ->maxLength('name', $name, 191, 'Nome');
+
+            if ($v->fails()) {
+                $_SESSION['errors'] = $v->errors();
+                header('Location: ?page=customers&action=edit&id=' . $id);
+                exit;
+            }
+
             $this->customerModel->update([
-                'id' => $_POST['id'],
-                'name' => $_POST['name'],
-                'email' => $_POST['email'],
-                'phone' => $_POST['phone'],
-                'document' => $_POST['document'],
+                'id' => $id,
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+                'document' => $document,
                 'address' => $address,
                 'photo' => $photoPath,
-                'price_table_id' => $_POST['price_table_id'] ?? null
+                'price_table_id' => $priceTableId
             ]);
             
             header('Location: ?page=customers&status=success');
@@ -117,8 +155,9 @@ class CustomerController {
     }
 
     public function delete() {
-        if (isset($_GET['id'])) {
-            $this->customerModel->delete($_GET['id']);
+        $id = Input::get('id', 'int');
+        if ($id) {
+            $this->customerModel->delete($id);
             header('Location: ?page=customers&status=success');
             exit;
         }

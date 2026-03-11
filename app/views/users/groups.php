@@ -37,7 +37,7 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
             <div class="card-header bg-primary p-3">
                 <h5 class="mb-0 text-white">
                     <?php if(isset($editGroup)): ?>
-                        <i class="fas fa-edit me-2"></i>Editar Grupo: <?= htmlspecialchars($editGroup['name']) ?>
+                        <i class="fas fa-edit me-2"></i>Editar Grupo: <?= e($editGroup['name']) ?>
                     <?php else: ?>
                         <i class="fas fa-layer-group me-2"></i>Novo Grupo de Permissões
                     <?php endif; ?>
@@ -53,11 +53,11 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
                     <!-- Nome e Descrição -->
                     <div class="mb-3">
                         <label class="form-label fw-bold"><i class="fas fa-tag me-1 text-primary"></i>Nome do Grupo</label>
-                        <input type="text" class="form-control" name="name" required placeholder="Ex: Financeiro, Produção, Vendas" value="<?= isset($editGroup) ? htmlspecialchars($editGroup['name']) : '' ?>">
+                        <input type="text" class="form-control" name="name" required placeholder="Ex: Financeiro, Produção, Vendas" value="<?= isset($editGroup) ? e($editGroup['name']) : '' ?>">
                     </div>
                     <div class="mb-4">
                         <label class="form-label fw-bold"><i class="fas fa-align-left me-1 text-primary"></i>Descrição</label>
-                        <textarea class="form-control" name="description" rows="2" placeholder="Breve descrição do grupo..."><?= isset($editGroup) ? htmlspecialchars($editGroup['description']) : '' ?></textarea>
+                        <textarea class="form-control" name="description" rows="2" placeholder="Breve descrição do grupo..."><?= isset($editGroup) ? e($editGroup['description']) : '' ?></textarea>
                     </div>
 
                     <!-- ── SEÇÃO 1: Módulos do Sistema ── -->
@@ -140,7 +140,7 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
                                         <input class="form-check-input me-2" type="checkbox" name="permissions[]" value="<?= $sectorPermKey ?>" id="perm_sector_<?= $sector['id'] ?>" <?= $checked ?>>
                                         <label class="form-check-label d-flex align-items-center small" for="perm_sector_<?= $sector['id'] ?>">
                                             <i class="<?= $sector['icon'] ?> me-1" style="color:<?= $sector['color'] ?>;width:16px;text-align:center;font-size:0.8rem;"></i>
-                                            <?= htmlspecialchars($sector['name']) ?>
+                                            <?= e($sector['name']) ?>
                                         </label>
                                     </div>
                                 </div>
@@ -186,14 +186,14 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
                 <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
-                            <h6 class="fw-bold mb-1"><i class="fas fa-layer-group text-primary me-2"></i><?= htmlspecialchars($group2['name']) ?></h6>
-                            <small class="text-muted"><?= htmlspecialchars($group2['description']) ?></small>
+                            <h6 class="fw-bold mb-1"><i class="fas fa-layer-group text-primary me-2"></i><?= e($group2['name']) ?></h6>
+                            <small class="text-muted"><?= e($group2['description']) ?></small>
                         </div>
                         <div class="d-flex gap-1">
                             <a href="?page=users&action=groups&manage_id=<?= $group2['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-group" data-id="<?= $group2['id'] ?>" data-name="<?= htmlspecialchars($group2['name']) ?>" title="Excluir">
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-group" data-id="<?= $group2['id'] ?>" data-name="<?= e($group2['name']) ?>" title="Excluir">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -262,7 +262,7 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
                                 if (!$secInfo) continue;
                             ?>
                             <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
-                                <i class="<?= $secInfo['icon'] ?> me-1" style="font-size:0.65rem;"></i><?= htmlspecialchars($secInfo['name']) ?>
+                                <i class="<?= $secInfo['icon'] ?> me-1" style="font-size:0.65rem;"></i><?= e($secInfo['name']) ?>
                             </span>
                             <?php endforeach; ?>
                         </div>
