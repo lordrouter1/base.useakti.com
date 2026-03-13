@@ -47,7 +47,7 @@ class User {
 
     /**
      * Tenta autenticar um usuário pelo e-mail e senha.
-     * Dispara o evento `model.user.logged_in` em caso de sucesso.
+     * Emite evento `model.user.logged_in` em caso de sucesso.
      *
      * @param string $email
      * @param string $password
@@ -108,7 +108,7 @@ class User {
 
     /**
      * Cria um novo usuário na tabela `users`.
-     * Dispara o evento `model.user.created` em caso de sucesso.
+     * Emite evento `model.user.created` em caso de sucesso.
      *
      * @return bool true se criado com sucesso, false caso contrário
      */
@@ -130,7 +130,9 @@ class User {
         $stmt->bindParam(':group_id', $this->group_id);
 
         if($stmt->execute()) {
+            $id = $this->conn->lastInsertId();
             EventDispatcher::dispatch('model.user.created', new Event('model.user.created', [
+                'id' => $id,
                 'name' => $this->name,
                 'email' => $this->email,
                 'role' => $this->role,
@@ -171,7 +173,7 @@ class User {
 
     /**
      * Atualiza os dados do usuário. Se a senha estiver presente, atualiza-a também.
-     * Dispara o evento `model.user.updated` em caso de sucesso.
+     * Emite evento `model.user.updated` em caso de sucesso.
      *
      * @return bool true se atualizado com sucesso, false caso contrário
      */
@@ -219,7 +221,7 @@ class User {
 
     /**
      * Remove um usuário pelo ID.
-     * Dispara o evento `model.user.deleted` em caso de sucesso.
+     * Emite evento `model.user.deleted` em caso de sucesso.
      *
      * @param int $id
      * @return bool true se excluído com sucesso, false caso contrário

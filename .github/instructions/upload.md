@@ -1,3 +1,47 @@
+# Módulo Upload
+
+---
+
+## Sumário
+- [Visão Geral](#visão-geral)
+- [Regras de Upload](#regras-de-upload)
+- [Multi-Tenant](#multi-tenant)
+- [Exibição de Arquivos](#exibição-de-arquivos-nas-views)
+
+---
+
+## Visão Geral
+O módulo de upload permite envio de arquivos de forma segura, seguindo as regras de multi-tenant e controle de acesso.
+
+---
+
+## Regras de Upload
+- Uploads são organizados por tenant: `assets/uploads/{db_name}/{modulo}/`.
+- Apenas usuários autenticados podem enviar arquivos.
+- Tipos permitidos: imagens, PDFs, planilhas.
+- Limite de tamanho configurável.
+- Sanitização de nomes de arquivos.
+- Validação de extensão e MIME type.
+- Nunca usar caminhos fixos, sempre usar `TenantManager::getTenantUploadBase()`.
+- Diretório criado com `mkdir($dir, 0755, true)` se não existir.
+- Caminho completo salvo no banco e usado pela view.
+- Arquivos de diferentes tenants jamais devem se misturar.
+
+---
+
+## Multi-Tenant
+- Cada tenant possui diretório próprio.
+- Caminho base fornecido por `TenantManager::getTenantUploadBase()`.
+
+---
+
+## Exibição de Arquivos nas Views
+- Views exibem arquivos usando o caminho armazenado no banco.
+- Caminho já inclui o subdiretório do tenant.
+- Arquivos antigos (sem prefixo) permanecem acessíveis.
+
+---
+
 ## Uploads de Arquivos (Multi-Tenant)
 
 ### Regra de Pastas por Cliente
@@ -29,3 +73,5 @@ assets/uploads/
 - As views exibem arquivos usando o caminho armazenado no banco de dados (`$product['image_path']`, `$customer['photo']`, `$settings['company_logo']`, `$log['file_path']`).
 - Como o caminho armazenado já inclui o subdiretório do tenant, não é necessário nenhum ajuste adicional na view.
 - Arquivos enviados antes da implementação do multi-tenant (sem prefixo do tenant no caminho) permanecem acessíveis nos caminhos antigos armazenados no banco.
+
+---

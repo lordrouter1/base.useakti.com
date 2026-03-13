@@ -1,10 +1,46 @@
 # Instruções de Segurança e Tratamento
 
-- Toda alteração de dados de entrada via GET, POST ou REQUEST deve ser acessada via classe `Input` em `Akti\Utils\Input` e não de forma direta.
-- Prevenir XSS usando escape helper em views: `e()`, `eAttr()`.
-- O banco exige `PDO::prepare` params. Nunca concatenar strings diretas (prevenir Injections).
-- Cross-Site Request Forgery protegido mediante middleware (`CsrfMiddleware`) e inclusão da tag no form via `<?= csrf_field() ?>`. Lançamentos AJAX devem usar `X-CSRF-TOKEN`.
-- As tentativas de roteamento com log de erro prevê bloqueio progressivo por IP (sistema `IpGuard`).
+---
+
+## Sumário
+- [Entrada de Dados](#entrada-de-dados)
+- [Proteção XSS](#proteção-xss)
+- [Proteção SQL Injection](#proteção-sql-injection)
+- [CSRF](#csrf)
+- [IpGuard](#ipguard-blacklist-automática)
+
+---
+
+## Entrada de Dados
+- Use sempre a classe `Input` (`Akti\Utils\Input`) para acessar dados de GET, POST ou REQUEST.
+
+---
+
+## Proteção XSS
+- Use helpers de escape em views: `e()`, `eAttr()`.
+
+---
+
+## Proteção SQL Injection
+- Use `PDO::prepare` para queries. Nunca concatene strings diretas.
+
+---
+
+## CSRF
+- Proteção por middleware (`CsrfMiddleware`).
+- Inclua a tag no form: `<?= csrf_field() ?>`.
+- AJAX deve enviar `X-CSRF-TOKEN`.
+
+---
+
+## IpGuard (Blacklist Automática)
+- Sistema detecta ataques de varredura por IP e bloqueia automaticamente.
+- Opera em duas camadas: PHP (index.php) e Nginx/OpenResty (Lua).
+- Tabelas: `ip_404_hits` e `ip_blacklist` (no banco master).
+- Parâmetros configuráveis: THRESHOLD, WINDOW_SECONDS, BLOCK_HOURS, etc.
+- Fluxo progressivo: login normal → reCAPTCHA → bloqueio temporário.
+
+---
 
 ## Módulo: Segurança — IpGuard (Blacklist Automática por Flood 404)
 
@@ -231,6 +267,7 @@ O sistema implementa proteção **CSRF (Cross-Site Request Forgery)** em todas a
 - Todas as falhas de validação CSRF são registradas em `storage/logs/security.log` com detalhes da requisição e do erro.
 
 ---
+
 ### Fluxo de Carregamento
 
 ```

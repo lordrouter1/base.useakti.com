@@ -4,17 +4,43 @@
 
 ---
 
-## Sumário
+# Funções Globais e Helpers
 
-1. [Nomenclatura](#1-nomenclatura)
-2. [Estrutura de uma Função](#2-estrutura-de-uma-função)
-3. [Parâmetros](#3-parâmetros)
-4. [Tipagem](#4-tipagem)
-5. [Retorno de Valores](#5-retorno-de-valores)
-6. [Comentários e Documentação (PHPDoc)](#6-comentários-e-documentação-phpdoc)
-7. [Boas Práticas Gerais](#7-boas-práticas-gerais)
-8. [Exemplos Completos](#8-exemplos-completos)
-9. [Antipadrões: O Que Evitar](#9-antipadrões-o-que-evitar)
+---
+
+## Sumário
+- [Visão Geral](#visão-geral)
+- [Helpers de Formulário](#helpers-de-formulário)
+- [Helpers de Escape](#helpers-de-escape)
+- [Helpers de Validação](#helpers-de-validação)
+
+---
+
+## Visão Geral
+O sistema utiliza funções globais para facilitar a manipulação de formulários, validação, escape de saída e sanitização de dados.
+
+---
+
+## Helpers de Formulário
+- `csrf_field()`: insere campo oculto com token CSRF.
+- `csrf_meta()`: insere meta tag com token CSRF para AJAX.
+- `csrf_token()`: retorna o token CSRF atual.
+
+---
+
+## Helpers de Escape
+- `e()`: escape para HTML.
+- `eAttr()`: escape para atributos HTML.
+- `eJs()`: escape para JavaScript inline.
+- `eNum()`: escape para números formatados.
+- `eUrl()`: escape para URLs.
+
+---
+
+## Helpers de Validação
+- `Validator`: validação encadeável de campos.
+- `Sanitizer`: sanitização de valores.
+- `Input`: acesso seguro a dados de requisição.
 
 ---
 

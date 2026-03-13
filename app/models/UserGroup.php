@@ -5,18 +5,59 @@ use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
 
+/**
+ * Classe UserGroup
+ *
+ * Responsável pela gestão de grupos de usuários e permissões.
+ * Permite CRUD de grupos, vinculação de permissões, controle de setores e etapas do pipeline.
+ * Emite eventos via EventDispatcher após operações relevantes.
+ *
+ * Observações:
+ * - Permissões são armazenadas na tabela group_permissions.
+ * - Métodos de verificação retornam true se o grupo não possui restrição explícita.
+ * - Recomendado validar dados no Controller antes de chamar métodos de criação/atualização.
+ *
+ * @package Akti\Models
+ */
 class UserGroup {
+    /**
+     * Conexão PDO
+     * @var PDO
+     */
     private $conn;
+    /**
+     * Nome da tabela de grupos
+     * @var string
+     */
     private $table_name = "user_groups";
-    
+    /**
+     * ID do grupo
+     * @var int|null
+     */
     public $id;
+    /**
+     * Nome do grupo
+     * @var string|null
+     */
     public $name;
+    /**
+     * Descrição do grupo
+     * @var string|null
+     */
     public $description;
-    
+
+    /**
+     * Construtor
+     * @param PDO $db Conexão PDO
+     */
     public function __construct($db) {
         $this->conn = $db;
     }
-    
+
+    /**
+     * Retorna todos os grupos cadastrados.
+     * @return PDOStatement
+     */
     public function readAll() {
         $query = "SELECT DISTINCT * FROM " . $this->table_name . " ORDER BY id ASC"; 
         $stmt = $this->conn->prepare($query);
@@ -24,6 +65,11 @@ class UserGroup {
         return $stmt;
     }
     
+    /**
+     * Cria um novo grupo de usuários.
+     * Emite evento 'model.user_group.created'.
+     * @return bool
+     */
     public function create() {
         $query = "INSERT INTO " . $this->table_name . " SET name = :name, description = :description";
         $stmt = $this->conn->prepare($query);
@@ -45,6 +91,11 @@ class UserGroup {
         return false;
     }
 
+    /**
+     * Retorna um grupo pelo ID.
+     * @param int $id
+     * @return array|false
+     */
     public function readOne($id) {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
@@ -61,6 +112,11 @@ class UserGroup {
         return false;
     }
 
+    /**
+     * Atualiza os dados de um grupo.
+     * Emite evento 'model.user_group.updated'.
+     * @return bool
+     */
     public function update() {
         $query = "UPDATE " . $this->table_name . " 
                   SET name = :name, description = :description 
@@ -84,6 +140,12 @@ class UserGroup {
         return $result;
     }
 
+    /**
+     * Exclui um grupo pelo ID.
+     * Emite evento 'model.user_group.deleted'.
+     * @param int $id
+     * @return bool
+     */
     public function delete($id) {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);
@@ -95,6 +157,12 @@ class UserGroup {
         return $result;
     }
     
+    /**
+     * Adiciona permissão a um grupo.
+     * @param int $groupId
+     * @param string $pageName
+     * @return bool
+     */
     public function addPermission($groupId, $pageName) {
         $query = "INSERT INTO group_permissions (group_id, page_name) VALUES (:group_id, :page_name)";
         $stmt = $this->conn->prepare($query);
@@ -103,6 +171,11 @@ class UserGroup {
         return $stmt->execute();
     }
 
+    /**
+     * Retorna as permissões de páginas de um grupo.
+     * @param int $groupId
+     * @return array
+     */
     public function getPermissions($groupId) {
         $query = "SELECT page_name FROM group_permissions WHERE group_id = :group_id";
         $stmt = $this->conn->prepare($query);
@@ -111,6 +184,11 @@ class UserGroup {
         return $stmt->fetchAll(PDO::FETCH_COLUMN); // Returns simple array of strings
     }
 
+    /**
+     * Remove todas as permissões de um grupo.
+     * @param int $groupId
+     * @return bool
+     */
     public function deletePermissions($groupId) {
         $query = "DELETE FROM group_permissions WHERE group_id = :group_id";
         $stmt = $this->conn->prepare($query);
@@ -120,7 +198,9 @@ class UserGroup {
 
     /**
      * Retorna os IDs de setores permitidos para um grupo.
-     * Busca permissões com prefixo 'sector_' e extrai o ID numérico.
+     * Busca permissões com prefixo 'sector_'.
+     * @param int $groupId
+     * @return array
      */
     public function getAllowedSectors($groupId) {
         $perms = $this->getPermissions($groupId);
@@ -135,7 +215,9 @@ class UserGroup {
 
     /**
      * Retorna as chaves de etapas do pipeline permitidas para um grupo.
-     * Busca permissões com prefixo 'stage_' e extrai a chave.
+     * Busca permissões com prefixo 'stage_'.
+     * @param int $groupId
+     * @return array
      */
     public function getAllowedStages($groupId) {
         $perms = $this->getPermissions($groupId);
@@ -150,6 +232,9 @@ class UserGroup {
 
     /**
      * Verifica se um grupo tem permissão para um setor específico.
+     * @param int $groupId
+     * @param int $sectorId
+     * @return bool
      */
     public function hasSectorPermission($groupId, $sectorId) {
         $allowed = $this->getAllowedSectors($groupId);
@@ -158,6 +243,9 @@ class UserGroup {
 
     /**
      * Verifica se um grupo tem permissão para uma etapa específica do pipeline.
+     * @param int $groupId
+     * @param string $stageKey
+     * @return bool
      */
     public function hasStagePermission($groupId, $stageKey) {
         $allowed = $this->getAllowedStages($groupId);
