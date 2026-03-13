@@ -5,21 +5,54 @@ use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
 
+/**
+ * Modelo User
+ *
+ * Responsabilidade: operações CRUD de usuários, autenticação e verificação de permissões.
+ * Utiliza prepared statements (PDO) e emite eventos via EventDispatcher após operações
+ * significativas (login, create, update, delete).
+ *
+ * Observações:
+ * - Senhas são armazenadas com password_hash(BCRYPT).
+ * - Validações e regras de negócio devem ser aplicadas no Controller antes de chamar
+ *   os métodos deste model (unicidade de email, força de senha, limites do tenant, etc.).
+ *
+ * @package Akti\Models
+ */
 class User {
     private $conn;
     private $table_name = "users";
 
+    /** @var int|null ID do usuário */
     public $id;
+    /** @var string|null Nome completo do usuário */
     public $name;
+    /** @var string|null Email do usuário (único) */
     public $email;
+    /** @var string|null Senha em texto antes do hash (não logar) */
     public $password;
+    /** @var string|null Papel do usuário (ex: 'admin', 'user') */
     public $role;
+    /** @var int|null ID do grupo de permissões do usuário */
     public $group_id;
 
+    /**
+     * Construtor
+     *
+     * @param PDO $db Conexão PDO (já configurada para o tenant atual)
+     */
     public function __construct($db) {
         $this->conn = $db;
     }
 
+    /**
+     * Tenta autenticar um usuário pelo e-mail e senha.
+     * Dispara o evento `model.user.logged_in` em caso de sucesso.
+     *
+     * @param string $email
+     * @param string $password
+     * @return bool true se autenticado, false caso contrário
+     */
     public function login($email, $password) {
         $query = "SELECT id, name, password, role, group_id FROM " . $this->table_name . " WHERE email = :email LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
@@ -33,12 +66,23 @@ class User {
             $this->name = $row['name'];
             $this->role = $row['role'];
             $this->group_id = $row['group_id'];
+            EventDispatcher::dispatch('model.user.logged_in', new Event('model.user.logged_in', [
+                'id' => $this->id,
+                'name' => $this->name,
+                'role' => $this->role,
+                'group_id' => $this->group_id
+            ]));
             return true;
         }
         
         return false;
     }
 
+    /**
+     * Retorna um PDOStatement com todos os usuários (junto com o nome do grupo quando houver).
+     *
+     * @return PDOStatement
+     */
     public function readAll() {
         $query = "SELECT u.*, g.name as group_name 
                   FROM " . $this->table_name . " u 
@@ -50,7 +94,11 @@ class User {
     }
     
 
-
+    /**
+     * Retorna a quantidade total de usuários.
+     *
+     * @return int
+     */
     public function countAll() {
         $query = "SELECT COUNT(*) FROM " . $this->table_name;
         $stmt = $this->conn->prepare($query);
@@ -58,6 +106,12 @@ class User {
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Cria um novo usuário na tabela `users`.
+     * Dispara o evento `model.user.created` em caso de sucesso.
+     *
+     * @return bool true se criado com sucesso, false caso contrário
+     */
     public function create() {
         $query = "INSERT INTO " . $this->table_name . " 
                   (name, email, password, role, group_id, created_at) 
@@ -80,12 +134,19 @@ class User {
                 'name' => $this->name,
                 'email' => $this->email,
                 'role' => $this->role,
+                'group_id' => $this->group_id,
             ]));
             return true;
         }
         return false;
     }
 
+    /**
+     * Busca um usuário pelo ID e popula as propriedades do objeto.
+     *
+     * @param int $id
+     * @return array|false Row do usuário como array associativo ou false se não encontrado
+     */
     public function readOne($id) {
         $query = "SELECT u.*, g.name as group_name 
                   FROM " . $this->table_name . " u 
@@ -108,6 +169,12 @@ class User {
         return false;
     }
 
+    /**
+     * Atualiza os dados do usuário. Se a senha estiver presente, atualiza-a também.
+     * Dispara o evento `model.user.updated` em caso de sucesso.
+     *
+     * @return bool true se atualizado com sucesso, false caso contrário
+     */
     public function update() {
         // Build query efficiently based on whether password checks out
         $query = "UPDATE " . $this->table_name . " 
@@ -150,6 +217,13 @@ class User {
         return false;
     }
 
+    /**
+     * Remove um usuário pelo ID.
+     * Dispara o evento `model.user.deleted` em caso de sucesso.
+     *
+     * @param int $id
+     * @return bool true se excluído com sucesso, false caso contrário
+     */
     public function delete($id) {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);
@@ -162,6 +236,14 @@ class User {
         return false;
     }
 
+    /**
+     * Verifica se o usuário informado possui permissão para acessar uma página.
+     * Admins têm acesso irrestrito. Para demais usuários, verifica permissões do grupo.
+     *
+     * @param int $userId
+     * @param string $page Nome da página/rota a ser verificada
+     * @return bool true se permitido, false caso contrário
+     */
     public function checkPermission($userId, $page) {
         // Obter usuario e Role
         $query = "SELECT role, group_id FROM " . $this->table_name . " WHERE id = :id";
@@ -195,6 +277,9 @@ class User {
     /**
      * Retorna os IDs de setores permitidos para o usuário.
      * Admin tem acesso a todos. Se o grupo não tem restrições, retorna vazio (= todos).
+     *
+     * @param int $userId
+     * @return int[] Array de IDs de setor permitidos (vazio = todos)
      */
     public function getAllowedSectorIds($userId) {
         $query = "SELECT role, group_id FROM " . $this->table_name . " WHERE id = :id";

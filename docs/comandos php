@@ -1,0 +1,5 @@
+### Verifica erros de sintaxe no arquivo
+php -l <caminho do arquivo.php>
+
+### executa o phpunit
+php vendor/bin/phpunit tests/Unit/EventDispatcherTest.php --testdox
