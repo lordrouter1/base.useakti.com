@@ -13,6 +13,10 @@
         $canUseBoletoModule = \Akti\Core\ModuleBootloader::isModuleEnabled('boleto');
         $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
         $canUseNfeModule = \Akti\Core\ModuleBootloader::isModuleEnabled('nfe');
+
+        // Etapas bloqueadas quando existem parcelas pagas (produção ou anteriores + cancelado)
+        $stagesBlockedByPaid = ['contato', 'orcamento', 'venda', 'producao', 'cancelado'];
+        $hasPaidInstallments = !empty($hasAnyPaidInstallment);
     ?>
 
     <!-- Cabeçalho -->
@@ -100,12 +104,15 @@
                     <?php if (!$isReadOnly): ?>
                     <!-- Botão retroceder -->
                     <?php if ($currentIdx > 0): ?>
-                    <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $stageKeys[$currentIdx - 1] ?>" 
-                       class="btn btn-sm btn-outline-secondary btn-move-stage" 
-                       data-dir="Retroceder" data-stage="<?= $stages[$stageKeys[$currentIdx - 1]]['label'] ?>"
-                       data-target-stage="<?= $stageKeys[$currentIdx - 1] ?>"
-                       data-order-id="<?= $order['id'] ?>">
-                        <i class="fas fa-arrow-left me-1"></i> <?= $stages[$stageKeys[$currentIdx - 1]]['label'] ?>
+                    <?php $prevStage = $stageKeys[$currentIdx - 1]; $prevBlocked = $hasPaidInstallments && in_array($prevStage, $stagesBlockedByPaid); ?>
+                    <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $prevStage ?>" 
+                       class="btn btn-sm <?= $prevBlocked ? 'btn-outline-danger' : 'btn-outline-secondary' ?> btn-move-stage" 
+                       data-dir="Retroceder" data-stage="<?= $stages[$prevStage]['label'] ?>"
+                       data-target-stage="<?= $prevStage ?>"
+                       data-order-id="<?= $order['id'] ?>"
+                       <?php if ($prevBlocked): ?>title="Bloqueado — Existem parcelas pagas"<?php endif; ?>>
+                        <?php if ($prevBlocked): ?><i class="fas fa-lock me-1"></i><?php else: ?><i class="fas fa-arrow-left me-1"></i><?php endif; ?>
+                        <?= $stages[$prevStage]['label'] ?>
                     </a>
                     <?php endif; ?>
                     
@@ -129,12 +136,18 @@
                         <ul class="dropdown-menu">
                             <?php foreach ($stages as $sKey => $sInfo): ?>
                             <?php if ($sKey !== $currentStage): ?>
+                            <?php $isBlockedByPaid = $hasPaidInstallments && in_array($sKey, $stagesBlockedByPaid); ?>
                             <li>
-                                <a class="dropdown-item btn-move-stage" href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $sKey ?>" 
+                                <a class="dropdown-item btn-move-stage <?= $isBlockedByPaid ? 'text-danger' : '' ?>" href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $sKey ?>" 
                                    data-dir="Mover" data-stage="<?= $sInfo['label'] ?>"
                                    data-target-stage="<?= $sKey ?>"
                                    data-order-id="<?= $order['id'] ?>">
+                                    <?php if ($isBlockedByPaid): ?>
+                                    <i class="fas fa-lock me-2 text-danger"></i> <span class="text-decoration-line-through"><?= $sInfo['label'] ?></span>
+                                    <small class="text-danger ms-1" style="font-size:0.65rem;"><i class="fas fa-info-circle"></i> parcelas pagas</small>
+                                    <?php else: ?>
                                     <i class="<?= $sInfo['icon'] ?> me-2" style="color:<?= $sInfo['color'] ?>;"></i> <?= $sInfo['label'] ?>
+                                    <?php endif; ?>
                                 </a>
                             </li>
                             <?php endif; ?>
@@ -366,7 +379,8 @@
                                                class="form-control form-control-sm text-center item-qty-input py-0" 
                                                data-item-id="<?= $item['id'] ?>" data-unit-price="<?= $item['unit_price'] ?>"
                                                value="<?= $item['quantity'] ?>"
-                                               style="width:70px; margin:0 auto; font-size:0.8rem;">
+                                               style="width:70px; margin:0 auto; font-size:0.8rem;"
+                                               <?= $hasPaidInstallments ? 'disabled title="Bloqueado — parcelas pagas"' : '' ?>>
                                         <?php else: ?>
                                         <?= $item['quantity'] ?>
                                         <?php endif; ?>
@@ -381,7 +395,8 @@
                                                    class="form-control form-control-sm text-end item-discount-input py-0" 
                                                    data-item-id="<?= $item['id'] ?>" data-subtotal="<?= $subtotal ?>"
                                                    value="<?= $itemDiscount > 0 ? number_format($itemDiscount, 2, '.', '') : '' ?>"
-                                                   placeholder="0,00" style="font-size:0.8rem;">
+                                                   placeholder="0,00" style="font-size:0.8rem;"
+                                                   <?= $hasPaidInstallments ? 'disabled title="Bloqueado — parcelas pagas"' : '' ?>>
                                         </div>
                                     </td>
                                     <td class="text-end fw-bold item-net-amount <?= $itemDiscount > 0 ? 'text-success' : '' ?>">
@@ -390,10 +405,16 @@
                                     <?php endif; ?>
                                     <?php if (!$isReadOnly): ?>
                                     <td class="text-center">
+                                        <?php if ($hasPaidInstallments): ?>
+                                        <span class="btn btn-sm btn-outline-secondary disabled" title="Bloqueado — parcelas pagas">
+                                            <i class="fas fa-lock"></i>
+                                        </span>
+                                        <?php else: ?>
                                         <a href="?page=orders&action=deleteItem&item_id=<?= $item['id'] ?>&order_id=<?= $order['id'] ?>&redirect=pipeline" 
                                            class="btn btn-sm btn-outline-danger btn-delete-item" title="Remover item">
                                             <i class="fas fa-trash-alt"></i>
                                         </a>
+                                        <?php endif; ?>
                                     </td>
                                     <?php endif; ?>
                                 </tr>
@@ -423,6 +444,14 @@
                     <?php endif; ?>
 
                     <?php if (!$isReadOnly): ?>
+                    <?php if ($hasPaidInstallments): ?>
+                    <!-- Alerta: Produtos bloqueados por parcelas pagas -->
+                    <div class="alert alert-warning py-2 px-3 mb-0 small" id="productsLockedAlert">
+                        <i class="fas fa-lock me-2"></i><strong>Produtos bloqueados:</strong> Existem parcelas já pagas. 
+                        Para adicionar, remover ou alterar produtos, estorne os pagamentos primeiro no módulo 
+                        <a href="?page=financial&action=payments" target="_blank"><strong>Financeiro</strong></a>.
+                    </div>
+                    <?php else: ?>
                     <!-- Formulário Adicionar Item -->
                     <div class="card border-primary border-opacity-25">
                         <div class="card-header bg-primary py-2">
@@ -473,6 +502,7 @@
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?> <!-- /hasPaidInstallments else -->
                     <?php endif; ?> <!-- /!$isReadOnly add item form -->
 
                     <!-- Custos Extras do Orçamento -->
@@ -504,10 +534,16 @@
                                             </td>
                                             <?php if (!$isReadOnly): ?>
                                             <td class="text-center">
+                                                <?php if ($hasPaidInstallments): ?>
+                                                <span class="btn btn-sm btn-outline-secondary disabled" title="Bloqueado — parcelas pagas">
+                                                    <i class="fas fa-lock"></i>
+                                                </span>
+                                                <?php else: ?>
                                                 <a href="?page=pipeline&action=deleteExtraCost&cost_id=<?= $ec['id'] ?>&order_id=<?= $order['id'] ?>" 
                                                    class="btn btn-sm btn-outline-danger btn-delete-extra" title="Remover custo">
                                                     <i class="fas fa-trash-alt"></i>
                                                 </a>
+                                                <?php endif; ?>
                                             </td>
                                             <?php endif; ?>
                                         </tr>
@@ -526,6 +562,11 @@
                             </div>
                             <?php endif; ?>
                             <?php if (!$isReadOnly): ?>
+                            <?php if ($hasPaidInstallments): ?>
+                            <div class="alert alert-warning py-2 px-3 mb-0 small">
+                                <i class="fas fa-lock me-1"></i>Custos extras bloqueados enquanto houver parcelas pagas.
+                            </div>
+                            <?php else: ?>
                             <!-- Form para adicionar custo extra -->
                             <div class="row g-2 align-items-end" id="addExtraCostRow">
                                 <div class="col-md-6">
@@ -546,6 +587,7 @@
                                     </button>
                                 </div>
                             </div>
+                            <?php endif; ?>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -1164,7 +1206,7 @@
                             <?php else: ?>
                             <small>&nbsp;</small>
                             <?php endif; ?>
-                            <strong class="text-success" style="font-size:0.85rem;">
+                            <strong class="text-success fin-order-total" style="font-size:0.85rem;">
                                 <i class="fas fa-coins me-1"></i>Total: R$ <?= number_format($order['total_amount'], 2, ',', '.') ?>
                             </strong>
                         </div>
@@ -1179,7 +1221,7 @@
                             <label class="form-label small fw-bold text-muted"><i class="fas fa-dollar-sign me-1"></i>Valor Total</label>
                             <div class="input-group">
                                 <span class="input-group-text">R$</span>
-                                <input type="text" class="form-control fw-bold fs-5" value="<?= number_format($order['total_amount'], 2, ',', '.') ?>" disabled>
+                                <input type="text" class="form-control fw-bold fs-5" id="finTotalDisplay" value="<?= number_format($order['total_amount'], 2, ',', '.') ?>" disabled>
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -1315,6 +1357,43 @@
                             <?php else: ?>
                             <small class="text-muted" style="font-size:0.68rem;">Disponível quando o pedido estiver na etapa Financeiro.</small>
                             <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- ═══ CUPOM NÃO FISCAL — Impressão Térmica ═══ -->
+                    <div class="card mt-3 border-0 shadow-sm" id="thermalReceiptSection">
+                        <div class="card-header py-2" style="background: linear-gradient(135deg, #8e44ad10 0%, #9b59b615 100%);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0" style="font-size:0.85rem; color:#8e44ad;">
+                                    <i class="fas fa-receipt me-2"></i>Cupom Não Fiscal
+                                </h6>
+                                <span class="badge" style="font-size:0.6rem; background:#8e44ad20; color:#8e44ad;">
+                                    <i class="fas fa-print me-1"></i>Impressora Térmica
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <p class="mb-1 small text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Gera um cupom formatado para impressora térmica (80mm ou 58mm) com os dados do pedido, itens, totais e forma de pagamento.
+                                    </p>
+                                    <p class="mb-0 small text-muted" style="font-size:0.72rem;">
+                                        O cupom <strong>não tem valor fiscal</strong> — use para controle interno ou comprovante ao cliente.
+                                    </p>
+                                </div>
+                                <div class="d-flex flex-column gap-1 ms-3 flex-shrink-0">
+                                    <a href="?page=pipeline&action=printThermalReceipt&id=<?= $order['id'] ?>" 
+                                       target="_blank" class="btn btn-sm px-3" style="background:#8e44ad; color:#fff; font-size:0.78rem;">
+                                        <i class="fas fa-receipt me-1"></i> Imprimir Cupom
+                                    </a>
+                                    <a href="?page=pipeline&action=printThermalReceipt&id=<?= $order['id'] ?>&auto_print=1" 
+                                       target="_blank" class="btn btn-sm btn-outline-secondary px-3" style="font-size:0.7rem;">
+                                        <i class="fas fa-bolt me-1"></i> Impressão Rápida
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1901,6 +1980,16 @@ document.addEventListener('DOMContentLoaded', function() {
     Swal.fire({ icon: 'success', title: 'Produto removido!', timer: 1500, showConfirmButton: false });
     <?php endif; ?>
 
+    <?php if(!empty($_SESSION['error'])): ?>
+    Swal.fire({
+        icon: 'error',
+        title: 'Ação bloqueada',
+        html: <?= json_encode($_SESSION['error']) ?>,
+        confirmButtonColor: '#e74c3c'
+    });
+    <?php unset($_SESSION['error']); ?>
+    <?php endif; ?>
+
     // Botão "Nota de Pedido" no cabeçalho — salva o formulário antes de imprimir
     const btnHeaderPrintOrder = document.getElementById('btnHeaderPrintOrder');
     if (btnHeaderPrintOrder) {
@@ -1926,8 +2015,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const preProductionStages = ['contato', 'orcamento', 'venda'];
     const productionStages = ['producao', 'preparacao', 'envio', 'financeiro', 'concluido'];
 
+    // ═══ Etapas bloqueadas quando existem parcelas pagas ═══
+    const stagesBlockedByPaid = <?= json_encode($stagesBlockedByPaid) ?>;
+    const hasPaidInstallments = <?= $hasPaidInstallments ? 'true' : 'false' ?>;
+
     function needsWarehouseForTransition(fromStage, toStage) {
         return preProductionStages.includes(fromStage) && productionStages.includes(toStage);
+    }
+
+    /**
+     * Verifica se a movimentação está bloqueada por parcelas pagas
+     */
+    function isMoveBlockedByPaidInstallments(targetStage) {
+        return hasPaidInstallments && stagesBlockedByPaid.includes(targetStage);
     }
     
     document.querySelectorAll('.btn-move-stage').forEach(btn => {
@@ -1938,6 +2038,25 @@ document.addEventListener('DOMContentLoaded', function() {
             const stage = this.dataset.stage;
             const targetStage = this.dataset.targetStage || '';
             const orderId = this.dataset.orderId || '<?= $order['id'] ?>';
+
+            // ═══ BLOQUEIO: Parcelas pagas impedem retrocesso/cancelamento ═══
+            if (isMoveBlockedByPaidInstallments(targetStage)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: '<i class="fas fa-lock me-2"></i>Movimentação bloqueada',
+                    html: '<p>Não é possível mover o pedido para <strong>' + stage + '</strong> porque existem parcelas já pagas.</p>'
+                        + '<p class="small text-muted mt-2">Para retroceder o pedido ou cancelá-lo, estorne todos os pagamentos primeiro no módulo <strong>Financeiro</strong>.</p>',
+                    confirmButtonText: '<i class="fas fa-external-link-alt me-1"></i> Ir para Financeiro',
+                    showCancelButton: true,
+                    cancelButtonText: 'Fechar',
+                    confirmButtonColor: '#e74c3c'
+                }).then(function(r) {
+                    if (r.isConfirmed) {
+                        window.open('?page=financial&action=payments', '_blank');
+                    }
+                });
+                return;
+            }
             
             // Se a transição precisa de seleção de armazém (pré-produção → produção+)
             if (needsWarehouseForTransition(currentStageKey, targetStage)) {
@@ -2331,6 +2450,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         input.classList.add('border-success');
                         setTimeout(() => input.classList.remove('border-success'), 1500);
                     }
+                    // Atualizar totalAmount no card financeiro e regenerar parcelas
+                    if (data.new_total !== undefined && typeof window.aktiUpdateFinancialTotal === 'function') {
+                        window.aktiUpdateFinancialTotal(data.new_total);
+                    }
                 }
             })
             .catch(err => {
@@ -2432,6 +2555,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (input) {
                         input.classList.add('border-success');
                         setTimeout(() => input.classList.remove('border-success'), 1500);
+                    }
+                    // Atualizar totalAmount no card financeiro e regenerar parcelas
+                    if (data.new_total !== undefined && typeof window.aktiUpdateFinancialTotal === 'function') {
+                        window.aktiUpdateFinancialTotal(data.new_total);
                     }
                 }
             })
@@ -3000,17 +3127,60 @@ setInterval(() => {
     
     if (!paymentMethod || !installmentRow) return;
     
-    const totalAmount = <?= (float)($order['total_amount'] ?? 0) ?>;
+    let totalAmount = <?= (float)($order['total_amount'] ?? 0) ?>;
     const cardTitleText = document.getElementById('installmentCardTitleText');
+
+    // Expor função para atualizar totalAmount de fora do closure (ex: após alterar desconto de item)
+    window.aktiUpdateFinancialTotal = function(newTotal) {
+        totalAmount = parseFloat(newTotal) || 0;
+        var formattedTotal = totalAmount.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        // Atualizar display do valor total no card financeiro
+        var totalDisplay = document.getElementById('finTotalDisplay');
+        if (totalDisplay) {
+            totalDisplay.value = formattedTotal;
+        }
+        // Atualizar totais de resumo (items summary)
+        document.querySelectorAll('.fin-order-total').forEach(function(el) {
+            el.innerHTML = '<i class="fas fa-coins me-1"></i>Total: R$ ' + formattedTotal;
+        });
+        calcInstallment();
+        // Só sincronizar se já existe configuração de parcelas definida
+        if (installmentsConfigured()) {
+            scheduleSyncInstallments(500);
+        }
+    };
     
     // Formas de pagamento que aceitam parcelamento
     const parcelableMethods = ['cartao_credito','boleto'];
+    
+    /**
+     * Verifica se a configuração de parcelas está completa para sincronizar.
+     * Retorna true se:
+     * - O método NÃO é parcelável (dinheiro, pix, etc.) — sempre pode sincronizar
+     * - O método É parcelável e o dropdown de parcelas tem um valor explícito
+     *   (vazio = "À vista" conta como configurado SE já houve interação ou carga inicial)
+     * - Já existem parcelas salvas no banco para este pedido
+     */
+    function installmentsConfigured() {
+        const method = paymentMethod ? paymentMethod.value : '';
+        if (!method) return false;
+        if (!parcelableMethods.includes(method)) return true; // não-parcelável: sempre OK
+        // Parcelável: precisa que o usuário já tenha definido as parcelas
+        if (installmentsUserTouched) return true;
+        if (existingInstallmentCount > 0) return true;
+        return false;
+    }
     
     function updateCardTitle() {
         if (!cardTitleText) return;
         const method = paymentMethod.value;
         const n = parseInt(installments ? installments.value : 0) || 0;
-        if (method === 'boleto' && n < 2) {
+        const isParcelable = parcelableMethods.includes(method);
+        const notYetConfigured = isParcelable && (!installments || installments.value === '') && !installmentsUserTouched && existingInstallmentCount === 0;
+        
+        if (notYetConfigured) {
+            cardTitleText.textContent = method === 'boleto' ? 'Boleto Bancário' : 'Parcelamento';
+        } else if (method === 'boleto' && n < 2) {
             cardTitleText.textContent = 'Boleto Bancário — À Vista';
         } else if (method === 'boleto' && n >= 2) {
             cardTitleText.textContent = 'Boleto Bancário — Parcelado em ' + n + 'x';
@@ -3043,10 +3213,16 @@ setInterval(() => {
         const finalTotal = Math.max(0, totalAmount - discount);
         const amountAfterDown = Math.max(0, finalTotal - downPayment);
         const isBoleto = (paymentMethod.value === 'boleto');
+        const isParcelable = parcelableMethods.includes(paymentMethod.value);
+        
+        // Parcelas "não selecionadas": método parcelável, dropdown vazio, e o usuário ainda não
+        // interagiu com o dropdown nesta sessão (nem existiam parcelas salvas ao carregar a página).
+        const awaitingUserSelection = isParcelable && (!installments || installments.value === '') && !installmentsUserTouched;
         
         updateCardTitle();
         
         if (n >= 2 && finalTotal > 0) {
+            // Parcelamento explícito (2x a 12x)
             const perInstallment = (amountAfterDown / n).toFixed(2);
             if (installmentValue) installmentValue.value = parseFloat(perInstallment).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             if (installmentValueHidden) installmentValueHidden.value = perInstallment;
@@ -3061,8 +3237,18 @@ setInterval(() => {
                 if (installmentInfoText) installmentInfoText.textContent = infoText;
             }
             renderBoletoTable(n, parseFloat(perInstallment), downPayment);
-        } else if (paymentMethod.value === 'boleto' && finalTotal > 0) {
-            // Boleto à vista (sem parcelamento) — 1 parcela
+        } else if (awaitingUserSelection && finalTotal > 0) {
+            // Método parcelável acabou de ser selecionado mas nº de parcelas ainda não foi definido.
+            // Exibir mensagem orientativa e NÃO renderizar tabela nem sincronizar.
+            if (installmentValue) installmentValue.value = finalTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            if (installmentValueHidden) installmentValueHidden.value = '';
+            if (installmentInfo) {
+                installmentInfo.style.display = '';
+                if (installmentInfoText) installmentInfoText.textContent = 'Selecione o número de parcelas ou deixe "À vista" para pagamento único.';
+            }
+            if (boletoTable) boletoTable.style.display = 'none';
+        } else if (isBoleto && finalTotal > 0) {
+            // Boleto à vista (usuário já interagiu ou carga com dados existentes) — 1 parcela
             if (installmentValue) installmentValue.value = amountAfterDown.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             if (installmentValueHidden) installmentValueHidden.value = amountAfterDown.toFixed(2);
             if (installmentInfo && downPayment > 0) {
@@ -3122,90 +3308,399 @@ setInterval(() => {
     
     // Rastrear a forma de pagamento anterior para poder reverter se o usuário cancelar
     let previousPaymentMethod = paymentMethod.value;
+    let previousInstallments = installments ? installments.value : '';
     let existingInstallmentCount = <?= (int)($existingInstallmentCount ?? 0) ?>;
+    let hasAnyPaidInstallment = <?= !empty($hasAnyPaidInstallment) ? 'true' : 'false' ?>;
     const orderId = <?= (int)$order['id'] ?>;
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    let syncTimer = null;
+    let syncVersion = 0;        // Monotonic counter — incremented on every schedule, checked on response
+    let syncAbortCtrl = null;    // AbortController for in-flight fetch — aborted when a new sync starts
+    // Flag que indica se o dropdown de parcelas foi alterado pelo usuário nesta sessão de página.
+    // No carregamento, se já existem parcelas salvas, consideramos como "já configurado".
+    // Ao trocar para um método parcelável vindo de não-parcelável, reseta para false.
+    let installmentsUserTouched = (parcelableMethods.includes(paymentMethod.value) && existingInstallmentCount > 0)
+        || (parcelableMethods.includes(paymentMethod.value) && installments && installments.value !== '');
 
-    paymentMethod.addEventListener('change', function() {
-        const newMethod = this.value;
+    /**
+     * Bloqueia campos financeiros quando há parcelas pagas
+     */
+    function lockFinancialFieldsIfPaid() {
+        if (!hasAnyPaidInstallment) return;
+        // Desabilitar campos de forma de pagamento, parcelas e entrada
+        if (paymentMethod) paymentMethod.disabled = true;
+        if (installments) installments.disabled = true;
+        if (downPaymentField) downPaymentField.disabled = true;
+        // Mostrar alerta inline
+        var lockAlert = document.getElementById('finPaidLockAlert');
+        if (!lockAlert) {
+            lockAlert = document.createElement('div');
+            lockAlert.id = 'finPaidLockAlert';
+            lockAlert.className = 'alert alert-warning py-2 px-3 mt-2 mb-0 small';
+            lockAlert.innerHTML = '<i class="fas fa-lock me-2"></i><strong>Campos bloqueados:</strong> Existem parcelas já pagas. Para alterar a forma de pagamento ou o parcelamento, estorne os pagamentos primeiro no módulo Financeiro. <a target="_blank" href="?page=financial&action=payments"><strong>Acesse Aqui</strong></a>';
+            // Inserir após a row de forma de pagamento
+            var parentRow = paymentMethod ? paymentMethod.closest('.row') : null;
+            if (parentRow) {
+                parentRow.parentNode.insertBefore(lockAlert, parentRow.nextSibling);
+            }
+        }
+    }
 
-        // Se existem parcelas geradas no banco, perguntar antes de alterar
-        if (existingInstallmentCount > 0) {
-            Swal.fire({
-                title: '<i class="fas fa-exclamation-triangle me-2 text-warning"></i>Alterar forma de pagamento?',
-                html: `<p>Este pedido possui <strong>${existingInstallmentCount} parcela(s)</strong> já gerada(s).</p>
-                       <p class="text-danger"><i class="fas fa-trash-alt me-1"></i>Ao alterar a forma de pagamento, todas as parcelas serão <strong>removidas</strong>.</p>
-                       <p class="small text-muted">Você poderá gerar novas parcelas após alterar.</p>`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-check me-1"></i> Sim, alterar e remover parcelas',
-                cancelButtonText: '<i class="fas fa-times me-1"></i> Cancelar',
-                confirmButtonColor: '#e74c3c',
-                cancelButtonColor: '#6c757d',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Deletar parcelas via AJAX
-                    const formData = new FormData();
-                    formData.append('order_id', orderId);
-                    formData.append('csrf_token', csrfToken);
+    /**
+     * Indicador visual de sincronização no card financeiro
+     */
+    function showSyncStatus(status, message) {
+        let badge = document.getElementById('finSyncBadge');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.id = 'finSyncBadge';
+            badge.style.cssText = 'font-size:0.65rem;margin-left:8px;transition:opacity 0.3s;';
+            // Inserir ao lado do título do fieldset financeiro
+            const legend = document.querySelector('fieldset .fa-coins')?.closest('legend');
+            if (legend) legend.appendChild(badge);
+        }
+        if (status === 'syncing') {
+            badge.className = 'badge bg-warning text-dark';
+            badge.innerHTML = '<i class="fas fa-sync fa-spin me-1"></i>Salvando...';
+            badge.style.opacity = '1';
+        } else if (status === 'success') {
+            badge.className = 'badge bg-success';
+            badge.innerHTML = '<i class="fas fa-check me-1"></i>' + (message || 'Parcelas salvas');
+            badge.style.opacity = '1';
+            setTimeout(() => { badge.style.opacity = '0'; }, 3000);
+        } else if (status === 'error') {
+            badge.className = 'badge bg-danger';
+            badge.innerHTML = '<i class="fas fa-times me-1"></i>' + (message || 'Erro');
+            badge.style.opacity = '1';
+            setTimeout(() => { badge.style.opacity = '0'; }, 5000);
+        } else {
+            badge.style.opacity = '0';
+        }
+    }
 
-                    fetch('?page=pipeline&action=deleteInstallments', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(r => {
-                        if (!r.ok) throw new Error('HTTP ' + r.status);
-                        return r.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            existingInstallmentCount = 0;
-                            // Resetar campos de parcelamento na UI
-                            if (installments) installments.value = '';
-                            if (installmentValue) installmentValue.value = '';
-                            if (installmentValueHidden) installmentValueHidden.value = '';
-                            if (downPaymentField) downPaymentField.value = '0';
-                            if (boletoTable) boletoTable.style.display = 'none';
-                            if (installmentInfo) installmentInfo.style.display = 'none';
+    /**
+     * Sincroniza parcelas com o banco via AJAX (debounced)
+     * Chamada automaticamente quando qualquer campo financeiro muda.
+     * Cada chamada incrementa syncVersion; respostas obsoletas são descartadas.
+     */
+    function scheduleSyncInstallments(delay) {
+        if (syncTimer) clearTimeout(syncTimer);
+        syncVersion++; // Nova intenção de sync — qualquer resposta anterior é obsoleta
+        delay = delay || 800;
+        syncTimer = setTimeout(doSyncInstallments, delay);
+    }
 
-                            previousPaymentMethod = newMethod;
-                            toggleInstallmentRow();
+    function doSyncInstallments() {
+        const method = paymentMethod ? paymentMethod.value : '';
+        if (!method) return; // Sem forma de pagamento selecionada — não sincronizar
 
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Parcelas removidas!',
-                                text: `${data.deleted} parcela(s) removida(s). Configure o novo parcelamento se necessário.`,
-                                timer: 3000,
-                                showConfirmButton: false
-                            });
-                        } else {
-                            // Reverter select
-                            paymentMethod.value = previousPaymentMethod;
-                            Swal.fire({ icon: 'error', title: 'Erro', text: data.message || 'Não foi possível remover as parcelas.' });
-                        }
-                    })
-                    .catch((err) => {
-                        console.error('deleteInstallments error:', err);
-                        paymentMethod.value = previousPaymentMethod;
-                        Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro de conexão ao remover parcelas.' });
-                    });
-                } else {
-                    // Cancelou — reverter o select para o valor anterior
-                    paymentMethod.value = previousPaymentMethod;
+        // Não sincronizar se o método é parcelável e o usuário ainda não definiu as parcelas
+        if (!installmentsConfigured()) return;
+
+        // Abort any in-flight request — its response is now stale
+        if (syncAbortCtrl) {
+            syncAbortCtrl.abort();
+        }
+        syncAbortCtrl = new AbortController();
+
+        // Capture the version at the moment this request is built.
+        const myVersion = syncVersion;
+
+        showSyncStatus('syncing');
+
+        const nInst = parseInt(installments ? installments.value : 0) || 0;
+        const dp = parseFloat(downPaymentField ? downPaymentField.value : 0) || 0;
+        const disc = parseFloat(discountField ? discountField.value : 0) || 0;
+
+        const formData = new FormData();
+        formData.append('order_id', orderId);
+        formData.append('payment_method', method);
+        formData.append('installments', nInst);
+        formData.append('down_payment', dp);
+        formData.append('discount', disc);
+        formData.append('csrf_token', csrfToken);
+
+        // Coletar datas de vencimento das parcelas do boleto (se visíveis)
+        if (boletoTableBody) {
+            const dateInputs = boletoTableBody.querySelectorAll('input.boleto-date[name]');
+            dateInputs.forEach(function(input) {
+                const match = input.name.match(/boleto_due_(\d+)/);
+                if (match) {
+                    formData.append('due_dates[' + match[1] + ']', input.value);
                 }
             });
+        }
+
+        // ESTA ENVIANDO A QUANTIDADE CERTA DE PARCELAS, o formulário está sendo enviado corretamente
+        fetch('?page=pipeline&action=syncInstallments', {
+            method: 'POST',
+            body: formData,
+            signal: syncAbortCtrl.signal
+        })
+        .then(r => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(data => {
+            // If a newer sync was scheduled after this one started, discard this response.
+            if (myVersion !== syncVersion) {
+                return;
+            }
+
+            if (data.success) {
+                existingInstallmentCount = data.count || 0;
+                showSyncStatus('success', data.message || 'Parcelas salvas');
+
+                // Atualizar campo de valor da parcela se retornado
+                if (data.installment_value && installmentValueHidden) {
+                    installmentValueHidden.value = data.installment_value;
+                }
+
+                // Atualizar badges de status das parcelas no boleto table
+                if (boletoTableBody && data.installments) {
+                    updateBoletoTableFromServer(data.installments);
+                }
+
+                // Atualizar previousPaymentMethod/previousInstallments para refletir o estado salvo
+                previousPaymentMethod = paymentMethod ? paymentMethod.value : '';
+                previousInstallments = installments ? installments.value : '';
+            } else {
+                showSyncStatus('error', data.message || 'Erro ao salvar');
+                if (data.has_paid) {
+                    hasAnyPaidInstallment = true;
+                    if (paymentMethod) paymentMethod.value = previousPaymentMethod;
+                    if (installments) installments.value = previousInstallments;
+                    toggleInstallmentRow();
+                    lockFinancialFieldsIfPaid();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Parcelas já pagas',
+                        html: '<p>' + (data.message || '') + '</p><p class="small text-muted mt-2">Para alterar a forma de pagamento ou parcelamento, estorne os pagamentos no módulo Financeiro.</p>',
+                        confirmButtonColor: '#f39c12'
+                    });
+                }
+            }
+        })
+        .catch(err => {
+            // Ignore AbortError — it means we intentionally cancelled this request
+            if (err.name === 'AbortError') return;
+            console.error('syncInstallments error:', err);
+            if (myVersion === syncVersion) {
+                showSyncStatus('error', 'Erro de conexão');
+            }
+        });
+    }
+
+    /**
+     * Atualiza a tabela visual de boletos com dados reais do servidor
+     */
+    function updateBoletoTableFromServer(serverInstallments) {
+        if (!boletoTableBody || !serverInstallments || paymentMethod.value !== 'boleto') return;
+        boletoTableBody.innerHTML = '';
+
+        serverInstallments.forEach(function(inst) {
+            var tr = document.createElement('tr');
+            var num = parseInt(inst.installment_number);
+            var isPaid = (inst.status === 'pago');
+            var isEntry = (num === 0);
+
+            if (isEntry) {
+                tr.classList.add(isPaid ? 'table-success' : 'table-warning');
+                var entryStatusBadge = isPaid
+                    ? '<span class="badge bg-success" style="font-size:0.65rem;">✅ Pago</span>'
+                    : '<span class="badge bg-warning" style="font-size:0.65rem;">⏳ Pendente</span>';
+                tr.innerHTML = 
+                    '<td class="fw-bold text-success"><i class="fas fa-hand-holding-usd me-1"></i>Entrada</td>' +
+                    '<td><input type="date" class="form-control form-control-sm boleto-date" value="' + inst.due_date + '" style="max-width:160px;" ' + (isPaid ? 'disabled' : '') + '></td>' +
+                    '<td class="text-end fw-bold">R$ ' + parseFloat(inst.amount).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
+                    '<td class="text-center">' + entryStatusBadge + '</td>';
+            } else {
+                var statusBadge = isPaid
+                    ? '<span class="badge bg-success" style="font-size:0.65rem;">✅ Pago</span>'
+                    : '<span class="badge bg-warning" style="font-size:0.65rem;">⏳ Pendente</span>';
+                tr.innerHTML = 
+                    '<td class="fw-bold">' + (serverInstallments.length <= 2 && num === 1 && !serverInstallments.find(function(x){return parseInt(x.installment_number)===0;}) ? 'Única' : num + 'ª') + '</td>' +
+                    '<td><input type="date" class="form-control form-control-sm boleto-date" value="' + inst.due_date + '" style="max-width:160px;" name="boleto_due_' + num + '" data-installment-id="' + inst.id + '" ' + (isPaid ? 'disabled' : '') + '></td>' +
+                    '<td class="text-end fw-bold">R$ ' + parseFloat(inst.amount).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
+                    '<td class="text-center">' + statusBadge + '</td>';
+            }
+            boletoTableBody.appendChild(tr);
+        });
+
+        // Reanexar listeners de data nas parcelas
+        attachDueDateListeners();
+    }
+
+    /**
+     * Listener para alterações de data de vencimento em parcelas individuais
+     */
+    function attachDueDateListeners() {
+        if (!boletoTableBody) return;
+        boletoTableBody.querySelectorAll('input.boleto-date[data-installment-id]').forEach(function(input) {
+            input.removeEventListener('change', onDueDateChange);
+            input.addEventListener('change', onDueDateChange);
+        });
+    }
+
+    function onDueDateChange(e) {
+        var input = e.target;
+        var instId = input.getAttribute('data-installment-id');
+        var newDate = input.value;
+        if (!instId || !newDate) return;
+
+        var formData = new FormData();
+        formData.append('installment_id', instId);
+        formData.append('due_date', newDate);
+        formData.append('csrf_token', csrfToken);
+
+        input.style.borderColor = '#f39c12';
+        fetch('?page=pipeline&action=updateInstallmentDueDate', {
+            method: 'POST',
+            body: formData
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                input.style.borderColor = '#27ae60';
+                setTimeout(function() { input.style.borderColor = ''; }, 2000);
+            } else {
+                input.style.borderColor = '#e74c3c';
+            }
+        })
+        .catch(function() {
+            input.style.borderColor = '#e74c3c';
+        });
+    }
+
+    paymentMethod.addEventListener('change', function() {
+        // Se há parcelas pagas, bloquear alteração e reverter
+        if (hasAnyPaidInstallment) {
+            this.value = previousPaymentMethod;
+            lockFinancialFieldsIfPaid();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Alteração bloqueada',
+                html: 'Existem parcelas já pagas. Para alterar a forma de pagamento, estorne os pagamentos primeiro no módulo <strong>Financeiro</strong>.',
+                confirmButtonColor: '#f39c12'
+            });
+            return;
+        }
+        const oldMethod = previousPaymentMethod;
+        const newMethod = this.value;
+        previousPaymentMethod = newMethod;
+
+        // Ao mudar para método parcelável, resetar o nº de parcelas para que o
+        // usuário escolha conscientemente (evita gerar 1 parcela prematuramente)
+        const wasParcelable = parcelableMethods.includes(oldMethod);
+        const isNowParcelable = parcelableMethods.includes(newMethod);
+
+        if (isNowParcelable && !wasParcelable) {
+            // Resetar parcelas e flag ao entrar em método parcelável
+            if (installments) {
+                installments.value = '';
+                previousInstallments = '';
+            }
+            installmentsUserTouched = false;
+        }
+
+        toggleInstallmentRow();
+
+        if (isNowParcelable) {
+            // Método parcelável selecionado: NÃO sincronizar ainda.
+            // Aguardar o usuário selecionar o número de parcelas.
+            // Se já existem parcelas e o método não mudou de tipo, manter.
+            if (wasParcelable && oldMethod !== newMethod) {
+                // Mudou entre parceláveis (ex: cartão → boleto): sincronizar
+                scheduleSyncInstallments(500);
+            }
+            // Se veio de não-parcelável, não sincronizar — esperar seleção de parcelas
         } else {
-            // Sem parcelas existentes — alterar normalmente
-            previousPaymentMethod = newMethod;
-            toggleInstallmentRow();
+            // Método não parcelável (dinheiro, pix, etc.): sincronizar imediatamente
+            // para gerar uma única parcela / limpar parcelamento anterior
+            scheduleSyncInstallments(300);
         }
     });
-    if (installments) installments.addEventListener('change', function() { calcInstallment(); updateCardTitle(); });
-    if (discountField) discountField.addEventListener('input', calcInstallment);
-    if (downPaymentField) downPaymentField.addEventListener('input', calcInstallment);
+
+    if (installments) installments.addEventListener('change', function() {
+        // Se há parcelas pagas, bloquear alteração e reverter
+        if (hasAnyPaidInstallment) {
+            this.value = previousInstallments;
+            lockFinancialFieldsIfPaid();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Alteração bloqueada',
+                html: 'Existem parcelas já pagas. Para alterar o parcelamento, estorne os pagamentos primeiro no módulo <strong>Financeiro</strong>.',
+                confirmButtonColor: '#f39c12'
+            });
+            return;
+        }
+        installmentsUserTouched = true;
+        previousInstallments = this.value;
+        calcInstallment();
+        updateCardTitle();
+        scheduleSyncInstallments(500);
+    });
+    if (downPaymentField) downPaymentField.addEventListener('change', function() {
+        // Se há parcelas pagas, bloquear alteração
+        if (hasAnyPaidInstallment) {
+            this.value = <?= (float)($order['down_payment'] ?? 0) ?>;
+            lockFinancialFieldsIfPaid();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Alteração bloqueada',
+                html: 'Existem parcelas já pagas. Para alterar a entrada, estorne os pagamentos primeiro no módulo <strong>Financeiro</strong>.',
+                confirmButtonColor: '#f39c12'
+            });
+            return;
+        }
+        calcInstallment();
+        if (installmentsConfigured()) {
+            scheduleSyncInstallments(800);
+        }
+    });
+    if (discountField) discountField.addEventListener('change', function() {
+        // Se há parcelas pagas, bloquear alteração de desconto (afeta valor das parcelas)
+        if (hasAnyPaidInstallment) {
+            this.value = <?= (float)($order['discount'] ?? 0) ?>;
+            lockFinancialFieldsIfPaid();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Alteração bloqueada',
+                html: 'Existem parcelas já pagas. Para alterar o desconto, estorne os pagamentos primeiro no módulo <strong>Financeiro</strong>.',
+                confirmButtonColor: '#f39c12'
+            });
+            return;
+        }
+        calcInstallment();
+        if (installmentsConfigured()) {
+            scheduleSyncInstallments(800);
+        }
+    });
     
     toggleInstallmentRow();
+
+    // Bloquear campos se há parcelas pagas (logo no carregamento da página)
+    lockFinancialFieldsIfPaid();
+
+    // Ao carregar a página, se existem parcelas no DB e o método é parcelável, buscar dados reais
+    if (existingInstallmentCount > 0 && parcelableMethods.includes(paymentMethod.value)) {
+        fetch('?page=financial&action=getInstallmentsJson&order_id=' + orderId)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success && data.installments && data.installments.length > 0) {
+                    if (paymentMethod.value === 'boleto') {
+                        updateBoletoTableFromServer(data.installments);
+                    }
+                    // Detectar se alguma parcela está paga (para atualizar estado)
+                    var anyPaid = data.installments.some(function(inst) { return inst.status === 'pago'; });
+                    if (anyPaid && !hasAnyPaidInstallment) {
+                        hasAnyPaidInstallment = true;
+                        lockFinancialFieldsIfPaid();
+                    }
+                }
+            })
+            .catch(function() {});
+    }
 
     // ═══ Dados bancários das configurações (injetados via PHP) ═══
     var bankConfig = {

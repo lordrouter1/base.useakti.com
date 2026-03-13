@@ -90,3 +90,6 @@
 [2026-03-11 18:37:50] CSRF validation failed | IP: ::1 | Route: ?page=login&action=index | Method: POST | Token: (empty) | User: anonymous
 [2026-03-11 18:59:10] CSRF validation failed | IP: ::1 | Route: ?page=walkthrough&action=start | Method: POST | Token: (empty) | User: 1
 [2026-03-11 18:59:12] CSRF validation failed | IP: ::1 | Route: ?page=walkthrough&action=skip | Method: POST | Token: (empty) | User: 1
+[2026-03-12 21:24:55] CSRF validation failed | IP: ::1 | Route: ?page=financial&action=cancelInstallment | Method: POST | Token: 0bcb3ac5... | User: 1
+[2026-03-12 21:24:57] CSRF validation failed | IP: ::1 | Route: ?page=financial&action=cancelInstallment | Method: POST | Token: 0bcb3ac5... | User: 1
+[2026-03-12 21:30:59] CSRF validation failed | IP: ::1 | Route: ?page=financial&action=payInstallment | Method: POST | Token: 9dd36d41... | User: 1

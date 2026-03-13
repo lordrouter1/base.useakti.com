@@ -225,6 +225,9 @@ return [
             'generateMercadoPagoLink' => 'generateMercadoPagoLink',
             'productionBoard'      => 'productionBoard',
             'printProductionOrder' => 'printProductionOrder',
+            'printThermalReceipt'  => 'printThermalReceipt',
+            'syncInstallments'     => 'syncInstallments',
+            'updateInstallmentDueDate' => 'updateInstallmentDueDate',
             // Actions que usam CatalogController em vez de PipelineController
             'generateCatalogLink'    => ['controller' => 'CatalogController', 'method' => 'generate'],
             'deactivateCatalogLink'  => ['controller' => 'CatalogController', 'method' => 'deactivate'],

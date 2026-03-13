@@ -193,6 +193,31 @@ class OrderController {
     }
 
     /**
+     * Verifica se o pedido possui parcelas pagas (bloqueia alteração de produtos)
+     */
+    private function orderHasPaidInstallments($orderId) {
+        if (!$orderId) return false;
+        $database = new Database();
+        $db = $database->getConnection();
+        $financialModel = new Financial($db);
+        return $financialModel->hasAnyPaidInstallment($orderId);
+    }
+
+    /**
+     * Obtém o order_id a partir de um item_id
+     */
+    private function getOrderIdFromItem($itemId) {
+        if (!$itemId) return null;
+        $database = new Database();
+        $db = $database->getConnection();
+        $q = "SELECT order_id FROM order_items WHERE id = :id LIMIT 1";
+        $s = $db->prepare($q);
+        $s->execute([':id' => $itemId]);
+        $row = $s->fetch(PDO::FETCH_ASSOC);
+        return $row ? (int)$row['order_id'] : null;
+    }
+
+    /**
      * Adicionar item ao pedido (POST via AJAX ou form)
      */
     public function addItem() {
@@ -203,6 +228,18 @@ class OrderController {
             $unitPrice = Input::post('unit_price', 'float', 0);
             $combinationId = Input::post('combination_id', 'int');
             $gradeDescription = Input::post('grade_description');
+
+            // ═══ BLOQUEIO: Não permitir alterar produtos se há parcelas pagas ═══
+            if ($this->orderHasPaidInstallments($orderId)) {
+                $_SESSION['error'] = 'Não é possível adicionar produtos porque existem parcelas já pagas. Estorne os pagamentos primeiro no módulo Financeiro.';
+                $redirect = Input::post('redirect', 'enum', 'orders', ['orders', 'pipeline']);
+                if ($redirect === 'pipeline') {
+                    header('Location: ?page=pipeline&action=detail&id=' . $orderId);
+                } else {
+                    header('Location: ?page=orders&action=edit&id=' . $orderId);
+                }
+                exit;
+            }
 
             $this->orderModel->addItem($orderId, $productId, $quantity, $unitPrice, $combinationId ?: null, $gradeDescription ?: null);
 
@@ -226,6 +263,18 @@ class OrderController {
             $unitPrice = Input::post('unit_price', 'float', 0);
             $orderId = Input::post('order_id', 'int');
 
+            // ═══ BLOQUEIO: Não permitir alterar item se há parcelas pagas ═══
+            if ($this->orderHasPaidInstallments($orderId)) {
+                $_SESSION['error'] = 'Não é possível alterar produtos porque existem parcelas já pagas. Estorne os pagamentos primeiro no módulo Financeiro.';
+                $redirect = Input::post('redirect', 'enum', 'orders', ['orders', 'pipeline']);
+                if ($redirect === 'pipeline') {
+                    header('Location: ?page=pipeline&action=detail&id=' . $orderId);
+                } else {
+                    header('Location: ?page=orders&action=edit&id=' . $orderId);
+                }
+                exit;
+            }
+
             $this->orderModel->updateItem($itemId, $quantity, $unitPrice);
 
             $redirect = Input::post('redirect', 'enum', 'orders', ['orders', 'pipeline']);
@@ -245,6 +294,17 @@ class OrderController {
         $itemId = Input::get('item_id', 'int');
         $orderId = Input::get('order_id', 'int');
         $redirect = Input::get('redirect', 'enum', 'orders', ['orders', 'pipeline']);
+
+        // ═══ BLOQUEIO: Não permitir remover produtos se há parcelas pagas ═══
+        if ($this->orderHasPaidInstallments($orderId)) {
+            $_SESSION['error'] = 'Não é possível remover produtos porque existem parcelas já pagas. Estorne os pagamentos primeiro no módulo Financeiro.';
+            if ($redirect === 'pipeline') {
+                header('Location: ?page=pipeline&action=detail&id=' . $orderId);
+            } else {
+                header('Location: ?page=orders&action=edit&id=' . $orderId);
+            }
+            exit;
+        }
 
         if ($itemId) {
             $this->orderModel->deleteItem($itemId);
@@ -269,6 +329,17 @@ class OrderController {
 
         if (!$itemId) {
             echo json_encode(['success' => false, 'message' => 'ID do item não informado']);
+            exit;
+        }
+
+        // ═══ BLOQUEIO: Não permitir alterar quantidade se há parcelas pagas ═══
+        $orderId = $this->getOrderIdFromItem($itemId);
+        if ($orderId && $this->orderHasPaidInstallments($orderId)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Não é possível alterar a quantidade porque existem parcelas já pagas. Estorne os pagamentos primeiro.',
+                'blocked_by_paid' => true,
+            ]);
             exit;
         }
 
@@ -309,6 +380,17 @@ class OrderController {
 
         if (!$itemId) {
             echo json_encode(['success' => false, 'message' => 'ID do item não informado']);
+            exit;
+        }
+
+        // ═══ BLOQUEIO: Não permitir alterar desconto de item se há parcelas pagas ═══
+        $orderId = $this->getOrderIdFromItem($itemId);
+        if ($orderId && $this->orderHasPaidInstallments($orderId)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Não é possível alterar o desconto porque existem parcelas já pagas. Estorne os pagamentos primeiro.',
+                'blocked_by_paid' => true,
+            ]);
             exit;
         }
 

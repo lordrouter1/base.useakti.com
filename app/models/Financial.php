@@ -300,17 +300,42 @@ class Financial {
      * Remove todas as parcelas de um pedido
      */
     public function deleteInstallmentsByOrder($orderId) {
+        // Segurança: não deletar se há parcelas pagas
+        if ($this->hasAnyPaidInstallment($orderId)) {
+            return 0;
+        }
+
+        // Buscar parcelas antes de deletar (para evento)
+        $qBefore = "SELECT COUNT(*) FROM order_installments WHERE order_id = :oid";
+        $sBefore = $this->conn->prepare($qBefore);
+        $sBefore->execute([':oid' => $orderId]);
+        $countBefore = (int) $sBefore->fetchColumn();
+
         $q = "DELETE FROM order_installments WHERE order_id = :oid";
         $s = $this->conn->prepare($q);
         $s->execute([':oid' => $orderId]);
-        return $s->rowCount();
+        $deleted = $s->rowCount();
+
+        if ($deleted > 0) {
+            EventDispatcher::dispatch('model.installment.deleted_all', new Event('model.installment.deleted_all', [
+                'order_id' => $orderId,
+                'count' => $deleted,
+            ]));
+        }
+
+        return $deleted;
     }
 
     /**
      * Gera parcelas para um pedido (chamado quando se define o parcelamento)
      */
-    public function generateInstallments($orderId, $totalAmount, $numInstallments, $downPayment = 0, $startDate = null) {
-        // Deletar parcelas anteriores
+    public function generateInstallments($orderId, $totalAmount, $numInstallments, $downPayment = 0, $startDate = null, $dueDates = []) {
+        // Segurança: não deletar se há parcelas pagas
+        if ($this->hasAnyPaidInstallment($orderId)) {
+            return false;
+        }
+
+        // Deletar parcelas anteriores (somente pendentes — segurança dupla)
         $q = "DELETE FROM order_installments WHERE order_id = :oid";
         $s = $this->conn->prepare($q);
         $s->execute([':oid' => $orderId]);
@@ -328,20 +353,22 @@ class Financial {
               VALUES (:oid, :num, :amt, :due, 'pendente')";
         $s = $this->conn->prepare($q);
 
-        // Se houver entrada, registrar como parcela 0 já paga
+        // Se houver entrada, registrar como parcela 0 pendente (permite alterar forma de pagamento)
         if ($downPayment > 0) {
-            $qd = "INSERT INTO order_installments (order_id, installment_number, amount, due_date, status, paid_date, paid_amount, is_confirmed)
-                   VALUES (:oid, 0, :amt, :due, 'pago', :paid, :pamt, 1)";
+            $qd = "INSERT INTO order_installments (order_id, installment_number, amount, due_date, status)
+                   VALUES (:oid, 0, :amt, :due, 'pendente')";
             $sd = $this->conn->prepare($qd);
             $sd->execute([
                 ':oid' => $orderId, ':amt' => $downPayment,
-                ':due' => $startDate, ':paid' => $startDate, ':pamt' => $downPayment
+                ':due' => $startDate
             ]);
         }
 
         for ($i = 1; $i <= $numInstallments; $i++) {
-            // Parcela única (à vista): vencimento hoje; múltiplas: +i meses
-            if ($numInstallments === 1) {
+            // Usar data de vencimento customizada se fornecida, senão calcular
+            if (!empty($dueDates[$i])) {
+                $dueDate = $dueDates[$i];
+            } elseif ($numInstallments === 1) {
                 $dueDate = $startDate;
             } else {
                 $dueDate = date('Y-m-d', strtotime($startDate . " + {$i} months"));
@@ -354,6 +381,14 @@ class Financial {
                 ':due' => $dueDate,
             ]);
         }
+
+        EventDispatcher::dispatch('model.installment.generated', new Event('model.installment.generated', [
+            'order_id' => $orderId,
+            'total_amount' => $totalAmount,
+            'num_installments' => $numInstallments,
+            'down_payment' => $downPayment,
+            'installment_value' => $installmentValue,
+        ]));
 
         return true;
     }
@@ -600,6 +635,64 @@ class Financial {
         $s = $this->conn->prepare($q);
         $s->execute([':id' => $id]);
         return $s->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Verifica se existe alguma parcela paga para um pedido
+     */
+    public function hasAnyPaidInstallment($orderId) {
+        $q = "SELECT COUNT(*) FROM order_installments WHERE order_id = :oid AND status = 'pago'";
+        $s = $this->conn->prepare($q);
+        $s->execute([':oid' => $orderId]);
+        return (int) $s->fetchColumn() > 0;
+    }
+
+    /**
+     * Atualiza a data de vencimento de uma parcela
+     */
+    public function updateInstallmentDueDate($installmentId, $dueDate) {
+        $q = "UPDATE order_installments SET due_date = :due, updated_at = NOW() WHERE id = :id AND status = 'pendente'";
+        $s = $this->conn->prepare($q);
+        $result = $s->execute([':due' => $dueDate, ':id' => $installmentId]);
+
+        if ($result && $s->rowCount() > 0) {
+            EventDispatcher::dispatch('model.installment.due_date_updated', new Event('model.installment.due_date_updated', [
+                'id' => $installmentId,
+                'due_date' => $dueDate,
+            ]));
+        }
+        return $result;
+    }
+
+    /**
+     * Atualiza os campos financeiros do pedido (payment_method, installments, installment_value, down_payment)
+     */
+    public function updateOrderFinancialFields($orderId, $data) {
+        $q = "UPDATE orders SET
+                payment_method = :pm,
+                installments = :inst,
+                installment_value = :iv,
+                down_payment = :dp
+              WHERE id = :id";
+        $s = $this->conn->prepare($q);
+        $result = $s->execute([
+            ':pm' => $data['payment_method'] ?? null,
+            ':inst' => $data['installments'] ?? null,
+            ':iv' => $data['installment_value'] ?? null,
+            ':dp' => $data['down_payment'] ?? 0,
+            ':id' => $orderId,
+        ]);
+
+        if ($result) {
+            EventDispatcher::dispatch('model.order.financial_updated', new Event('model.order.financial_updated', [
+                'id' => $orderId,
+                'payment_method' => $data['payment_method'] ?? null,
+                'installments' => $data['installments'] ?? null,
+                'installment_value' => $data['installment_value'] ?? null,
+                'down_payment' => $data['down_payment'] ?? 0,
+            ]));
+        }
+        return $result;
     }
 
     /**

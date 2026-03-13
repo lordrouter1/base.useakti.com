@@ -394,6 +394,23 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (data.needs_warehouse) {
                 // Precisa selecionar armazém — mostrar modal
                 showWarehouseSelectionModal(orderId, newStage, evtItem, evtFrom);
+            } else if (data.blocked_by_paid) {
+                // Bloqueado por parcelas pagas — alerta específico
+                Swal.fire({
+                    icon: 'error',
+                    title: '<i class="fas fa-lock me-2"></i>Movimentação bloqueada',
+                    html: '<p>' + (data.message || 'Existem parcelas já pagas.') + '</p>'
+                        + '<p class="small text-muted mt-2">Estorne todos os pagamentos primeiro no módulo <strong>Financeiro</strong>.</p>',
+                    confirmButtonText: '<i class="fas fa-external-link-alt me-1"></i> Ir para Financeiro',
+                    showCancelButton: true,
+                    cancelButtonText: 'Fechar',
+                    confirmButtonColor: '#e74c3c'
+                }).then(function(r) {
+                    if (r.isConfirmed) {
+                        window.open('?page=financial&action=payments', '_blank');
+                    }
+                });
+                revertCard(evtItem, evtFrom);
             } else {
                 Swal.fire({ icon: 'error', title: 'Erro', text: data.message || 'Não foi possível mover o pedido.', timer: 3000 });
                 revertCard(evtItem, evtFrom);

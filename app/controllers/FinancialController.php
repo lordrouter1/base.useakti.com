@@ -560,7 +560,11 @@ class FinancialController {
         $orderId = Input::get('order_id', 'int', 0);
         $installments = $this->financial->getInstallments($orderId);
         header('Content-Type: application/json');
-        echo json_encode($installments);
+        echo json_encode([
+            'success' => true,
+            'installments' => $installments,
+            'count' => count($installments),
+        ]);
         exit;
     }
 }

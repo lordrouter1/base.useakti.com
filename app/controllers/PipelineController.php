@@ -74,11 +74,9 @@ class PipelineController {
         $numInstallments = (int)$order['installments'];
         $downPayment = (float)$order['down_payment'];
 
-        // Formas parceláveis: cartão crédito e, quando habilitado, boleto
-        $parcelableMethods = ['cartao_credito'];
-        if (ModuleBootloader::isModuleEnabled('boleto')) {
-            $parcelableMethods[] = 'boleto';
-        }
+        // Formas parceláveis — boleto sempre suporta parcelamento independentemente
+        // do módulo de impressão de boletos estar habilitado ou não.
+        $parcelableMethods = ['cartao_credito', 'boleto'];
 
         if (in_array($paymentMethod, $parcelableMethods) && $numInstallments >= 2) {
             // Gerar N parcelas
@@ -244,6 +242,13 @@ class PipelineController {
      * Mover pedido para outra etapa (GET — usado no detalhe do pedido)
      * Integra lógica de dedução/devolução de estoque conforme zona.
      */
+    /**
+     * Etapas bloqueadas quando existem parcelas pagas.
+     * O pedido não pode retroceder para produção ou etapas anteriores,
+     * nem ser cancelado, enquanto houver pagamentos sem estorno.
+     */
+    private static $stagesBlockedByPaidInstallments = ['contato', 'orcamento', 'venda', 'producao', 'cancelado'];
+
     public function move() {
         $orderId = Input::get('id', 'int');
         $newStage = Input::get('stage');
@@ -262,6 +267,16 @@ class PipelineController {
         $stmtCurrent->execute();
         $currentOrder = $stmtCurrent->fetch(PDO::FETCH_ASSOC);
         $currentStage = $currentOrder ? $currentOrder['pipeline_stage'] : null;
+
+        // ═══ BLOQUEIO: Se há parcelas pagas, não permitir mover para etapas restritas ═══
+        if (in_array($newStage, self::$stagesBlockedByPaidInstallments)) {
+            $financialModel = new Financial($this->db);
+            if ($financialModel->hasAnyPaidInstallment($orderId)) {
+                $_SESSION['error'] = 'Não é possível mover o pedido para "' . (Pipeline::$stages[$newStage]['label'] ?? $newStage) . '" porque existem parcelas já pagas. Estorne os pagamentos primeiro no módulo Financeiro.';
+                header('Location: ?page=pipeline&action=detail&id=' . $orderId);
+                exit;
+            }
+        }
 
         // Processar lógica de estoque
         $stockResult = $this->handleStockTransition($orderId, $currentStage, $newStage, $warehouseId, $userId);
@@ -318,6 +333,20 @@ class PipelineController {
         if ($currentStage === $newStage) {
             echo json_encode(['success' => true, 'message' => 'Sem alteração']);
             exit;
+        }
+
+        // ═══ BLOQUEIO: Se há parcelas pagas, não permitir mover para etapas restritas ═══
+        if (in_array($newStage, self::$stagesBlockedByPaidInstallments)) {
+            $financialModel = new Financial($this->db);
+            if ($financialModel->hasAnyPaidInstallment($orderId)) {
+                $stageLabel = Pipeline::$stages[$newStage]['label'] ?? $newStage;
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Não é possível mover para "' . $stageLabel . '" porque existem parcelas já pagas. Estorne os pagamentos primeiro.',
+                    'blocked_by_paid' => true,
+                ]);
+                exit;
+            }
         }
 
         // Se a transição precisa de armazém e não foi informado, retorna flag
@@ -454,6 +483,7 @@ class PipelineController {
         // Carregar contagem de parcelas existentes (order_installments)
         $financialModel = new Financial($this->db);
         $existingInstallmentCount = $financialModel->countInstallments($detailId);
+        $hasAnyPaidInstallment = $financialModel->hasAnyPaidInstallment($detailId);
 
         require 'app/views/layout/header.php';
         require 'app/views/pipeline/detail.php';
@@ -483,11 +513,11 @@ class PipelineController {
                 'tracking_code' => Input::post('tracking_code'),
                 'price_table_id' => Input::post('price_table_id', 'int') ?: null,
                 // Campos fiscais (NF-e)
-                'nf_number' => Input::post('nf_number'),
-                'nf_series' => Input::post('nf_series'),
-                'nf_status' => Input::post('nf_status'),
-                'nf_access_key' => Input::post('nf_access_key'),
-                'nf_notes' => Input::post('nf_notes'),
+                'nf_number' => Input::post('nf_number') ?: null,
+                'nf_series' => Input::post('nf_series') ?: null,
+                'nf_status' => Input::post('nf_status') ?: null,
+                'nf_access_key' => Input::post('nf_access_key') ?: null,
+                'nf_notes' => Input::post('nf_notes') ?: null,
             ];
 
             $this->pipelineModel->updateOrderDetails($data);
@@ -537,23 +567,31 @@ class PipelineController {
                         $newDownPayment = (float)($data['down_payment'] ?? 0);
 
                         // Determinar numero esperado de parcelas com base na forma de pagamento
-                        $parcelableMethods = ['cartao_credito'];
-                        if (ModuleBootloader::isModuleEnabled('boleto')) {
-                            $parcelableMethods[] = 'boleto';
-                        }
+                        $parcelableMethods = ['cartao_credito', 'boleto'];
                         $isParcelable = in_array($data['payment_method'], $parcelableMethods);
                         $expectedRegularCount = ($isParcelable && $newInstallments >= 2) ? $newInstallments : 1;
                         $expectDownPayment = ($newDownPayment > 0);
 
-                        // Regenerar se: número de parcelas mudou OU status da entrada mudou
+                        // Calcular valor total esperado para comparar com as parcelas existentes
+                        $newTotalAmount = (float)($currentOrderData['total_amount'] ?? 0) - (float)($data['discount'] ?? 0);
+                        $expectedRemaining = $newTotalAmount - $newDownPayment;
+                        if ($expectedRemaining <= 0) $expectedRemaining = $newTotalAmount;
+
+                        // Calcular soma das parcelas regulares existentes
+                        $existingParcelasTotal = 0;
+                        foreach ($regularInstallments as $inst) {
+                            $existingParcelasTotal += (float)($inst['amount'] ?? 0);
+                        }
+
+                        // Regenerar se: número de parcelas mudou OU status da entrada mudou OU valor total mudou
                         $needsRegeneration = ($existingRegularCount !== $expectedRegularCount)
-                            || ($hasExistingDownPayment !== $expectDownPayment);
+                            || ($hasExistingDownPayment !== $expectDownPayment)
+                            || (abs($existingParcelasTotal - $expectedRemaining) > 0.01);
 
                         if ($needsRegeneration) {
-                            $totalAmount = (float)($currentOrderData['total_amount'] ?? 0) - (float)($data['discount'] ?? 0);
-                            if ($totalAmount > 0) {
-                                $financialModel->generateInstallments($orderId, $totalAmount, $expectedRegularCount, $newDownPayment);
-                                $logger->log('INSTALLMENTS_REGENERATED', "Regenerated installments for order #$orderId (method: {$data['payment_method']}, count: $expectedRegularCount, down_payment: $newDownPayment)");
+                            if ($newTotalAmount > 0) {
+                                $financialModel->generateInstallments($orderId, $newTotalAmount, $expectedRegularCount, $newDownPayment);
+                                $logger->log('INSTALLMENTS_REGENERATED', "Regenerated installments for order #$orderId (method: {$data['payment_method']}, count: $expectedRegularCount, down_payment: $newDownPayment, total: $newTotalAmount)");
                             }
                         }
                     }
@@ -599,6 +637,17 @@ class PipelineController {
             exit;
         }
         $financial = new Financial($this->db);
+
+        // Verificar se há parcelas pagas — não permitir exclusão
+        if ($financial->hasAnyPaidInstallment($orderId)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Existem parcelas já pagas. Estorne os pagamentos primeiro.',
+                'has_paid' => true,
+            ]);
+            exit;
+        }
+
         $deleted = $financial->deleteInstallmentsByOrder($orderId);
 
         // Limpar campos de parcelamento no pedido
@@ -905,6 +954,16 @@ class PipelineController {
             $description = Input::post('extra_description');
             $amount = Input::post('extra_amount', 'float', 0);
 
+            // ═══ BLOQUEIO: Não permitir alterar custos se há parcelas pagas ═══
+            if ($orderId) {
+                $financialModel = new Financial($this->db);
+                if ($financialModel->hasAnyPaidInstallment($orderId)) {
+                    $_SESSION['error'] = 'Não é possível adicionar custos extras porque existem parcelas já pagas. Estorne os pagamentos primeiro no módulo Financeiro.';
+                    header('Location: ?page=pipeline&action=detail&id=' . $orderId);
+                    exit;
+                }
+            }
+
             if ($orderId && $description && $amount != 0) {
                 $orderModel = new Order($this->db);
                 $orderModel->addExtraCost($orderId, $description, $amount);
@@ -921,6 +980,16 @@ class PipelineController {
     public function deleteExtraCost() {
         $costId = Input::get('cost_id', 'int');
         $orderId = Input::get('order_id', 'int');
+
+        // ═══ BLOQUEIO: Não permitir remover custos se há parcelas pagas ═══
+        if ($orderId) {
+            $financialModel = new Financial($this->db);
+            if ($financialModel->hasAnyPaidInstallment($orderId)) {
+                $_SESSION['error'] = 'Não é possível remover custos extras porque existem parcelas já pagas. Estorne os pagamentos primeiro no módulo Financeiro.';
+                header('Location: ?page=pipeline&action=detail&id=' . $orderId);
+                exit;
+            }
+        }
 
         if ($costId) {
             $orderModel = new Order($this->db);
@@ -1223,6 +1292,180 @@ class PipelineController {
         $logger->log('PREPARATION_TOGGLE', "Preparation '$key' $action for order #$orderId");
 
         echo json_encode(['success' => true, 'checked' => $checked]);
+        exit;
+    }
+
+    /**
+     * Imprimir cupom não fiscal (impressora térmica)
+     */
+    public function printThermalReceipt() {
+        $printId = Input::get('id', 'int');
+        if (!$printId) {
+            header('Location: ?page=pipeline');
+            exit;
+        }
+
+        $order = $this->pipelineModel->getOrderDetail($printId);
+        if (!$order) {
+            header('Location: ?page=pipeline');
+            exit;
+        }
+
+        // Carregar itens do pedido
+        $orderModel = new Order($this->db);
+        $orderItems = $orderModel->getItems($printId);
+
+        // Carregar custos extras
+        $extraCosts = $orderModel->getExtraCosts($printId);
+
+        // Carregar dados da empresa
+        $companySettings = new CompanySettings($this->db);
+        $company = $companySettings->getAll();
+        $companyAddress = $companySettings->getFormattedAddress();
+
+        // Carregar parcelas (se existirem)
+        $financialModel = new Financial($this->db);
+        $installmentsList = $financialModel->getInstallments($printId);
+
+        // Renderizar a view de impressão térmica (sem header/footer do sistema)
+        require 'app/views/pipeline/print_thermal_receipt.php';
+    }
+
+    /**
+     * API JSON: Sincroniza parcelas do pedido com base nos dados financeiros (AJAX POST)
+     * Chamado automaticamente quando o usuário altera forma de pagamento, nº de parcelas,
+     * entrada ou vencimentos no card financeiro do detalhe do pipeline.
+     */
+    public function syncInstallments() {
+        header('Content-Type: application/json');
+
+        $orderId       = Input::post('order_id', 'int');
+        $paymentMethod = Input::post('payment_method');
+        $numInst       = Input::post('installments', 'int') ?: 0;
+        $downPayment   = Input::post('down_payment', 'float', 0);
+        $discount      = Input::post('discount', 'float', 0);
+
+        if (!$orderId) {
+            echo json_encode(['success' => false, 'message' => 'ID do pedido não informado.']);
+            exit;
+        }
+
+        // Buscar dados atuais do pedido
+        $q = "SELECT total_amount, pipeline_stage, payment_method, installments, down_payment, discount FROM orders WHERE id = :id";
+        $s = $this->db->prepare($q);
+        $s->execute([':id' => $orderId]);
+        $order = $s->fetch(PDO::FETCH_ASSOC);
+
+        if (!$order) {
+            echo json_encode(['success' => false, 'message' => 'Pedido não encontrado.']);
+            exit;
+        }
+
+        // Só permitir sync em etapas relevantes
+        if (!in_array($order['pipeline_stage'], ['venda', 'financeiro', 'concluido'])) {
+            echo json_encode(['success' => false, 'message' => 'Parcelas só podem ser geradas nas etapas Venda, Financeiro ou Concluído.']);
+            exit;
+        }
+
+        $financialModel = new Financial($this->db);
+        $logger = new Logger($this->db);
+
+        // Verificar se há parcelas já pagas — não regenerar automaticamente
+        if ($financialModel->hasAnyPaidInstallment($orderId)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Existem parcelas já pagas. Não é possível regenerar automaticamente. Estorne os pagamentos primeiro se necessário.',
+                'has_paid' => true,
+            ]);
+            exit;
+        }
+
+        $totalAmount = (float)$order['total_amount'] - $discount;
+        if ($totalAmount <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Valor total do pedido inválido.']);
+            exit;
+        }
+
+        // Formas parceláveis — boleto sempre suporta parcelamento independentemente
+        // do módulo de impressão de boletos estar habilitado ou não.
+        $parcelableMethods = ['cartao_credito', 'boleto'];
+
+        $isParcelable = in_array($paymentMethod, $parcelableMethods);
+        $effectiveCount = ($isParcelable && $numInst >= 2) ? $numInst : 1;
+
+        // Coletar datas customizadas de vencimento (do boleto table)
+        $dueDates = [];
+        $rawDueDates = $_POST['due_dates'] ?? [];
+        if (is_array($rawDueDates)) {
+            foreach ($rawDueDates as $num => $dateVal) {
+                $sanitizedDate = Sanitizer::date($dateVal);
+                if ($sanitizedDate) {
+                    $dueDates[(int)$num] = $sanitizedDate;
+                }
+            }
+        }
+
+        // Gerar/regenerar parcelas
+        $financialModel->generateInstallments($orderId, $totalAmount, $effectiveCount, $downPayment, null, $dueDates);
+
+        // Calcular valor da parcela para atualizar na tabela orders
+        $remaining = $totalAmount - $downPayment;
+        if ($remaining <= 0) $remaining = $totalAmount;
+        $installmentValue = round($remaining / $effectiveCount, 2);
+
+        // Atualizar campos financeiros no pedido
+        $financialModel->updateOrderFinancialFields($orderId, [
+            'payment_method' => $paymentMethod,
+            'installments' => ($effectiveCount >= 2) ? $effectiveCount : null,
+            'installment_value' => ($effectiveCount >= 2) ? $installmentValue : null,
+            'down_payment' => $downPayment,
+        ]);
+
+        // Atualizar desconto se mudou
+        if (abs($discount - (float)($order['discount'] ?? 0)) > 0.001) {
+            $qd = "UPDATE orders SET discount = :disc WHERE id = :id";
+            $sd = $this->db->prepare($qd);
+            $sd->execute([':disc' => $discount, ':id' => $orderId]);
+        }
+
+        $logger->log('INSTALLMENTS_SYNCED', "Synced installments for order #$orderId (method: $paymentMethod, count: $effectiveCount, down: $downPayment)");
+
+        // Retornar as parcelas geradas
+        $installments = $financialModel->getInstallments($orderId);
+
+        echo json_encode([
+            'success' => true,
+            'message' => "Parcelas atualizadas: $effectiveCount parcela(s) gerada(s).",
+            'installments' => $installments,
+            'count' => count($installments),
+            'installment_value' => $installmentValue,
+        ]);
+        exit;
+    }
+
+    /**
+     * API JSON: Atualiza a data de vencimento de uma parcela individual (AJAX POST)
+     */
+    public function updateInstallmentDueDate() {
+        header('Content-Type: application/json');
+
+        $installmentId = Input::post('installment_id', 'int');
+        $dueDate       = Input::post('due_date', 'date');
+
+        if (!$installmentId || !$dueDate) {
+            echo json_encode(['success' => false, 'message' => 'Dados incompletos.']);
+            exit;
+        }
+
+        $financialModel = new Financial($this->db);
+        $result = $financialModel->updateInstallmentDueDate($installmentId, $dueDate);
+
+        if ($result) {
+            $logger = new Logger($this->db);
+            $logger->log('INSTALLMENT_DUE_DATE', "Updated due date of installment #$installmentId to $dueDate");
+        }
+
+        echo json_encode(['success' => (bool)$result]);
         exit;
     }
 }
