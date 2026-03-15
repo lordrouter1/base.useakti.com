@@ -12,7 +12,12 @@ export const env = Object.freeze({
   DB_PASS: process.env.DB_PASS || '',
 
   // JWT
-  JWT_SECRET: process.env.JWT_SECRET || '',
+  JWT_SECRET: process.env.JWT_SECRET || (() => {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET must be set in production.');
+    }
+    return 'dev-only-secret';
+  })(),
 
   // CORS
   CORS_ORIGIN_PATTERN: process.env.CORS_ORIGIN_PATTERN || '.useakti.com',

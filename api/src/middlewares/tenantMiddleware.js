@@ -8,12 +8,26 @@
  * The resolved value is injected into `req.tenantId` so that downstream
  * controllers, services and models can scope queries accordingly.
  */
+
+const TENANT_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
+const MAX_TENANT_LENGTH = 64;
+
+function isValidTenantId(value) {
+  return (
+    typeof value === 'string' &&
+    value.length > 0 &&
+    value.length <= MAX_TENANT_LENGTH &&
+    TENANT_ID_PATTERN.test(value)
+  );
+}
+
 export function tenantMiddleware(req, _res, next) {
   // 1. Explicit header takes precedence
   const headerTenant = req.headers['x-tenant-id'];
 
   if (headerTenant) {
-    req.tenantId = String(headerTenant).trim();
+    const sanitized = String(headerTenant).trim();
+    req.tenantId = isValidTenantId(sanitized) ? sanitized : null;
     return next();
   }
 
@@ -22,7 +36,7 @@ export function tenantMiddleware(req, _res, next) {
   const parts = host.split('.');
 
   // A valid subdomain host has at least 3 parts (sub.domain.tld)
-  if (parts.length >= 3) {
+  if (parts.length >= 3 && isValidTenantId(parts[0])) {
     req.tenantId = parts[0];
     return next();
   }

@@ -23,7 +23,7 @@ export class BaseService {
    * Find all records scoped to a tenant with pagination.
    */
   async findAll(tenantId, { page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT } = {}) {
-    const safeLimit = Math.min(limit, PAGINATION.MAX_LIMIT);
+    const safeLimit = Math.min(limit, PAGINATION.MAX_LIMIT) || PAGINATION.DEFAULT_LIMIT;
     const offset = (page - 1) * safeLimit;
 
     const { count, rows } = await this.model.findAndCountAll({

@@ -14,7 +14,7 @@ export function asyncHandler(fn) {
 }
 
 /**
- * Returns a sanitised positive integer from a raw value, or a default.
+ * Returns a sanitized positive integer from a raw value, or a default.
  */
 export function toPositiveInt(value, fallback = 0) {
   const parsed = parseInt(value, 10);

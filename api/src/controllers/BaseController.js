@@ -1,4 +1,5 @@
-import { HTTP_STATUS } from '../config/constants.js';
+import { HTTP_STATUS, PAGINATION } from '../config/constants.js';
+import { toPositiveInt } from '../utils/helpers.js';
 
 /**
  * BaseController — thin HTTP adapter for any BaseService.
@@ -24,11 +25,9 @@ export class BaseController {
    */
   index = async (req, res, next) => {
     try {
-      const { page, limit } = req.query;
-      const result = await this.service.findAll(req.tenantId, {
-        page: Number(page),
-        limit: Number(limit),
-      });
+      const page = toPositiveInt(req.query.page, PAGINATION.DEFAULT_PAGE);
+      const limit = toPositiveInt(req.query.limit, PAGINATION.DEFAULT_LIMIT);
+      const result = await this.service.findAll(req.tenantId, { page, limit });
       return res.json(result);
     } catch (err) {
       return next(err);
