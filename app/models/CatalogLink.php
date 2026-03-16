@@ -1,6 +1,11 @@
 <?php
 namespace Akti\Models;
 
+// =============================================================================
+// Model: CatalogLink
+// Responsável por acesso e regras de negócio dos links de catálogo.
+// Não deve conter HTML, echo, print ou acesso direto a $_POST/$_GET.
+// =============================================================================
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
@@ -14,13 +19,20 @@ class CatalogLink {
     private $conn;
     private $table = 'catalog_links';
 
+    /**
+     * Construtor do model CatalogLink
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct($db) {
         $this->conn = $db;
     }
 
     /**
      * Cria um novo link de catálogo para um pedido
-     * @return array|false Dados do link criado ou false
+     * @param int $orderId ID do pedido
+     * @param bool $showPrices Se os preços devem ser exibidos (default: true)
+     * @param string|null $expiresAt Data/hora de expiração (Y-m-d H:i:s) ou null
+     * @return array|false Retorna array com dados do link criado ou false em caso de erro
      */
     public function create($orderId, $showPrices = true, $expiresAt = null) {
         // Desativar links anteriores do mesmo pedido
@@ -57,6 +69,8 @@ class CatalogLink {
 
     /**
      * Busca link ativo por token (validando expiração)
+     * @param string $token Token do link de catálogo
+     * @return array|null Retorna array com dados do link ou null se não encontrado/expirado
      */
     public function findByToken($token) {
         $query = "SELECT cl.*, o.customer_id, o.total_amount, o.pipeline_stage,
@@ -76,6 +90,8 @@ class CatalogLink {
 
     /**
      * Busca link ativo por pedido
+     * @param int $orderId ID do pedido
+     * @return array|null Retorna array com dados do link ou null se não encontrado/expirado
      */
     public function findActiveByOrder($orderId) {
         $query = "SELECT * FROM {$this->table} 
@@ -92,6 +108,8 @@ class CatalogLink {
 
     /**
      * Desativa todos os links de um pedido
+     * @param int $orderId ID do pedido
+     * @return bool Retorna true se desativou com sucesso ou false em caso de falha
      */
     public function deactivateByOrder($orderId) {
         // Verificar se existem links ativos antes de tentar atualizar
@@ -112,6 +130,8 @@ class CatalogLink {
 
     /**
      * Desativa um link específico
+     * @param int $id ID do link
+     * @return bool Retorna true se desativou com sucesso ou false em caso de falha
      */
     public function deactivate($id) {
         $query = "UPDATE {$this->table} SET is_active = 0 WHERE id = :id";
@@ -122,6 +142,9 @@ class CatalogLink {
 
     /**
      * Atualiza configuração de exibição de preços
+     * @param int $id ID do link
+     * @param bool $showPrices Se os preços devem ser exibidos
+     * @return bool Retorna true se atualizado com sucesso
      */
     public function updateShowPrices($id, $showPrices) {
         $query = "UPDATE {$this->table} SET show_prices = :show_prices WHERE id = :id";
@@ -134,6 +157,9 @@ class CatalogLink {
 
     /**
      * Gera a URL completa do catálogo
+
+    * @param string $token Token do link de catálogo
+     * @return string Retorna a URL completa para acesso ao catálogo
      */
     public static function buildUrl($token) {
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';

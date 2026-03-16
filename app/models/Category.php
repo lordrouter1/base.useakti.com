@@ -5,6 +5,13 @@ use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
 
+/**
+ * Model: Category
+ * Responsável por acesso e regras de negócio das categorias de produtos.
+ * Entradas: Conexão PDO ($db), propriedades públicas $id e $name, parâmetros das funções.
+ * Saídas: Arrays de dados, PDOStatement, booleanos, contagem de produtos.
+ * Não deve conter HTML, echo, print ou acesso direto a $_POST/$_GET.
+ */
 class Category {
     private $conn;
     private $table_name = "categories";
@@ -12,10 +19,18 @@ class Category {
     public $id;
     public $name;
 
+    /**
+     * Construtor do model Category
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct($db) {
         $this->conn = $db;
     }
 
+    /**
+     * Retorna todas as categorias ordenadas por nome
+     * @return PDOStatement Statement com resultado (fetchAll/fetch)
+     */
     public function readAll() {
         $query = "SELECT * FROM " . $this->table_name . " ORDER BY name ASC";
         $stmt = $this->conn->prepare($query);
@@ -23,6 +38,12 @@ class Category {
         return $stmt;
     }
 
+    /**
+     * Cria uma nova categoria
+     * Usa $this->name como valor
+     * @return bool Retorna true se criada com sucesso, false caso contrário
+     * Evento disparado: 'model.category.created' com ['id', 'name']
+     */
     public function create() {
         $query = "INSERT INTO " . $this->table_name . " SET name=:name";
         $stmt = $this->conn->prepare($query);
@@ -41,6 +62,11 @@ class Category {
         return false;
     }
 
+    /**
+     * Retorna todas as subcategorias de uma categoria
+     * @param int $categoryId ID da categoria
+     * @return array Array de subcategorias (fetchAll)
+     */
     public function getSubcategories($categoryId) {
         $query = "SELECT * FROM subcategories WHERE category_id = :category_id ORDER BY name ASC";
         $stmt = $this->conn->prepare($query);
@@ -49,6 +75,11 @@ class Category {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Retorna dados de uma categoria específica
+     * @param int $categoryId ID da categoria
+     * @return array|null Array com dados ou null se não encontrada
+     */
     public function getCategory($categoryId) {
         $query = "SELECT * FROM categories WHERE id = :id";
         $stmt = $this->conn->prepare($query);
@@ -57,6 +88,13 @@ class Category {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Atualiza o nome de uma categoria
+     * @param int $id ID da categoria
+     * @param string $name Novo nome
+     * @return bool Retorna true se atualizada com sucesso
+     * Evento disparado: 'model.category.updated' com ['id', 'name']
+     */
     public function update($id, $name) {
         $stmt = $this->conn->prepare("UPDATE categories SET name = :name WHERE id = :id");
         $result = $stmt->execute([':name' => htmlspecialchars(strip_tags($name)), ':id' => $id]);
@@ -69,6 +107,12 @@ class Category {
         return $result;
     }
 
+    /**
+     * Exclui uma categoria
+     * @param int $id ID da categoria
+     * @return bool Retorna true se excluída com sucesso
+     * Evento disparado: 'model.category.deleted' com ['id']
+     */
     public function delete($id) {
         $stmt = $this->conn->prepare("DELETE FROM categories WHERE id = :id");
         $result = $stmt->execute([':id' => $id]);
@@ -78,12 +122,21 @@ class Category {
         return $result;
     }
 
+    /**
+     * Conta quantos produtos estão vinculados a uma categoria
+     * @param int $categoryId ID da categoria
+     * @return int Quantidade de produtos
+     */
     public function countProducts($categoryId) {
         $stmt = $this->conn->prepare("SELECT COUNT(*) FROM products WHERE category_id = :id");
         $stmt->execute([':id' => $categoryId]);
         return $stmt->fetchColumn();
     }
 
+    /**
+     * Retorna todas as categorias com contagem de produtos e subcategorias
+     * @return array Array de categorias com product_count e sub_count
+     */
     public function readAllWithCount() {
         $stmt = $this->conn->query("SELECT c.*, 
             (SELECT COUNT(*) FROM products WHERE category_id = c.id) as product_count,

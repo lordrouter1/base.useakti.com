@@ -6,9 +6,12 @@ use Akti\Core\Event;
 use PDO;
 
 /**
- * CategoryGrade Model
- * Manages grades (variations) for categories and subcategories.
- * Supports inheritance: subcategory grades > category grades > product.
+ * Model: CategoryGrade
+ * Responsável por gerenciar grades (variações) de categorias e subcategorias.
+ * Entradas: Conexão PDO ($db), parâmetros das funções.
+ * Saídas: Arrays de dados, booleanos, IDs inseridos.
+ * Eventos: 'model.category_grade.saved' (ao salvar grades de categoria)
+ * Não deve conter HTML, echo, print ou acesso direto a $_POST/$_GET.
  */
 class CategoryGrade {
     private $conn;
@@ -22,7 +25,9 @@ class CategoryGrade {
     // ═════════════════════════════════════════════════════
 
     /**
-     * Get all grades for a category (with type info)
+     * Retorna todas as grades de uma categoria (com info de tipo)
+     * @param int $categoryId ID da categoria
+     * @return array Array de grades (fetchAll)
      */
     public function getCategoryGrades($categoryId) {
         $stmt = $this->conn->prepare("
@@ -38,7 +43,9 @@ class CategoryGrade {
     }
 
     /**
-     * Get all grades for a category WITH their values
+     * Retorna todas as grades de uma categoria com seus valores
+     * @param int $categoryId ID da categoria
+     * @return array Array de grades, cada uma com 'values'
      */
     public function getCategoryGradesWithValues($categoryId) {
         $grades = $this->getCategoryGrades($categoryId);
@@ -49,7 +56,9 @@ class CategoryGrade {
     }
 
     /**
-     * Get values for a category grade
+     * Retorna todos os valores de uma grade de categoria
+     * @param int $categoryGradeId ID da grade de categoria
+     * @return array Array de valores (fetchAll)
      */
     public function getCategoryGradeValues($categoryGradeId) {
         $stmt = $this->conn->prepare("
@@ -63,7 +72,11 @@ class CategoryGrade {
     }
 
     /**
-     * Add a grade to a category
+     * Adiciona uma grade a uma categoria
+     * @param int $categoryId ID da categoria
+     * @param int $gradeTypeId ID do tipo de grade
+     * @param int $sortOrder Ordem de exibição (default: 0)
+     * @return int|false ID da grade inserida ou false em caso de erro
      */
     public function addGradeToCategory($categoryId, $gradeTypeId, $sortOrder = 0) {
         $stmt = $this->conn->prepare("
@@ -90,7 +103,11 @@ class CategoryGrade {
     }
 
     /**
-     * Add a value to a category grade
+     * Adiciona um valor a uma grade de categoria
+     * @param int $categoryGradeId ID da grade de categoria
+     * @param string $value Valor a ser inserido
+     * @param int $sortOrder Ordem de exibição (default: 0)
+     * @return int|false ID do valor inserido ou false em caso de erro
      */
     public function addCategoryGradeValue($categoryGradeId, $value, $sortOrder = 0) {
         $stmt = $this->conn->prepare("
@@ -107,7 +124,11 @@ class CategoryGrade {
     }
 
     /**
-     * Save all grades and values for a category from form data.
+     * Salva todas as grades e valores de uma categoria a partir de dados de formulário
+     * @param int $categoryId ID da categoria
+     * @param array $gradesData Dados das grades e valores
+     * @return void
+     * Evento disparado: 'model.category_grade.saved' com ['category_id', 'grades_count']
      */
     public function saveCategoryGrades($categoryId, $gradesData) {
         // Remove existing grades not in new data
@@ -234,7 +255,9 @@ class CategoryGrade {
     }
 
     /**
-     * Get all combinations for a category
+     * Retorna todas as combinações de grades de uma categoria
+     * @param int $categoryId ID da categoria
+     * @return array Array de combinações (fetchAll)
      */
     public function getCategoryCombinations($categoryId) {
         $stmt = $this->conn->prepare("
@@ -248,7 +271,10 @@ class CategoryGrade {
     }
 
     /**
-     * Toggle combination active/inactive for category
+     * Ativa ou desativa uma combinação de grades de categoria
+     * @param int $combinationId ID da combinação
+     * @param bool $isActive Ativo ou não
+     * @return bool Retorna true se atualizado com sucesso
      */
     public function toggleCategoryCombination($combinationId, $isActive) {
         $stmt = $this->conn->prepare("UPDATE category_grade_combinations SET is_active = :active WHERE id = :id");
@@ -256,7 +282,9 @@ class CategoryGrade {
     }
 
     /**
-     * Check if a category has grades
+     * Verifica se uma categoria possui grades
+     * @param int $categoryId ID da categoria
+     * @return bool Retorna true se possui grades
      */
     public function categoryHasGrades($categoryId) {
         $stmt = $this->conn->prepare("SELECT COUNT(*) FROM category_grades WHERE category_id = :cid AND is_active = 1");
@@ -269,7 +297,9 @@ class CategoryGrade {
     // ═════════════════════════════════════════════════════
 
     /**
-     * Get all grades for a subcategory (with type info)
+     * Retorna todas as grades de uma subcategoria (com info de tipo)
+     * @param int $subcategoryId ID da subcategoria
+     * @return array Array de grades (fetchAll)
      */
     public function getSubcategoryGrades($subcategoryId) {
         $stmt = $this->conn->prepare("
@@ -285,7 +315,9 @@ class CategoryGrade {
     }
 
     /**
-     * Get all grades for a subcategory WITH their values
+     * Retorna todas as grades de uma subcategoria com seus valores
+     * @param int $subcategoryId ID da subcategoria
+     * @return array Array de grades, cada uma com 'values'
      */
     public function getSubcategoryGradesWithValues($subcategoryId) {
         $grades = $this->getSubcategoryGrades($subcategoryId);
@@ -296,7 +328,9 @@ class CategoryGrade {
     }
 
     /**
-     * Get values for a subcategory grade
+     * Retorna todos os valores de uma grade de subcategoria
+     * @param int $subcategoryGradeId ID da grade de subcategoria
+     * @return array Array de valores (fetchAll)
      */
     public function getSubcategoryGradeValues($subcategoryGradeId) {
         $stmt = $this->conn->prepare("
@@ -310,7 +344,11 @@ class CategoryGrade {
     }
 
     /**
-     * Add a grade to a subcategory
+     * Adiciona uma grade a uma subcategoria
+     * @param int $subcategoryId ID da subcategoria
+     * @param int $gradeTypeId ID do tipo de grade
+     * @param int $sortOrder Ordem de exibição (default: 0)
+     * @return int|false ID da grade inserida ou false em caso de erro
      */
     public function addGradeToSubcategory($subcategoryId, $gradeTypeId, $sortOrder = 0) {
         $stmt = $this->conn->prepare("
@@ -327,6 +365,12 @@ class CategoryGrade {
         return false;
     }
 
+    /**
+     * Retorna o ID da grade de subcategoria
+     * @param int $subcategoryId ID da subcategoria
+     * @param int $gradeTypeId ID do tipo de grade
+     * @return int|false ID encontrado ou false se não existir
+     */
     private function getSubcategoryGradeId($subcategoryId, $gradeTypeId) {
         $stmt = $this->conn->prepare("SELECT id FROM subcategory_grades WHERE subcategory_id = :sid AND grade_type_id = :gtid");
         $stmt->bindParam(':sid', $subcategoryId);
@@ -337,7 +381,11 @@ class CategoryGrade {
     }
 
     /**
-     * Add a value to a subcategory grade
+     * Adiciona um valor a uma grade de subcategoria
+     * @param int $subcategoryGradeId ID da grade de subcategoria
+     * @param string $value Valor a ser inserido
+     * @param int $sortOrder Ordem de exibição (default: 0)
+     * @return int|false ID do valor inserido ou false em caso de erro
      */
     public function addSubcategoryGradeValue($subcategoryGradeId, $value, $sortOrder = 0) {
         $stmt = $this->conn->prepare("
@@ -354,7 +402,11 @@ class CategoryGrade {
     }
 
     /**
-     * Save all grades and values for a subcategory from form data.
+     * Salva todas as grades e valores de uma subcategoria a partir de dados de formulário
+     * @param int $subcategoryId ID da subcategoria
+     * @param array $gradesData Dados das grades e valores
+     * @return void
+     * Evento disparado: 'model.subcategory_grade.saved' com ['subcategory_id', 'grades_count']
      */
     public function saveSubcategoryGrades($subcategoryId, $gradesData) {
         $existingGrades = $this->getSubcategoryGrades($subcategoryId);
@@ -398,6 +450,11 @@ class CategoryGrade {
             'grades_count' => count($gradesData),
         ]));
     }
+    /**
+     * Gera todas as combinações de grades de uma subcategoria e salva no banco
+     * @param int $subcategoryId ID da subcategoria
+     * @return array Array de combinações geradas
+     */
     public function generateSubcategoryCombinations($subcategoryId) {
         $grades = $this->getSubcategoryGradesWithValues($subcategoryId);
 
@@ -474,7 +531,9 @@ class CategoryGrade {
     }
 
     /**
-     * Get all combinations for a subcategory
+     * Retorna todas as combinações de grades de uma subcategoria
+     * @param int $subcategoryId ID da subcategoria
+     * @return array Array de combinações (fetchAll)
      */
     public function getSubcategoryCombinations($subcategoryId) {
         $stmt = $this->conn->prepare("
@@ -488,7 +547,10 @@ class CategoryGrade {
     }
 
     /**
-     * Toggle combination active/inactive for subcategory
+     * Ativa ou desativa uma combinação de grades de subcategoria
+     * @param int $combinationId ID da combinação
+     * @param bool $isActive Ativo ou não
+     * @return bool Retorna true se atualizado com sucesso
      */
     public function toggleSubcategoryCombination($combinationId, $isActive) {
         $stmt = $this->conn->prepare("UPDATE subcategory_grade_combinations SET is_active = :active WHERE id = :id");
@@ -496,7 +558,9 @@ class CategoryGrade {
     }
 
     /**
-     * Check if a subcategory has grades
+     * Verifica se uma subcategoria possui grades
+     * @param int $subcategoryId ID da subcategoria
+     * @return bool Retorna true se possui grades
      */
     public function subcategoryHasGrades($subcategoryId) {
         $stmt = $this->conn->prepare("SELECT COUNT(*) FROM subcategory_grades WHERE subcategory_id = :sid AND is_active = 1");
@@ -509,13 +573,11 @@ class CategoryGrade {
     // ═════════════════════════════════════════════════════
 
     /**
-     * Get inherited grades for a product based on its subcategory/category.
-     * Priority: subcategory > category.
-     * Returns an array in the same format as ProductGrade->getProductGradesWithValues()
-     * so the UI can render them identically.
-     * 
-     * @param int|null $subcategoryId
-     * @param int|null $categoryId
+     * Retorna grades herdadas para um produto com base em subcategoria ou categoria.
+     * Prioridade: subcategoria > categoria.
+     * Formato igual ao ProductGrade->getProductGradesWithValues() para renderização.
+     * @param int|null $subcategoryId ID da subcategoria
+     * @param int|null $categoryId ID da categoria
      * @return array ['grades' => [...], 'source' => 'subcategory'|'category'|null, 'inactive_keys' => [...]]
      */
     public function getInheritedGrades($subcategoryId = null, $categoryId = null) {
@@ -563,11 +625,10 @@ class CategoryGrade {
     }
 
     /**
-     * Convert inherited grades to the format expected by saveProductGrades().
-     * This allows a product to "adopt" grades from its category/subcategory.
-     * 
-     * @param array $inheritedGrades (output of getInheritedGrades()['grades'])
-     * @return array Format: [['grade_type_id' => X, 'values' => ['P','M','G']], ...]
+     * Converte grades herdadas para o formato esperado por saveProductGrades().
+     * Permite que um produto "adote" grades da categoria/subcategoria.
+     * @param array $inheritedGrades Saída de getInheritedGrades()['grades']
+     * @return array [['grade_type_id' => X, 'values' => ['P','M','G']], ...]
      */
     public function convertInheritedToProductFormat($inheritedGrades) {
         $result = [];
@@ -589,7 +650,9 @@ class CategoryGrade {
     // ═════════════════════════════════════════════════════
 
     /**
-     * Cartesian product of multiple arrays
+     * Produto cartesiano de múltiplos arrays
+     * @param array $arrays Arrays de entrada
+     * @return array Produto cartesiano
      */
     private function cartesianProduct($arrays) {
         $result = [[]];

@@ -5,9 +5,21 @@ use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
 
+/**
+ * Model: Financial
+ * Gerencia operações financeiras: pedidos, parcelas, transações, importação OFX.
+ * Entradas: Conexão PDO ($db), parâmetros das funções.
+ * Saídas: Arrays de dados, booleanos, IDs inseridos.
+ * Eventos: 'model.installment.generated', 'model.installment.deleted_all', 'model.installment.due_date_updated', 'model.order.financial_updated', 'model.financial_transaction.created', 'model.financial_transaction.deleted' (ver funções para detalhes)
+ * Não deve conter HTML, echo, print ou acesso direto a $_POST/$_GET.
+ */
 class Financial {
     private $conn;
 
+    /**
+     * Construtor do model
+     * @param PDO $db Conexão PDO
+     */
     public function __construct($db) {
         $this->conn = $db;
     }
@@ -17,7 +29,10 @@ class Financial {
     // ═══════════════════════════════════════════
 
     /**
-     * Resumo geral do financeiro
+     * Retorna resumo geral do financeiro
+     * @param int|null $month Mês
+     * @param int|null $year Ano
+     * @return array Resumo financeiro
      */
     public function getSummary($month = null, $year = null) {
         if (!$month) $month = date('m');
@@ -103,7 +118,9 @@ class Financial {
     }
 
     /**
-     * Gráfico de receita x despesa dos últimos N meses
+     * Retorna dados para gráfico de receita x despesa dos últimos N meses
+     * @param int $months Quantidade de meses
+     * @return array Dados para gráfico
      */
     public function getChartData($months = 6) {
         $data = [];
@@ -154,7 +171,8 @@ class Financial {
     // ═══════════════════════════════════════════
 
     /**
-     * Pedidos concluídos/financeiro com pagamento pendente
+     * Retorna pedidos com pagamento pendente
+     * @return array Lista de pedidos
      */
     public function getOrdersPendingPayment() {
         $q = "SELECT o.id, o.total_amount, o.discount, o.down_payment,
@@ -176,8 +194,9 @@ class Financial {
     }
 
     /**
-     * Todos os pedidos com parcelas (para a tela de pagamentos)
-     * Filtra apenas pedidos nas etapas financeiro/concluido (regra de negócio)
+     * Retorna pedidos com parcelas (para tela de pagamentos)
+     * @param array $filters Filtros opcionais
+     * @return array Lista de pedidos
      */
     public function getOrdersWithInstallments($filters = []) {
         $where = "WHERE o.status != 'cancelado' AND o.pipeline_stage IN ('financeiro', 'concluido')";
@@ -217,8 +236,9 @@ class Financial {
     // ═══════════════════════════════════════════
 
     /**
-     * Busca TODAS as parcelas de todos os pedidos (para a tela de pagamentos)
-     * Filtra apenas pedidos nas etapas financeiro/concluido (regra de negócio)
+     * Retorna todas as parcelas de todos os pedidos (para tela de pagamentos)
+     * @param array $filters Filtros opcionais
+     * @return array Lista de parcelas
      */
     public function getAllInstallments($filters = []) {
         $where = "WHERE o.status != 'cancelado' AND o.pipeline_stage IN ('financeiro', 'concluido')";
@@ -273,7 +293,9 @@ class Financial {
     }
 
     /**
-     * Busca as parcelas de um pedido
+     * Retorna parcelas de um pedido
+     * @param int $orderId ID do pedido
+     * @return array Lista de parcelas
      */
     public function getInstallments($orderId) {
         $q = "SELECT oi.*, u.name as confirmed_by_name
@@ -288,6 +310,8 @@ class Financial {
 
     /**
      * Conta parcelas de um pedido
+     * @param int $orderId ID do pedido
+     * @return int Quantidade de parcelas
      */
     public function countInstallments($orderId) {
         $q = "SELECT COUNT(*) FROM order_installments WHERE order_id = :oid";
@@ -298,6 +322,9 @@ class Financial {
 
     /**
      * Remove todas as parcelas de um pedido
+     * @param int $orderId ID do pedido
+     * @return int Quantidade de parcelas removidas
+     * Evento disparado: 'model.installment.deleted_all' com ['order_id', 'count']
      */
     public function deleteInstallmentsByOrder($orderId) {
         // Segurança: não deletar se há parcelas pagas
@@ -327,7 +354,15 @@ class Financial {
     }
 
     /**
-     * Gera parcelas para um pedido (chamado quando se define o parcelamento)
+     * Gera parcelas para um pedido
+     * @param int $orderId ID do pedido
+     * @param float $totalAmount Valor total
+     * @param int $numInstallments Número de parcelas
+     * @param float $downPayment Valor de entrada
+     * @param string|null $startDate Data inicial
+     * @param array $dueDates Datas customizadas
+     * @return bool Sucesso ou falha
+     * Evento disparado: 'model.installment.generated' com ['order_id', 'total_amount', 'num_installments', 'down_payment', 'installment_value']
      */
     public function generateInstallments($orderId, $totalAmount, $numInstallments, $downPayment = 0, $startDate = null, $dueDates = []) {
         // Segurança: não deletar se há parcelas pagas
@@ -394,8 +429,11 @@ class Financial {
     }
 
     /**
-     * Registra pagamento de uma parcela.
-     * Se $autoConfirm = true, marca como pago E confirmado de uma vez (sem necessidade de confirmar depois).
+     * Registra pagamento de uma parcela
+     * @param int $installmentId ID da parcela
+     * @param array $data Dados do pagamento
+     * @param bool $autoConfirm Confirma automaticamente
+     * @return bool Sucesso ou falha
      */
     public function payInstallment($installmentId, $data, $autoConfirm = false) {
         $isConfirmed = $autoConfirm ? 1 : 0;
@@ -452,8 +490,11 @@ class Financial {
     }
 
     /**
-     * Cria uma nova parcela com o valor restante (quando pagamento parcial).
-     * Retorna o ID da nova parcela criada.
+     * Cria uma nova parcela com valor restante (pagamento parcial)
+     * @param int $originalInstallmentId ID da parcela original
+     * @param float $remainingAmount Valor restante
+     * @param string|null $dueDate Data de vencimento
+     * @return int|false ID da nova parcela ou false
      */
     public function createRemainingInstallment($originalInstallmentId, $remainingAmount, $dueDate = null) {
         // Buscar dados da parcela original
@@ -495,7 +536,10 @@ class Financial {
     }
 
     /**
-     * Confirma pagamento de uma parcela (usuário valida manualmente)
+     * Confirma pagamento de uma parcela (validação manual)
+     * @param int $installmentId ID da parcela
+     * @param int $userId ID do usuário
+     * @return bool Sucesso ou falha
      */
     public function confirmInstallment($installmentId, $userId) {
         $q = "UPDATE order_installments SET
@@ -529,6 +573,9 @@ class Financial {
 
     /**
      * Cancela/estorna uma parcela
+     * @param int $installmentId ID da parcela
+     * @param int|null $userId ID do usuário
+     * @return bool Sucesso ou falha
      */
     public function cancelInstallment($installmentId, $userId = null) {
         // Buscar dados da parcela ANTES de limpar (para registrar o estorno)
@@ -583,6 +630,8 @@ class Financial {
 
     /**
      * Atualiza automaticamente o payment_status do pedido com base nas parcelas
+     * @param int $orderId ID do pedido
+     * @return string Novo status
      */
     public function updateOrderPaymentStatus($orderId) {
         $q = "SELECT 
@@ -614,6 +663,7 @@ class Financial {
 
     /**
      * Atualiza parcelas vencidas para status 'atrasado'
+     * @return bool Sucesso ou falha
      */
     public function updateOverdueInstallments() {
         $q = "UPDATE order_installments 
@@ -625,6 +675,8 @@ class Financial {
 
     /**
      * Busca uma parcela pelo ID
+     * @param int $id ID da parcela
+     * @return array|null Dados da parcela ou null
      */
     public function getInstallmentById($id) {
         $q = "SELECT oi.*, o.payment_method as order_payment_method, c.name as customer_name
@@ -639,6 +691,8 @@ class Financial {
 
     /**
      * Verifica se existe alguma parcela paga para um pedido
+     * @param int $orderId ID do pedido
+     * @return bool True se existe
      */
     public function hasAnyPaidInstallment($orderId) {
         $q = "SELECT COUNT(*) FROM order_installments WHERE order_id = :oid AND status = 'pago'";
@@ -649,6 +703,10 @@ class Financial {
 
     /**
      * Atualiza a data de vencimento de uma parcela
+     * @param int $installmentId ID da parcela
+     * @param string $dueDate Nova data de vencimento
+     * @return bool Sucesso ou falha
+     * Evento disparado: 'model.installment.due_date_updated' com ['id', 'due_date']
      */
     public function updateInstallmentDueDate($installmentId, $dueDate) {
         $q = "UPDATE order_installments SET due_date = :due, updated_at = NOW() WHERE id = :id AND status = 'pendente'";
@@ -665,7 +723,11 @@ class Financial {
     }
 
     /**
-     * Atualiza os campos financeiros do pedido (payment_method, installments, installment_value, down_payment)
+     * Atualiza os campos financeiros do pedido
+     * @param int $orderId ID do pedido
+     * @param array $data Dados financeiros
+     * @return bool Sucesso ou falha
+     * Evento disparado: 'model.order.financial_updated' com ['id', 'payment_method', 'installments', 'installment_value', 'down_payment']
      */
     public function updateOrderFinancialFields($orderId, $data) {
         $q = "UPDATE orders SET
@@ -697,6 +759,9 @@ class Financial {
 
     /**
      * Salva o caminho do comprovante (attachment) em uma parcela
+     * @param int $installmentId ID da parcela
+     * @param string $path Caminho do arquivo
+     * @return bool Sucesso ou falha
      */
     public function saveAttachment($installmentId, $path) {
         $q = "UPDATE order_installments SET attachment_path = :path, updated_at = NOW() WHERE id = :id";
@@ -706,6 +771,8 @@ class Financial {
 
     /**
      * Remove o comprovante de uma parcela
+     * @param int $installmentId ID da parcela
+     * @return bool Sucesso ou falha
      */
     public function removeAttachment($installmentId) {
         // Buscar caminho atual
@@ -720,7 +787,8 @@ class Financial {
     }
 
     /**
-     * Parcelas pendentes de confirmação (pagamentos manuais)
+     * Retorna parcelas pendentes de confirmação (pagamentos manuais)
+     * @return array Lista de parcelas
      */
     public function getPendingConfirmations() {
         $q = "SELECT oi.*, o.id as order_id,
@@ -737,7 +805,9 @@ class Financial {
     }
 
     /**
-     * Próximas parcelas a vencer (7 dias)
+     * Retorna próximas parcelas a vencer
+     * @param int $days Dias para vencimento
+     * @return array Lista de parcelas
      */
     public function getUpcomingInstallments($days = 7) {
         $q = "SELECT oi.*, o.id as order_id,
@@ -754,7 +824,8 @@ class Financial {
     }
 
     /**
-     * Parcelas vencidas não pagas
+     * Retorna parcelas vencidas não pagas
+     * @return array Lista de parcelas
      */
     public function getOverdueInstallments() {
         $q = "SELECT oi.*, o.id as order_id,
@@ -778,6 +849,9 @@ class Financial {
 
     /**
      * Adiciona uma transação financeira
+     * @param array $data Dados da transação
+     * @return bool Sucesso ou falha
+     * Evento disparado: 'model.financial_transaction.created' com ['id', 'type', 'category', 'amount']
      */
     public function addTransaction($data) {
         $q = "INSERT INTO financial_transactions 
@@ -810,6 +884,8 @@ class Financial {
 
     /**
      * Lista transações com filtros
+     * @param array $filters Filtros opcionais
+     * @return array Lista de transações
      */
     public function getTransactions($filters = []) {
         $where = "WHERE 1=1";
@@ -842,6 +918,9 @@ class Financial {
 
     /**
      * Deleta transação
+     * @param int $id ID da transação
+     * @return bool Sucesso ou falha
+     * Evento disparado: 'model.financial_transaction.deleted' com ['id']
      */
     public function deleteTransaction($id) {
         $q = "DELETE FROM financial_transactions WHERE id = :id";
@@ -854,7 +933,8 @@ class Financial {
     }
 
     /**
-     * Categorias de transação disponíveis
+     * Retorna categorias de transação disponíveis
+     * @return array Categorias
      */
     public static function getCategories() {
         return [
@@ -877,7 +957,8 @@ class Financial {
     }
 
     /**
-     * Categorias internas (usadas apenas pelo sistema, não aparecem no formulário)
+     * Retorna categorias internas (usadas pelo sistema)
+     * @return array Categorias internas
      */
     public static function getInternalCategories() {
         return [
@@ -889,9 +970,9 @@ class Financial {
     /**
      * Importa transações de um arquivo OFX
      * @param string $filePath Caminho do arquivo OFX
-     * @param string $mode 'registro' = apenas registrar (não contabiliza) ou 'contabilizar' = soma no caixa
-     * @param int|null $userId ID do usuário que importou
-     * @return array Resultado com imported, skipped, errors
+     * @param string $mode 'registro' ou 'contabilizar'
+     * @param int|null $userId ID do usuário
+     * @return array Resultado da importação
      */
     public function importOfx($filePath, $mode = 'registro', $userId = null) {
         $result = ['imported' => 0, 'skipped' => 0, 'errors' => [], 'transactions' => []];
@@ -970,6 +1051,8 @@ class Financial {
 
     /**
      * Parse de transações do conteúdo OFX (formato SGML)
+     * @param string $content Conteúdo OFX
+     * @return array Lista de transações
      */
     private function parseOfxTransactions($content) {
         $transactions = [];
@@ -1010,6 +1093,9 @@ class Financial {
 
     /**
      * Extrai valor de uma tag OFX (formato SGML sem atributos)
+     * @param string $block Bloco de texto
+     * @param string $tag Nome da tag
+     * @return string Valor extraído
      */
     private function extractOfxTag($block, $tag) {
         if (preg_match("/<{$tag}>(.*?)(?:<|$)/mi", $block, $m)) {
@@ -1020,6 +1106,8 @@ class Financial {
 
     /**
      * Converte data OFX (YYYYMMDD ou YYYYMMDDHHMMSS) para Y-m-d
+     * @param string $dateStr Data OFX
+     * @return string Data formatada
      */
     private function parseOfxDate($dateStr) {
         $dateStr = preg_replace('/\[.*$/', '', $dateStr); // Remove timezone info [x:BRT]
