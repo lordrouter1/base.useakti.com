@@ -682,27 +682,121 @@ body.pipeline-dragging .pipeline-dropzone:hover {
 }
 
 /* Progress bar do detalhe */
+/* =============================================
+   PIPELINE STEPPER — Modern Progress Bar
+   ============================================= */
 .pipeline-progress {
-    padding: 10px 0;
+    padding: 16px 0 8px;
+    gap: 0;
 }
 
 .pipeline-step {
     position: relative;
+    transition: transform 0.2s ease;
 }
 
+.pipeline-step:hover {
+    transform: translateY(-2px);
+}
+
+/* Connector line between steps */
 .pipeline-step::after {
     content: '';
     position: absolute;
-    top: 20px;
+    top: 22px;
     left: 50%;
     width: 100%;
-    height: 2px;
-    background: #e9ecef;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
     z-index: -1;
+    transition: background 0.4s ease;
 }
 
 .pipeline-step:last-child::after {
     display: none;
+}
+
+/* Completed connector */
+.pipeline-step.step-completed::after {
+    background: linear-gradient(90deg, var(--success-color, #22c55e), var(--success-color, #22c55e));
+}
+
+/* Current step connector (half-filled effect) */
+.pipeline-step.step-current::after {
+    background: #e2e8f0;
+}
+
+/* Step icon circle */
+.pipeline-step-icon {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    position: relative;
+}
+
+/* Completed step icon */
+.pipeline-step.step-completed .pipeline-step-icon {
+    box-shadow: 0 3px 10px rgba(34,197,94,0.3);
+}
+
+/* Current step icon — pulse ring */
+.pipeline-step.step-current .pipeline-step-icon {
+    box-shadow: 0 0 0 4px rgba(var(--accent-color-rgb, 59,128,246), 0.18),
+                0 3px 12px rgba(var(--accent-color-rgb, 59,128,246), 0.25);
+    animation: pipeline-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pipeline-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(var(--accent-color-rgb, 59,128,246), 0.18), 0 3px 12px rgba(var(--accent-color-rgb, 59,128,246), 0.25); }
+    50% { box-shadow: 0 0 0 8px rgba(var(--accent-color-rgb, 59,128,246), 0.08), 0 3px 16px rgba(var(--accent-color-rgb, 59,128,246), 0.15); }
+}
+
+/* Future step icon */
+.pipeline-step.step-future .pipeline-step-icon {
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    opacity: 1;
+}
+
+.pipeline-step.step-future:hover .pipeline-step-icon {
+    opacity: 1;
+}
+
+/* Step label */
+.pipeline-step-label {
+    transition: color 0.3s ease;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    margin-top: 6px;
+}
+
+/* Progress track (the overall line beneath) */
+.pipeline-track {
+    height: 4px;
+    border-radius: 2px;
+    background: #e2e8f0;
+}
+
+.pipeline-track-fill {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--success-color, #22c55e), var(--accent-color, #3b82f6));
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Responsive: smaller on mobile */
+@media (max-width: 576px) {
+    .pipeline-step-icon {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 0.7rem !important;
+    }
+    .pipeline-step::after {
+        top: 16px;
+        height: 3px;
+    }
+    .pipeline-step-label {
+        font-size: 0.6rem !important;
+    }
 }
 
 /* Timeline do histórico */

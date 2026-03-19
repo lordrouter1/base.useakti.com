@@ -61,5 +61,32 @@ Módulo Kanban: fluxo de pedidos desde contato até conclusão financeira.
 - Produtos/orçamento: visível em etapas iniciais.
 - Envio: visível em "envio".
 - Financeiro: visível em "venda", "financeiro", "concluído".
+- NF-e e Cupom Não Fiscal: visível nas etapas "venda", "financeiro", "concluído".
+- Mini Manual Contextual: sempre visível no topo da coluna direita, conteúdo muda conforme a etapa.
+
+---
+
+## Layout do Detalhe do Pipeline
+
+### Estrutura Principal
+- **Coluna esquerda (col-lg-8):** Formulário principal com dados do cliente, produtos, produção, financeiro, envio.
+- **Coluna direita (col-lg-4):** Mini manual contextual, histórico de movimentação, registro de logs.
+
+### Mini Manual Contextual (Sidebar)
+- Card fixo no topo da coluna direita com dicas contextuais baseadas na etapa atual.
+- Mostra orientações específicas para guiar o usuário no fluxo do pedido.
+- Inclui link para o Manual Completo do sistema.
+
+### Padrão CTA em Cards de Documentos
+- Cards de NF-e, Cupom Não Fiscal e Nota de Pedido seguem o padrão CTA:
+  - Fundo com gradiente suave e borda dashed.
+  - Ícone grande centralizado.
+  - Descrição curta da ação.
+  - Botão proeminente com cor sólida.
+  - Info contextual (valor, cliente) abaixo do botão.
+
+### Referências de UI/UX
+- Ver `.github/instructions/ui-ux.md` para diretrizes completas.
+- Ver `.github/instructions/modal-style.md` para padrões de SweetAlert2.
 
 ---

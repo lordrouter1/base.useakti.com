@@ -20,15 +20,30 @@
     ?>
 
     <!-- Cabeçalho -->
-    <div class="d-flex justify-content-between align-items-center pt-2 pb-2 mb-3 border-bottom">
+    <div class="d-flex justify-content-between align-items-center pt-2 pb-2 mb-3" style="border-bottom: 2px solid #e9ecef;">
         <div>
-            <h1 class="h2 mb-0">
+            <h2 class="mb-0" style="font-size: 1.4rem;">
                 <i class="<?= $stageInfo['icon'] ?> me-2" style="color:<?= $stageInfo['color'] ?>;"></i>
                 Pedido #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?>
-            </h1>
-            <small class="text-muted">Criado em <?= date('d/m/Y H:i', strtotime($order['created_at'])) ?></small>
+            </h2>
+            <small class="text-muted" style="font-size: 0.7rem;">
+                <i class="fas fa-calendar-alt me-1"></i>Criado em <?= date('d/m/Y H:i', strtotime($order['created_at'])) ?>
+            </small>
+            <div class="mb-2 mt-2">
+                <span class="badge fs-6 py-2 px-3" style="background:<?= $stageInfo['color'] ?>;">
+                    <i class="<?= $stageInfo['icon'] ?> me-1"></i> <?= $stageInfo['label'] ?>
+                </span>
+                <span class="ms-2 small <?= $isDelayed ? 'text-danger fw-bold' : 'text-muted' ?>">
+                    <i class="fas fa-clock me-1"></i>
+                    <?= ($hoursInStage >= 24) ? floor($hoursInStage/24).'d '.($hoursInStage%24).'h' : $hoursInStage.'h' ?>
+                    na etapa
+                    <?php if($isDelayed): ?>
+                        <span class="badge bg-danger ms-1">ATRASADO +<?= $hoursInStage - $stageGoal ?>h</span>
+                    <?php endif; ?>
+                </span>
+            </div>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap justify-content-end">
             <a href="?page=pipeline" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Voltar</a>
             <?php if ($currentStage === 'producao'): ?>
             <a href="?page=production_board" class="btn btn-outline-success btn-sm"><i class="fas fa-tasks me-1"></i> Painel de Produção</a>
@@ -68,7 +83,7 @@
     <!-- Progress Bar do Pipeline -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-3">
-            <div class="pipeline-progress d-flex align-items-center justify-content-between position-relative">
+            <div class="pipeline-progress d-flex align-items-center justify-content-between position-relative" style="overflow-x: hidden; scrollbar-width: thin;">
                 <?php 
                 $stageKeys = array_keys($stages);
                 $currentIdx = array_search($currentStage, $stageKeys);
@@ -78,101 +93,88 @@
                     $isCompleted = $sIdx < $currentIdx;
                     $isCurrent = $sKey === $currentStage;
                     $isFuture = $sIdx > $currentIdx;
+                    // State CSS class
+                    $stepClass = $isCompleted ? 'step-completed' : ($isCurrent ? 'step-current' : 'step-future');
                 ?>
-                <div class="pipeline-step text-center flex-fill position-relative" style="z-index:1;">
-                    <div class="pipeline-step-icon mx-auto mb-1 rounded-circle d-flex align-items-center justify-content-center 
-                        <?php if($isCurrent): ?>border border-3<?php endif; ?>"
-                        style="width:40px; height:40px; font-size:0.85rem;
-                        background: <?= $isCompleted ? $sInfo['color'] : ($isCurrent ? '#fff' : '#e9ecef') ?>;
-                        color: <?= $isCompleted ? '#fff' : ($isCurrent ? $sInfo['color'] : '#adb5bd') ?>;
-                        border-color: <?= $isCurrent ? $sInfo['color'] : 'transparent' ?> !important;">
+                <div class="pipeline-step <?= $stepClass ?> text-center flex-fill position-relative" style="z-index:1;">
+                    <div class="pipeline-step-icon mx-auto rounded-circle d-flex align-items-center justify-content-center"
+                        style="width:44px; height:44px; font-size:0.9rem;
+                        background: <?= $isCompleted ? $sInfo['color'] : ($isCurrent ? '#fff' : '#f1f5f9') ?>;
+                        color: <?= $isCompleted ? '#fff' : ($isCurrent ? $sInfo['color'] : '#94a3b8') ?>;
+                        border: <?= $isCurrent ? '3px solid ' . $sInfo['color'] : ($isCompleted ? 'none' : '2px solid #e2e8f0') ?>;">
                         <i class="<?= $isCompleted ? 'fas fa-check' : $sInfo['icon'] ?>"></i>
                     </div>
-                    <div class="small <?= $isCurrent ? 'fw-bold' : ($isFuture ? 'text-muted' : '') ?>" style="font-size:0.7rem;color:<?= $isCurrent ? $sInfo['color'] : '' ?>;">
+                    <div class="pipeline-step-label small <?= $isCurrent ? 'fw-bold' : ($isFuture ? 'text-muted' : '') ?>" style="font-size:0.7rem;color:<?= $isCompleted ? $sInfo['color'] : ($isCurrent ? $sInfo['color'] : '') ?>;">
                         <?= $sInfo['label'] ?>
                     </div>
                 </div>
                 <?php endforeach; ?>
-                <!-- Linha de progresso -->
-                <div class="position-absolute w-100" style="height:3px; top:20px; z-index:0;">
-                    <div class="bg-light w-100 rounded" style="height:3px;"></div>
-                    <div class="rounded position-absolute top-0 start-0" 
-                         style="height:3px; width:<?= ($currentIdx / max($totalStages - 1, 1)) * 100 ?>%; background: var(--accent-color);"></div>
-                </div>
             </div>
         </div>
     </div>
 
     <!-- Ações rápidas de movimentação -->
     <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body p-3">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div>
-                    <span class="badge fs-6 py-2 px-3" style="background:<?= $stageInfo['color'] ?>;">
-                        <i class="<?= $stageInfo['icon'] ?> me-1"></i> <?= $stageInfo['label'] ?>
-                    </span>
-                    <span class="ms-2 small <?= $isDelayed ? 'text-danger fw-bold' : 'text-muted' ?>">
-                        <i class="fas fa-clock me-1"></i>
-                        <?= ($hoursInStage >= 24) ? floor($hoursInStage/24).'d '.($hoursInStage%24).'h' : $hoursInStage.'h' ?>
-                        na etapa
-                        <?php if($isDelayed): ?>
-                            <span class="badge bg-danger ms-1">ATRASADO +<?= $hoursInStage - $stageGoal ?>h</span>
-                        <?php endif; ?>
-                    </span>
-                </div>
+        <div class="card-body p-3 d-flex">
+            <div class="flex-wrap gap-2 m-auto">
+                
                 <div class="d-flex gap-2">
-                    <?php if (!$isReadOnly): ?>
-                    <!-- Botão retroceder -->
-                    <?php if ($currentIdx > 0): ?>
-                    <?php $prevStage = $stageKeys[$currentIdx - 1]; $prevBlocked = $hasPaidInstallments && in_array($prevStage, $stagesBlockedByPaid); ?>
-                    <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $prevStage ?>" 
-                       class="btn btn-sm <?= $prevBlocked ? 'btn-outline-danger' : 'btn-outline-secondary' ?> btn-move-stage" 
-                       data-dir="Retroceder" data-stage="<?= $stages[$prevStage]['label'] ?>"
-                       data-target-stage="<?= $prevStage ?>"
-                       data-order-id="<?= $order['id'] ?>"
-                       <?php if ($prevBlocked): ?>title="Bloqueado — Existem parcelas pagas"<?php endif; ?>>
-                        <?php if ($prevBlocked): ?><i class="fas fa-lock me-1"></i><?php else: ?><i class="fas fa-arrow-left me-1"></i><?php endif; ?>
-                        <?= $stages[$prevStage]['label'] ?>
-                    </a>
-                    <?php endif; ?>
-                    
-                    <!-- Botão avançar -->
-                    <?php if ($currentIdx < $totalStages - 1): ?>
-                    <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $stageKeys[$currentIdx + 1] ?>" 
-                       class="btn btn-sm btn-success btn-move-stage" 
-                       data-dir="Avançar" data-stage="<?= $stages[$stageKeys[$currentIdx + 1]]['label'] ?>"
-                       data-target-stage="<?= $stageKeys[$currentIdx + 1] ?>"
-                       data-order-id="<?= $order['id'] ?>">
-                        <?= $stages[$stageKeys[$currentIdx + 1]]['label'] ?> <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
-                    <?php endif; ?>
-                    <?php endif; ?> <!-- /!$isReadOnly -->
+                    <div class="input-group">
+                        <?php if (!$isReadOnly): ?>
+                        <!-- Botão retroceder -->
+                        <?php if ($currentIdx > 0): ?>
+                        <?php $prevStage = $stageKeys[$currentIdx - 1]; $prevBlocked = $hasPaidInstallments && in_array($prevStage, $stagesBlockedByPaid); ?>
+                        <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $prevStage ?>" 
+                        class="btn btn-sm me-1 <?= $prevBlocked ? 'btn-danger' : 'btn-secondary' ?> btn-move-stage" 
+                        data-dir="Retroceder" data-stage="<?= $stages[$prevStage]['label'] ?>"
+                        data-target-stage="<?= $prevStage ?>"
+                        data-order-id="<?= $order['id'] ?>"
+                        <?php if ($prevBlocked): ?>title="Bloqueado — Existem parcelas pagas"<?php endif; ?>>
+                            <?php if ($prevBlocked): ?><i class="fas fa-lock me-1"></i><?php else: ?><i class="fas fa-arrow-left me-1"></i><?php endif; ?>
+                            <?= $stages[$prevStage]['label'] ?>
+                        </a>
+                        <?php endif; ?>
+                        <?php endif;?>
 
-                    <!-- Mover para qualquer etapa -->
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-random me-1"></i> Mover para...
-                        </button>
-                        <ul class="dropdown-menu">
-                            <?php foreach ($stages as $sKey => $sInfo): ?>
-                            <?php if ($sKey !== $currentStage): ?>
-                            <?php $isBlockedByPaid = $hasPaidInstallments && in_array($sKey, $stagesBlockedByPaid); ?>
-                            <li>
-                                <a class="dropdown-item btn-move-stage <?= $isBlockedByPaid ? 'text-danger' : '' ?>" href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $sKey ?>" 
-                                   data-dir="Mover" data-stage="<?= $sInfo['label'] ?>"
-                                   data-target-stage="<?= $sKey ?>"
-                                   data-order-id="<?= $order['id'] ?>">
-                                    <?php if ($isBlockedByPaid): ?>
-                                    <i class="fas fa-lock me-2 text-danger"></i> <span class="text-decoration-line-through"><?= $sInfo['label'] ?></span>
-                                    <small class="text-danger ms-1" style="font-size:0.65rem;"><i class="fas fa-info-circle"></i> parcelas pagas</small>
-                                    <?php else: ?>
-                                    <i class="<?= $sInfo['icon'] ?> me-2" style="color:<?= $sInfo['color'] ?>;"></i> <?= $sInfo['label'] ?>
-                                    <?php endif; ?>
-                                </a>
-                            </li>
-                            <?php endif; ?>
-                            <?php endforeach; ?>
-                        </ul>
+                        <!-- Mover para qualquer etapa -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-primary dropdown-toggle <?php echo (!$isReadOnly)? "rounded-0":""; ?>" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-random me-1"></i> Mover para...
+                            </button>
+                            <ul class="dropdown-menu">
+                                <?php foreach ($stages as $sKey => $sInfo): ?>
+                                <?php if ($sKey !== $currentStage): ?>
+                                <?php $isBlockedByPaid = $hasPaidInstallments && in_array($sKey, $stagesBlockedByPaid); ?>
+                                <li>
+                                    <a class="dropdown-item btn-move-stage <?= $isBlockedByPaid ? 'text-danger' : '' ?>" href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $sKey ?>" 
+                                    data-dir="Mover" data-stage="<?= $sInfo['label'] ?>"
+                                    data-target-stage="<?= $sKey ?>"
+                                    data-order-id="<?= $order['id'] ?>">
+                                        <?php if ($isBlockedByPaid): ?>
+                                        <i class="fas fa-lock me-2 text-danger"></i> <span class="text-decoration-line-through"><?= $sInfo['label'] ?></span>
+                                        <small class="text-danger ms-1" style="font-size:0.65rem;"><i class="fas fa-info-circle"></i> parcelas pagas</small>
+                                        <?php else: ?>
+                                        <i class="<?= $sInfo['icon'] ?> me-2" style="color:<?= $sInfo['color'] ?>;"></i> <?= $sInfo['label'] ?>
+                                        <?php endif; ?>
+                                    </a>
+                                </li>
+                                <?php endif; ?>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                        
+                        <?php if (!$isReadOnly): ?>
+                        <!-- Botão avançar -->
+                        <?php if ($currentIdx < $totalStages - 1): ?>
+                        <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $stageKeys[$currentIdx + 1] ?>" 
+                        class="btn btn-sm ms-1 btn-success btn-move-stage" 
+                        data-dir="Avançar" data-stage="<?= $stages[$stageKeys[$currentIdx + 1]]['label'] ?>"
+                        data-target-stage="<?= $stageKeys[$currentIdx + 1] ?>"
+                        data-order-id="<?= $order['id'] ?>">
+                            <?= $stages[$stageKeys[$currentIdx + 1]]['label'] ?> <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                        <?php endif; ?>
+                        <?php endif; ?> <!-- /!$isReadOnly -->
                     </div>
                 </div>
             </div>
@@ -180,8 +182,8 @@
     </div>
 
     <?php if ($isReadOnly): ?>
-    <div class="alert <?= $currentStage === 'cancelado' ? 'alert-danger' : 'alert-success' ?> d-flex align-items-center mb-4" role="alert">
-        <i class="fas <?= $currentStage === 'cancelado' ? 'fa-ban' : 'fa-check-double' ?> me-2 fs-5"></i>
+    <div class="alert <?= $currentStage === 'cancelado' ? 'alert-danger' : 'alert-success' ?> d-flex align-items-center mb-4 shadow-sm" role="alert" style="border-left: 4px solid <?= $currentStage === 'cancelado' ? '#dc3545' : '#198754' ?> !important; border-radius: 8px;">
+        <i class="fas <?= $currentStage === 'cancelado' ? 'fa-ban' : 'fa-check-double' ?> me-3 fs-4"></i>
         <div>
             <strong>Pedido <?= $currentStage === 'cancelado' ? 'Cancelado' : 'Concluído' ?>.</strong>
             Todos os campos estão em modo de visualização. Use o botão "Mover para..." para reabrir o pedido, se necessário.
@@ -214,8 +216,8 @@
                 <input type="hidden" name="id" value="<?= $order['id'] ?>">
 
                 <!-- Dados do Cliente -->
-                <fieldset class="p-4 mb-4">
-                    <legend class="float-none w-auto px-2 fs-5 text-primary"><i class="fas fa-user-tag me-2"></i>Cliente</legend>
+                <fieldset class="p-4 mb-4" style="border: 2px solid #6c757d; border-radius: 8px;">
+                    <legend class="float-none w-auto px-2 fs-5" style="color: #6c757d;"><i class="fas fa-user-tag me-2"></i>Cliente</legend>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-muted">Nome</label>
@@ -263,8 +265,8 @@
 
                 <?php if ($showProducts): ?>
                 <!-- Produtos do Orçamento -->
-                <fieldset class="p-4 mb-4">
-                    <legend class="float-none w-auto px-2 fs-5 text-primary">
+                <fieldset class="p-4 mb-4" style="border: 2px solid #9b59b6; border-radius: 8px;">
+                    <legend class="float-none w-auto px-2 fs-5" style="color: #9b59b6;">
                         <i class="fas fa-file-invoice-dollar me-2"></i>Produtos do Orçamento
                         <?php if (!$isReadOnly): ?>
                         <a href="?page=orders&action=printQuote&id=<?= $order['id'] ?>" target="_blank" class="btn btn-sm btn-outline-success ms-3">
@@ -275,36 +277,30 @@
 
                     <!-- ═══ Link de Catálogo para o Cliente ═══ -->
                     <?php if ($currentStage === 'orcamento' && !$isReadOnly): ?>
-                    <div class="card border-info border-opacity-25 mb-3" id="catalogLinkSection">
-                        <div class="card-header bg-info py-2 d-flex align-items-center justify-content-between">
-                            <h6 class="mb-0 text-white"><i class="fas fa-share-alt me-2"></i>Catálogo do Cliente</h6>
-                            <span class="badge bg-info bg-opacity-75 text-white">
-                                <i class="fas fa-magic me-1"></i> O cliente monta a lista!
-                            </span>
+                    <div class="card border-0 shadow-sm mb-3" id="catalogLinkSection">
+                        <div class="card-header py-2" style="background: linear-gradient(135deg, #17a2b810 0%, #0dcaf015 100%);">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <h6 class="mb-0" style="font-size:0.85rem; color:#17a2b8;"><i class="fas fa-share-alt me-2"></i>Catálogo do Cliente</h6>
+                                <span class="badge" style="font-size:0.6rem; background:#17a2b820; color:#17a2b8;" id="catalogHeaderBadge">
+                                    <i class="fas fa-magic me-1"></i>O cliente monta a lista!
+                                </span>
+                            </div>
                         </div>
                         <div class="card-body p-3">
-                            <p class="small text-muted mb-3">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Gere um link de catálogo exclusivo para este pedido (#<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?>).
-                                O cliente poderá navegar pelos produtos e adicionar ao carrinho.
-                                Os itens adicionados aparecerão automaticamente no orçamento deste pedido em tempo real.
-                            </p>
-                            
-                            <!-- Formulário para gerar novo link -->
+
+                            <!-- ══ Estado 1: Sem link ativo — CTA + formulário ══ -->
                             <div id="catalogLinkForm">
-                                <div class="row g-2 align-items-end">
+                                <!-- Opções + botão gerar -->
+                                <div class="row g-2 align-items-end mb-3">
                                     <div class="col-md-4">
-                                        <label class="form-label small fw-bold text-muted">Receber confirmação do cliente?</label>
+                                        <label class="form-label small fw-bold text-muted mb-1">Confirmação do cliente?</label>
                                         <select class="form-select form-select-sm" id="catalogRequireConfirmation">
                                             <option value="0" selected>🚫 Não — apenas montar lista</option>
-                                            <option value="1">✅ Sim — exibir orçamento para aprovação</option>
+                                            <option value="1">✅ Sim — aprovar orçamento</option>
                                         </select>
-                                        <small class="text-muted d-block mt-1" id="catalogConfirmHint" style="display:none !important;">
-                                            <i class="fas fa-info-circle me-1"></i>O cliente verá preços, descontos e custos extras, podendo confirmar o orçamento.
-                                        </small>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label small fw-bold text-muted">Validade (dias)</label>
+                                        <label class="form-label small fw-bold text-muted mb-1">Validade</label>
                                         <select class="form-select form-select-sm" id="catalogExpires">
                                             <option value="">Sem expiração</option>
                                             <option value="1">1 dia</option>
@@ -315,37 +311,53 @@
                                         </select>
                                     </div>
                                     <div class="col-md-4">
-                                        <button class="btn btn-info btn-sm w-100 fw-bold" id="btnGenerateCatalog" onclick="generateCatalogLink()">
-                                            <i class="fas fa-magic me-1"></i> Gerar Link do Catálogo
+                                        <button class="btn btn-sm w-100 fw-bold shadow-sm" id="btnGenerateCatalog" onclick="generateCatalogLink()" style="background:#17a2b8; color:#fff; border-radius: 8px;">
+                                            <i class="fas fa-magic me-1"></i> Gerar Link
                                         </button>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- Link gerado (aparece abaixo do formulário) -->
-                            <div id="catalogLinkActive" style="display:none;" class="mt-3">
-                                <hr class="my-2">
-                                <label class="form-label small fw-bold text-muted mb-1"><i class="fas fa-link me-1"></i>Link gerado para Pedido #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?>: <span class="text-success" id="catalogLinkPriceInfo"></span></label>
-                                <div class="input-group input-group-sm mb-2">
-                                    <input type="text" class="form-control text-primary fw-bold" id="catalogLinkUrl" readonly onclick="this.select()" style="font-size:0.82rem;">
-                                    <button class="btn btn-outline-success" onclick="copyCatalogLink()" title="Copiar link">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                    <a id="catalogLinkOpen" href="#" target="_blank" class="btn btn-outline-primary" title="Abrir catálogo">
-                                        <i class="fas fa-external-link-alt"></i>
-                                    </a>
-                                    <button class="btn btn-outline-info" onclick="shareViaWhatsApp()" title="Enviar via WhatsApp">
-                                        <i class="fab fa-whatsapp"></i>
-                                    </button>
-                                    <button class="btn btn-outline-danger" onclick="deactivateCatalogLink()" title="Desativar link">
-                                        <i class="fas fa-ban"></i>
-                                    </button>
+                                <!-- CTA visual -->
+                                <div class="text-center py-3 mb-3" style="background: linear-gradient(135deg, #e0f7fa 0%, #e8f8f5 100%); border-radius: 10px; border: 2px dashed #17a2b840;">
+                                    <i class="fas fa-share-alt d-block mb-2" style="font-size: 2.2rem; color: #17a2b8; opacity: 0.6;"></i>
+                                    <p class="mb-1 small text-muted" style="font-size: 0.78rem;">
+                                        Gere um link exclusivo para o Pedido <strong>#<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></strong>.
+                                    </p>
+                                    <p class="mb-0 small text-muted" style="font-size: 0.68rem;">
+                                        <i class="fas fa-info-circle me-1"></i>O cliente navega pelos produtos e monta a lista. Os itens aparecem aqui em tempo real.
+                                    </p>
+                                    <div id="catalogLinkActive" style="display:none;">
+                                        <div class="input-group input-group-sm mt-2 px-3">
+                                            <span class="input-group-text" style="background: #f8f9fa; border-color: #17a2b840;">
+                                                <i class="fas fa-link" style="font-size:0.7rem; color:#17a2b8;"></i>
+                                            </span>
+                                            <input type="text" class="form-control" id="catalogLinkUrl" readonly onclick="this.select()" style="font-size:0.75rem; border-color: #17a2b840; color: #17a2b8; font-weight: 600;">
+                                            <button class="btn btn-outline-success btn-sm" type="button" onclick="copyCatalogLink()" title="Copiar link" style="border-color: #17a2b840;">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                            <a id="catalogLinkOpen" href="#" target="_blank" class="btn btn-outline-primary btn-sm" title="Abrir catálogo" style="border-color: #17a2b840;">
+                                                <i class="fas fa-external-link-alt"></i>
+                                            </a>
+                                            <button class="btn btn-outline-info btn-sm" type="button" onclick="shareViaWhatsApp()" title="Enviar via WhatsApp" style="border-color: #17a2b840;">
+                                                <i class="fab fa-whatsapp"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" type="button" onclick="deactivateCatalogLink()">
+                                            <i class="fas fa-ban me-1"></i>
+                                        </button>
+                                        </div>
+                                        <b><small class="mb-0" style="font-size: 0.7rem; color: #6c757d;" id="catalogLinkPriceInfo"></small></b> - <small class="text-muted" style="font-size:0.65rem;" id="catalogLinkMeta"></small>
+                                    </div>
                                 </div>
-                                <small class="text-muted" id="catalogLinkMeta"></small>
                             </div>
                         </div>
                     </div>
                     <?php endif; ?>
+
+                    <div class="card-header border-bottom p-2 mb-3" style="background: linear-gradient(135deg,rgba(0, 204, 0, 0.06) 0%,rgba(0, 204, 0, 0.08) 100%);">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h6 class="mb-0" style="font-size:0.85rem; color:#00cc00;"><i class="fa-solid fa-table-list me-2"></i>Lista de Produtos</h6>
+                        </div>
+                    </div>
 
                     <?php if (!$isReadOnly): ?>
                     <!-- Seletor de Tabela de Preços -->
@@ -478,7 +490,7 @@
                         </table>
                     </div>
                     <?php else: ?>
-                    <div class="alert alert-info mb-3">
+                    <div class="alert alert-info mb-3" style="border-radius: 8px;">
                         <i class="fas fa-info-circle me-2"></i>Nenhum produto adicionado ao orçamento ainda.
                     </div>
                     <?php endif; ?>
@@ -493,9 +505,9 @@
                     </div>
                     <?php else: ?>
                     <!-- Formulário Adicionar Item -->
-                    <div class="card border-primary border-opacity-25">
-                        <div class="card-header bg-primary py-2">
-                            <h6 class="mb-0 text-white"><i class="fas fa-plus-circle me-2"></i>Adicionar Produto</h6>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header py-2" style="background: linear-gradient(135deg, #0d6efd10 0%, #3498db15 100%);">
+                            <h6 class="mb-0" style="font-size:0.85rem; color:#0d6efd;"><i class="fas fa-plus-circle me-2"></i>Adicionar Produto</h6>
                         </div>
                         <div class="card-body p-3">
                             <!-- O form real é colocado via JS para evitar nesting -->
@@ -535,9 +547,9 @@
                     <?php endif; ?> <!-- /!$isReadOnly add item form -->
 
                     <!-- Custos Extras do Orçamento -->
-                    <div class="card border-warning border-opacity-25 mt-3">
-                        <div class="card-header bg-warning  py-2">
-                            <h6 class="mb-0 text-warning"><i class="fas fa-receipt me-2"></i>Custos Extras</h6>
+                    <div class="card border-0 shadow-sm mt-3">
+                        <div class="card-header py-2" style="background: linear-gradient(135deg, #f39c1210 0%, #e67e2215 100%);">
+                            <h6 class="mb-0" style="font-size:0.85rem; color:#e67e22;"><i class="fas fa-receipt me-2"></i>Custos Extras</h6>
                         </div>
                         <div class="card-body p-3">
                             <?php if (!empty($extraCosts)): ?>
@@ -1072,8 +1084,8 @@
                 <?php endif; ?>
 
                 <!-- Gerenciamento do Pedido -->
-                <fieldset class="p-4 mb-4">
-                    <legend class="float-none w-auto px-2 fs-5 text-primary"><i class="fas fa-sliders-h me-2"></i>Gerenciamento</legend>
+                <fieldset class="p-4 mb-4" style="border: 2px solid #3498db; border-radius: 8px;">
+                    <legend class="float-none w-auto px-2 fs-5" style="color: #3498db;"><i class="fas fa-sliders-h me-2"></i>Gerenciamento</legend>
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label small fw-bold text-muted">Prioridade</label>
@@ -1123,31 +1135,36 @@
                 <!-- ═══ NOTA DE PEDIDO — Impressão nas etapas venda/financeiro ═══ -->
                 <!-- ═══════════════════════════════════════════════════════════ -->
                 <?php if (in_array($currentStage, ['venda', 'financeiro'])): ?>
-                <div class="card border-success border-opacity-50 shadow-sm mb-4">
-                    <div class="card-header py-2 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">
-                        <h6 class="mb-0 text-white fw-bold">
-                            <i class="fas fa-file-invoice me-2"></i>Nota de Pedido
-                        </h6>
-                        <span class="badge bg-white bg-opacity-25 text-white" style="font-size:0.7rem;">
-                            <i class="fas fa-print me-1"></i>Documento para impressão
-                        </span>
+                <div class="card border-0 shadow-sm mb-4" id="notaPedidoSection">
+                    <div class="card-header py-2" style="background: linear-gradient(135deg, #27ae6010 0%, #2ecc7115 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0" style="font-size:0.85rem; color:#27ae60;">
+                                <i class="fas fa-file-invoice me-2"></i>Nota de Pedido
+                            </h6>
+                            <span class="badge" style="font-size:0.6rem; background:#27ae6020; color:#27ae60;">
+                                <i class="fas fa-print me-1"></i>Documento para impressão
+                            </span>
+                        </div>
                     </div>
                     <div class="card-body p-3">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <p class="mb-1 small text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Gere a Nota de Pedido com os dados do cliente, produtos, valores e informações de pagamento.
-                                </p>
-                                <p class="mb-0 small text-muted">
-                                    Ideal para entregar ao cliente como comprovante da compra.
-                                    <strong>Os dados serão salvos automaticamente antes de imprimir.</strong>
-                                </p>
-                            </div>
+                        <div class="text-center py-3" style="background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-radius: 10px; border: 2px dashed #27ae6040;">
+                            <i class="fas fa-file-invoice d-block mb-2" style="font-size: 2.2rem; color: #27ae60; opacity: 0.6;"></i>
+                            <p class="mb-1 small text-muted" style="font-size: 0.78rem;">
+                                Gere a Nota de Pedido com dados do cliente, produtos, valores e pagamento.
+                            </p>
+                            <p class="mb-3 small text-muted" style="font-size: 0.68rem;">
+                                <i class="fas fa-info-circle me-1"></i>Ideal como comprovante ao cliente. <strong>Dados serão salvos automaticamente.</strong>
+                            </p>
                             <button type="submit" name="print_order_after_save" value="1"
-                                    class="btn btn-success btn-sm ms-3 px-3 flex-shrink-0">
-                                <i class="fas fa-print me-1"></i> Imprimir Nota de Pedido
+                                    class="btn px-4 shadow-sm" style="background:#27ae60; color:#fff; font-size: 0.95rem; border-radius: 10px;">
+                                <i class="fas fa-print me-2"></i> Imprimir Nota de Pedido
                             </button>
+                            <div class="mt-2">
+                                <small class="text-muted" style="font-size: 0.65rem;">
+                                    <i class="fas fa-coins me-1"></i>Total: <strong>R$ <?= number_format($order['total_amount'] ?? 0, 2, ',', '.') ?></strong>
+                                    &nbsp;·&nbsp; <?= count($orderItems ?? []) ?> produto(s)
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1273,7 +1290,7 @@
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-header py-2" style="background: linear-gradient(135deg, #f39c1215 0%, #e67e2210 100%);">
                             <div class="d-flex align-items-center justify-content-between">
-                                <h6 class="mb-0" style="font-size:0.9rem; color:#e67e22;">
+                                <h6 class="mb-0" style="font-size:0.85rem; color:#e67e22;">
                                     <i class="fas fa-wallet me-2"></i>Forma de Pagamento
                                 </h6>
                                 <div class="d-flex align-items-center gap-2">
@@ -1472,7 +1489,7 @@
                             <?php if (!empty($savedPaymentLink)): ?>
                             <!-- ── Link já gerado — exibir de forma compacta ── -->
                             <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="badge bg-success  text-success border border-success border-opacity-25" style="font-size:0.65rem;">
+                                <span class="badge bg-success text-success border border-success border-opacity-25" style="font-size:0.65rem;">
                                     <i class="fas fa-check-circle me-1"></i><?= e(ucfirst($savedPaymentGateway)) ?>
                                     <?php if ($savedPaymentMethod && $savedPaymentMethod !== 'auto'): ?>
                                      · <?= e(strtoupper(str_replace('_', ' ', $savedPaymentMethod))) ?>
@@ -1632,9 +1649,9 @@
                     ?>
                     <!-- ═══ FISCAL — Nota Fiscal Eletrônica (SEFAZ) ═══ -->
                     <div class="card mt-3 border-0 shadow-sm" id="fiscalSection">
-                        <div class="card-header py-2 bg-success ">
+                        <div class="card-header py-2" style="background: linear-gradient(135deg, #28a74510 0%, #27ae6015 100%);">
                             <div class="d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0 text-success" style="font-size:0.85rem;">
+                                <h6 class="mb-0" style="font-size:0.85rem; color:#28a745;">
                                     <i class="fas fa-file-invoice me-2"></i>NF-e — Nota Fiscal Eletrônica
                                     <?php if ($hasNfe): ?>
                                     <span class="badge bg-<?= $nfeStatusColor ?> ms-2" style="font-size:0.6rem;">
@@ -1661,7 +1678,7 @@
 
                             <?php if (!$hasNfe && in_array($currentStage, ['venda', 'financeiro', 'concluido'])): ?>
                             <!-- ═══ CTA principal: Emitir NF-e (sem nota emitida) ═══ -->
-                            <div class="text-center py-3 mb-3" style="background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-radius: 10px; border: 2px dashed #27ae60;">
+                            <div class="text-center py-3 mb-3" style="background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-radius: 10px; border: 2px dashed #27ae6040;">
                                 <i class="fas fa-file-invoice-dollar d-block mb-2" style="font-size: 2.5rem; color: #27ae60; opacity: 0.7;"></i>
                                 <p class="mb-2 fw-bold text-success" style="font-size: 0.95rem;">Nenhuma NF-e emitida para este pedido</p>
                                 <p class="small text-muted mb-3" style="font-size: 0.78rem;">Emita a nota fiscal eletrônica diretamente pela SEFAZ com um clique.</p>
@@ -1744,9 +1761,11 @@
 
                             <?php if ($nfeDoc['xml_autorizado'] && in_array($nfeDoc['status'], ['autorizada', 'corrigida'])): ?>
                             <!-- Botão principal: Imprimir DANFE (destaque) -->
-                            <div class="d-grid mb-2">
+                            <div class="text-center py-3 mb-2" style="background: linear-gradient(135deg, #fce4ec 0%, #ffebee 100%); border-radius: 10px; border: 2px dashed #dc354540;">
+                                <i class="fas fa-file-pdf d-block mb-2" style="font-size: 2.2rem; color: #dc3545; opacity: 0.6;"></i>
+                                <p class="mb-2 small text-muted" style="font-size: 0.78rem;">Imprima o DANFE (PDF) para acompanhar a nota fiscal.</p>
                                 <a href="?page=nfe_documents&action=download&id=<?= $nfeDoc['id'] ?>&type=danfe" 
-                                   target="_blank" class="btn btn-danger" id="btnPrintDanfePipeline">
+                                   target="_blank" class="btn px-4 shadow-sm" id="btnPrintDanfePipeline" style="background:#dc3545; color:#fff; font-size: 0.95rem; border-radius: 10px;">
                                     <i class="fas fa-print me-2"></i> Imprimir DANFE (PDF)
                                 </a>
                             </div>
@@ -1879,11 +1898,13 @@
                     <!-- NF-e desabilitado — card informativo -->
                     <div class="card mt-3 border-0 shadow-sm opacity-75" role="button"
                          onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('nfe') ?>">
-                        <div class="card-header py-2 bg-light">
+                        <div class="card-header py-2" style="background: linear-gradient(135deg, #dee2e610 0%, #adb5bd10 100%);">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0 text-muted" style="font-size:0.85rem;">
                                     <i class="fas fa-file-invoice me-2"></i>Fiscal / Nota Fiscal
-                                    <span class="badge bg-secondary ms-2" style="font-size:0.6rem;">Módulo Inativo</span>
+                                    <span class="badge bg-secondary ms-2" style="font-size:0.6rem;">
+                                        <i class="fas fa-lock me-1"></i>Módulo Inativo
+                                    </span>
                                 </h6>
                                 <i class="fas fa-lock text-muted" style="font-size:0.75rem;"></i>
                             </div>
@@ -1971,19 +1992,19 @@
                     </div>
 
                     <!-- Retirada na loja (visível apenas quando tipo = retirada) -->
-                    <div class="card mb-3 border-light" id="shippingRetiradaCard" style="<?= ($shippingType !== 'retirada') ? 'display:none;' : '' ?>">
-                        <div class="card-body p-3 text-center">
-                            <i class="fas fa-store text-success d-block mb-2" style="font-size:2.2rem;opacity:0.6;"></i>
+                    <div class="card mb-3 border-0 shadow-sm" id="shippingRetiradaCard" style="<?= ($shippingType !== 'retirada') ? 'display:none;' : '' ?>">
+                        <div class="card-body p-3 text-center" style="background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-radius: 10px; border: 2px dashed #27ae6040;">
+                            <i class="fas fa-store d-block mb-2" style="font-size:2.2rem; color:#27ae60; opacity:0.6;"></i>
                             <span class="text-muted fs-6">O cliente irá <strong>retirar na loja</strong>.</span>
                             <p class="text-muted small mt-1 mb-0">Nenhum endereço de entrega necessário.</p>
                         </div>
                     </div>
 
                     <!-- Endereço de Entrega (visível quando tipo = entrega ou correios) -->
-                    <div class="card mb-3 border-warning" id="shippingAddressCard" style="<?= ($shippingType === 'retirada') ? 'display:none;' : '' ?>">
-                        <div class="card-header py-2 bg-warning ">
+                    <div class="card mb-3 border-0 shadow-sm" id="shippingAddressCard" style="<?= ($shippingType === 'retirada') ? 'display:none;' : '' ?>">
+                        <div class="card-header py-2" style="background: linear-gradient(135deg, #e67e2210 0%, #f39c1208 100%);">
                             <div class="d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0 text-warning" style="font-size:0.85rem;">
+                                <h6 class="mb-0" style="font-size:0.85rem; color:#e67e22;">
                                     <i class="fas fa-map-marker-alt me-2"></i>Endereço de Entrega
                                 </h6>
                                 <div class="d-flex gap-1">
@@ -2022,8 +2043,8 @@
 
                     <!-- Rastreamento e Código -->
                     <div class="card mb-3 border-0 shadow-sm" id="trackingSection">
-                        <div class="card-header py-2 bg-primary ">
-                            <h6 class="mb-0 text-primary" style="font-size:0.85rem;">
+                        <div class="card-header py-2" style="background: linear-gradient(135deg, #3498db10 0%, #2980b908 100%);">
+                            <h6 class="mb-0" style="font-size:0.85rem; color:#3498db;">
                                 <i class="fas fa-barcode me-2"></i>Rastreamento
                             </h6>
                         </div>
@@ -2080,10 +2101,10 @@
                     </div>
 
                     <!-- API de Transportadoras (placeholder para integração futura) -->
-                    <div class="card border-dashed border-secondary border-opacity-25 mb-0" style="border-style:dashed !important;">
-                        <div class="card-body p-3 text-center">
-                            <i class="fas fa-plug text-muted d-block mb-2" style="font-size:1.5rem;opacity:0.3;"></i>
-                            <p class="small text-muted mb-1"><strong>Integração com Transportadoras</strong></p>
+                    <div class="card border-0 shadow-sm mb-0">
+                        <div class="card-body p-3 text-center" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; border: 2px dashed #adb5bd40;">
+                            <i class="fas fa-plug text-muted d-block mb-2" style="font-size:1.5rem;opacity:0.4;"></i>
+                            <p class="small text-muted mb-1 fw-bold">Integração com Transportadoras</p>
                             <p class="small text-muted mb-0" style="font-size:0.72rem;">
                                 <i class="fas fa-info-circle me-1"></i>
                                 Em breve: integração com APIs de Correios, Jadlog, Melhor Envio e outras transportadoras
@@ -2109,7 +2130,7 @@
 
                 <?php if (!$isReadOnly): ?>
                 <div class="text-end mb-4">
-                    <button type="submit" class="btn btn-primary px-4 fw-bold"><i class="fas fa-save me-2"></i>Salvar Alterações</button>
+                    <button type="submit" class="btn btn-primary btn-lg px-5 fw-bold shadow-sm" style="border-radius: 10px;"><i class="fas fa-save me-2"></i>Salvar Alterações</button>
                 </div>
                 <?php endif; ?>
             </form>
@@ -2117,10 +2138,163 @@
 
         <!-- Coluna Direita: Timeline / Histórico -->
         <div class="col-lg-4">
+
+            <!-- ═══ Mini Manual Contextual ═══ -->
+            <?php
+            $miniManualContent = [];
+            switch ($currentStage) {
+                case 'contato':
+                    $miniManualContent = [
+                        'icon'  => 'fas fa-handshake',
+                        'color' => '#3498db',
+                        'title' => 'Etapa de Contato',
+                        'tips'  => [
+                            'Registre os dados do cliente e as primeiras informações do pedido.',
+                            'Quando tiver os dados iniciais, avance para <strong>Orçamento</strong>.',
+                            'Use o campo de <em>Observações Internas</em> para anotar detalhes da conversa.'
+                        ]
+                    ];
+                    break;
+                case 'orcamento':
+                    $miniManualContent = [
+                        'icon'  => 'fas fa-calculator',
+                        'color' => '#9b59b6',
+                        'title' => 'Etapa de Orçamento',
+                        'tips'  => [
+                            'Adicione os <strong>produtos</strong> e <strong>custos extras</strong> ao pedido.',
+                            'Gere um <strong>link de catálogo</strong> para o cliente montar a lista.',
+                            'Imprima o orçamento para enviar ao cliente e aguarde aprovação.',
+                            'Após aprovação, avance para <strong>Venda</strong>.'
+                        ]
+                    ];
+                    break;
+                case 'venda':
+                    $miniManualContent = [
+                        'icon'  => 'fas fa-shopping-cart',
+                        'color' => '#e67e22',
+                        'title' => 'Etapa de Venda',
+                        'tips'  => [
+                            'Confira os produtos e valores do pedido.',
+                            'Defina a <strong>forma de pagamento</strong> e as condições.',
+                            'Imprima a <strong>Nota de Pedido</strong> para o cliente.',
+                            'Avance para <strong>Produção</strong> quando tudo estiver confirmado.'
+                        ]
+                    ];
+                    break;
+                case 'producao':
+                    $miniManualContent = [
+                        'icon'  => 'fas fa-industry',
+                        'color' => '#27ae60',
+                        'title' => 'Etapa de Produção',
+                        'tips'  => [
+                            'Acompanhe os <strong>setores de produção</strong> de cada produto.',
+                            'Clique em <strong>Concluir</strong> ao finalizar cada setor.',
+                            'Quando todos os setores estiverem concluídos, avance para <strong>Preparação</strong>.',
+                            'Use o <em>Registro</em> abaixo para anotar observações ou anexar fotos.'
+                        ]
+                    ];
+                    break;
+                case 'preparacao':
+                    $miniManualContent = [
+                        'icon'  => 'fas fa-boxes-packing',
+                        'color' => '#1abc9c',
+                        'title' => 'Etapa de Preparação',
+                        'tips'  => [
+                            'Complete o <strong>checklist de preparo</strong> clicando em cada item.',
+                            'Verifique se todos os produtos estão prontos para envio.',
+                            'Quando tudo estiver preparado, avance para <strong>Envio/Entrega</strong>.'
+                        ]
+                    ];
+                    break;
+                case 'envio':
+                    $miniManualContent = [
+                        'icon'  => 'fas fa-truck',
+                        'color' => '#3498db',
+                        'title' => 'Etapa de Envio/Entrega',
+                        'tips'  => [
+                            'Defina a <strong>modalidade de envio</strong> (retirada, entrega ou correios).',
+                            'Preencha o endereço e o <strong>código de rastreamento</strong>.',
+                            'Envie o código de rastreio ao cliente via <strong>WhatsApp</strong>.',
+                            'Avance para <strong>Financeiro</strong> quando o pedido for entregue.'
+                        ]
+                    ];
+                    break;
+                case 'financeiro':
+                    $miniManualContent = [
+                        'icon'  => 'fas fa-coins',
+                        'color' => '#f39c12',
+                        'title' => 'Etapa Financeira',
+                        'tips'  => [
+                            'Confirme a <strong>forma de pagamento</strong> e configure o parcelamento.',
+                            'Registre a <strong>entrada (sinal)</strong> se houver.',
+                            'Emita a <strong>NF-e</strong> ou registre o cupom fiscal.',
+                            'Quando o pagamento estiver confirmado, avance para <strong>Concluído</strong>.'
+                        ]
+                    ];
+                    break;
+                case 'concluido':
+                    $miniManualContent = [
+                        'icon'  => 'fas fa-check-double',
+                        'color' => '#27ae60',
+                        'title' => 'Pedido Concluído',
+                        'tips'  => [
+                            'Este pedido está <strong>finalizado</strong>. Todos os campos são apenas leitura.',
+                            'Use o botão <strong>Mover para...</strong> para reabrir se necessário.',
+                            'Os documentos fiscais e o histórico permanecem acessíveis.'
+                        ]
+                    ];
+                    break;
+                case 'cancelado':
+                    $miniManualContent = [
+                        'icon'  => 'fas fa-ban',
+                        'color' => '#e74c3c',
+                        'title' => 'Pedido Cancelado',
+                        'tips'  => [
+                            'Este pedido foi <strong>cancelado</strong>. Todos os campos são apenas leitura.',
+                            'Use o botão <strong>Mover para...</strong> para reabrir se necessário.',
+                            'Se houver NF-e emitida, cancele-a antes de reabrir.'
+                        ]
+                    ];
+                    break;
+            }
+            ?>
+            <?php if (!empty($miniManualContent)): ?>
+            <div class="card border-0 shadow-sm mb-4" style="border-left: 3px solid <?= $miniManualContent['color'] ?> !important;">
+                <div class="card-header bg-white border-bottom p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold" style="color: <?= $miniManualContent['color'] ?>; font-size: 0.85rem;">
+                            <i class="<?= $miniManualContent['icon'] ?> me-2"></i><?= $miniManualContent['title'] ?>
+                        </h6>
+                        <span class="badge" style="font-size:0.6rem; background: <?= $miniManualContent['color'] ?>20; color: <?= $miniManualContent['color'] ?>;">
+                            <i class="fas fa-lightbulb me-1"></i>Dica
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-3">
+                    <ul class="list-unstyled mb-0" style="font-size: 0.78rem;">
+                        <?php foreach ($miniManualContent['tips'] as $idx => $tip): ?>
+                        <li class="<?= $idx > 0 ? 'mt-2' : '' ?> d-flex align-items-start">
+                            <i class="fas fa-chevron-right me-2 mt-1 flex-shrink-0" style="font-size:0.55rem; color: <?= $miniManualContent['color'] ?>; opacity:0.7;"></i>
+                            <span class="text-muted"><?= $tip ?></span>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php if (!$isReadOnly): ?>
+                    <hr class="my-2" style="opacity:0.15;">
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="?page=walkthrough&action=manual" class="btn btn-sm btn-link text-muted p-0" style="font-size:0.7rem;" title="Manual do Sistema">
+                            <i class="fas fa-book me-1"></i>Manual Completo
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- Histórico de Movimentação do Pipeline -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white border-bottom p-3">
-                    <h6 class="mb-0 text-primary fw-bold"><i class="fas fa-history me-2"></i>Histórico de Movimentação</h6>
+                <div class="card-header py-2" style="background: linear-gradient(135deg, #3498db10 0%, #0d6efd15 100%);">
+                    <h6 class="mb-0 fw-bold" style="font-size:0.85rem; color:#3498db;"><i class="fas fa-history me-2"></i>Histórico de Movimentação</h6>
                 </div>
                 <div class="card-body p-3" style="max-height: 400px; overflow-y: auto;">
                     <?php if (empty($history)): ?>
@@ -2199,9 +2373,9 @@
 
             <!-- ═══ Registro (Logs dos Produtos) ═══ -->
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom p-3">
+                <div class="card-header py-2" style="background: linear-gradient(135deg, #27ae6010 0%, #2ecc7115 100%);">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 text-success fw-bold"><i class="fas fa-clipboard-list me-2"></i>Registro</h6>
+                        <h6 class="mb-0 fw-bold" style="font-size:0.85rem; color:#27ae60;"><i class="fas fa-clipboard-list me-2"></i>Registro</h6>
                         <?php if (!empty($orderItems) && !$isReadOnly): ?>
                         <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#collapseAddLog">
                             <i class="fas fa-plus me-1"></i> Novo
@@ -2246,7 +2420,7 @@
                 </div>
                 <?php endif; ?>
 
-                <div class="card-body p-3" style="max-height: 500px; overflow-y: auto;">
+                <div class="card-body p-3" style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
                     <?php if (empty($orderItemLogs)): ?>
                         <div class="text-center text-muted py-4">
                             <i class="fas fa-clipboard d-block mb-2" style="font-size:2rem;opacity:0.4;"></i>
@@ -2257,7 +2431,7 @@
                             $isImage = !empty($log['file_type']) && str_starts_with($log['file_type'], 'image/');
                             $isPdf = ($log['file_type'] ?? '') === 'application/pdf';
                         ?>
-                        <div class="d-flex gap-2 mb-3 pb-3 border-bottom detail-log-entry">
+                        <div class="d-flex gap-2 mb-3 pb-3 border-bottom detail-log-entry" style="min-width:0;">
                             <div class="flex-shrink-0">
                                 <div class="rounded-circle d-flex align-items-center justify-content-center" 
                                      style="width:32px;height:32px;background:<?= $isImage ? '#e8f5e9' : ($isPdf ? '#fce4ec' : '#e3f2fd') ?>;">
@@ -2270,16 +2444,16 @@
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <span class="badge bg-success  text-success border border-success border-opacity-25 me-1" style="font-size:0.6rem;">
+                            <div class="flex-grow-1" style="min-width:0;">
+                                <div class="d-flex flex-wrap justify-content-between align-items-start gap-1">
+                                    <div style="min-width:0;">
+                                        <span class="badge bg-success text-success border border-success border-opacity-25 me-1" style="font-size:0.6rem; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; vertical-align:middle;">
                                             <i class="fas fa-box me-1"></i><?= e($log['product_name'] ?? 'Produto') ?>
                                         </span>
                                         <span class="small fw-bold"><?= e($log['user_name'] ?? 'Sistema') ?></span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-1">
-                                        <span class="text-muted" style="font-size:0.6rem;"><?= date('d/m/Y H:i', strtotime($log['created_at'])) ?></span>
+                                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                        <span class="text-muted" style="font-size:0.6rem;white-space:nowrap;"><?= date('d/m/Y H:i', strtotime($log['created_at'])) ?></span>
                                         <?php if (!$isReadOnly): ?>
                                         <button type="button" class="btn btn-sm p-0 text-danger btn-delete-detail-log" 
                                                 data-log-id="<?= $log['id'] ?>" title="Excluir" style="font-size:0.65rem;line-height:1;">
@@ -2289,7 +2463,7 @@
                                     </div>
                                 </div>
                                 <?php if (!empty($log['message'])): ?>
-                                <div class="small mt-1" style="white-space:pre-wrap;"><?= e($log['message']) ?></div>
+                                <div class="small mt-1" style="white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;"><?= e($log['message']) ?></div>
                                 <?php endif; ?>
                                 <?php if (!empty($log['file_path'])): ?>
                                     <?php if ($isImage): ?>
@@ -2319,6 +2493,19 @@
 </div>
 
 <style>
+/* ═══ Micro-interações e transições ═══ */
+.card { transition: box-shadow 0.2s ease; }
+.card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.08) !important; }
+fieldset { transition: border-color 0.3s ease; }
+.btn { transition: all 0.2s ease; }
+.badge { transition: all 0.2s ease; }
+.prep-check-card { transition: all 0.2s ease; }
+.prep-check-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.payment-method-card { transition: all 0.2s ease !important; }
+.payment-method-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; }
+.timeline-item { transition: background-color 0.2s ease; }
+.timeline-item:hover { background-color: rgba(0,0,0,0.01); border-radius: 8px; }
+
 /* ═══ Toast Push para Link de Pagamento ═══ */
 @keyframes gwToastSlideIn {
     from { transform: translateX(100%); opacity: 0; }
@@ -3115,11 +3302,11 @@ function generateCatalogLink() {
             catalogLinkData = data;
             showActiveCatalogLink(data);
         } else {
-            alert(data.message || 'Erro ao gerar link');
+            Swal.fire({ icon: 'error', title: 'Erro', text: data.message || 'Erro ao gerar link', timer: 3000, showConfirmButton: true });
         }
     })
     .catch(() => {
-        alert('Erro de conexão ao gerar o link.');
+        Swal.fire({ icon: 'error', title: 'Erro de conexão', text: 'Não foi possível gerar o link do catálogo.', timer: 3000, showConfirmButton: true });
     })
     .finally(() => {
         btn.disabled = false;
@@ -3156,18 +3343,30 @@ function shareViaWhatsApp() {
 }
 
 function deactivateCatalogLink() {
-    if (!confirm('Desativar link? O cliente não poderá mais acessar o catálogo.')) return;
+    Swal.fire({
+        title: 'Desativar link?',
+        text: 'O cliente não poderá mais acessar o catálogo.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-ban me-1"></i> Desativar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#e74c3c'
+    }).then(function(result) {
+        if (!result.isConfirmed) return;
     
-    fetch('?page=pipeline&action=deactivateCatalogLink', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'order_id=<?= $order['id'] ?>&csrf_token=' + encodeURIComponent(__csrfToken)
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            showCatalogLinkForm();
-        }
+        fetch('?page=pipeline&action=deactivateCatalogLink', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'order_id=<?= $order['id'] ?>&csrf_token=' + encodeURIComponent(__csrfToken)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showCatalogLinkForm();
+                Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500, timerProgressBar: true })
+                    .fire({ icon: 'success', title: 'Link desativado!' });
+            }
+        });
     });
 }
 

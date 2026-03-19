@@ -61,3 +61,9 @@
 - Edit inclui `<input type="hidden" name="id">` com o ID.
 
 ---
+
+## Referências Complementares
+- **UI/UX completo:** `.github/instructions/ui-ux.md` — cards, botões, cores, hierarquia, CTA.
+- **Modais SweetAlert2:** `.github/instructions/modal-style.md` — padrões de toasts, confirmações, loading.
+
+---
