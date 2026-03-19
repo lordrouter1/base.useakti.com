@@ -1,9 +1,16 @@
+<?php
+    $__currentStage = $order['pipeline_stage'] ?? 'producao';
+    $__isPrep = ($__currentStage === 'preparacao');
+    $__orderDocTitle = $__isPrep ? 'Ordem de Preparação' : 'Ordem de Produção';
+    $__accentColor = $__isPrep ? '#27ae60' : '#e67e22';
+    $__accentBg = $__isPrep ? '#e0f7f1' : '#fef3e2';
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ordem de Produção #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></title>
+    <title><?= $__orderDocTitle ?> #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></title>
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#2c3e50">
     <link rel="icon" type="image/x-icon" href="assets/logos/akti-icon-dark.ico">
@@ -49,7 +56,7 @@
             font-size: 12px;
         }
         .order-header {
-            border-bottom: 3px solid #e67e22;
+            border-bottom: 3px solid <?= $__accentColor ?>;
             padding-bottom: 8px;
             margin-bottom: 10px;
         }
@@ -61,7 +68,7 @@
         }
         .order-title {
             font-size: 1.1rem;
-            color: #e67e22;
+            color: <?= $__accentColor ?>;
             font-weight: 700;
         }
 
@@ -94,7 +101,7 @@
 
         /* ── Card de item de produção ─────────────── */
         .production-item-card {
-            border-left: 4px solid #e67e22 !important;
+            border-left: 4px solid <?= $__accentColor ?> !important;
             padding: 6px 10px !important;
         }
         .production-item-card.all-done {
@@ -228,7 +235,7 @@ $prioMap = [
 <div class="no-print bg-dark text-white py-2">
     <div class="container d-flex justify-content-between align-items-center">
         <span>
-            <i class="fas fa-industry me-2"></i>Ordem de Produção #<?= $orderId ?>
+            <i class="fas <?= $__isPrep ? 'fa-box-open' : 'fa-industry' ?> me-2"></i><?= $__orderDocTitle ?> #<?= $orderId ?>
         </span>
         <div class="d-flex gap-2">
             <button onclick="window.print()" class="btn btn-warning btn-sm text-dark">
@@ -275,7 +282,7 @@ $prioMap = [
         <!-- Título + código de barras -->
         <div class="text-end">
             <div class="order-title">
-                <i class="fas fa-industry me-1"></i> ORDEM DE PRODUÇÃO
+                <i class="fas <?= $__isPrep ? 'fa-box-open' : 'fa-industry' ?> me-1"></i> <?= strtoupper($__orderDocTitle) ?>
             </div>
             <div class="fw-bold" style="font-size:1.1rem;">#<?= $orderId ?></div>
             <div class="text-muted" style="font-size:0.75rem;">Emitida em: <?= date('d/m/Y H:i') ?></div>
@@ -318,11 +325,12 @@ $prioMap = [
     </table>
 
     <!-- ══════════════════════════════════════
-         PRODUTOS E SETORES DE PRODUÇÃO
+         PRODUTOS <?= $__isPrep ? '' : 'E SETORES DE PRODUÇÃO' ?>
+
          ══════════════════════════════════════ -->
     <div class="card border-0 shadow-sm mb-2">
-        <div class="card-header py-1" style="background: #fef3e2;">
-            <h6 class="mb-0 fw-bold" style="color: #e67e22; font-size:0.85rem;">
+        <div class="card-header py-1" style="background: <?= $__accentBg ?>;">
+            <h6 class="mb-0 fw-bold" style="color: <?= $__accentColor ?>; font-size:0.85rem;">
                 <i class="fas fa-boxes-packing me-1"></i>Produtos
                 <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">
                     <?= count($orderItems) ?> itens
@@ -360,7 +368,7 @@ $prioMap = [
                                 </div>
                             <?php endif; ?>
                             <span class="badge rounded-circle d-flex align-items-center justify-content-center"
-                                  style="width:22px;height:22px;font-size:0.65rem;background:<?= $allDone ? '#27ae60' : '#e67e22' ?>;color:#fff;">
+                                  style="width:22px;height:22px;font-size:0.65rem;background:<?= $allDone ? '#27ae60' : $__accentColor ?>;color:#fff;">
                                 <?= $allDone ? '✓' : $idx ?>
                             </span>
                             <div>
@@ -376,7 +384,7 @@ $prioMap = [
                                 <?php endif; ?>
                                 <small class="text-muted ms-2">
                                     Qtd: <strong><?= $item['quantity'] ?></strong>
-                                    <?php if (!empty($sectors)): ?>
+                                    <?php if (!$__isPrep && !empty($sectors)): ?>
                                         · Setores: <?= $done ?>/<?= count($sectors) ?>
                                     <?php endif; ?>
                                 </small>
@@ -389,7 +397,7 @@ $prioMap = [
                         </div>
                     </div>
 
-                    <?php if (!empty($sectors)): ?>
+                    <?php if (!$__isPrep && !empty($sectors)): ?>
                         <!-- Fluxo visual de setores -->
                         <div class="sector-flow mt-1">
                             <?php foreach ($sectors as $si => $sec):
@@ -464,7 +472,10 @@ $prioMap = [
     <!-- ══════════════════════════════════════
          REGISTRO (Logs dos Produtos)
          ══════════════════════════════════════ -->
-    <?php if (!empty($orderItemLogs)): ?>
+    <!-- ══════════════════════════════════════
+         REGISTRO (Logs dos Produtos) — apenas na produção
+         ══════════════════════════════════════ -->
+    <?php if (!$__isPrep && !empty($orderItemLogs)): ?>
     <div class="card border-0 shadow-sm mb-2">
         <div class="card-header py-1" style="background: #e8f5e9;">
             <h6 class="mb-0 fw-bold" style="color: #27ae60; font-size:0.85rem;">
@@ -573,8 +584,8 @@ $prioMap = [
          ══════════════════════════════════════ -->
     <div class="footer-note text-center">
         <p class="text-muted small mb-0">
-            <i class="fas fa-industry me-1"></i>
-            Ordem de Produção gerada em <?= date('d/m/Y \à\s H:i') ?> — <?= e($company['company_name'] ?? '') ?> — Uso interno
+            <i class="fas <?= $__isPrep ? 'fa-box-open' : 'fa-industry' ?> me-1"></i>
+            <?= $__orderDocTitle ?> gerada em <?= date('d/m/Y \à\s H:i') ?> — <?= e($company['company_name'] ?? '') ?> — Uso interno
         </p>
     </div>
 
@@ -589,7 +600,7 @@ $prioMap = [
         </div>
         <div class="col-4 text-center">
             <div style="border-top: 1px solid #333; width: 85%; margin: 0 auto; padding-top: 3px;">
-                <small class="text-muted" style="font-size:0.7rem;">Produção</small>
+                <small class="text-muted" style="font-size:0.7rem;"><?= $__isPrep ? 'Preparação' : 'Produção' ?></small>
             </div>
         </div>
         <div class="col-4 text-center">
@@ -609,7 +620,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Código de barras do pedido
     try {
-        JsBarcode("#barcode-order", "OP<?= $orderId ?>", {
+        JsBarcode("#barcode-order", "<?= $__isPrep ? 'PREP' : 'OP' ?><?= $orderId ?>", {
             format: "CODE128",
             width: 1.2,
             height: 32,

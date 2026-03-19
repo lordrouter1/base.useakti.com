@@ -19,92 +19,78 @@
         $hasPaidInstallments = !empty($hasAnyPaidInstallment);
     ?>
 
-    <!-- Cabeçalho -->
-    <div class="d-flex justify-content-between align-items-center pt-2 pb-2 mb-3" style="border-bottom: 2px solid #e9ecef;">
-        <div>
-            <h2 class="mb-0" style="font-size: 1.4rem;">
-                <i class="<?= $stageInfo['icon'] ?> me-2" style="color:<?= $stageInfo['color'] ?>;"></i>
-                Pedido #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?>
-            </h2>
-            <small class="text-muted" style="font-size: 0.7rem;">
-                <i class="fas fa-calendar-alt me-1"></i>Criado em <?= date('d/m/Y H:i', strtotime($order['created_at'])) ?>
-            </small>
-            <div class="mb-2 mt-2">
-                <span class="badge fs-6 py-2 px-3" style="background:<?= $stageInfo['color'] ?>;">
+    <!-- ═══ Detail Page Header — Modern SaaS style ═══ -->
+    <div class="pipeline-page-header" style="padding-bottom:12px;margin-bottom:16px;">
+        <div style="min-width:0;">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="?page=pipeline" class="btn btn-outline-secondary btn-sm" style="border-radius:var(--radius-sm);padding:4px 10px;">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h2 class="mb-0" style="font-size: 1.35rem; font-weight:700; letter-spacing:-0.02em; color:var(--text-main);">
+                    Pedido #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?>
+                </h2>
+                <span class="badge py-2 px-3" style="background:<?= $stageInfo['color'] ?>;font-size:0.78rem;border-radius:20px;">
                     <i class="<?= $stageInfo['icon'] ?> me-1"></i> <?= $stageInfo['label'] ?>
                 </span>
-                <span class="ms-2 small <?= $isDelayed ? 'text-danger fw-bold' : 'text-muted' ?>">
+                <?php if($isDelayed): ?>
+                <span class="badge bg-danger py-1 px-2" style="font-size:0.7rem;border-radius:20px;animation:pulse-danger 2s infinite;">
+                    <i class="fas fa-exclamation-triangle me-1"></i> ATRASADO +<?= $hoursInStage - $stageGoal ?>h
+                </span>
+                <?php endif; ?>
+            </div>
+            <div class="d-flex align-items-center gap-3 mt-1" style="font-size: 0.72rem;">
+                <span class="text-muted">
+                    <i class="fas fa-calendar-alt me-1"></i>Criado em <?= date('d/m/Y H:i', strtotime($order['created_at'])) ?>
+                </span>
+                <span class="<?= $isDelayed ? 'text-danger fw-bold' : 'text-muted' ?>">
                     <i class="fas fa-clock me-1"></i>
                     <?= ($hoursInStage >= 24) ? floor($hoursInStage/24).'d '.($hoursInStage%24).'h' : $hoursInStage.'h' ?>
                     na etapa
-                    <?php if($isDelayed): ?>
-                        <span class="badge bg-danger ms-1">ATRASADO +<?= $hoursInStage - $stageGoal ?>h</span>
-                    <?php endif; ?>
                 </span>
+                <?php if (!empty($order['customer_name'])): ?>
+                <span class="text-muted">
+                    <i class="fas fa-user me-1"></i><?= e($order['customer_name']) ?>
+                </span>
+                <?php endif; ?>
             </div>
         </div>
-        <div class="d-flex gap-2 flex-wrap justify-content-end">
-            <a href="?page=pipeline" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Voltar</a>
-            <?php if ($currentStage === 'producao'): ?>
-            <a href="?page=production_board" class="btn btn-outline-success btn-sm"><i class="fas fa-tasks me-1"></i> Painel de Produção</a>
-            <?php endif; ?>
-            <?php if (in_array($currentStage, ['producao', 'preparacao'])): ?>
-            <a href="?page=pipeline&action=printProductionOrder&id=<?= $order['id'] ?>" target="_blank" class="btn btn-outline-warning btn-sm text-dark"><i class="fas fa-print me-1"></i> Ordem de Produção</a>
-            <?php endif; ?>
-            <?php if (in_array($currentStage, ['venda', 'financeiro'])): ?>
-            <button type="button" class="btn btn-outline-success btn-sm" id="btnHeaderPrintOrder"><i class="fas fa-file-invoice me-1"></i> Nota de Pedido</button>
-            <?php endif; ?>
-            <?php if ($canUseNfeModule && in_array($currentStage, ['venda', 'financeiro', 'envio', 'concluido'])): ?>
-                <?php
-                // Buscar NF-e do pedido para botões do cabeçalho
-                $_headerNfeDoc = null;
-                try {
-                    $_headerNfeModel = new \Akti\Models\NfeDocument((new \Database())->getConnection());
-                    $_headerNfeDoc = $_headerNfeModel->readByOrder($order['id']);
-                } catch (\Exception $_e) {}
-                ?>
-                <?php if ($_headerNfeDoc && in_array($_headerNfeDoc['status'], ['autorizada', 'corrigida']) && !empty($_headerNfeDoc['xml_autorizado'])): ?>
-                <a href="?page=nfe_documents&action=download&id=<?= $_headerNfeDoc['id'] ?>&type=danfe" 
-                   target="_blank" class="btn btn-danger btn-sm" title="Imprimir DANFE (PDF)">
-                    <i class="fas fa-file-pdf me-1"></i> DANFE
-                </a>
-                <?php elseif (!$_headerNfeDoc): ?>
-                <button type="button" class="btn btn-outline-success btn-sm" id="btnHeaderEmitirNfe" title="Emitir NF-e via SEFAZ">
-                    <i class="fas fa-file-export me-1"></i> Emitir NF-e
-                </button>
-                <?php endif; ?>
-            <?php endif; ?>
+        <div class="d-flex gap-2 flex-wrap justify-content-end align-items-center">
             <?php if (!$isReadOnly): ?>
-            <a href="?page=orders&action=edit&id=<?= $order['id'] ?>" class="btn btn-outline-primary btn-sm"><i class="fas fa-edit me-1"></i> Editar Pedido</a>
+            <div class="btn-group btn-group-sm" role="group">
+                <a href="?page=orders&action=edit&id=<?= $order['id'] ?>" class="btn btn-outline-primary"><i class="fas fa-edit me-1"></i> Editar Pedido</a>
+                <button type="submit" form="formPipelineDetail" class="btn btn-primary"><i class="fas fa-save me-1"></i> Salvar Alterações</button>
+            </div>
             <?php endif; ?>
         </div>
     </div>
 
-    <!-- Progress Bar do Pipeline -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body p-3">
-            <div class="pipeline-progress d-flex align-items-center justify-content-between position-relative" style="overflow-x: hidden; scrollbar-width: thin;">
-                <?php 
-                $stageKeys = array_keys($stages);
-                $currentIdx = array_search($currentStage, $stageKeys);
-                $totalStages = count($stageKeys);
-                foreach ($stages as $sKey => $sInfo):
+    <!-- ═══ Progress Bar do Pipeline — Modern Stepper ═══ -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:var(--radius-lg);">
+        <div class="card-body p-3" style="overflow-x:auto;scrollbar-width:thin;">
+            <?php 
+            $stageKeys = array_keys($stages);
+            $currentIdx = array_search($currentStage, $stageKeys);
+            $totalStages = count($stageKeys);
+            $progressPct = $totalStages > 1 ? round(($currentIdx / ($totalStages - 1)) * 100) : 0;
+            ?>
+            <div class="pipeline-progress d-flex align-items-center justify-content-between position-relative" style="z-index:1;">
+                <?php foreach ($stages as $sKey => $sInfo):
                     $sIdx = array_search($sKey, $stageKeys);
                     $isCompleted = $sIdx < $currentIdx;
                     $isCurrent = $sKey === $currentStage;
                     $isFuture = $sIdx > $currentIdx;
-                    // State CSS class
                     $stepClass = $isCompleted ? 'step-completed' : ($isCurrent ? 'step-current' : 'step-future');
                 ?>
-                <div class="pipeline-step <?= $stepClass ?> text-center flex-fill position-relative" style="z-index:1;">
+                <div class="pipeline-step <?= $stepClass ?> text-center flex-fill position-relative">
                     <div class="pipeline-step-icon mx-auto rounded-circle d-flex align-items-center justify-content-center"
-                        style="width:44px; height:44px; font-size:0.9rem;
-                        background: <?= $isCompleted ? $sInfo['color'] : ($isCurrent ? '#fff' : '#f1f5f9') ?>;
-                        color: <?= $isCompleted ? '#fff' : ($isCurrent ? $sInfo['color'] : '#94a3b8') ?>;
-                        border: <?= $isCurrent ? '3px solid ' . $sInfo['color'] : ($isCompleted ? 'none' : '2px solid #e2e8f0') ?>;">
+                        style="width:44px; height:44px; font-size:0.85rem;
+                        background: <?= $isCompleted ? $sInfo['color'] : ($isCurrent ? '#fff' : 'var(--bg-body)') ?>;
+                        color: <?= $isCompleted ? '#fff' : ($isCurrent ? $sInfo['color'] : 'var(--secondary-color)') ?>;
+                        border: <?= $isCurrent ? '3px solid ' . $sInfo['color'] : ($isCompleted ? 'none' : '2px solid var(--border-color)') ?>;
+                        transition: all 0.3s ease;">
                         <i class="<?= $isCompleted ? 'fas fa-check' : $sInfo['icon'] ?>"></i>
                     </div>
-                    <div class="pipeline-step-label small <?= $isCurrent ? 'fw-bold' : ($isFuture ? 'text-muted' : '') ?>" style="font-size:0.7rem;color:<?= $isCompleted ? $sInfo['color'] : ($isCurrent ? $sInfo['color'] : '') ?>;">
+                    <div class="pipeline-step-label <?= $isCurrent ? 'fw-bold' : ($isFuture ? 'text-muted' : '') ?>" style="font-size:0.68rem;color:<?= $isCompleted ? $sInfo['color'] : ($isCurrent ? $sInfo['color'] : '') ?>;margin-top:6px;">
                         <?= $sInfo['label'] ?>
                     </div>
                 </div>
@@ -113,76 +99,77 @@
         </div>
     </div>
 
-    <!-- Ações rápidas de movimentação -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body p-3 d-flex">
-            <div class="flex-wrap gap-2 m-auto">
+    <!-- ═══ Ações rápidas de movimentação — Redesigned ═══ -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:var(--radius-lg);">
+        <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-center flex-wrap gap-2">
                 
-                <div class="d-flex gap-2">
-                    <div class="input-group">
-                        <?php if (!$isReadOnly): ?>
-                        <!-- Botão retroceder -->
-                        <?php if ($currentIdx > 0): ?>
-                        <?php $prevStage = $stageKeys[$currentIdx - 1]; $prevBlocked = $hasPaidInstallments && in_array($prevStage, $stagesBlockedByPaid); ?>
-                        <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $prevStage ?>" 
-                        class="btn btn-sm me-1 <?= $prevBlocked ? 'btn-danger' : 'btn-secondary' ?> btn-move-stage" 
-                        data-dir="Retroceder" data-stage="<?= $stages[$prevStage]['label'] ?>"
-                        data-target-stage="<?= $prevStage ?>"
-                        data-order-id="<?= $order['id'] ?>"
-                        <?php if ($prevBlocked): ?>title="Bloqueado — Existem parcelas pagas"<?php endif; ?>>
-                            <?php if ($prevBlocked): ?><i class="fas fa-lock me-1"></i><?php else: ?><i class="fas fa-arrow-left me-1"></i><?php endif; ?>
-                            <?= $stages[$prevStage]['label'] ?>
-                        </a>
-                        <?php endif; ?>
-                        <?php endif;?>
+                <?php if (!$isReadOnly): ?>
+                <!-- Botão retroceder -->
+                <?php if ($currentIdx > 0): ?>
+                <?php $prevStage = $stageKeys[$currentIdx - 1]; $prevBlocked = $hasPaidInstallments && in_array($prevStage, $stagesBlockedByPaid); ?>
+                <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $prevStage ?>" 
+                   class="btn btn-sm <?= $prevBlocked ? 'btn-outline-danger' : 'btn-outline-secondary' ?> btn-move-stage" 
+                   style="border-radius:var(--radius-sm);font-size:0.78rem;"
+                   data-dir="Retroceder" data-stage="<?= $stages[$prevStage]['label'] ?>"
+                   data-target-stage="<?= $prevStage ?>"
+                   data-order-id="<?= $order['id'] ?>"
+                   <?php if ($prevBlocked): ?>title="Bloqueado — Existem parcelas pagas"<?php endif; ?>>
+                    <?php if ($prevBlocked): ?><i class="fas fa-lock me-1"></i><?php else: ?><i class="fas fa-arrow-left me-1"></i><?php endif; ?>
+                    <?= $stages[$prevStage]['label'] ?>
+                </a>
+                <?php endif; ?>
+                <?php endif;?>
 
-                        <!-- Mover para qualquer etapa -->
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-primary dropdown-toggle <?php echo (!$isReadOnly)? "rounded-0":""; ?>" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-random me-1"></i> Mover para...
-                            </button>
-                            <ul class="dropdown-menu">
-                                <?php foreach ($stages as $sKey => $sInfo): ?>
-                                <?php if ($sKey !== $currentStage): ?>
-                                <?php $isBlockedByPaid = $hasPaidInstallments && in_array($sKey, $stagesBlockedByPaid); ?>
-                                <li>
-                                    <a class="dropdown-item btn-move-stage <?= $isBlockedByPaid ? 'text-danger' : '' ?>" href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $sKey ?>" 
-                                    data-dir="Mover" data-stage="<?= $sInfo['label'] ?>"
-                                    data-target-stage="<?= $sKey ?>"
-                                    data-order-id="<?= $order['id'] ?>">
-                                        <?php if ($isBlockedByPaid): ?>
-                                        <i class="fas fa-lock me-2 text-danger"></i> <span class="text-decoration-line-through"><?= $sInfo['label'] ?></span>
-                                        <small class="text-danger ms-1" style="font-size:0.65rem;"><i class="fas fa-info-circle"></i> parcelas pagas</small>
-                                        <?php else: ?>
-                                        <i class="<?= $sInfo['icon'] ?> me-2" style="color:<?= $sInfo['color'] ?>;"></i> <?= $sInfo['label'] ?>
-                                        <?php endif; ?>
-                                    </a>
-                                </li>
+                <!-- Mover para qualquer etapa -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" style="border-radius:var(--radius-sm);font-size:0.78rem;">
+                        <i class="fas fa-random me-1"></i> Mover para...
+                    </button>
+                    <ul class="dropdown-menu shadow-lg" style="border-radius:var(--radius-md);border:1px solid var(--border-color);">
+                        <?php foreach ($stages as $sKey => $sInfo): ?>
+                        <?php if ($sKey !== $currentStage): ?>
+                        <?php $isBlockedByPaid = $hasPaidInstallments && in_array($sKey, $stagesBlockedByPaid); ?>
+                        <li>
+                            <a class="dropdown-item btn-move-stage <?= $isBlockedByPaid ? 'text-danger' : '' ?>" 
+                               href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $sKey ?>" 
+                               data-dir="Mover" data-stage="<?= $sInfo['label'] ?>"
+                               data-target-stage="<?= $sKey ?>"
+                               data-order-id="<?= $order['id'] ?>"
+                               style="font-size:0.82rem;padding:8px 16px;">
+                                <?php if ($isBlockedByPaid): ?>
+                                <i class="fas fa-lock me-2 text-danger"></i> <span class="text-decoration-line-through"><?= $sInfo['label'] ?></span>
+                                <small class="text-danger ms-1" style="font-size:0.65rem;"><i class="fas fa-info-circle"></i> parcelas pagas</small>
+                                <?php else: ?>
+                                <i class="<?= $sInfo['icon'] ?> me-2" style="color:<?= $sInfo['color'] ?>;"></i> <?= $sInfo['label'] ?>
                                 <?php endif; ?>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                        
-                        <?php if (!$isReadOnly): ?>
-                        <!-- Botão avançar -->
-                        <?php if ($currentIdx < $totalStages - 1): ?>
-                        <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $stageKeys[$currentIdx + 1] ?>" 
-                        class="btn btn-sm ms-1 btn-success btn-move-stage" 
-                        data-dir="Avançar" data-stage="<?= $stages[$stageKeys[$currentIdx + 1]]['label'] ?>"
-                        data-target-stage="<?= $stageKeys[$currentIdx + 1] ?>"
-                        data-order-id="<?= $order['id'] ?>">
-                            <?= $stages[$stageKeys[$currentIdx + 1]]['label'] ?> <i class="fas fa-arrow-right ms-1"></i>
-                        </a>
+                            </a>
+                        </li>
                         <?php endif; ?>
-                        <?php endif; ?> <!-- /!$isReadOnly -->
-                    </div>
+                        <?php endforeach; ?>
+                    </ul>
                 </div>
+                
+                <?php if (!$isReadOnly): ?>
+                <!-- Botão avançar (principal) -->
+                <?php if ($currentIdx < $totalStages - 1): ?>
+                <a href="?page=pipeline&action=move&id=<?= $order['id'] ?>&stage=<?= $stageKeys[$currentIdx + 1] ?>" 
+                   class="btn btn-sm btn-success btn-move-stage px-3" 
+                   style="border-radius:var(--radius-sm);font-size:0.78rem;font-weight:600;"
+                   data-dir="Avançar" data-stage="<?= $stages[$stageKeys[$currentIdx + 1]]['label'] ?>"
+                   data-target-stage="<?= $stageKeys[$currentIdx + 1] ?>"
+                   data-order-id="<?= $order['id'] ?>">
+                    <?= $stages[$stageKeys[$currentIdx + 1]]['label'] ?> <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+                <?php endif; ?>
+                <?php endif; ?>
+                
             </div>
         </div>
     </div>
 
     <?php if ($isReadOnly): ?>
-    <div class="alert <?= $currentStage === 'cancelado' ? 'alert-danger' : 'alert-success' ?> d-flex align-items-center mb-4 shadow-sm" role="alert" style="border-left: 4px solid <?= $currentStage === 'cancelado' ? '#dc3545' : '#198754' ?> !important; border-radius: 8px;">
+    <div class="alert <?= $currentStage === 'cancelado' ? 'alert-danger' : 'alert-success' ?> d-flex align-items-center mb-4 shadow-sm" role="alert" style="border-left: 4px solid <?= $currentStage === 'cancelado' ? '#dc3545' : '#198754' ?> !important; border-radius: var(--radius-md);">
         <i class="fas <?= $currentStage === 'cancelado' ? 'fa-ban' : 'fa-check-double' ?> me-3 fs-4"></i>
         <div>
             <strong>Pedido <?= $currentStage === 'cancelado' ? 'Cancelado' : 'Concluído' ?>.</strong>
@@ -211,7 +198,7 @@
     <div class="row g-4">
         <!-- Coluna Esquerda: Informações e Formulário -->
         <div class="col-lg-8">
-            <form method="POST" action="?page=pipeline&action=updateDetails">
+            <form method="POST" action="?page=pipeline&action=updateDetails" id="formPipelineDetail">
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" value="<?= $order['id'] ?>">
 
@@ -645,7 +632,63 @@
                 <input type="hidden" name="price_table_id" value="<?= $order['price_table_id'] ?? '' ?>">
                 <?php endif; ?>
 
+                <!-- ═══ ORDEM DE PRODUÇÃO / PREPARAÇÃO — Card para impressão ═══ -->
+                <?php if (in_array($currentStage, ['producao', 'preparacao'])): ?>
+                <?php
+                    $isPreparationStage = ($currentStage === 'preparacao');
+                    $orderCardTitle     = $isPreparationStage ? 'Ordem de Preparação' : 'Ordem de Produção';
+                    $orderCardIcon      = $isPreparationStage ? 'fa-box-open' : 'fa-clipboard-list';
+                    $orderCardColor     = $isPreparationStage ? '#27ae60' : '#e67e22';
+                    $orderCardBgStart   = $isPreparationStage ? '#27ae6010' : '#e67e2210';
+                    $orderCardBgEnd     = $isPreparationStage ? '#2ecc7115' : '#f39c1215';
+                    $orderCardAreaBgStart = $isPreparationStage ? '#e8f5e9' : '#fff3e0';
+                    $orderCardAreaBgEnd   = $isPreparationStage ? '#f1f8f2' : '#fef9f0';
+                    $orderCardDescription = $isPreparationStage
+                        ? 'Imprima a ordem de preparação com os detalhes do pedido, produtos e checklist de preparo.'
+                        : 'Imprima a ordem de produção com os detalhes do pedido, produtos e setores.';
+                    $orderCardSubtext = $isPreparationStage
+                        ? 'Documento interno para acompanhamento da preparação e embalagem do pedido.'
+                        : 'Documento interno para acompanhamento da produção no chão de fábrica.';
+                ?>
+                <div class="card border-0 shadow-sm mb-4" id="productionOrderSection">
+                    <div class="card-header py-2" style="background: linear-gradient(135deg, <?= $orderCardBgStart ?> 0%, <?= $orderCardBgEnd ?> 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0" style="font-size:0.85rem; color:<?= $orderCardColor ?>;">
+                                <i class="fas <?= $orderCardIcon ?> me-2"></i><?= $orderCardTitle ?>
+                            </h6>
+                            <span class="badge" style="font-size:0.6rem; background:<?= $orderCardColor ?>20; color:<?= $orderCardColor ?>;">
+                                <i class="fas fa-print me-1"></i>Impressão
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="text-center py-3" style="background: linear-gradient(135deg, <?= $orderCardAreaBgStart ?> 0%, <?= $orderCardAreaBgEnd ?> 100%); border-radius: 10px; border: 2px dashed <?= $orderCardColor ?>40;">
+                            <i class="fas <?= $orderCardIcon ?> d-block mb-2" style="font-size: 2.2rem; color: <?= $orderCardColor ?>; opacity: 0.6;"></i>
+                            <p class="mb-1 small text-muted" style="font-size: 0.78rem;">
+                                <?= $orderCardDescription ?>
+                            </p>
+                            <p class="mb-3 small text-muted" style="font-size: 0.68rem;">
+                                <i class="fas fa-info-circle me-1"></i><?= $orderCardSubtext ?>
+                            </p>
+                            <div class="d-flex justify-content-center gap-2">
+                                <a href="?page=pipeline&action=printProductionOrder&id=<?= $order['id'] ?>" 
+                                   target="_blank" class="btn px-4 shadow-sm" style="background:<?= $orderCardColor ?>; color:#fff; font-size: 0.95rem; border-radius: 10px;">
+                                    <i class="fas fa-print me-2"></i> Imprimir Ordem
+                                </a>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted" style="font-size: 0.65rem;">
+                                    <i class="fas fa-box me-1"></i><?= count($orderItems ?? []) ?> produto(s)
+                                    &nbsp;·&nbsp; Pedido #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <?php if ($currentStage === 'producao' || ($isReadOnly && !empty($orderProductionSectors))): ?>
+
                 <?php if (!empty($orderProductionSectors)): ?>
                 <!-- ═══════════════════════════════════════════════════════════ -->
                 <!-- ═══ CONTROLE DE SETORES DE PRODUÇÃO (POR PRODUTO) ═══ -->
@@ -2128,11 +2171,6 @@
                 <input type="hidden" name="tracking_code" value="<?= $order['tracking_code'] ?? '' ?>">
                 <?php endif; ?>
 
-                <?php if (!$isReadOnly): ?>
-                <div class="text-end mb-4">
-                    <button type="submit" class="btn btn-primary btn-lg px-5 fw-bold shadow-sm" style="border-radius: 10px;"><i class="fas fa-save me-2"></i>Salvar Alterações</button>
-                </div>
-                <?php endif; ?>
             </form>
         </div>
 

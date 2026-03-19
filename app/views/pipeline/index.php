@@ -1,14 +1,25 @@
 <div class="container-fluid py-3">
-    <!-- Header com Estatísticas -->
-    <div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-2 mb-3 border-bottom">
-        <h1 class="h2 mb-0"><i class="fas fa-stream me-2"></i>Linha de Produção</h1>
-        <div class="btn-toolbar gap-2">
+    <!-- ═══ Page Header — Clean, Linear-style ═══ -->
+    <div class="pipeline-page-header">
+        <div>
+            <h1><i class="fas fa-stream me-2"></i>Linha de Produção</h1>
+            <small class="text-muted" style="font-size:0.72rem;"><i class="fas fa-calendar-alt me-1"></i><?= date('d/m/Y H:i') ?></small>
+        </div>
+        <div class="pipeline-header-actions">
+            <div class="input-group input-group-sm" style="max-width:220px;">
+                <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-search text-muted" style="font-size:0.75rem;"></i></span>
+                <input type="text" class="form-control border-start-0 ps-0" id="pipelineSearch" placeholder="Buscar pedido ou cliente..." style="font-size:0.78rem;">
+            </div>
+            <select class="form-select form-select-sm" id="pipelinePriorityFilter" style="max-width:140px;font-size:0.78rem;">
+                <option value="">Prioridade</option>
+                <option value="urgente">🔴 Urgente</option>
+                <option value="alta">🟡 Alta</option>
+                <option value="normal">🔵 Normal</option>
+                <option value="baixa">⚪ Baixa</option>
+            </select>
             <?php if(!empty($delayedOrders)): ?>
-            <button class="btn btn-sm btn-danger position-relative" data-bs-toggle="modal" data-bs-target="#delayedModal">
-                <i class="fas fa-exclamation-triangle me-1"></i> Atrasados
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">
-                    <?= count($delayedOrders) ?>
-                </span>
+            <button class="btn btn-sm btn-danger btn-delayed-alert" data-bs-toggle="modal" data-bs-target="#delayedModal">
+                <i class="fas fa-exclamation-triangle me-1"></i> <?= count($delayedOrders) ?> Atrasado<?= count($delayedOrders) > 1 ? 's' : '' ?>
             </button>
             <?php endif; ?>
             <a href="?page=pipeline&action=settings" class="btn btn-sm btn-outline-secondary">
@@ -20,63 +31,63 @@
         </div>
     </div>
 
-    <!-- Cards de Resumo -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:45px;height:45px;background:rgba(52,152,219,0.15);">
-                        <i class="fas fa-tasks text-primary"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">Pedidos Ativos</div>
-                        <div class="fw-bold fs-5"><?= $stats['total_active'] ?></div>
-                    </div>
-                </div>
+    <?php if(!empty($delayedOrders)): ?>
+    <!-- ═══ Delayed Orders Alert Banner ═══ -->
+    <div class="pipeline-delayed-banner">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+            <strong><?= count($delayedOrders) ?> pedido<?= count($delayedOrders) > 1 ? 's' : '' ?></strong> 
+            ultrapassaram a meta de tempo. 
+            <a href="#" data-bs-toggle="modal" data-bs-target="#delayedModal" class="text-danger fw-bold text-decoration-underline">Ver detalhes →</a>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- ═══ KPI Metric Widgets ═══ -->
+    <div class="pipeline-metrics">
+        <div class="pipeline-metric-card metric-active">
+            <div class="pipeline-metric-icon icon-active">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="pipeline-metric-data">
+                <div class="pipeline-metric-label">Pedidos Ativos</div>
+                <div class="pipeline-metric-value"><?= $stats['total_active'] ?></div>
+                <div class="pipeline-metric-sub">em andamento agora</div>
             </div>
         </div>
-        <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:45px;height:45px;background:rgba(192,57,43,0.15);">
-                        <i class="fas fa-exclamation-circle text-danger"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">Atrasados</div>
-                        <div class="fw-bold fs-5 <?= $stats['total_delayed'] > 0 ? 'text-danger' : '' ?>"><?= $stats['total_delayed'] ?></div>
-                    </div>
-                </div>
+        <div class="pipeline-metric-card metric-delayed" <?= $stats['total_delayed'] > 0 ? 'style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#delayedModal"' : '' ?>>
+            <div class="pipeline-metric-icon icon-delayed">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="pipeline-metric-data">
+                <div class="pipeline-metric-label">Atrasados</div>
+                <div class="pipeline-metric-value <?= $stats['total_delayed'] > 0 ? 'text-danger' : '' ?>"><?= $stats['total_delayed'] ?></div>
+                <div class="pipeline-metric-sub"><?= $stats['total_delayed'] > 0 ? 'ação necessária' : 'tudo em dia ✓' ?></div>
             </div>
         </div>
-        <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:45px;height:45px;background:rgba(39,174,96,0.15);">
-                        <i class="fas fa-check-circle text-success"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">Concluídos (mês)</div>
-                        <div class="fw-bold fs-5"><?= $stats['completed_month'] ?></div>
-                    </div>
-                </div>
+        <div class="pipeline-metric-card metric-completed">
+            <div class="pipeline-metric-icon icon-completed">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="pipeline-metric-data">
+                <div class="pipeline-metric-label">Concluídos</div>
+                <div class="pipeline-metric-value"><?= $stats['completed_month'] ?></div>
+                <div class="pipeline-metric-sub">neste mês</div>
             </div>
         </div>
-        <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:45px;height:45px;background:rgba(243,156,18,0.15);">
-                        <i class="fas fa-dollar-sign text-warning"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">Valor em Aberto</div>
-                        <div class="fw-bold fs-5">R$ <?= number_format($stats['total_value'], 2, ',', '.') ?></div>
-                    </div>
-                </div>
+        <div class="pipeline-metric-card metric-value">
+            <div class="pipeline-metric-icon icon-value">
+                <i class="fas fa-coins"></i>
+            </div>
+            <div class="pipeline-metric-data">
+                <div class="pipeline-metric-label">Valor em Aberto</div>
+                <div class="pipeline-metric-value" style="font-size:1.2rem;">R$ <?= number_format($stats['total_value'], 2, ',', '.') ?></div>
+                <div class="pipeline-metric-sub">total dos ativos</div>
             </div>
         </div>
     </div>
 
-    <!-- Pipeline Kanban Board -->
+    <!-- ═══ Pipeline Kanban Board ═══ -->
     <?php
     // Filtra etapas por permissão do grupo do usuário
     $isAdminPipeline = (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin');
@@ -92,7 +103,6 @@
                 $allowedStages[] = str_replace('stage_', '', $sp);
             }
         }
-        // Se nenhuma etapa configurada, mostra todas (retrocompatibilidade)
         if (empty($allowedStages)) {
             $allowedStages = array_keys($stages);
         }
@@ -101,13 +111,12 @@
     }
     ?>
     <div class="pipeline-board-wrapper position-relative" id="pipelineBoardWrapper">
-        <!-- Navigation buttons for horizontal scroll (mobile/tablet) -->
+        <!-- Navigation buttons -->
         <button class="pipeline-nav-btn nav-left" id="pipelineNavLeft" title="Rolar para esquerda"><i class="fas fa-chevron-left"></i></button>
         <button class="pipeline-nav-btn nav-right" id="pipelineNavRight" title="Rolar para direita"><i class="fas fa-chevron-right"></i></button>
 
-        <div class="pipeline-board d-flex gap-2 pb-3" id="pipelineBoard" style="min-height: 500px;">
+        <div class="pipeline-board d-flex pb-3" id="pipelineBoard" style="min-height: 500px;">
             <?php 
-            // Contar quantas colunas visíveis teremos
             $visibleStageCount = 0;
             $visibleStages = [];
             foreach ($stages as $sk => $si) {
@@ -119,35 +128,59 @@
             ?>
             <?php foreach ($stages as $stageKey => $stageInfo): ?>
             <?php 
-                if ($stageKey === 'concluido' || $stageKey === 'cancelado') continue; // Concluído e Cancelado não aparecem no kanban
-                if (!in_array($stageKey, $allowedStages)) continue; // Filtra por permissão
+                if ($stageKey === 'concluido' || $stageKey === 'cancelado') continue;
+                if (!in_array($stageKey, $allowedStages)) continue;
                 $stageOrders = $ordersByStage[$stageKey] ?? [];
                 $stageGoal = isset($goals[$stageKey]) ? (int)$goals[$stageKey]['max_hours'] : 24;
+                // Calcular quantos atrasados na coluna
+                $delayedInCol = 0;
+                foreach ($stageOrders as $_o) {
+                    $h = (int)$_o['hours_in_stage'];
+                    if ($stageGoal > 0 && $h > $stageGoal) $delayedInCol++;
+                }
             ?>
             <div class="pipeline-column" data-stage-key="<?= $stageKey ?>">
                 <!-- Cabeçalho da Coluna -->
                 <div class="pipeline-column-header rounded-top p-2 px-3 d-flex align-items-center justify-content-between" 
                      style="background: <?= $stageInfo['color'] ?>; color: #fff;">
-                    <div class="d-flex align-items-center">
-                        <i class="<?= $stageInfo['icon'] ?> me-2"></i>
-                        <span class="fw-bold small"><?= $stageInfo['label'] ?></span>
+                    <div class="d-flex align-items-center" style="min-width:0;">
+                        <i class="<?= $stageInfo['icon'] ?> me-2" style="font-size:0.85rem;flex-shrink:0;"></i>
+                        <span class="fw-bold" style="font-size:0.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= $stageInfo['label'] ?></span>
                     </div>
-                    <span class="badge bg-white text-dark rounded-pill"><?= count($stageOrders) ?></span>
+                    <div class="d-flex align-items-center gap-1">
+                        <?php if ($delayedInCol > 0): ?>
+                        <span class="badge bg-danger rounded-pill" style="font-size:0.6rem;" title="<?= $delayedInCol ?> atrasado(s)">
+                            <i class="fas fa-exclamation-triangle"></i> <?= $delayedInCol ?>
+                        </span>
+                        <?php endif; ?>
+                        <span class="badge bg-white rounded-pill" style="color: <?= $stageInfo['color'] ?>;"><?= count($stageOrders) ?></span>
+                    </div>
                 </div>
                 
-                <!-- Meta de tempo -->
-                <div class="bg-light text-center py-1 border-start border-end" style="font-size: 0.7rem;">
-                    <i class="fas fa-clock text-muted me-1"></i>Meta: <?= $stageGoal ?>h
+                <!-- Meta de tempo + micro progress -->
+                <div class="pipeline-stage-meta">
+                    <span><i class="fas fa-clock me-1"></i>Meta: <?= $stageGoal ?>h</span>
+                    <?php 
+                    // Micro progress: % dos pedidos dentro da meta
+                    $inGoal = count($stageOrders) > 0 ? count($stageOrders) - $delayedInCol : 0;
+                    $goalPct = count($stageOrders) > 0 ? round(($inGoal / count($stageOrders)) * 100) : 100;
+                    ?>
+                    <div class="d-flex align-items-center gap-1">
+                        <div class="goal-bar">
+                            <div class="goal-bar-fill" style="width:<?= $goalPct ?>%;background:<?= $goalPct === 100 ? 'var(--success-color)' : ($goalPct >= 50 ? 'var(--warning-color)' : 'var(--danger-color)') ?>;"></div>
+                        </div>
+                        <span style="font-size:0.6rem;"><?= $goalPct ?>%</span>
+                    </div>
                 </div>
 
                 <!-- Cards dos Pedidos (droppable zone) -->
-                <div class="pipeline-column-body border border-top-0 rounded-bottom bg-white p-2 pipeline-dropzone" 
+                <div class="pipeline-column-body pipeline-dropzone" 
                      style="min-height: 400px; max-height: 70vh; overflow-y: auto;"
                      data-stage="<?= $stageKey ?>">
                     
                     <?php if (empty($stageOrders)): ?>
-                        <div class="pipeline-empty-state text-center text-muted py-4 small">
-                            <i class="fas fa-inbox d-block mb-2" style="font-size: 1.5rem;"></i>
+                        <div class="pipeline-empty-state">
+                            <i class="fas fa-inbox"></i>
                             Nenhum pedido
                         </div>
                     <?php endif; ?>
@@ -156,62 +189,83 @@
                         $hoursInStage = (int)$order['hours_in_stage'];
                         $isDelayed = ($stageGoal > 0 && $hoursInStage > $stageGoal);
                         $delayHours = $isDelayed ? $hoursInStage - $stageGoal : 0;
-                        $priorityColors = [
-                            'baixa'   => 'secondary',
-                            'normal'  => 'primary',
-                            'alta'    => 'warning',
-                            'urgente' => 'danger',
-                        ];
-                        $prioColor = $priorityColors[$order['priority'] ?? 'normal'] ?? 'primary';
+                        $priority = $order['priority'] ?? 'normal';
+                        // Timer percentage (how much of goal used)
+                        $timerPct = $stageGoal > 0 ? min(100, round(($hoursInStage / $stageGoal) * 100)) : 0;
+                        $timerClass = $timerPct <= 60 ? 'timer-ok' : ($timerPct <= 90 ? 'timer-warn' : 'timer-danger');
                     ?>
                     <div class="pipeline-card card border-0 shadow-sm mb-2 <?= $isDelayed ? 'pipeline-card-delayed' : '' ?>" 
-                         data-order-id="<?= $order['id'] ?>" data-priority="<?= $order['priority'] ?? 'normal' ?>">
-                        <div class="card-body p-2 pb-0">
-                            <!-- Topo: Nº do Pedido + Badge de Prioridade -->
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="fw-bold small text-dark">
-                                    #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?>
-                                </span>
-                                <span class="badge bg-<?= $prioColor ?> rounded-pill" style="font-size:0.65rem;">
-                                    <?= ucfirst($order['priority'] ?? 'normal') ?>
-                                </span>
+                         data-order-id="<?= $order['id'] ?>" 
+                         data-priority="<?= $priority ?>"
+                         data-customer="<?= strtolower(e($order['customer_name'] ?? '')) ?>">
+                        <div class="card-body">
+                            <!-- Header: Order # + Priority (clickable toggle) -->
+                            <div class="pipeline-card-header pipeline-card-toggle" role="button" title="Clique para expandir">
+                                <span class="pipeline-card-order-id">#<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></span>
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="badge-priority badge-priority-<?= $priority ?>"><?= ucfirst($priority) ?></span>
+                                    <i class="fas fa-chevron-down pipeline-card-chevron"></i>
+                                </div>
                             </div>
                             
-                            <!-- Nome do Cliente -->
-                            <div class="small mb-2">
-                                <i class="fas fa-user text-muted me-1" style="font-size:0.7rem;"></i>
-                                <span class="text-truncate d-inline-block" style="max-width: 180px;"><?= e($order['customer_name'] ?? 'Cliente removido') ?></span>
-                            </div>
+                            <!-- Collapsible details -->
+                            <div class="pipeline-card-details">
+                                <!-- Customer name -->
+                                <div class="pipeline-card-customer">
+                                    <i class="fas fa-user"></i>
+                                    <span><?= e($order['customer_name'] ?? 'Cliente removido') ?></span>
+                                </div>
 
-                            <!-- Tempo na etapa atual -->
-                            <div class="d-flex align-items-center mb-2">
-                                <span class="small <?= $isDelayed ? 'text-danger fw-bold' : 'text-muted' ?>">
-                                    <i class="fas fa-clock me-1"></i>
-                                    <?php if ($hoursInStage < 24): ?>
-                                        <?= $hoursInStage ?>h nesta etapa
-                                    <?php else: ?>
-                                        <?= floor($hoursInStage / 24) ?>d <?= $hoursInStage % 24 ?>h nesta etapa
-                                    <?php endif; ?>
+                                <!-- Time progress bar -->
+                                <div class="pipeline-card-timer" title="<?= $timerPct ?>% da meta (<?= $hoursInStage ?>h / <?= $stageGoal ?>h)">
+                                    <div class="pipeline-card-timer-fill <?= $timerClass ?>" style="width:<?= $timerPct ?>%;"></div>
+                                </div>
+
+                                <!-- Time label -->
+                                <div class="pipeline-card-time <?= $isDelayed ? 'is-delayed' : '' ?>">
+                                    <i class="fas fa-clock"></i>
+                                    <span>
+                                        <?php if ($hoursInStage < 24): ?>
+                                            <?= $hoursInStage ?>h
+                                        <?php else: ?>
+                                            <?= floor($hoursInStage / 24) ?>d <?= $hoursInStage % 24 ?>h
+                                        <?php endif; ?>
+                                    </span>
                                     <?php if ($isDelayed): ?>
-                                        <i class="fas fa-exclamation-triangle ms-1" title="Atrasado em <?= $delayHours ?>h"></i>
+                                        <span class="delay-badge">+<?= $delayHours ?>h</span>
                                     <?php endif; ?>
-                                </span>
-                            </div>
+                                </div>
 
-                            <?php if (!empty($order['quote_confirmed_at'])): ?>
-                            <!-- Badge de Orçamento Aprovado -->
-                            <div class="mb-2">
-                                <span class="badge bg-success w-100 py-1" style="font-size:0.7rem;">
-                                    <i class="fas fa-clipboard-check me-1"></i> Orçamento Aprovado
-                                </span>
+                                <!-- Info chips -->
+                                <div class="pipeline-card-chips">
+                                    <?php if (!empty($order['total_amount']) && (float)$order['total_amount'] > 0): ?>
+                                    <span class="pipeline-card-chip chip-value">
+                                        <i class="fas fa-coins"></i> R$ <?= number_format((float)$order['total_amount'], 2, ',', '.') ?>
+                                    </span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($order['quote_confirmed_at'])): ?>
+                                    <span class="pipeline-card-chip chip-approved">
+                                        <i class="fas fa-clipboard-check"></i> Aprovado
+                                    </span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($order['assigned_name'])): ?>
+                                    <span class="pipeline-card-chip chip-assigned">
+                                        <i class="fas fa-user-check"></i> <?= e($order['assigned_name']) ?>
+                                    </span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($order['deadline'])): ?>
+                                    <span class="pipeline-card-chip chip-date">
+                                        <i class="fas fa-calendar"></i> <?= date('d/m', strtotime($order['deadline'])) ?>
+                                    </span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                            <?php endif; ?>
                         </div>
 
-                        <!-- Footer: botão de visualizar -->
-                        <div class="card-footer bg-transparent border-top p-2 text-center">
+                        <!-- Footer: view button -->
+                        <div class="card-footer bg-transparent text-center">
                             <a href="?page=pipeline&action=detail&id=<?= $order['id'] ?>" 
-                               class="btn btn-sm btn-outline-primary w-100 py-1" style="font-size:0.75rem;">
+                               class="btn btn-sm btn-outline-primary w-100 py-1" style="font-size:0.72rem;border-radius:var(--radius-sm);">
                                 <i class="fas fa-eye me-1"></i> Ver Pedido
                             </a>
                         </div>
@@ -222,7 +276,7 @@
             <?php endforeach; ?>
         </div>
         
-        <!-- Column Minimap / Quick Navigator (visible on smaller screens) -->
+        <!-- Column Minimap / Quick Navigator -->
         <div class="pipeline-minimap" id="pipelineMinimap">
             <?php foreach ($visibleStages as $mKey => $mInfo): 
                 $mCount = count($ordersByStage[$mKey] ?? []);
@@ -240,8 +294,8 @@
 <!-- Modal de Pedidos Atrasados -->
 <div class="modal fade" id="delayedModal" tabindex="-1" aria-labelledby="delayedModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background: linear-gradient(135deg, #ef4444, #dc2626); color:#fff;">
                 <h5 class="modal-title" id="delayedModalLabel">
                     <i class="fas fa-exclamation-triangle me-2"></i>Pedidos Atrasados (<?= count($delayedOrders) ?>)
                 </h5>
@@ -251,38 +305,38 @@
                 <table class="table table-hover mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="ps-3">Pedido</th>
-                            <th>Cliente</th>
-                            <th>Etapa</th>
-                            <th>Meta</th>
-                            <th>Tempo Real</th>
-                            <th>Atraso</th>
-                            <th class="text-end pe-3">Ação</th>
+                            <th class="ps-3" style="font-size:0.78rem;">Pedido</th>
+                            <th style="font-size:0.78rem;">Cliente</th>
+                            <th style="font-size:0.78rem;">Etapa</th>
+                            <th class="text-center" style="font-size:0.78rem;">Meta</th>
+                            <th class="text-center" style="font-size:0.78rem;">Tempo Real</th>
+                            <th class="text-center" style="font-size:0.78rem;">Atraso</th>
+                            <th class="text-end pe-3" style="font-size:0.78rem;">Ação</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($delayedOrders as $dOrder): ?>
                         <tr>
-                            <td class="ps-3 fw-bold">#<?= str_pad($dOrder['id'], 4, '0', STR_PAD_LEFT) ?></td>
-                            <td><?= $dOrder['customer_name'] ?? '—' ?></td>
+                            <td class="ps-3 fw-bold" style="font-size:0.82rem;">#<?= str_pad($dOrder['id'], 4, '0', STR_PAD_LEFT) ?></td>
+                            <td style="font-size:0.82rem;"><?= e($dOrder['customer_name'] ?? '—') ?></td>
                             <td>
                                 <?php $dStage = $dOrder['pipeline_stage'] ?? 'contato'; ?>
-                                <span class="badge" style="background:<?= $stages[$dStage]['color'] ?? '#999' ?>;">
+                                <span class="badge" style="background:<?= $stages[$dStage]['color'] ?? '#999' ?>;font-size:0.7rem;">
                                     <i class="<?= $stages[$dStage]['icon'] ?? 'fas fa-circle' ?> me-1"></i>
                                     <?= $stages[$dStage]['label'] ?? $dStage ?>
                                 </span>
                             </td>
-                            <td><?= $dOrder['max_hours'] ?>h</td>
-                            <td class="text-danger fw-bold">
+                            <td class="text-center" style="font-size:0.82rem;"><?= $dOrder['max_hours'] ?>h</td>
+                            <td class="text-center text-danger fw-bold" style="font-size:0.82rem;">
                                 <?php $h = (int)$dOrder['hours_in_stage']; ?>
                                 <?= ($h >= 24) ? floor($h/24).'d '.($h%24).'h' : $h.'h' ?>
                             </td>
-                            <td>
-                                <span class="badge bg-danger rounded-pill">+<?= $dOrder['delay_hours'] ?>h</span>
+                            <td class="text-center">
+                                <span class="badge bg-danger rounded-pill" style="font-size:0.7rem;">+<?= $dOrder['delay_hours'] ?>h</span>
                             </td>
                             <td class="text-end pe-3">
-                                <a href="?page=pipeline&action=detail&id=<?= $dOrder['id'] ?>" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i>
+                                <a href="?page=pipeline&action=detail&id=<?= $dOrder['id'] ?>" class="btn btn-sm btn-outline-primary" style="font-size:0.72rem;">
+                                    <i class="fas fa-eye me-1"></i> Ver
                                 </a>
                             </td>
                         </tr>
@@ -301,14 +355,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.history.replaceState) { const url = new URL(window.location); url.searchParams.delete('status'); window.history.replaceState({}, '', url); }
     <?php endif; ?>
     <?php if(isset($_GET['status']) && $_GET['status'] == 'moved'): ?>
-    Swal.fire({ icon: 'success', title: 'Pedido movido!', text: 'O pedido foi movido para a próxima etapa.', timer: 2000, showConfirmButton: false });
+    Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true })
+        .fire({ icon: 'success', title: 'Pedido movido com sucesso!' });
     <?php endif; ?>
 
     <?php if(isset($_GET['status']) && $_GET['status'] == 'success'): ?>
-    Swal.fire({ icon: 'success', title: 'Sucesso!', timer: 2000, showConfirmButton: false });
+    Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true })
+        .fire({ icon: 'success', title: 'Operação realizada!' });
     <?php endif; ?>
 
-    // Alerta automático de atrasados ao entrar na página
+    // ── Alerta automático de atrasados ──
     <?php if(count($delayedOrders) > 0): ?>
     Swal.fire({
         title: '<strong class="fs-3">Atenção!</strong>',
@@ -322,16 +378,71 @@ document.addEventListener('DOMContentLoaded', function() {
         color:'#ffffff',
         timer: 5000,
         timerProgressBar: true,
-        customClass:{
-            popup: 'shadow',
-        }
-    }).then((result) => {
+        customClass:{ popup: 'shadow' }
+    }).then(function(result) {
         if (result.isConfirmed) {
             var modal = new bootstrap.Modal(document.getElementById('delayedModal'));
             modal.show();
         }
     });
     <?php endif; ?>
+
+    // ══════════════════════════════════════════
+    // ══ Search & Filter (client-side)       ══
+    // ══════════════════════════════════════════
+    var searchInput = document.getElementById('pipelineSearch');
+    var priorityFilter = document.getElementById('pipelinePriorityFilter');
+
+    function applyFilters() {
+        var query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+        var prio = priorityFilter ? priorityFilter.value : '';
+
+        document.querySelectorAll('.pipeline-card').forEach(function(card) {
+            var orderId = (card.dataset.orderId || '').toLowerCase();
+            var customer = (card.dataset.customer || '').toLowerCase();
+            var cardPrio = card.dataset.priority || '';
+
+            var matchSearch = !query || orderId.indexOf(query) !== -1 || customer.indexOf(query) !== -1;
+            var matchPrio = !prio || cardPrio === prio;
+
+            card.style.display = (matchSearch && matchPrio) ? '' : 'none';
+        });
+
+        // Update column counts after filter
+        document.querySelectorAll('.pipeline-column').forEach(function(col) {
+            var badge = col.querySelector('.pipeline-column-header .badge.bg-white');
+            var cards = col.querySelectorAll('.pipeline-card:not([style*="display: none"])');
+            if (badge) badge.textContent = cards.length;
+
+            // Show/hide empty state
+            var emptyState = col.querySelector('.pipeline-empty-state');
+            var allCards = col.querySelectorAll('.pipeline-card');
+            var visibleCards = col.querySelectorAll('.pipeline-card:not([style*="display: none"])');
+            if (visibleCards.length === 0 && allCards.length > 0) {
+                if (!emptyState) {
+                    emptyState = document.createElement('div');
+                    emptyState.className = 'pipeline-empty-state';
+                    emptyState.innerHTML = '<i class="fas fa-filter"></i>Nenhum resultado';
+                    col.querySelector('.pipeline-dropzone').appendChild(emptyState);
+                } else {
+                    emptyState.style.display = '';
+                }
+            } else if (emptyState && visibleCards.length > 0) {
+                emptyState.style.display = 'none';
+            }
+        });
+    }
+
+    if (searchInput) {
+        var searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(applyFilters, 200);
+        });
+    }
+    if (priorityFilter) {
+        priorityFilter.addEventListener('change', applyFilters);
+    }
 
     // ── Pipeline Scroll Navigation ──
     (function initPipelineScroll() {
@@ -442,6 +553,26 @@ document.addEventListener('DOMContentLoaded', function() {
     function revertCard(item, fromZone) {
         fromZone.appendChild(item);
         updateColumnCounts();
+        refreshEmptyStates();
+    }
+
+    function refreshEmptyStates() {
+        document.querySelectorAll('.pipeline-dropzone').forEach(function(dz) {
+            var cards = dz.querySelectorAll('.pipeline-card');
+            var emptyMsg = dz.querySelector('.pipeline-empty-state');
+            if (cards.length === 0) {
+                if (!emptyMsg) {
+                    emptyMsg = document.createElement('div');
+                    emptyMsg.className = 'pipeline-empty-state text-center text-muted py-4 small';
+                    emptyMsg.innerHTML = '<i class="fas fa-inbox d-block mb-2" style="font-size: 1.5rem;"></i>Nenhum pedido';
+                    dz.appendChild(emptyMsg);
+                } else {
+                    emptyMsg.style.display = '';
+                }
+            } else if (emptyMsg) {
+                emptyMsg.style.display = 'none';
+            }
+        });
     }
 
     function showWarehouseSelectionModal(orderId, newStage, evtItem, evtFrom) {
@@ -582,23 +713,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 onEnd: function(evt) {
                     document.body.classList.remove('pipeline-dragging');
-                    // Mostra "Nenhum pedido" se colunas ficaram vazias
-                    document.querySelectorAll('.pipeline-dropzone').forEach(dz => {
-                        const cards = dz.querySelectorAll('.pipeline-card');
-                        let emptyMsg = dz.querySelector('.pipeline-empty-state');
-                        if (cards.length === 0) {
-                            if (!emptyMsg) {
-                                emptyMsg = document.createElement('div');
-                                emptyMsg.className = 'pipeline-empty-state text-center text-muted py-4 small';
-                                emptyMsg.innerHTML = '<i class="fas fa-inbox d-block mb-2" style="font-size: 1.5rem;"></i>Nenhum pedido';
-                                dz.appendChild(emptyMsg);
-                            } else {
-                                emptyMsg.style.display = '';
-                            }
-                        } else if (emptyMsg) {
-                            emptyMsg.style.display = 'none';
-                        }
-                    });
+                    // Atualiza estados vazios de todas as colunas
+                    refreshEmptyStates();
 
                     const orderId = evt.item.dataset.orderId;
                     const newStage = evt.to.dataset.stage;
@@ -637,11 +753,62 @@ document.addEventListener('DOMContentLoaded', function() {
     })();
 
     function updateColumnCounts() {
-        document.querySelectorAll('.pipeline-column').forEach(col => {
-            const badge = col.querySelector('.pipeline-column-header .badge');
-            const cards = col.querySelector('.pipeline-dropzone').querySelectorAll('.pipeline-card');
+        document.querySelectorAll('.pipeline-column').forEach(function(col) {
+            var badge = col.querySelector('.pipeline-column-header .badge.bg-white');
+            var cards = col.querySelector('.pipeline-dropzone').querySelectorAll('.pipeline-card');
             if (badge) badge.textContent = cards.length;
+
+            // Update delayed count badge
+            var delayedBadge = col.querySelector('.pipeline-column-header .badge.bg-danger');
+            // We can't recompute delay server-side, so just update total count
+        });
+
+        // Recalculate auto-expand after counts change
+        autoExpandColumns();
+    }
+
+    // ── Auto-expand cards in columns with ≤ 4 orders ──
+    var CARDS_THRESHOLD_COLLAPSE = 4;
+
+    function autoExpandColumns() {
+        document.querySelectorAll('.pipeline-column').forEach(function(col) {
+            var allCards = col.querySelectorAll('.pipeline-card');
+            var visibleCards = col.querySelectorAll('.pipeline-card:not([style*="display: none"])');
+            var countForThreshold = visibleCards.length > 0 ? visibleCards.length : allCards.length;
+            var shouldExpand = (countForThreshold <= CARDS_THRESHOLD_COLLAPSE);
+
+            allCards.forEach(function(card) {
+                // Skip manually toggled cards
+                if (card.dataset.manualToggle) return;
+
+                if (shouldExpand) {
+                    card.classList.add('pipeline-card-expanded');
+                } else {
+                    card.classList.remove('pipeline-card-expanded');
+                }
+            });
         });
     }
+
+    // Run on load
+    autoExpandColumns();
+
+    // ── Card collapse/expand toggle ──
+    document.querySelectorAll('.pipeline-card-toggle').forEach(function(header) {
+        header.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var card = this.closest('.pipeline-card');
+            card.classList.toggle('pipeline-card-expanded');
+            // Mark as manually toggled so autoExpand won't override
+            card.dataset.manualToggle = '1';
+        });
+    });
+
+    // ── Card hover preview (tooltip with value) ──
+    document.querySelectorAll('.pipeline-card').forEach(function(card) {
+        card.addEventListener('mouseenter', function() {
+            this.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
+        });
+    });
 });
 </script>

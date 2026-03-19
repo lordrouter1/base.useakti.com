@@ -79,7 +79,7 @@ $prioIcons  = ['urgente'=>'🔴','alta'=>'🟡','normal'=>'🔵','baixa'=>'🟢'
                                     $hasContacts = isset($contactsByDay[$dayCounter]);
                                     $dayContacts = $hasContacts ? $contactsByDay[$dayCounter] : [];
                                 ?>
-                                    <td class="<?= $isToday ? 'bg-primary ' : '' ?>" 
+                                    <td class="<?= $isToday ? 'bg-primary bg-opacity-10' : '' ?>" 
                                         style="height:110px; vertical-align:top; padding:6px; width:14.28%;">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <span class="fw-bold small <?= $isToday ? 'text-primary' : 'text-muted' ?>"><?= $dayCounter ?></span>

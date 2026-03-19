@@ -82,7 +82,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
         <div class="col-6 col-md-4">
             <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
                 <div class="card-body p-3 d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary " style="width:48px;height:48px;min-width:48px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10" style="width:48px;height:48px;min-width:48px;">
                         <i class="fas fa-clipboard-list text-primary fs-5"></i>
                     </div>
                     <div>
@@ -95,7 +95,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
         <div class="col-6 col-md-4">
             <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
                 <div class="card-body p-3 d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning " style="width:48px;height:48px;min-width:48px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning bg-opacity-10" style="width:48px;height:48px;min-width:48px;">
                         <i class="fas fa-hourglass-half text-warning fs-5"></i>
                     </div>
                     <div>
@@ -108,7 +108,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
         <div class="col-6 col-md-4">
             <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
                 <div class="card-body p-3 d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-success " style="width:48px;height:48px;min-width:48px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-success bg-opacity-10" style="width:48px;height:48px;min-width:48px;">
                         <i class="fas fa-check-double text-success fs-5"></i>
                     </div>
                     <div>
