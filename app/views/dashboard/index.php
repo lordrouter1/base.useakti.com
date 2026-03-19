@@ -184,7 +184,7 @@
         <a href="?page=customers" class="text-decoration-none">
             <div class="card shadow-sm border-0 h-100 hover-card">
                 <div class="card-body text-center p-4">
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <div class="bg-primary  text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
                         <i class="fas fa-users fa-2x"></i>
                     </div>
                     <h5 class="card-title text-dark">Clientes</h5>
@@ -200,7 +200,7 @@
         <a href="?page=products" class="text-decoration-none">
             <div class="card shadow-sm border-0 h-100 hover-card">
                 <div class="card-body text-center p-4">
-                    <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <div class="bg-success  text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
                         <i class="fas fa-box-open fa-2x"></i>
                     </div>
                     <h5 class="card-title text-dark">Produtos</h5>
@@ -215,7 +215,7 @@
         <a href="?page=orders" class="text-decoration-none">
             <div class="card shadow-sm border-0 h-100 hover-card">
                 <div class="card-body text-center p-4">
-                    <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <div class="bg-warning  text-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
                         <i class="fas fa-shopping-cart fa-2x"></i>
                     </div>
                     <h5 class="card-title text-dark">Pedidos</h5>
@@ -231,7 +231,7 @@
         <a href="?page=pipeline" class="text-decoration-none">
             <div class="card shadow-sm border-0 h-100 hover-card">
                 <div class="card-body text-center p-4">
-                    <div class="bg-info bg-opacity-10 text-info rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <div class="bg-info  text-info rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
                         <i class="fas fa-stream fa-2x"></i>
                     </div>
                     <h5 class="card-title text-dark">Produção</h5>
@@ -248,7 +248,7 @@
         <a href="?page=users" class="text-decoration-none">
             <div class="card shadow-sm border-0 h-100 hover-card">
                 <div class="card-body text-center p-4">
-                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <div class="bg-danger  text-danger rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
                         <i class="fas fa-user-cog fa-2x"></i>
                     </div>
                     <h5 class="card-title text-dark">Usuários</h5>

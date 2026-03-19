@@ -437,7 +437,7 @@ foreach ($installments as $inst) {
                 <?= csrf_field() ?>
                 <input type="hidden" name="installment_id" id="payInstId">
                 <input type="hidden" name="order_id" id="payOrderId">
-                <div class="modal-header bg-success bg-opacity-10 border-0">
+                <div class="modal-header bg-success  border-0">
                     <h5 class="modal-title text-success"><i class="fas fa-hand-holding-usd me-2"></i>Registrar Pagamento</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -522,7 +522,7 @@ foreach ($installments as $inst) {
 <div class="modal fade" id="modalAttach" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-secondary bg-opacity-10 border-0">
+            <div class="modal-header bg-secondary  border-0">
                 <h5 class="modal-title"><i class="fas fa-paperclip me-2 text-secondary"></i>Comprovante</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -573,7 +573,7 @@ foreach ($installments as $inst) {
 <div class="modal fade" id="modalBoleto" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-primary bg-opacity-10 border-0">
+            <div class="modal-header bg-primary  border-0">
                 <h5 class="modal-title text-primary"><i class="fas fa-barcode me-2"></i>Reimprimir Boleto</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>

@@ -39,6 +39,26 @@
             <?php if (in_array($currentStage, ['venda', 'financeiro'])): ?>
             <button type="button" class="btn btn-outline-success btn-sm" id="btnHeaderPrintOrder"><i class="fas fa-file-invoice me-1"></i> Nota de Pedido</button>
             <?php endif; ?>
+            <?php if ($canUseNfeModule && in_array($currentStage, ['venda', 'financeiro', 'envio', 'concluido'])): ?>
+                <?php
+                // Buscar NF-e do pedido para botões do cabeçalho
+                $_headerNfeDoc = null;
+                try {
+                    $_headerNfeModel = new \Akti\Models\NfeDocument((new \Database())->getConnection());
+                    $_headerNfeDoc = $_headerNfeModel->readByOrder($order['id']);
+                } catch (\Exception $_e) {}
+                ?>
+                <?php if ($_headerNfeDoc && in_array($_headerNfeDoc['status'], ['autorizada', 'corrigida']) && !empty($_headerNfeDoc['xml_autorizado'])): ?>
+                <a href="?page=nfe_documents&action=download&id=<?= $_headerNfeDoc['id'] ?>&type=danfe" 
+                   target="_blank" class="btn btn-danger btn-sm" title="Imprimir DANFE (PDF)">
+                    <i class="fas fa-file-pdf me-1"></i> DANFE
+                </a>
+                <?php elseif (!$_headerNfeDoc): ?>
+                <button type="button" class="btn btn-outline-success btn-sm" id="btnHeaderEmitirNfe" title="Emitir NF-e via SEFAZ">
+                    <i class="fas fa-file-export me-1"></i> Emitir NF-e
+                </button>
+                <?php endif; ?>
+            <?php endif; ?>
             <?php if (!$isReadOnly): ?>
             <a href="?page=orders&action=edit&id=<?= $order['id'] ?>" class="btn btn-outline-primary btn-sm"><i class="fas fa-edit me-1"></i> Editar Pedido</a>
             <?php endif; ?>
@@ -516,7 +536,7 @@
 
                     <!-- Custos Extras do Orçamento -->
                     <div class="card border-warning border-opacity-25 mt-3">
-                        <div class="card-header bg-warning bg-opacity-10 py-2">
+                        <div class="card-header bg-warning  py-2">
                             <h6 class="mb-0 text-warning"><i class="fas fa-receipt me-2"></i>Custos Extras</h6>
                         </div>
                         <div class="card-body p-3">
@@ -994,7 +1014,7 @@
                             $checkedAt = $preparoChecklist[$key . '_at'] ?? null;
                         ?>
                         <div class="col-md-6">
-                            <div class="card border <?= $isChecked ? 'border-success bg-success bg-opacity-10' : 'border-light' ?> h-100 prep-check-card" 
+                            <div class="card border <?= $isChecked ? 'border-success bg-success ' : 'border-light' ?> h-100 prep-check-card" 
                                  data-key="<?= $key ?>" style="cursor:<?= $showPreparo ? 'pointer' : 'default' ?>;transition:all 0.2s;">
                                 <div class="card-body p-2 d-flex align-items-start gap-2">
                                     <div class="flex-shrink-0 mt-1">
@@ -1142,7 +1162,7 @@
                     $finBorderColor = $isFinanceiroStage ? '#f39c12' : '#dee2e6';
 
                     // Carregar gateways ativos para a seção de links de pagamento
-                    $__gwModel = new \Akti\Models\PaymentGateway($db ?? $this->db ?? (new \Database())->getConnection());
+                    $__gwModel = new \Akti\Models\PaymentGateway((new \Database())->getConnection());
                     $__activeGateways = $__gwModel->getActive();
                     $__hasActiveGateway = !empty($__activeGateways);
 
@@ -1452,7 +1472,7 @@
                             <?php if (!empty($savedPaymentLink)): ?>
                             <!-- ── Link já gerado — exibir de forma compacta ── -->
                             <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size:0.65rem;">
+                                <span class="badge bg-success  text-success border border-success border-opacity-25" style="font-size:0.65rem;">
                                     <i class="fas fa-check-circle me-1"></i><?= e(ucfirst($savedPaymentGateway)) ?>
                                     <?php if ($savedPaymentMethod && $savedPaymentMethod !== 'auto'): ?>
                                      · <?= e(strtoupper(str_replace('_', ' ', $savedPaymentMethod))) ?>
@@ -1553,31 +1573,35 @@
                             </div>
                         </div>
                         <div class="card-body p-3">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <div>
-                                    <p class="mb-1 small text-muted">
-                                        <i class="fas fa-info-circle me-1"></i>
-                                        Gera um cupom formatado para impressora térmica (80mm ou 58mm) com os dados do pedido, itens, totais e forma de pagamento.
-                                    </p>
-                                    <p class="mb-0 small text-muted" style="font-size:0.72rem;">
-                                        O cupom <strong>não tem valor fiscal</strong> — use para controle interno ou comprovante ao cliente.
-                                    </p>
-                                </div>
-                                <div class="d-flex flex-column gap-1 ms-3 flex-shrink-0">
+                            <div class="text-center py-3" style="background: linear-gradient(135deg, #f3e5f5 0%, #f8f0fc 100%); border-radius: 10px; border: 2px dashed #8e44ad40;">
+                                <i class="fas fa-receipt d-block mb-2" style="font-size: 2.2rem; color: #8e44ad; opacity: 0.6;"></i>
+                                <p class="mb-1 small text-muted" style="font-size: 0.78rem;">
+                                    Gere um cupom formatado para impressora térmica (80mm/58mm) com dados do pedido.
+                                </p>
+                                <p class="mb-3 small text-muted" style="font-size: 0.68rem;">
+                                    <i class="fas fa-info-circle me-1"></i>O cupom <strong>não tem valor fiscal</strong> — use para controle interno ou comprovante ao cliente.
+                                </p>
+                                <div class="d-flex justify-content-center gap-2">
                                     <a href="?page=pipeline&action=printThermalReceipt&id=<?= $order['id'] ?>" 
-                                       target="_blank" class="btn btn-sm px-3" style="background:#8e44ad; color:#fff; font-size:0.78rem;">
-                                        <i class="fas fa-receipt me-1"></i> Imprimir Cupom
+                                       target="_blank" class="btn px-4 shadow-sm" style="background:#8e44ad; color:#fff; font-size: 0.95rem; border-radius: 10px;">
+                                        <i class="fas fa-receipt me-2"></i> Imprimir Cupom
                                     </a>
                                     <a href="?page=pipeline&action=printThermalReceipt&id=<?= $order['id'] ?>&auto_print=1" 
-                                       target="_blank" class="btn btn-sm btn-outline-secondary px-3" style="font-size:0.7rem;">
-                                        <i class="fas fa-bolt me-1"></i> Impressão Rápida
+                                       target="_blank" class="btn btn-outline-secondary px-3 shadow-sm" style="font-size: 0.85rem; border-radius: 10px;" title="Abre e imprime automaticamente">
+                                        <i class="fas fa-bolt me-1"></i> Rápida
                                     </a>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted" style="font-size: 0.65rem;">
+                                        <i class="fas fa-coins me-1"></i>Total: <strong>R$ <?= number_format($order['total_amount'] ?? 0, 2, ',', '.') ?></strong>
+                                        &nbsp;·&nbsp; <?= count($orderItems ?? []) ?> produto(s)
+                                    </small>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <?php if ($canUseFiscalModule && $canUseNfeModule): ?>
+                    <?php if ($canUseNfeModule): ?>
                     <?php
                         // ═══ NF-e — Carregar dados da nota vinculada ao pedido ═══
                         $nfeDoc = null;
@@ -1586,7 +1610,7 @@
                         $nfeStatusIcon = 'fas fa-circle';
                         $hasNfe = false;
                         try {
-                            $nfeDocModel = new \Akti\Models\NfeDocument($db ?? $database->getConnection());
+                            $nfeDocModel = new \Akti\Models\NfeDocument((new \Database())->getConnection());
                             $nfeDoc = $nfeDocModel->readByOrder($order['id']);
                             if ($nfeDoc) {
                                 $hasNfe = true;
@@ -1608,7 +1632,7 @@
                     ?>
                     <!-- ═══ FISCAL — Nota Fiscal Eletrônica (SEFAZ) ═══ -->
                     <div class="card mt-3 border-0 shadow-sm" id="fiscalSection">
-                        <div class="card-header py-2 bg-success bg-opacity-10">
+                        <div class="card-header py-2 bg-success ">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0 text-success" style="font-size:0.85rem;">
                                     <i class="fas fa-file-invoice me-2"></i>NF-e — Nota Fiscal Eletrônica
@@ -1625,17 +1649,8 @@
                                         <i class="fas fa-eye me-1"></i> Detalhe
                                     </a>
                                     <?php endif; ?>
-                                    <?php if (!$hasNfe && !$isReadOnly && in_array($currentStage, ['venda', 'financeiro', 'concluido'])): ?>
-                                    <button type="button" class="btn btn-sm btn-success" id="btnEmitirNfeSefaz" style="font-size:0.7rem;">
-                                        <i class="fas fa-file-export me-1"></i> Emitir NF-e (SEFAZ)
-                                    </button>
-                                    <?php elseif ($hasNfe && $nfeDoc['status'] === 'rejeitada' && !$isReadOnly): ?>
-                                    <button type="button" class="btn btn-sm btn-warning text-dark" id="btnEmitirNfeSefaz" style="font-size:0.7rem;">
-                                        <i class="fas fa-redo me-1"></i> Reemitir NF-e
-                                    </button>
-                                    <?php endif; ?>
                                     <?php if (!$isReadOnly): ?>
-                                    <button type="button" class="btn btn-sm btn-outline-success" id="btnEmitirNF" style="font-size:0.7rem;">
+                                    <button type="button" class="btn btn-sm btn-outline-success" id="btnEmitirNF" style="font-size:0.7rem;" title="Registrar NF-e emitida por outro sistema">
                                         <i class="fas fa-edit me-1"></i> Manual
                                     </button>
                                     <?php endif; ?>
@@ -1643,6 +1658,36 @@
                             </div>
                         </div>
                         <div class="card-body p-3">
+
+                            <?php if (!$hasNfe && in_array($currentStage, ['venda', 'financeiro', 'concluido'])): ?>
+                            <!-- ═══ CTA principal: Emitir NF-e (sem nota emitida) ═══ -->
+                            <div class="text-center py-3 mb-3" style="background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-radius: 10px; border: 2px dashed #27ae60;">
+                                <i class="fas fa-file-invoice-dollar d-block mb-2" style="font-size: 2.5rem; color: #27ae60; opacity: 0.7;"></i>
+                                <p class="mb-2 fw-bold text-success" style="font-size: 0.95rem;">Nenhuma NF-e emitida para este pedido</p>
+                                <p class="small text-muted mb-3" style="font-size: 0.78rem;">Emita a nota fiscal eletrônica diretamente pela SEFAZ com um clique.</p>
+                                <button type="button" class="btn btn-success btn-lg px-5 shadow-sm" id="btnEmitirNfeSefaz" style="font-size: 1rem; border-radius: 10px;">
+                                    <i class="fas fa-file-export me-2"></i> Emitir NF-e via SEFAZ
+                                </button>
+                                <div class="mt-2">
+                                    <small class="text-muted" style="font-size: 0.68rem;">
+                                        <i class="fas fa-shield-alt me-1"></i>Valor: <strong>R$ <?= number_format($order['total_amount'] ?? 0, 2, ',', '.') ?></strong>
+                                        &nbsp;·&nbsp; Cliente: <strong><?= e($order['customer_name'] ?? '—') ?></strong>
+                                    </small>
+                                </div>
+                            </div>
+                            <?php elseif ($hasNfe && $nfeDoc['status'] === 'rejeitada' && in_array($currentStage, ['venda', 'financeiro', 'concluido'])): ?>
+                            <!-- ═══ CTA: Reemitir NF-e rejeitada ═══ -->
+                            <div class="text-center py-3 mb-3" style="background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%); border-radius: 10px; border: 2px dashed #e67e22;">
+                                <i class="fas fa-exclamation-triangle d-block mb-2" style="font-size: 2rem; color: #e67e22; opacity: 0.7;"></i>
+                                <p class="mb-2 fw-bold text-warning" style="font-size: 0.9rem;">NF-e Rejeitada pela SEFAZ</p>
+                                <?php if (!empty($nfeDoc['motivo_sefaz'])): ?>
+                                <p class="small text-danger mb-2" style="font-size: 0.75rem;"><i class="fas fa-times-circle me-1"></i><?= e($nfeDoc['motivo_sefaz']) ?></p>
+                                <?php endif; ?>
+                                <button type="button" class="btn btn-warning btn-lg text-dark px-5 shadow-sm" id="btnEmitirNfeSefaz" style="font-size: 1rem; border-radius: 10px;">
+                                    <i class="fas fa-redo me-2"></i> Reemitir NF-e
+                                </button>
+                            </div>
+                            <?php endif; ?>
 
                             <?php if ($hasNfe): ?>
                             <!-- ═══ Dados da NF-e emitida ═══ -->
@@ -1695,23 +1740,54 @@
                                 <?php endif; ?>
                             </div>
 
-                            <!-- Ações da NF-e emitida -->
+                            <!-- ═══ Ações da NF-e emitida ═══ -->
+
+                            <?php if ($nfeDoc['xml_autorizado'] && in_array($nfeDoc['status'], ['autorizada', 'corrigida'])): ?>
+                            <!-- Botão principal: Imprimir DANFE (destaque) -->
+                            <div class="d-grid mb-2">
+                                <a href="?page=nfe_documents&action=download&id=<?= $nfeDoc['id'] ?>&type=danfe" 
+                                   target="_blank" class="btn btn-danger" id="btnPrintDanfePipeline">
+                                    <i class="fas fa-print me-2"></i> Imprimir DANFE (PDF)
+                                </a>
+                            </div>
+                            <?php endif; ?>
+
                             <div class="d-flex flex-wrap gap-1">
                                 <?php if ($nfeDoc['xml_autorizado']): ?>
                                 <a href="?page=nfe_documents&action=download&id=<?= $nfeDoc['id'] ?>&type=xml" 
                                    class="btn btn-sm btn-outline-secondary" style="font-size:0.7rem;">
-                                    <i class="fas fa-file-code me-1"></i> XML
+                                    <i class="fas fa-file-code me-1"></i> Baixar XML
                                 </a>
                                 <a href="?page=nfe_documents&action=download&id=<?= $nfeDoc['id'] ?>&type=danfe" 
-                                   class="btn btn-sm btn-outline-danger" style="font-size:0.7rem;" target="_blank">
-                                    <i class="fas fa-file-pdf me-1"></i> DANFE
+                                   target="_blank" class="btn btn-sm btn-outline-danger" style="font-size:0.7rem;">
+                                    <i class="fas fa-file-pdf me-1"></i> Abrir DANFE
                                 </a>
                                 <?php endif; ?>
-                                <?php if (in_array($nfeDoc['status'], ['autorizada', 'corrigida'])): ?>
+                                <?php if (!empty($nfeDoc['xml_cancelamento'])): ?>
+                                <a href="?page=nfe_documents&action=download&id=<?= $nfeDoc['id'] ?>&type=xml_cancel" 
+                                   class="btn btn-sm btn-outline-dark" style="font-size:0.7rem;">
+                                    <i class="fas fa-file-code me-1"></i> XML Cancelamento
+                                </a>
+                                <?php endif; ?>
+                                <?php if (!empty($nfeDoc['xml_correcao'])): ?>
+                                <a href="?page=nfe_documents&action=download&id=<?= $nfeDoc['id'] ?>&type=xml_correcao" 
+                                   class="btn btn-sm btn-outline-info" style="font-size:0.7rem;">
+                                    <i class="fas fa-file-code me-1"></i> XML Correção
+                                </a>
+                                <?php endif; ?>
+                                <a href="?page=nfe_documents&action=detail&id=<?= $nfeDoc['id'] ?>" 
+                                   class="btn btn-sm btn-outline-primary" style="font-size:0.7rem;">
+                                    <i class="fas fa-external-link-alt me-1"></i> Detalhe Completo
+                                </a>
+                            </div>
+
+                            <?php if (in_array($nfeDoc['status'], ['autorizada', 'corrigida']) && !$isReadOnly): ?>
+                            <hr class="my-2">
+                            <div class="d-flex flex-wrap gap-1">
                                 <button type="button" class="btn btn-sm btn-outline-dark btn-cancel-nfe-pipeline" 
                                         data-id="<?= $nfeDoc['id'] ?>" data-numero="<?= e($nfeDoc['numero']) ?>"
                                         style="font-size:0.7rem;">
-                                    <i class="fas fa-ban me-1"></i> Cancelar
+                                    <i class="fas fa-ban me-1"></i> Cancelar NF-e
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-info btn-correcao-nfe-pipeline"
                                         data-id="<?= $nfeDoc['id'] ?>" data-numero="<?= e($nfeDoc['numero']) ?>"
@@ -1722,55 +1798,84 @@
                                         data-id="<?= $nfeDoc['id'] ?>" style="font-size:0.7rem;">
                                     <i class="fas fa-sync me-1"></i> Consultar SEFAZ
                                 </button>
-                                <?php endif; ?>
                             </div>
+                            <?php elseif (in_array($nfeDoc['status'], ['autorizada', 'corrigida']) && $isReadOnly): ?>
+                            <hr class="my-2">
+                            <div class="d-flex flex-wrap gap-1">
+                                <button type="button" class="btn btn-sm btn-outline-primary btn-check-status-pipeline"
+                                        data-id="<?= $nfeDoc['id'] ?>" style="font-size:0.7rem;">
+                                    <i class="fas fa-sync me-1"></i> Consultar SEFAZ
+                                </button>
+                            </div>
+                            <?php endif; ?>
                             <hr class="my-2">
                             <?php endif; ?>
 
-                            <!-- ═══ Campos manuais (fallback / complemento) ═══ -->
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-bold text-muted">Nº da Nota Fiscal</label>
-                                    <input type="text" class="form-control" name="nf_number" id="nfNumber"
-                                           placeholder="Ex: 000123"
-                                           value="<?= e($order['nf_number'] ?? '') ?>"
-                                           <?= $isReadOnly ? 'disabled' : '' ?>>
+                            <?php
+                                // Determinar se os campos manuais têm dados preenchidos (auto-expandir se sim)
+                                $_hasManualNfData = !empty($order['nf_number'] ?? '')
+                                    || !empty($order['nf_series'] ?? '')
+                                    || !empty($order['nf_status'] ?? '')
+                                    || !empty($order['nf_access_key'] ?? '')
+                                    || !empty($order['nf_notes'] ?? '');
+                            ?>
+                            <!-- ═══ Campos manuais (fallback / complemento) — ocultos por padrão ═══ -->
+                            <div id="nfeManualFieldsWrapper" style="<?= $_hasManualNfData ? '' : 'display:none;' ?>">
+                                <hr class="my-2">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="small fw-bold text-muted"><i class="fas fa-edit me-1"></i>Registro Manual de NF-e</span>
+                                    <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-auto" id="btnCloseManualNfe" title="Fechar campos manuais">
+                                        <i class="fas fa-times"></i>
+                                    </button>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-bold text-muted">Série</label>
-                                    <input type="text" class="form-control" name="nf_series" id="nfSeries"
-                                           placeholder="Ex: 1"
-                                           value="<?= e($order['nf_series'] ?? '') ?>"
-                                           <?= $isReadOnly ? 'disabled' : '' ?>>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-bold text-muted">Status NF</label>
-                                    <select class="form-select" name="nf_status" id="nfStatus" <?= $isReadOnly ? 'disabled' : '' ?>>
-                                        <option value="" <?= empty($order['nf_status'] ?? '') ? 'selected' : '' ?>>⬜ Não emitida</option>
-                                        <option value="emitida" <?= ($order['nf_status'] ?? '') == 'emitida' ? 'selected' : '' ?>>📄 Emitida</option>
-                                        <option value="enviada" <?= ($order['nf_status'] ?? '') == 'enviada' ? 'selected' : '' ?>>📨 Enviada ao cliente</option>
-                                        <option value="cancelada" <?= ($order['nf_status'] ?? '') == 'cancelada' ? 'selected' : '' ?>>❌ Cancelada</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-muted">Chave de Acesso (NFe)</label>
-                                    <input type="text" class="form-control" name="nf_access_key" id="nfAccessKey"
-                                           placeholder="44 dígitos da chave da NFe..."
-                                           value="<?= e($order['nf_access_key'] ?? '') ?>"
-                                           <?= $isReadOnly ? 'disabled' : '' ?>>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-muted">Observações Fiscais</label>
-                                    <input type="text" class="form-control" name="nf_notes" id="nfNotes"
-                                           placeholder="Observações sobre a nota fiscal..."
-                                           value="<?= e($order['nf_notes'] ?? '') ?>"
-                                           <?= $isReadOnly ? 'disabled' : '' ?>>
+                                <p class="small text-muted mb-2" style="font-size:0.72rem;">
+                                    Use estes campos apenas se a NF-e foi emitida por outro sistema externo.
+                                    Para emitir via SEFAZ, use o botão <strong>"Emitir NF-e (SEFAZ)"</strong>.
+                                </p>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted">Nº da Nota Fiscal</label>
+                                        <input type="text" class="form-control" name="nf_number" id="nfNumber"
+                                               placeholder="Ex: 000123"
+                                               value="<?= e($order['nf_number'] ?? '') ?>"
+                                               <?= $isReadOnly ? 'disabled' : '' ?>>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted">Série</label>
+                                        <input type="text" class="form-control" name="nf_series" id="nfSeries"
+                                               placeholder="Ex: 1"
+                                               value="<?= e($order['nf_series'] ?? '') ?>"
+                                               <?= $isReadOnly ? 'disabled' : '' ?>>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted">Status NF</label>
+                                        <select class="form-select" name="nf_status" id="nfStatus" <?= $isReadOnly ? 'disabled' : '' ?>>
+                                            <option value="" <?= empty($order['nf_status'] ?? '') ? 'selected' : '' ?>>⬜ Não emitida</option>
+                                            <option value="emitida" <?= ($order['nf_status'] ?? '') == 'emitida' ? 'selected' : '' ?>>📄 Emitida</option>
+                                            <option value="enviada" <?= ($order['nf_status'] ?? '') == 'enviada' ? 'selected' : '' ?>>📨 Enviada ao cliente</option>
+                                            <option value="cancelada" <?= ($order['nf_status'] ?? '') == 'cancelada' ? 'selected' : '' ?>>❌ Cancelada</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted">Chave de Acesso (NFe)</label>
+                                        <input type="text" class="form-control" name="nf_access_key" id="nfAccessKey"
+                                               placeholder="44 dígitos da chave da NFe..."
+                                               value="<?= e($order['nf_access_key'] ?? '') ?>"
+                                               <?= $isReadOnly ? 'disabled' : '' ?>>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted">Observações Fiscais</label>
+                                        <input type="text" class="form-control" name="nf_notes" id="nfNotes"
+                                               placeholder="Observações sobre a nota fiscal..."
+                                               value="<?= e($order['nf_notes'] ?? '') ?>"
+                                               <?= $isReadOnly ? 'disabled' : '' ?>>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <?php endif; ?>
-                    <?php if (!$canUseFiscalModule || !$canUseNfeModule): ?>
+                    <?php if (!$canUseNfeModule): ?>
                     <!-- NF-e desabilitado — card informativo -->
                     <div class="card mt-3 border-0 shadow-sm opacity-75" role="button"
                          onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('nfe') ?>">
@@ -1876,7 +1981,7 @@
 
                     <!-- Endereço de Entrega (visível quando tipo = entrega ou correios) -->
                     <div class="card mb-3 border-warning" id="shippingAddressCard" style="<?= ($shippingType === 'retirada') ? 'display:none;' : '' ?>">
-                        <div class="card-header py-2 bg-warning bg-opacity-10">
+                        <div class="card-header py-2 bg-warning ">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0 text-warning" style="font-size:0.85rem;">
                                     <i class="fas fa-map-marker-alt me-2"></i>Endereço de Entrega
@@ -1917,7 +2022,7 @@
 
                     <!-- Rastreamento e Código -->
                     <div class="card mb-3 border-0 shadow-sm" id="trackingSection">
-                        <div class="card-header py-2 bg-primary bg-opacity-10">
+                        <div class="card-header py-2 bg-primary ">
                             <h6 class="mb-0 text-primary" style="font-size:0.85rem;">
                                 <i class="fas fa-barcode me-2"></i>Rastreamento
                             </h6>
@@ -2168,7 +2273,7 @@
                             <div class="flex-grow-1">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 me-1" style="font-size:0.6rem;">
+                                        <span class="badge bg-success  text-success border border-success border-opacity-25 me-1" style="font-size:0.6rem;">
                                             <i class="fas fa-box me-1"></i><?= e($log['product_name'] ?? 'Produto') ?>
                                         </span>
                                         <span class="small fw-bold"><?= e($log['user_name'] ?? 'Sistema') ?></span>
@@ -4573,79 +4678,111 @@ setInterval(() => {
         });
     }
 
-    // ═══ Emitir NF-e Manual (abre campos para preencher) ═══
+    // ═══ Emitir NF-e Manual (toggle dos campos manuais) ═══
     var btnNF = document.getElementById('btnEmitirNF');
-    if (btnNF) {
+    var nfeManualFieldsWrapper = document.getElementById('nfeManualFieldsWrapper');
+    if (btnNF && nfeManualFieldsWrapper) {
         btnNF.addEventListener('click', function() {
-            Swal.fire({
-                icon: 'info',
-                title: 'Preenchimento Manual',
-                html: '<p class="mb-2">Use os campos abaixo para preencher os dados da NF-e manualmente, caso tenha emitido a nota por outro sistema.</p><p class="small text-muted">Para emitir via SEFAZ diretamente, use o botão <strong>"Emitir NF-e (SEFAZ)"</strong>.</p>',
-                confirmButtonText: 'Entendi',
-                confirmButtonColor: '#27ae60'
-            });
+            // Toggle visibilidade dos campos manuais
+            var isHidden = nfeManualFieldsWrapper.style.display === 'none';
+            nfeManualFieldsWrapper.style.display = isHidden ? '' : 'none';
+            if (isHidden) {
+                // Scroll suave até os campos
+                nfeManualFieldsWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    }
+    // Botão fechar campos manuais
+    var btnCloseManualNfe = document.getElementById('btnCloseManualNfe');
+    if (btnCloseManualNfe && nfeManualFieldsWrapper) {
+        btnCloseManualNfe.addEventListener('click', function() {
+            nfeManualFieldsWrapper.style.display = 'none';
         });
     }
 
-    // ═══ Emitir NF-e via SEFAZ ═══
+    // ═══ Função central de emissão NF-e via SEFAZ ═══
+    function emitirNfeSefaz() {
+        var orderId = <?= (int)$order['id'] ?>;
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Emitir NF-e via SEFAZ?',
+            html: '<p>Será gerada e enviada uma NF-e para o <strong>Pedido #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></strong>.</p>'
+                + '<p class="small text-muted">Valor: <strong>R$ <?= number_format($order['total_amount'] ?? 0, 2, ',', '.') ?></strong></p>'
+                + '<p class="small text-danger">Confira os dados do pedido e do cliente antes de emitir.</p>',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-file-export me-1"></i> Emitir NF-e',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#28a745',
+            showLoaderOnConfirm: true,
+            preConfirm: function() {
+                return fetch('?page=nfe_documents&action=emit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRF-TOKEN': __csrfToken
+                    },
+                    body: 'order_id=' + encodeURIComponent(orderId) + '&csrf_token=' + encodeURIComponent(__csrfToken)
+                })
+                .then(function(r) { return r.json(); })
+                .catch(function() {
+                    Swal.showValidationMessage('Falha na comunicação com o servidor.');
+                });
+            },
+            allowOutsideClick: function() { return !Swal.isLoading(); }
+        }).then(function(result) {
+            if (result.isConfirmed && result.value) {
+                var resp = result.value;
+                if (resp.success) {
+                    // NF-e autorizada — oferecer impressão do DANFE
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'NF-e Autorizada!',
+                        html: (resp.message || 'NF-e emitida com sucesso.')
+                            + (resp.chave ? '<br><small class="text-muted" style="word-break:break-all;">Chave: ' + resp.chave + '</small>' : '')
+                            + '<hr><p class="mb-0 small"><i class="fas fa-print me-1"></i>Deseja imprimir o <strong>DANFE</strong> agora?</p>',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fas fa-file-pdf me-1"></i> Imprimir DANFE',
+                        cancelButtonText: 'Fechar',
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d'
+                    }).then(function(printResult) {
+                        if (printResult.isConfirmed && resp.nfe_id) {
+                            // Abrir DANFE em nova aba para impressão
+                            window.open('?page=nfe_documents&action=download&id=' + resp.nfe_id + '&type=danfe', '_blank');
+                        }
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro na Emissão',
+                        html: resp.message,
+                        confirmButtonText: 'OK'
+                    }).then(function() { if (resp.nfe_id) location.reload(); });
+                }
+            }
+        });
+    }
+
+    // ═══ Emitir NF-e via SEFAZ — botão dentro do card fiscal ═══
     var btnEmitirSefaz = document.getElementById('btnEmitirNfeSefaz');
     if (btnEmitirSefaz) {
-        btnEmitirSefaz.addEventListener('click', function() {
-            var btn = this;
-            var orderId = <?= (int)$order['id'] ?>;
+        btnEmitirSefaz.addEventListener('click', emitirNfeSefaz);
+    }
 
-            Swal.fire({
-                icon: 'warning',
-                title: 'Emitir NF-e via SEFAZ?',
-                html: '<p>Será gerada e enviada uma NF-e para o <strong>Pedido #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></strong>.</p>'
-                    + '<p class="small text-muted">Valor: <strong>R$ <?= number_format($order['total_amount'] ?? 0, 2, ',', '.') ?></strong></p>'
-                    + '<p class="small text-danger">Confira os dados do pedido e do cliente antes de emitir.</p>',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-file-export me-1"></i> Emitir NF-e',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#28a745',
-                showLoaderOnConfirm: true,
-                preConfirm: function() {
-                    return $.ajax({
-                        url: '?page=nfe_documents&action=emit',
-                        method: 'POST',
-                        dataType: 'json',
-                        data: { order_id: orderId },
-                        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
-                    }).then(function(resp) {
-                        return resp;
-                    }).catch(function() {
-                        Swal.showValidationMessage('Falha na comunicação com o servidor.');
-                    });
-                },
-                allowOutsideClick: function() { return !Swal.isLoading(); }
-            }).then(function(result) {
-                if (result.isConfirmed && result.value) {
-                    var resp = result.value;
-                    if (resp.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'NF-e Autorizada!',
-                            html: resp.message + (resp.chave ? '<br><small class="text-muted">Chave: ' + resp.chave + '</small>' : ''),
-                            confirmButtonText: 'OK'
-                        }).then(function() { location.reload(); });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Erro na Emissão',
-                            html: resp.message,
-                            confirmButtonText: 'OK'
-                        }).then(function() { if (resp.nfe_id) location.reload(); });
-                    }
-                }
-            });
-        });
+    // ═══ Emitir NF-e via SEFAZ — botão no cabeçalho ═══
+    var btnHeaderEmitirNfe = document.getElementById('btnHeaderEmitirNfe');
+    if (btnHeaderEmitirNfe) {
+        btnHeaderEmitirNfe.addEventListener('click', emitirNfeSefaz);
     }
 
     // ═══ Cancelar NF-e no Pipeline ═══
-    $(document).on('click', '.btn-cancel-nfe-pipeline', function() {
-        var nfeId = $(this).data('id');
-        var nfeNum = $(this).data('numero');
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.btn-cancel-nfe-pipeline');
+        if (!btn) return;
+        var nfeId = btn.getAttribute('data-id');
+        var nfeNum = btn.getAttribute('data-numero');
         Swal.fire({
             icon: 'warning',
             title: 'Cancelar NF-e #' + nfeNum + '?',
@@ -4663,13 +4800,16 @@ setInterval(() => {
                     Swal.showValidationMessage('Justificativa deve ter no mínimo 15 caracteres.');
                     return false;
                 }
-                return $.ajax({
-                    url: '?page=nfe_documents&action=cancel',
+                return fetch('?page=nfe_documents&action=cancel', {
                     method: 'POST',
-                    dataType: 'json',
-                    data: { nfe_id: nfeId, motivo: motivo },
-                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
-                }).then(function(r){ return r; }).catch(function(){ Swal.showValidationMessage('Erro de comunicação.'); });
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRF-TOKEN': __csrfToken
+                    },
+                    body: 'nfe_id=' + encodeURIComponent(nfeId) + '&motivo=' + encodeURIComponent(motivo) + '&csrf_token=' + encodeURIComponent(__csrfToken)
+                })
+                .then(function(r) { return r.json(); })
+                .catch(function() { Swal.showValidationMessage('Erro de comunicação.'); });
             },
             allowOutsideClick: function() { return !Swal.isLoading(); }
         }).then(function(result) {
@@ -4681,9 +4821,11 @@ setInterval(() => {
     });
 
     // ═══ Carta de Correção no Pipeline ═══
-    $(document).on('click', '.btn-correcao-nfe-pipeline', function() {
-        var nfeId = $(this).data('id');
-        var nfeNum = $(this).data('numero');
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.btn-correcao-nfe-pipeline');
+        if (!btn) return;
+        var nfeId = btn.getAttribute('data-id');
+        var nfeNum = btn.getAttribute('data-numero');
         Swal.fire({
             icon: 'info',
             title: 'Carta de Correção — NF-e #' + nfeNum,
@@ -4701,13 +4843,16 @@ setInterval(() => {
                     Swal.showValidationMessage('Texto deve ter no mínimo 15 caracteres.');
                     return false;
                 }
-                return $.ajax({
-                    url: '?page=nfe_documents&action=correction',
+                return fetch('?page=nfe_documents&action=correction', {
                     method: 'POST',
-                    dataType: 'json',
-                    data: { nfe_id: nfeId, texto: texto },
-                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
-                }).then(function(r){ return r; }).catch(function(){ Swal.showValidationMessage('Erro de comunicação.'); });
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRF-TOKEN': __csrfToken
+                    },
+                    body: 'nfe_id=' + encodeURIComponent(nfeId) + '&texto=' + encodeURIComponent(texto) + '&csrf_token=' + encodeURIComponent(__csrfToken)
+                })
+                .then(function(r) { return r.json(); })
+                .catch(function() { Swal.showValidationMessage('Erro de comunicação.'); });
             },
             allowOutsideClick: function() { return !Swal.isLoading(); }
         }).then(function(result) {
@@ -4719,21 +4864,30 @@ setInterval(() => {
     });
 
     // ═══ Consultar Status NF-e no Pipeline ═══
-    $(document).on('click', '.btn-check-status-pipeline', function() {
-        var btn = $(this);
-        var nfeId = btn.data('id');
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Consultando...');
-        $.ajax({
-            url: '?page=nfe_documents&action=checkStatus&id=' + nfeId,
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.btn-check-status-pipeline');
+        if (!btn) return;
+        var nfeId = btn.getAttribute('data-id');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Consultando...';
+        fetch('?page=nfe_documents&action=checkStatus&id=' + encodeURIComponent(nfeId), {
             method: 'POST',
-            dataType: 'json',
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
-        }).done(function(resp) {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-TOKEN': __csrfToken
+            },
+            body: 'csrf_token=' + encodeURIComponent(__csrfToken)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
             Swal.fire('Consulta SEFAZ', resp.message || 'Sem resposta', resp.success ? 'success' : 'error');
-        }).fail(function() {
+        })
+        .catch(function() {
             Swal.fire('Erro', 'Falha na comunicação.', 'error');
-        }).always(function() {
-            btn.prop('disabled', false).html('<i class="fas fa-sync me-1"></i> Consultar SEFAZ');
+        })
+        .finally(function() {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sync me-1"></i> Consultar SEFAZ';
         });
     });
 

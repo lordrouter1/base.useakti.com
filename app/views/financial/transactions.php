@@ -230,7 +230,7 @@ $methodLabels = [
         <div class="modal-content">
             <form method="post" action="?page=financial&action=addTransaction" id="formAddTx">
                 <?= csrf_field() ?>
-                <div class="modal-header bg-success bg-opacity-10 border-0">
+                <div class="modal-header bg-success  border-0">
                     <h5 class="modal-title text-success"><i class="fas fa-plus-circle me-2"></i>Nova Transação</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -301,7 +301,7 @@ $methodLabels = [
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form id="formImportOfx" enctype="multipart/form-data">
-                <div class="modal-header bg-info bg-opacity-10 border-0">
+                <div class="modal-header bg-info  border-0">
                     <h5 class="modal-title text-info"><i class="fas fa-file-import me-2"></i>Importar Extrato OFX</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>

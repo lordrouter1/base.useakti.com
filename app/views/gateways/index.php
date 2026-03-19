@@ -39,19 +39,19 @@ $e = new Escape();
             ?>
             <div class="col-md-4">
                 <div class="card h-100 <?= $isActive ? 'border-success' : 'border-secondary' ?>">
-                    <div class="card-header d-flex justify-content-between align-items-center <?= $isActive ? 'bg-success bg-opacity-10' : '' ?>">
+                    <div class="card-header d-flex justify-content-between align-items-center <?= $isActive ? 'bg-success ' : '' ?>">
                         <div>
                             <h5 class="mb-0">
                                 <?= $e->html($gw['display_name']) ?>
                                 <?php if ($isDefault): ?>
-                                    <span class="badge bg-primary ms-1">Padrão</span>
+                                    <span class="badge bg-warning text-dark ms-1">Padrão</span>
                                 <?php endif; ?>
                             </h5>
                             <small class="text-muted"><?= $e->html($gw['gateway_slug']) ?></small>
                         </div>
                         <div>
                             <?php if ($isActive): ?>
-                                <span class="badge bg-success"><i class="fas fa-check me-1"></i>Ativo</span>
+                                <span class="badge bg-white" style="color: var(--bs-success) !important"><i class="fas fa-check me-1"  style="color: var(--bs-success) !important"></i>Ativo</span>
                             <?php else: ?>
                                 <span class="badge bg-secondary"><i class="fas fa-times me-1"></i>Inativo</span>
                             <?php endif; ?>

@@ -43,7 +43,7 @@ $si = $statusLabels[$doc['status']] ?? ['label' => $doc['status'], 'color' => 's
             <a href="?page=nfe_documents&action=download&id=<?= $doc['id'] ?>&type=xml" 
                class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-code me-1"></i> XML</a>
             <a href="?page=nfe_documents&action=download&id=<?= $doc['id'] ?>&type=danfe" 
-               class="btn btn-outline-danger btn-sm" target="_blank"><i class="fas fa-file-pdf me-1"></i> DANFE</a>
+               class="btn btn-danger btn-sm" target="_blank"><i class="fas fa-print me-1"></i> Imprimir DANFE</a>
             <?php endif; ?>
             <?php if ($doc['status'] === 'autorizada'): ?>
             <button type="button" class="btn btn-outline-info btn-sm" id="btnCheckStatusDetail"
@@ -60,7 +60,7 @@ $si = $statusLabels[$doc['status']] ?? ['label' => $doc['status'], 'color' => 's
 
             <!-- ═══ Dados do Documento ═══ -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header py-2 bg-primary bg-opacity-10">
+                <div class="card-header py-2 bg-primary ">
                     <h6 class="mb-0 text-primary"><i class="fas fa-file-invoice me-2"></i> Dados da NF-e</h6>
                 </div>
                 <div class="card-body">
@@ -99,7 +99,7 @@ $si = $statusLabels[$doc['status']] ?? ['label' => $doc['status'], 'color' => 's
 
             <!-- ═══ Destinatário ═══ -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header py-2 bg-primary bg-opacity-10">
+                <div class="card-header py-2 bg-primary ">
                     <h6 class="mb-0 text-primary"><i class="fas fa-user me-2"></i> Destinatário</h6>
                 </div>
                 <div class="card-body">
@@ -123,7 +123,7 @@ $si = $statusLabels[$doc['status']] ?? ['label' => $doc['status'], 'color' => 's
             <!-- ═══ Cancelamento / Correção ═══ -->
             <?php if ($doc['status'] === 'cancelada'): ?>
             <div class="card border-0 shadow-sm mb-4 border-start border-danger border-3">
-                <div class="card-header py-2 bg-danger bg-opacity-10">
+                <div class="card-header py-2 bg-danger ">
                     <h6 class="mb-0 text-danger"><i class="fas fa-ban me-2"></i> Cancelamento</h6>
                 </div>
                 <div class="card-body">
@@ -147,7 +147,7 @@ $si = $statusLabels[$doc['status']] ?? ['label' => $doc['status'], 'color' => 's
 
             <?php if ($doc['correcao_texto']): ?>
             <div class="card border-0 shadow-sm mb-4 border-start border-info border-3">
-                <div class="card-header py-2 bg-info bg-opacity-10">
+                <div class="card-header py-2 bg-info ">
                     <h6 class="mb-0 text-info"><i class="fas fa-pen me-2"></i> Carta de Correção (seq: <?= e($doc['correcao_seq']) ?>)</h6>
                 </div>
                 <div class="card-body">
@@ -162,7 +162,7 @@ $si = $statusLabels[$doc['status']] ?? ['label' => $doc['status'], 'color' => 's
             <!-- ═══ SEFAZ Response ═══ -->
             <?php if ($doc['status_sefaz'] || $doc['motivo_sefaz']): ?>
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header py-2 bg-warning bg-opacity-10">
+                <div class="card-header py-2 bg-warning ">
                     <h6 class="mb-0 text-warning"><i class="fas fa-server me-2"></i> Resposta SEFAZ</h6>
                 </div>
                 <div class="card-body">
@@ -182,7 +182,7 @@ $si = $statusLabels[$doc['status']] ?? ['label' => $doc['status'], 'color' => 's
             <!-- ═══ Pedido Vinculado ═══ -->
             <?php if ($order): ?>
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header py-2 bg-success bg-opacity-10">
+                <div class="card-header py-2 bg-success ">
                     <h6 class="mb-0 text-success"><i class="fas fa-shopping-cart me-2"></i> Pedido Vinculado</h6>
                 </div>
                 <div class="card-body">
@@ -197,17 +197,21 @@ $si = $statusLabels[$doc['status']] ?? ['label' => $doc['status'], 'color' => 's
 
             <!-- ═══ Downloads ═══ -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header py-2 bg-primary bg-opacity-10">
+                <div class="card-header py-2 bg-primary ">
                     <h6 class="mb-0 text-primary"><i class="fas fa-download me-2"></i> Downloads</h6>
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
                         <?php if ($doc['xml_autorizado']): ?>
+                        <a href="?page=nfe_documents&action=download&id=<?= $doc['id'] ?>&type=danfe" target="_blank" class="btn btn-danger">
+                            <i class="fas fa-print me-1"></i> Imprimir DANFE (PDF)
+                        </a>
+                        <hr class="my-1">
                         <a href="?page=nfe_documents&action=download&id=<?= $doc['id'] ?>&type=xml" class="btn btn-sm btn-outline-secondary">
                             <i class="fas fa-file-code me-1"></i> XML Autorizado
                         </a>
                         <a href="?page=nfe_documents&action=download&id=<?= $doc['id'] ?>&type=danfe" target="_blank" class="btn btn-sm btn-outline-danger">
-                            <i class="fas fa-file-pdf me-1"></i> DANFE (PDF)
+                            <i class="fas fa-file-pdf me-1"></i> Baixar DANFE
                         </a>
                         <?php endif; ?>
                         <?php if ($doc['xml_cancelamento']): ?>
@@ -229,7 +233,7 @@ $si = $statusLabels[$doc['status']] ?? ['label' => $doc['status'], 'color' => 's
 
             <!-- ═══ Timeline de Logs ═══ -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header py-2 bg-primary bg-opacity-10">
+                <div class="card-header py-2 bg-primary ">
                     <h6 class="mb-0 text-primary"><i class="fas fa-history me-2"></i> Logs SEFAZ</h6>
                 </div>
                 <div class="card-body p-0" style="max-height:400px; overflow-y:auto;">

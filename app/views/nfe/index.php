@@ -215,13 +215,13 @@ $statusLabels = [
                                     <i class="fas fa-eye"></i>
                                 </a>
                                 <?php if ($doc['xml_autorizado']): ?>
-                                <a href="?page=nfe_documents&action=download&id=<?= $doc['id'] ?>&type=xml" 
-                                   class="btn btn-outline-secondary" title="XML">
-                                    <i class="fas fa-file-code"></i>
-                                </a>
                                 <a href="?page=nfe_documents&action=download&id=<?= $doc['id'] ?>&type=danfe" 
-                                   class="btn btn-outline-danger" title="DANFE" target="_blank">
-                                    <i class="fas fa-file-pdf"></i>
+                                   class="btn btn-danger" title="Imprimir DANFE" target="_blank">
+                                    <i class="fas fa-print"></i>
+                                </a>
+                                <a href="?page=nfe_documents&action=download&id=<?= $doc['id'] ?>&type=xml" 
+                                   class="btn btn-outline-secondary" title="Baixar XML">
+                                    <i class="fas fa-file-code"></i>
                                 </a>
                                 <?php endif; ?>
                                 <?php if ($doc['status'] === 'autorizada'): ?>
@@ -270,7 +270,7 @@ $statusLabels = [
 <div class="modal fade" id="modalCancelNfe" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-danger bg-opacity-10">
+            <div class="modal-header bg-danger ">
                 <h5 class="modal-title text-danger"><i class="fas fa-ban me-2"></i> Cancelar NF-e</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -298,7 +298,7 @@ $statusLabels = [
 <div class="modal fade" id="modalCorrecaoNfe" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-info bg-opacity-10">
+            <div class="modal-header bg-info ">
                 <h5 class="modal-title text-info"><i class="fas fa-pen me-2"></i> Carta de Correção</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>

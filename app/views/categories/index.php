@@ -658,7 +658,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     data.products.forEach(p => {
                         const hasG = parseInt(p.grade_count) > 0;
                         const hasS = parseInt(p.sector_count) > 0;
-                        const highlightClass = (!hasG && !hasS) ? 'bg-warning bg-opacity-10' : '';
+                        const highlightClass = (!hasG && !hasS) ? 'bg-warning ' : '';
                         const imgHtml = p.main_image_path 
                             ? `<img src="${p.main_image_path}" class="rounded" style="width:32px; height:32px; object-fit:cover;">` 
                             : `<div class="rounded bg-light d-flex align-items-center justify-content-center" style="width:32px; height:32px;"><i class="fas fa-box text-muted" style="font-size:0.8rem;"></i></div>`;

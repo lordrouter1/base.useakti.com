@@ -82,7 +82,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
         <div class="col-6 col-md-4">
             <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
                 <div class="card-body p-3 d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10" style="width:48px;height:48px;min-width:48px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary " style="width:48px;height:48px;min-width:48px;">
                         <i class="fas fa-clipboard-list text-primary fs-5"></i>
                     </div>
                     <div>
@@ -95,7 +95,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
         <div class="col-6 col-md-4">
             <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
                 <div class="card-body p-3 d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning bg-opacity-10" style="width:48px;height:48px;min-width:48px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning " style="width:48px;height:48px;min-width:48px;">
                         <i class="fas fa-hourglass-half text-warning fs-5"></i>
                     </div>
                     <div>
@@ -108,7 +108,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
         <div class="col-6 col-md-4">
             <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
                 <div class="card-body p-3 d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-success bg-opacity-10" style="width:48px;height:48px;min-width:48px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-success " style="width:48px;height:48px;min-width:48px;">
                         <i class="fas fa-check-double text-success fs-5"></i>
                     </div>
                     <div>
@@ -246,7 +246,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                                         <?= e($item['product_name']) ?>
                                     </h6>
                                     <?php if (!empty($item['grade_description'])): ?>
-                                    <span class="badge bg-info bg-opacity-10 text-info-emphasis mb-1" style="font-size:0.65rem;">
+                                    <span class="badge bg-info  text-info-emphasis mb-1" style="font-size:0.65rem;">
                                         <i class="fas fa-layer-group me-1"></i><?= e($item['grade_description']) ?>
                                     </span>
                                     <?php endif; ?>
@@ -372,7 +372,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                                             <?= e($item['product_name']) ?>
                                         </h6>
                                         <?php if (!empty($item['grade_description'])): ?>
-                                        <span class="badge bg-info bg-opacity-10 text-info-emphasis" style="font-size:0.6rem;">
+                                        <span class="badge bg-info  text-info-emphasis" style="font-size:0.6rem;">
                                             <i class="fas fa-layer-group me-1"></i><?= e($item['grade_description']) ?>
                                         </span>
                                         <?php endif; ?>
@@ -787,7 +787,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += '<div class="flex-grow-1 min-width-0">';
                 html += '<h6 class="mb-1 fw-bold text-truncate' + (isDone ? ' text-success' : '') + '" style="font-size:0.82rem;" title="' + escapeHtml(item.product_name) + '">' + escapeHtml(item.product_name) + '</h6>';
                 if (item.grade_description) {
-                    html += '<span class="badge bg-info bg-opacity-10 text-info-emphasis" style="font-size:0.58rem;"><i class="fas fa-layer-group me-1"></i>' + escapeHtml(item.grade_description) + '</span>';
+                    html += '<span class="badge bg-info  text-info-emphasis" style="font-size:0.58rem;"><i class="fas fa-layer-group me-1"></i>' + escapeHtml(item.grade_description) + '</span>';
                 }
                 html += '</div></div>';
                 // Details
@@ -1034,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var html = '<div class="d-flex gap-2 mb-3 pb-3 border-bottom log-entry">';
         html += '<div class="flex-shrink-0">';
-        html += '<div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width:36px;height:36px;">';
+        html += '<div class="rounded-circle bg-primary  d-flex align-items-center justify-content-center" style="width:36px;height:36px;">';
         if (isImage) {
             html += '<i class="fas fa-image text-primary"></i>';
         } else if (isPdf) {

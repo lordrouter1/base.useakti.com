@@ -242,7 +242,7 @@ a{-webkit-tap-highlight-color:transparent}
                 <?php if ($companyLogo): ?>
                     <img src="<?= eAttr($companyLogo) ?>" alt="Logo" class="logo-img">
                 <?php else: ?>
-                    <div class="d-flex align-items-center justify-content-center rounded-circle bg-white bg-opacity-10" style="width:34px;height:34px;">
+                    <div class="d-flex align-items-center justify-content-center rounded-circle bg-white " style="width:34px;height:34px;">
                         <i class="fas fa-store text-white"></i>
                     </div>
                 <?php endif; ?>

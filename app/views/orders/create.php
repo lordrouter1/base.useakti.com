@@ -285,7 +285,7 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                                     $hasContacts = isset($contactsByDay[$dayCounter]);
                                     $contactCount = $hasContacts ? count($contactsByDay[$dayCounter]) : 0;
                                 ?>
-                                    <td class="position-relative <?= $isToday ? 'bg-primary bg-opacity-10 border-primary' : '' ?>" 
+                                    <td class="position-relative <?= $isToday ? 'bg-primary  border-primary' : '' ?>" 
                                         style="height:55px; cursor:<?= $hasContacts ? 'pointer' : 'default' ?>; vertical-align:top; padding:4px;"
                                         <?php if($hasContacts): ?>
                                         data-bs-toggle="popover" 

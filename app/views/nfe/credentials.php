@@ -74,7 +74,7 @@ $pageTitle = 'Credenciais SEFAZ — NF-e';
 
         <!-- ═══ Dados do Emitente ═══ -->
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header py-2 bg-primary bg-opacity-10">
+            <div class="card-header py-2 bg-primary ">
                 <h6 class="mb-0 text-primary"><i class="fas fa-building me-2"></i> Dados do Emitente</h6>
             </div>
             <div class="card-body">
@@ -115,7 +115,7 @@ $pageTitle = 'Credenciais SEFAZ — NF-e';
 
         <!-- ═══ Endereço ═══ -->
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header py-2 bg-primary bg-opacity-10">
+            <div class="card-header py-2 bg-primary ">
                 <h6 class="mb-0 text-primary"><i class="fas fa-map-marker-alt me-2"></i> Endereço do Emitente</h6>
             </div>
             <div class="card-body">
@@ -179,7 +179,7 @@ $pageTitle = 'Credenciais SEFAZ — NF-e';
 
         <!-- ═══ Certificado Digital ═══ -->
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header py-2 bg-warning bg-opacity-10">
+            <div class="card-header py-2 bg-warning ">
                 <h6 class="mb-0 text-warning"><i class="fas fa-key me-2"></i> Certificado Digital A1 (.pfx)</h6>
             </div>
             <div class="card-body">
@@ -216,7 +216,7 @@ $pageTitle = 'Credenciais SEFAZ — NF-e';
 
         <!-- ═══ Configuração NF-e ═══ -->
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header py-2 bg-success bg-opacity-10">
+            <div class="card-header py-2 bg-success ">
                 <h6 class="mb-0 text-success"><i class="fas fa-cog me-2"></i> Configuração de Emissão</h6>
             </div>
             <div class="card-body">

@@ -79,7 +79,7 @@ $isLowStock = isset($_GET['low_stock']) && $_GET['low_stock'] == '1';
         </div>
     </div>
     <div class="col-xl-2 col-md-4 col-6">
-        <div class="card border-0 shadow-sm h-100 border-start border-danger border-4 <?= $summary['low_stock_count'] > 0 ? 'bg-danger bg-opacity-10' : '' ?>">
+        <div class="card border-0 shadow-sm h-100 border-start border-danger border-4 <?= $summary['low_stock_count'] > 0 ? 'bg-danger ' : '' ?>">
             <div class="card-body d-flex align-items-center p-3">
                 <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(192,57,43,0.15);">
                     <i class="fas fa-exclamation-triangle fa-lg text-danger"></i>

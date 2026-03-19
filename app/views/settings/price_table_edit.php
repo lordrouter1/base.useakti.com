@@ -81,7 +81,7 @@
         <!-- Adicionar produto -->
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-primary bg-opacity-10 py-2">
+                <div class="card-header bg-primary  py-2">
                     <h6 class="mb-0 text-primary"><i class="fas fa-plus-circle me-2"></i>Adicionar/Atualizar Produto</h6>
                 </div>
                 <div class="card-body">
