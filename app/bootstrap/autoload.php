@@ -15,6 +15,7 @@
  *   Akti\Repositories\  → app/repositories/
  *   Akti\Utils\          → app/utils/
  *   Akti\Security\       → app/security/
+ *   Akti\Gateways\       → app/gateways/
  *
  * Compatível com PHP 7.4+
  *
@@ -45,6 +46,7 @@ spl_autoload_register(function (string $class): void {
         'Akti\\Repositories\\' => 'app/repositories/',
         'Akti\\Utils\\'         => 'app/utils/',
         'Akti\\Security\\'      => 'app/security/',
+        'Akti\\Gateways\\'      => 'app/gateways/',
     ];
 
     foreach ($namespaceMap as $nsPrefix => $baseDir) {

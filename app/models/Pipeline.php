@@ -40,7 +40,9 @@ class Pipeline {
                             WHEN o.pipeline_stage = 'contato' AND o.scheduled_date IS NOT NULL 
                                 THEN TIMESTAMPDIFF(HOUR, o.scheduled_date, NOW())
                             ELSE TIMESTAMPDIFF(HOUR, o.pipeline_entered_at, NOW())
-                         END as hours_in_stage
+                         END as hours_in_stage,
+                         o.quote_confirmed_at,
+                         o.quote_confirmed_ip
                   FROM orders o
                   LEFT JOIN customers c ON o.customer_id = c.id
                   LEFT JOIN users u ON o.assigned_to = u.id

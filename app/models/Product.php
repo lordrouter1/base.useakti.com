@@ -44,6 +44,92 @@ class Product {
         return $stmt;
     }
 
+    /**
+     * Retorna produtos com paginação
+     * @param int $page Página atual (1-based)
+     * @param int $perPage Itens por página
+     * @return array Lista de produtos
+     */
+    public function readPaginated(int $page = 1, int $perPage = 15): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $query = "SELECT p.*, 
+                         c.name AS category_name,
+                         sc.name AS subcategory_name,
+                         (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id AND pi.is_main = 1 LIMIT 1) as main_image_path
+                  FROM {$this->table_name} p
+                  LEFT JOIN categories c ON p.category_id = c.id
+                  LEFT JOIN subcategories sc ON p.subcategory_id = sc.id
+                  ORDER BY p.name ASC
+                  LIMIT :limit OFFSET :offset";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Retorna produtos paginados com filtro opcional de categoria e busca.
+     * Usado no catálogo público para lazy loading.
+     *
+     * @param int $page Página atual (1-based)
+     * @param int $perPage Itens por página
+     * @param int|null $categoryId Filtrar por categoria (null = todas)
+     * @param string|null $search Busca por nome (null = sem filtro)
+     * @return array ['data' => [...], 'total' => int]
+     */
+    public function readPaginatedFiltered(int $page = 1, int $perPage = 20, ?int $categoryId = null, ?string $search = null): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $where = [];
+        $params = [];
+
+        if ($categoryId) {
+            $where[] = "p.category_id = :cat_id";
+            $params[':cat_id'] = $categoryId;
+        }
+        if ($search) {
+            $where[] = "(p.name LIKE :search OR p.description LIKE :search)";
+            $params[':search'] = '%' . $search . '%';
+        }
+
+        $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        // Total
+        $countQuery = "SELECT COUNT(*) FROM {$this->table_name} p {$whereClause}";
+        $countStmt = $this->conn->prepare($countQuery);
+        foreach ($params as $k => $v) {
+            $countStmt->bindValue($k, $v);
+        }
+        $countStmt->execute();
+        $total = (int)$countStmt->fetchColumn();
+
+        // Dados
+        $query = "SELECT p.*, 
+                         c.name AS category_name,
+                         sc.name AS subcategory_name,
+                         (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id AND pi.is_main = 1 LIMIT 1) as main_image_path
+                  FROM {$this->table_name} p
+                  LEFT JOIN categories c ON p.category_id = c.id
+                  LEFT JOIN subcategories sc ON p.subcategory_id = sc.id
+                  {$whereClause}
+                  ORDER BY p.name ASC
+                  LIMIT :limit OFFSET :offset";
+        $stmt = $this->conn->prepare($query);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'data'  => $stmt->fetchAll(PDO::FETCH_ASSOC),
+            'total' => $total,
+        ];
+    }
+
     function getImages($productId) {
         $query = "SELECT * FROM product_images WHERE product_id = :product_id ORDER BY is_main DESC, id ASC";
         $stmt = $this->conn->prepare($query);

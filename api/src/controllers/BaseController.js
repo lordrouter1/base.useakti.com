@@ -4,20 +4,29 @@ import { toPositiveInt } from '../utils/helpers.js';
 /**
  * BaseController — thin HTTP adapter for any BaseService.
  *
- * Provides standard CRUD endpoint handlers that delegate to the
- * underlying service. Extend for resource-specific behaviour.
+ * Na arquitetura multi-tenant, os models são resolvidos por request
+ * (via req.models injetado pelo tenantMiddleware). Cada subclasse
+ * deve implementar `getService(req)` que retorna uma instância do
+ * service usando os models do tenant correto.
  *
  * Usage:
- *   class OrderController extends BaseController {
- *     constructor() { super(new OrderService()); }
+ *   class ProductController extends BaseController {
+ *     getService(req) {
+ *       const { Product, ProductGradeCombination } = req.models;
+ *       return new ProductService(Product, ProductGradeCombination);
+ *     }
  *   }
  */
 export class BaseController {
   /**
-   * @param {import('../services/BaseService.js').BaseService} service
+   * Deve ser implementado pelas subclasses.
+   * Recebe `req` e retorna uma instância do service com os models do tenant.
+   *
+   * @param {import('express').Request} req
+   * @returns {import('../services/BaseService.js').BaseService}
    */
-  constructor(service) {
-    this.service = service;
+  getService(req) {
+    throw new Error('BaseController.getService() must be implemented by subclass.');
   }
 
   /**
@@ -25,9 +34,10 @@ export class BaseController {
    */
   index = async (req, res, next) => {
     try {
+      const service = this.getService(req);
       const page = toPositiveInt(req.query.page, PAGINATION.DEFAULT_PAGE);
       const limit = toPositiveInt(req.query.limit, PAGINATION.DEFAULT_LIMIT);
-      const result = await this.service.findAll(req.tenantId, { page, limit });
+      const result = await service.findAll({ page, limit });
       return res.json(result);
     } catch (err) {
       return next(err);
@@ -39,7 +49,8 @@ export class BaseController {
    */
   show = async (req, res, next) => {
     try {
-      const record = await this.service.findById(req.tenantId, req.params.id);
+      const service = this.getService(req);
+      const record = await service.findById(req.params.id);
       if (!record) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({ error: 'Resource not found.' });
       }
@@ -54,7 +65,8 @@ export class BaseController {
    */
   store = async (req, res, next) => {
     try {
-      const record = await this.service.create(req.tenantId, req.body);
+      const service = this.getService(req);
+      const record = await service.create(req.body);
       return res.status(HTTP_STATUS.CREATED).json({ data: record });
     } catch (err) {
       return next(err);
@@ -66,7 +78,8 @@ export class BaseController {
    */
   update = async (req, res, next) => {
     try {
-      const updated = await this.service.update(req.tenantId, req.params.id, req.body);
+      const service = this.getService(req);
+      const updated = await service.update(req.params.id, req.body);
       if (!updated) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({ error: 'Resource not found.' });
       }
@@ -81,7 +94,8 @@ export class BaseController {
    */
   destroy = async (req, res, next) => {
     try {
-      const deleted = await this.service.delete(req.tenantId, req.params.id);
+      const service = this.getService(req);
+      const deleted = await service.delete(req.params.id);
       if (!deleted) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({ error: 'Resource not found.' });
       }

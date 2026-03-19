@@ -40,6 +40,11 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
         </li>
         <?php endif; ?>
         <li class="nav-item">
+            <a class="nav-link <?= $activeTab === 'dashboard' ? 'active' : '' ?>" href="?page=settings&tab=dashboard">
+                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link <?= $activeTab === 'security' ? 'active' : '' ?>" href="?page=settings&tab=security">
                 <i class="fas fa-shield-alt me-1"></i> Segurança
             </a>
@@ -1165,6 +1170,11 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
             </div>
         </div>
     </form>
+    <?php endif; ?>
+
+    <?php if ($activeTab === 'dashboard'): ?>
+    <!-- ══════════ ABA: DASHBOARD WIDGETS ══════════ -->
+    <?php require 'app/views/settings/dashboard_widgets.php'; ?>
     <?php endif; ?>
 
     <?php if ($activeTab === 'security'): ?>

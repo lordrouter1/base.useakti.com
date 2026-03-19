@@ -25,9 +25,17 @@ class OrderController {
     }
 
     public function index() {
-        $stmt = $this->orderModel->readAll();
-        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+        $perPage     = 15;
+        $ctPage = max(1, (Input::get('pg', 'int')?? 1));
+        $totalItems  = (int) $this->orderModel->countAll();
+        $totalPages  = max(1, (int) ceil($totalItems / $perPage));
+        $ctPage = min($ctPage, $totalPages);
+
+        $orders = $this->orderModel->readPaginated($ctPage, $perPage);
+
+        // Variáveis para o componente de paginação
+        $baseUrl = '?page=orders';
+
         require 'app/views/layout/header.php';
         require 'app/views/orders/index.php';
         require 'app/views/layout/footer.php';
@@ -204,6 +212,23 @@ class OrderController {
     }
 
     /**
+     * Remove a confirmação de orçamento quando produtos são modificados.
+     * Se o pedido tinha sido aprovado pelo cliente via catálogo,
+     * a aprovação é invalidada para que o cliente aprove novamente.
+     */
+    private function clearQuoteConfirmation($orderId) {
+        if (!$orderId) return;
+        $database = new Database();
+        $db = $database->getConnection();
+        $stmt = $db->prepare("UPDATE orders SET quote_confirmed_at = NULL, quote_confirmed_ip = NULL WHERE id = :id AND quote_confirmed_at IS NOT NULL");
+        $stmt->execute([':id' => $orderId]);
+        if ($stmt->rowCount() > 0) {
+            $logger = new Logger($db);
+            $logger->log('QUOTE_CONFIRMATION_CLEARED', "Confirmação de orçamento do pedido #{$orderId} removida devido a alteração de produtos");
+        }
+    }
+
+    /**
      * Obtém o order_id a partir de um item_id
      */
     private function getOrderIdFromItem($itemId) {
@@ -243,6 +268,9 @@ class OrderController {
 
             $this->orderModel->addItem($orderId, $productId, $quantity, $unitPrice, $combinationId ?: null, $gradeDescription ?: null);
 
+            // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
+            $this->clearQuoteConfirmation($orderId);
+
             $redirect = Input::post('redirect', 'enum', 'orders', ['orders', 'pipeline']);
             if ($redirect === 'pipeline') {
                 header('Location: ?page=pipeline&action=detail&id=' . $orderId . '&status=item_added');
@@ -277,6 +305,9 @@ class OrderController {
 
             $this->orderModel->updateItem($itemId, $quantity, $unitPrice);
 
+            // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
+            $this->clearQuoteConfirmation($orderId);
+
             $redirect = Input::post('redirect', 'enum', 'orders', ['orders', 'pipeline']);
             if ($redirect === 'pipeline') {
                 header('Location: ?page=pipeline&action=detail&id=' . $orderId . '&status=item_updated');
@@ -309,6 +340,9 @@ class OrderController {
         if ($itemId) {
             $this->orderModel->deleteItem($itemId);
         }
+
+        // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
+        $this->clearQuoteConfirmation($orderId);
 
         if ($redirect === 'pipeline') {
             header('Location: ?page=pipeline&action=detail&id=' . $orderId . '&status=item_deleted');
@@ -346,6 +380,9 @@ class OrderController {
         $result = $this->orderModel->updateItemQty($itemId, $quantity);
 
         if ($result) {
+            // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
+            $this->clearQuoteConfirmation($orderId);
+
             $database = new \Database();
             $db = $database->getConnection();
             $q = "SELECT oi.order_id, oi.quantity, oi.unit_price, oi.subtotal, oi.discount, o.total_amount 
@@ -397,6 +434,9 @@ class OrderController {
         $result = $this->orderModel->updateItemDiscount($itemId, $discount);
 
         if ($result) {
+            // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
+            $this->clearQuoteConfirmation($orderId);
+
             // Buscar novo total do pedido (recalculado pelo model)
             $database = new \Database();
             $db = $database->getConnection();

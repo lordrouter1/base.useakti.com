@@ -17,7 +17,8 @@
             "Akti\\Services\\": "app/services/",
             "Akti\\Middleware\\": "app/middleware/",
             "Akti\\Utils\\": "app/utils/",
-            "Akti\\Security\\": "app/security/"
+            "Akti\\Security\\": "app/security/",
+            "Akti\\Gateways\\": "app/gateways/"
         },
         "classmap": [
             "app/config/database.php",

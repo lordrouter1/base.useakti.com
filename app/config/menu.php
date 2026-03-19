@@ -147,6 +147,26 @@ return [
                 'permission' => true,
                 'permission_alias' => 'financial',
             ],
+            'payment_gateways' => [
+                'label'      => 'Gateways de Pagamento',
+                'icon'       => 'fas fa-credit-card',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'nfe_documents' => [
+                'label'      => 'Notas Fiscais (NF-e)',
+                'icon'       => 'fas fa-file-invoice',
+                'menu'       => true,
+                'permission' => true,
+                'module'     => 'nfe',
+            ],
+            'nfe_credentials' => [
+                'label'      => 'Credenciais SEFAZ',
+                'icon'       => 'fas fa-certificate',
+                'menu'       => true,
+                'permission' => true,
+                'module'     => 'nfe',
+            ],
         ],
     ],
 

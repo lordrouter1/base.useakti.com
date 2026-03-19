@@ -83,20 +83,22 @@ class ModuleBootloader
      * fiscal = false → Desabilita a aba Fiscal nas configurações.
      */
     private const DEFAULT_ENABLED = [
-        'financial' => true,
-        'boleto'    => false,
-        'nfe'       => false,
-        'fiscal'    => false,
+        'financial'        => true,
+        'payment_gateways' => true,
+        'boleto'           => false,
+        'nfe'              => true,
+        'fiscal'           => false,
     ];
 
     /**
      * Labels amigáveis para cada módulo (usado em mensagens de UI).
      */
     private const MODULE_LABELS = [
-        'financial' => 'Financeiro',
-        'boleto'    => 'Boleto Bancário',
-        'nfe'       => 'Nota Fiscal Eletrônica (NF-e)',
-        'fiscal'    => 'Configurações Fiscais',
+        'financial'        => 'Financeiro',
+        'payment_gateways' => 'Gateways de Pagamento',
+        'boleto'           => 'Boleto Bancário',
+        'nfe'              => 'Nota Fiscal Eletrônica (NF-e)',
+        'fiscal'           => 'Configurações Fiscais',
     ];
 
     /**
@@ -106,6 +108,9 @@ class ModuleBootloader
         'financial'              => 'financial',
         'financial_payments'     => 'financial',
         'financial_transactions' => 'financial',
+        'payment_gateways'       => 'payment_gateways',
+        'nfe_credentials'        => 'nfe',
+        'nfe_documents'          => 'nfe',
     ];
 
     /**

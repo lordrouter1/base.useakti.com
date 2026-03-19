@@ -15,6 +15,7 @@ $allCats = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? [],
 $methodLabels = [
     'dinheiro'=>'💵 Dinheiro','pix'=>'📱 PIX','cartao_credito'=>'💳 Crédito',
     'cartao_debito'=>'💳 Débito','boleto'=>'📄 Boleto','transferencia'=>'🏦 Transf.',
+    'gateway'=>'🌐 Gateway Online',
 ];
 ?>
 
@@ -275,6 +276,7 @@ $methodLabels = [
                                 <option value="cartao_debito">💳 Cartão Débito</option>
                                 <option value="boleto">📄 Boleto</option>
                                 <option value="transferencia">🏦 Transferência</option>
+                                <option value="gateway">🌐 Gateway Online</option>
                             </select>
                         </div>
                         <div class="col-md-6">

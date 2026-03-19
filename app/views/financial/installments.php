@@ -2,7 +2,7 @@
 /**
  * Financeiro — Parcelas de um Pedido
  * Fluxo simplificado: as parcelas já vêm do pedido (pipeline).
- * Aqui o operador apenas confirma/estorna pagamentos.
+ * Aqui o operador pode confirmar/estornar pagamentos, unificar ou dividir parcelas.
  * Variáveis: $order, $installments
  */
 $orderId   = $order['id'] ?? 0;
@@ -10,14 +10,19 @@ $orderNet  = ($order['total_amount'] ?? 0) - ($order['discount'] ?? 0);
 $totalPago = 0;
 $totalParcelas = count($installments ?? []);
 $parcelasPagas = 0;
+$openInstallments = [];
 foreach ($installments as $inst) {
     if ($inst['status'] === 'pago') {
         $totalPago += (float)($inst['paid_amount'] ?? $inst['amount']);
         $parcelasPagas++;
     }
+    if (in_array($inst['status'], ['pendente', 'atrasado'])) {
+        $openInstallments[] = $inst;
+    }
 }
 $pctPaid = $orderNet > 0 ? min(100, round(($totalPago / $orderNet) * 100)) : 0;
 $restante = $orderNet - $totalPago;
+$hasOpenInstallments = count($openInstallments) > 0;
 
 $statusMap = [
     'pendente'  => ['badge' => 'bg-warning text-dark', 'icon' => 'fas fa-clock',               'label' => 'Pendente'],
@@ -33,6 +38,7 @@ $methodLabels = [
     'cartao_debito'  => '💳 Cartão Débito',
     'boleto'         => '📄 Boleto',
     'transferencia'  => '🏦 Transferência',
+    'gateway'        => '🌐 Gateway Online',
 ];
 ?>
 
@@ -155,16 +161,120 @@ $methodLabels = [
     </div>
 </div>
 <?php else: ?>
+
+<!-- ══════ Toolbar de ações: Unificar / Dividir ══════ -->
+<?php if ($hasOpenInstallments): ?>
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h6 class="mb-0 fw-bold text-secondary"><i class="fas fa-tools me-2"></i>Gerenciar Parcelas em Aberto</h6>
+                <small class="text-muted"><?= count($openInstallments) ?> parcela(s) em aberto disponíveis para alteração</small>
+            </div>
+            <div class="d-flex gap-2">
+                <?php if (count($openInstallments) >= 2): ?>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnStartMerge">
+                    <i class="fas fa-compress-arrows-alt me-1"></i> Unificar Parcelas
+                </button>
+                <?php endif; ?>
+                <button type="button" class="btn btn-sm btn-outline-warning text-dark" id="btnStartSplit" disabled>
+                    <i class="fas fa-expand-arrows-alt me-1"></i> Dividir Parcela
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Painel de Unificação (hidden por padrão) ── -->
+        <div id="mergePanel" class="mt-3" style="display:none;">
+            <div class="alert alert-primary py-2 px-3 mb-2">
+                <i class="fas fa-info-circle me-1"></i>
+                <strong>Unificar:</strong> Selecione 2 ou mais parcelas em aberto para unificá-las em uma única parcela.
+            </div>
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small fw-bold mb-1">Parcelas selecionadas:</label>
+                    <div id="mergeSelectedBadges" class="d-flex flex-wrap gap-1">
+                        <span class="text-muted small">Clique nas parcelas abaixo...</span>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small fw-bold mb-1">Soma:</label>
+                    <span class="fw-bold text-primary" id="mergeTotalDisplay">R$ 0,00</span>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small fw-bold mb-1">Vencimento da nova parcela</label>
+                    <input type="date" class="form-control form-control-sm" id="mergeDueDate" value="<?= date('Y-m-d') ?>">
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-sm btn-primary" id="btnConfirmMerge" disabled>
+                        <i class="fas fa-check me-1"></i> Confirmar Unificação
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCancelMerge">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Painel de Divisão (hidden por padrão) ── -->
+        <div id="splitPanel" class="mt-3" style="display:none;">
+            <div class="alert alert-warning py-2 px-3 mb-2">
+                <i class="fas fa-info-circle me-1"></i>
+                <strong>Dividir:</strong> Selecione uma parcela em aberto na tabela para dividi-la em partes iguais.
+            </div>
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small fw-bold mb-1">Parcela selecionada:</label>
+                    <span class="fw-bold" id="splitSelectedLabel">—</span>
+                    <input type="hidden" id="splitInstallmentId" value="">
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small fw-bold mb-1">Valor original:</label>
+                    <span class="fw-bold text-primary" id="splitOriginalAmount">R$ 0,00</span>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small fw-bold mb-1">Dividir em</label>
+                    <select class="form-select form-select-sm" id="splitParts" style="width:80px;">
+                        <?php for ($p = 2; $p <= 12; $p++): ?>
+                        <option value="<?= $p ?>"><?= $p ?>x</option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small fw-bold mb-1">Valor por parte:</label>
+                    <span class="fw-bold text-success" id="splitPerPartDisplay">R$ 0,00</span>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small fw-bold mb-1">1º Vencimento</label>
+                    <input type="date" class="form-control form-control-sm" id="splitFirstDueDate" value="<?= date('Y-m-d') ?>">
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-sm btn-warning text-dark" id="btnConfirmSplit" disabled>
+                        <i class="fas fa-check me-1"></i> Confirmar Divisão
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCancelSplit">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <div class="card border-0 shadow-sm">
-    <div class="card-header bg-white border-bottom p-3">
+    <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
         <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-list-ol me-2"></i>Parcelas</h6>
+        <span class="badge bg-secondary" id="badgeParcelasCount"><?= $totalParcelas ?> parcela(s)</span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0" id="installmentsTable">
                 <thead class="bg-light">
                     <tr>
-                        <th class="ps-3 py-3" style="width:60px;">#</th>
+                        <th class="ps-3 py-3" style="width:40px;">
+                            <span class="text-muted" title="Seleção para unificar/dividir"><i class="fas fa-check-square"></i></span>
+                        </th>
+                        <th class="py-3" style="width:60px;">#</th>
                         <th class="py-3">Vencimento</th>
                         <th class="py-3">Valor</th>
                         <th class="py-3">Pago em</th>
@@ -178,9 +288,35 @@ $methodLabels = [
                     <?php foreach ($installments as $inst):
                         $st = $statusMap[$inst['status']] ?? $statusMap['pendente'];
                         $isEntrada = ($inst['installment_number'] == 0);
+                        $isOpen = in_array($inst['status'], ['pendente', 'atrasado']);
                     ?>
-                    <tr class="<?= $inst['status'] === 'atrasado' ? 'table-danger' : '' ?>">
-                        <td class="ps-3 fw-bold">
+                    <tr class="<?= $inst['status'] === 'atrasado' ? 'table-danger' : '' ?> <?= $isOpen ? 'installment-open-row' : '' ?>"
+                        data-id="<?= $inst['id'] ?>"
+                        data-amount="<?= $inst['amount'] ?>"
+                        data-number="<?= $inst['installment_number'] ?>"
+                        data-status="<?= $inst['status'] ?>"
+                        data-due="<?= $inst['due_date'] ?>"
+                        data-is-entrada="<?= $isEntrada ? '1' : '0' ?>"
+                        style="<?= $isOpen ? 'cursor:pointer;' : '' ?>">
+                        <td class="ps-3">
+                            <?php if ($isOpen): ?>
+                            <input type="checkbox" class="form-check-input installment-check" 
+                                   data-id="<?= $inst['id'] ?>" 
+                                   data-amount="<?= $inst['amount'] ?>"
+                                   data-number="<?= $isEntrada ? 'Entrada' : $inst['installment_number'] . 'ª' ?>"
+                                   style="display:none;">
+                            <!-- Radio for split (single select) -->
+                            <input type="radio" class="form-check-input installment-radio" name="splitSelect"
+                                   data-id="<?= $inst['id'] ?>"
+                                   data-amount="<?= $inst['amount'] ?>"
+                                   data-number="<?= $isEntrada ? 'Entrada' : $inst['installment_number'] . 'ª' ?>"
+                                   data-due="<?= $inst['due_date'] ?>"
+                                   style="display:none;">
+                            <?php else: ?>
+                            <span class="text-muted"><i class="fas fa-lock" style="font-size:0.65rem;"></i></span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="fw-bold">
                             <?php if ($isEntrada): ?>
                                 <span class="badge bg-info">Entrada</span>
                             <?php else: ?>
@@ -226,3 +362,297 @@ $methodLabels = [
     </div>
 </div>
 <?php endif; ?>
+
+<!-- ══════ JavaScript: Unificar / Dividir ══════ -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const orderId = <?= (int)$orderId ?>;
+
+    // ── Elementos ──
+    const btnStartMerge = document.getElementById('btnStartMerge');
+    const btnStartSplit = document.getElementById('btnStartSplit');
+    const mergePanel = document.getElementById('mergePanel');
+    const splitPanel = document.getElementById('splitPanel');
+    const btnConfirmMerge = document.getElementById('btnConfirmMerge');
+    const btnCancelMerge = document.getElementById('btnCancelMerge');
+    const btnConfirmSplit = document.getElementById('btnConfirmSplit');
+    const btnCancelSplit = document.getElementById('btnCancelSplit');
+
+    let currentMode = null; // 'merge' | 'split' | null
+
+    function formatBRL(val) {
+        return 'R$ ' + parseFloat(val).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    function resetMode() {
+        currentMode = null;
+        if (mergePanel) mergePanel.style.display = 'none';
+        if (splitPanel) splitPanel.style.display = 'none';
+        // Hide all checkboxes / radios
+        document.querySelectorAll('.installment-check').forEach(el => { el.style.display = 'none'; el.checked = false; });
+        document.querySelectorAll('.installment-radio').forEach(el => { el.style.display = 'none'; el.checked = false; });
+        // Remove highlight from rows
+        document.querySelectorAll('.installment-open-row').forEach(el => el.classList.remove('table-primary', 'table-warning'));
+        // Enable both buttons
+        if (btnStartMerge) btnStartMerge.disabled = false;
+        if (btnStartSplit) btnStartSplit.disabled = false;
+        updateMergeUI();
+        updateSplitUI();
+    }
+
+    // ── MERGE (Unificar) ──
+    if (btnStartMerge) {
+        btnStartMerge.addEventListener('click', function() {
+            resetMode();
+            currentMode = 'merge';
+            mergePanel.style.display = '';
+            btnStartSplit.disabled = true;
+            // Show checkboxes on open rows
+            document.querySelectorAll('.installment-check').forEach(el => el.style.display = '');
+        });
+    }
+
+    if (btnCancelMerge) btnCancelMerge.addEventListener('click', resetMode);
+
+    // Checkbox change events
+    document.querySelectorAll('.installment-check').forEach(function(chk) {
+        chk.addEventListener('change', function() {
+            const row = this.closest('tr');
+            if (this.checked) {
+                row.classList.add('table-primary');
+            } else {
+                row.classList.remove('table-primary');
+            }
+            updateMergeUI();
+        });
+    });
+
+    function updateMergeUI() {
+        const checked = document.querySelectorAll('.installment-check:checked');
+        const badges = document.getElementById('mergeSelectedBadges');
+        const totalDisp = document.getElementById('mergeTotalDisplay');
+        
+        if (!badges || !totalDisp) return;
+        
+        if (checked.length === 0) {
+            badges.innerHTML = '<span class="text-muted small">Clique nas parcelas abaixo...</span>';
+            totalDisp.textContent = 'R$ 0,00';
+            if (btnConfirmMerge) btnConfirmMerge.disabled = true;
+            return;
+        }
+
+        let html = '';
+        let total = 0;
+        checked.forEach(function(chk) {
+            const num = chk.getAttribute('data-number');
+            const amt = parseFloat(chk.getAttribute('data-amount'));
+            total += amt;
+            html += '<span class="badge bg-primary me-1">' + num + ' — ' + formatBRL(amt) + '</span>';
+        });
+
+        badges.innerHTML = html;
+        totalDisp.textContent = formatBRL(total);
+        if (btnConfirmMerge) btnConfirmMerge.disabled = (checked.length < 2);
+    }
+
+    if (btnConfirmMerge) {
+        btnConfirmMerge.addEventListener('click', function() {
+            const checked = document.querySelectorAll('.installment-check:checked');
+            if (checked.length < 2) return;
+
+            const ids = [];
+            let total = 0;
+            checked.forEach(c => { ids.push(c.getAttribute('data-id')); total += parseFloat(c.getAttribute('data-amount')); });
+
+            const dueDate = document.getElementById('mergeDueDate')?.value || '';
+
+            Swal.fire({
+                title: 'Confirmar Unificação',
+                html: '<p>Unificar <strong>' + ids.length + '</strong> parcelas em uma única de <strong>' + formatBRL(total) + '</strong>?</p>' +
+                      '<p class="small text-muted">As parcelas originais serão removidas e substituídas por uma nova parcela com o valor somado.</p>',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-compress-arrows-alt me-1"></i> Unificar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#3085d6',
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+
+                const formData = new FormData();
+                ids.forEach(id => formData.append('installment_ids[]', id));
+                formData.append('due_date', dueDate);
+                formData.append('csrf_token', csrfToken);
+
+                fetch('?page=financial&action=mergeInstallments', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(function(data) {
+                    if (data.success) {
+                        Swal.fire({icon:'success', title:'Parcelas Unificadas!', text: data.message, timer:2000, showConfirmButton:false})
+                        .then(() => location.reload());
+                    } else {
+                        Swal.fire({icon:'error', title:'Erro', text: data.message});
+                    }
+                })
+                .catch(function() {
+                    Swal.fire({icon:'error', title:'Erro', text:'Falha na comunicação com o servidor.'});
+                });
+            });
+        });
+    }
+
+    // ── SPLIT (Dividir) ──
+    if (btnStartSplit) {
+        btnStartSplit.addEventListener('click', function() {
+            resetMode();
+            currentMode = 'split';
+            splitPanel.style.display = '';
+            if (btnStartMerge) btnStartMerge.disabled = true;
+            // Show radio buttons on open rows
+            document.querySelectorAll('.installment-radio').forEach(el => el.style.display = '');
+        });
+    }
+
+    if (btnCancelSplit) btnCancelSplit.addEventListener('click', resetMode);
+
+    // Radio change events
+    document.querySelectorAll('.installment-radio').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            // Remove highlight from all
+            document.querySelectorAll('.installment-open-row').forEach(el => el.classList.remove('table-warning'));
+            // Highlight selected
+            this.closest('tr').classList.add('table-warning');
+            updateSplitUI();
+        });
+    });
+
+    const splitPartsSelect = document.getElementById('splitParts');
+    if (splitPartsSelect) {
+        splitPartsSelect.addEventListener('change', updateSplitUI);
+    }
+
+    function updateSplitUI() {
+        const selected = document.querySelector('.installment-radio:checked');
+        const label = document.getElementById('splitSelectedLabel');
+        const origAmt = document.getElementById('splitOriginalAmount');
+        const perPart = document.getElementById('splitPerPartDisplay');
+        const idField = document.getElementById('splitInstallmentId');
+        const dueDateField = document.getElementById('splitFirstDueDate');
+
+        if (!selected || !label || !origAmt) return;
+
+        if (!selected) {
+            if (label) label.textContent = '—';
+            if (origAmt) origAmt.textContent = 'R$ 0,00';
+            if (perPart) perPart.textContent = 'R$ 0,00';
+            if (btnConfirmSplit) btnConfirmSplit.disabled = true;
+            return;
+        }
+
+        const num = selected.getAttribute('data-number');
+        const amt = parseFloat(selected.getAttribute('data-amount'));
+        const parts = parseInt(splitPartsSelect?.value || 2);
+        const due = selected.getAttribute('data-due');
+
+        label.textContent = num + ' parcela';
+        origAmt.textContent = formatBRL(amt);
+        idField.value = selected.getAttribute('data-id');
+        if (due) dueDateField.value = due;
+
+        const valuePerPart = amt / parts;
+        perPart.textContent = formatBRL(valuePerPart.toFixed(2));
+
+        if (btnConfirmSplit) btnConfirmSplit.disabled = false;
+    }
+
+    if (btnConfirmSplit) {
+        btnConfirmSplit.addEventListener('click', function() {
+            const instId = document.getElementById('splitInstallmentId')?.value;
+            const parts = parseInt(document.getElementById('splitParts')?.value || 2);
+            const firstDue = document.getElementById('splitFirstDueDate')?.value || '';
+            const origAmt = document.getElementById('splitOriginalAmount')?.textContent || '';
+
+            if (!instId) return;
+
+            Swal.fire({
+                title: 'Confirmar Divisão',
+                html: '<p>Dividir a parcela de <strong>' + origAmt + '</strong> em <strong>' + parts + '</strong> partes iguais?</p>' +
+                      '<p class="small text-muted">A parcela original será removida e substituída por ' + parts + ' novas parcelas com vencimentos mensais.</p>',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-expand-arrows-alt me-1"></i> Dividir',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#f39c12',
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+
+                const formData = new FormData();
+                formData.append('installment_id', instId);
+                formData.append('parts', parts);
+                formData.append('first_due_date', firstDue);
+                formData.append('csrf_token', csrfToken);
+
+                fetch('?page=financial&action=splitInstallment', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(function(data) {
+                    if (data.success) {
+                        Swal.fire({icon:'success', title:'Parcela Dividida!', text: data.message, timer:2000, showConfirmButton:false})
+                        .then(() => location.reload());
+                    } else {
+                        Swal.fire({icon:'error', title:'Erro', text: data.message});
+                    }
+                })
+                .catch(function() {
+                    Swal.fire({icon:'error', title:'Erro', text:'Falha na comunicação com o servidor.'});
+                });
+            });
+        });
+    }
+
+    // ── Enable split button only when there are open installments ──
+    <?php if ($hasOpenInstallments): ?>
+    if (btnStartSplit) btnStartSplit.disabled = false;
+    <?php endif; ?>
+
+    // ── Click on row to toggle checkbox/radio ──
+    document.querySelectorAll('.installment-open-row').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+            // Ignore if clicking directly on input
+            if (e.target.tagName === 'INPUT') return;
+            if (!currentMode) return;
+
+            if (currentMode === 'merge') {
+                const chk = row.querySelector('.installment-check');
+                if (chk && chk.style.display !== 'none') {
+                    chk.checked = !chk.checked;
+                    chk.dispatchEvent(new Event('change'));
+                }
+            } else if (currentMode === 'split') {
+                const radio = row.querySelector('.installment-radio');
+                if (radio && radio.style.display !== 'none') {
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change'));
+                }
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.installment-open-row:hover {
+    background-color: rgba(0,123,255,0.05) !important;
+}
+.installment-open-row.table-primary {
+    background-color: rgba(0,123,255,0.12) !important;
+}
+.installment-open-row.table-warning {
+    background-color: rgba(243,156,18,0.12) !important;
+}
+</style>

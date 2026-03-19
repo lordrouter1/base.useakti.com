@@ -786,6 +786,252 @@ class Financial {
         return $this->saveAttachment($installmentId, null);
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // UNIFICAÇÃO E DIVISÃO DE PARCELAS
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Unifica (merge) duas ou mais parcelas pendentes em uma única.
+     * Apenas parcelas com status 'pendente' ou 'atrasado' podem ser unificadas.
+     *
+     * @param array $installmentIds IDs das parcelas a unificar
+     * @param string $dueDate Data de vencimento da parcela unificada
+     * @return int|false ID da nova parcela unificada ou false
+     * Evento disparado: 'model.installment.merged'
+     */
+    public function mergeInstallments(array $installmentIds, $dueDate) {
+        if (count($installmentIds) < 2) return false;
+
+        // Buscar todas as parcelas — devem ser do mesmo pedido e estar pendentes/atrasadas
+        $placeholders = implode(',', array_fill(0, count($installmentIds), '?'));
+        $q = "SELECT * FROM order_installments WHERE id IN ($placeholders) AND status IN ('pendente','atrasado')";
+        $s = $this->conn->prepare($q);
+        $s->execute(array_values($installmentIds));
+        $rows = $s->fetchAll(PDO::FETCH_ASSOC);
+
+        if (count($rows) < 2) return false;
+
+        // Verificar que todas são do mesmo pedido
+        $orderIds = array_unique(array_column($rows, 'order_id'));
+        if (count($orderIds) !== 1) return false;
+        $orderId = (int)$orderIds[0];
+
+        // Somar valores
+        $totalAmount = 0;
+        foreach ($rows as $row) {
+            $totalAmount += (float)$row['amount'];
+        }
+        $totalAmount = round($totalAmount, 2);
+
+        // Usar transação para garantir consistência (evita constraint violation na uk_order_installment)
+        $this->conn->beginTransaction();
+
+        try {
+            // Deletar as parcelas antigas
+            $qDel = "DELETE FROM order_installments WHERE id IN ($placeholders) AND status IN ('pendente','atrasado')";
+            $sDel = $this->conn->prepare($qDel);
+            $sDel->execute(array_values($installmentIds));
+
+            // Obter o maior installment_number atual para este pedido (evita colisão com a unique key)
+            $qMax = "SELECT COALESCE(MAX(installment_number), 0) as max_num FROM order_installments WHERE order_id = :oid";
+            $sMax = $this->conn->prepare($qMax);
+            $sMax->execute([':oid' => $orderId]);
+            $maxNum = (int)$sMax->fetch(PDO::FETCH_ASSOC)['max_num'];
+
+            // Criar a nova parcela unificada com número temporário alto
+            $tempNum = $maxNum + 9000;
+            $qIns = "INSERT INTO order_installments (order_id, installment_number, amount, due_date, status)
+                     VALUES (:oid, :num, :amt, :due, 'pendente')";
+            $sIns = $this->conn->prepare($qIns);
+            $sIns->execute([
+                ':oid' => $orderId,
+                ':num' => $tempNum,
+                ':amt' => $totalAmount,
+                ':due' => $dueDate,
+            ]);
+            $newId = (int)$this->conn->lastInsertId();
+
+            // Renumerar parcelas restantes para manter sequência
+            $this->renumberInstallments($orderId);
+
+            // Atualizar status do pedido
+            $this->updateOrderPaymentStatus($orderId);
+
+            $this->conn->commit();
+        } catch (\Exception $e) {
+            $this->conn->rollBack();
+            return false;
+        }
+
+        EventDispatcher::dispatch('model.installment.merged', new Event('model.installment.merged', [
+            'order_id' => $orderId,
+            'merged_ids' => $installmentIds,
+            'new_id' => $newId,
+            'amount' => $totalAmount,
+        ]));
+
+        return $newId;
+    }
+
+    /**
+     * Divide uma parcela pendente em N parcelas menores.
+     * Apenas parcelas com status 'pendente' ou 'atrasado' podem ser divididas.
+     *
+     * @param int $installmentId ID da parcela a dividir
+     * @param int $parts Quantidade de partes
+     * @param string|null $firstDueDate Data de vencimento da primeira nova parcela (usa a original se null)
+     * @return array IDs das novas parcelas criadas
+     * Evento disparado: 'model.installment.split'
+     */
+    public function splitInstallment($installmentId, $parts, $firstDueDate = null) {
+        if ($parts < 2) return [];
+
+        $q = "SELECT * FROM order_installments WHERE id = :id AND status IN ('pendente','atrasado')";
+        $s = $this->conn->prepare($q);
+        $s->execute([':id' => $installmentId]);
+        $original = $s->fetch(PDO::FETCH_ASSOC);
+
+        if (!$original) return [];
+
+        $orderId = (int)$original['order_id'];
+        $totalAmount = (float)$original['amount'];
+
+        // Calcular valor por parte
+        $perPart = round($totalAmount / $parts, 2);
+        // Última parcela absorve centavos
+        $lastPart = round($totalAmount - ($perPart * ($parts - 1)), 2);
+
+        // Data base
+        $baseDueDate = $firstDueDate ?: $original['due_date'];
+
+        // Usar transação para garantir consistência (evita constraint violation na uk_order_installment)
+        $this->conn->beginTransaction();
+
+        try {
+            // Deletar a parcela original
+            $qDel = "DELETE FROM order_installments WHERE id = :id AND status IN ('pendente','atrasado')";
+            $sDel = $this->conn->prepare($qDel);
+            $sDel->execute([':id' => $installmentId]);
+
+            if ($sDel->rowCount() === 0) {
+                $this->conn->rollBack();
+                return [];
+            }
+
+            // Obter o maior installment_number atual para este pedido (evita colisão com a unique key)
+            $qMax = "SELECT COALESCE(MAX(installment_number), 0) as max_num FROM order_installments WHERE order_id = :oid";
+            $sMax = $this->conn->prepare($qMax);
+            $sMax->execute([':oid' => $orderId]);
+            $maxNum = (int)$sMax->fetch(PDO::FETCH_ASSOC)['max_num'];
+
+            // Inserir as novas parcelas com números temporários altos (max + 9000 + i)
+            // para evitar conflito com a unique key (order_id, installment_number)
+            $newIds = [];
+            $qIns = "INSERT INTO order_installments (order_id, installment_number, amount, due_date, status)
+                     VALUES (:oid, :num, :amt, :due, 'pendente')";
+            $sIns = $this->conn->prepare($qIns);
+
+            for ($i = 0; $i < $parts; $i++) {
+                $dueDate = date('Y-m-d', strtotime($baseDueDate . " + " . ($i * 30) . " days"));
+                $amount = ($i === $parts - 1) ? $lastPart : $perPart;
+                $tempNum = $maxNum + 9000 + $i + 1; // número temporário alto, sem colisão
+                $sIns->execute([
+                    ':oid' => $orderId,
+                    ':num' => $tempNum,
+                    ':amt' => $amount,
+                    ':due' => $dueDate,
+                ]);
+                $newIds[] = (int)$this->conn->lastInsertId();
+            }
+
+            // Renumerar parcelas para manter sequência limpa (corrige os números temporários)
+            $this->renumberInstallments($orderId);
+
+            // Atualizar status do pedido
+            $this->updateOrderPaymentStatus($orderId);
+
+            $this->conn->commit();
+        } catch (\Exception $e) {
+            $this->conn->rollBack();
+            return [];
+        }
+
+        EventDispatcher::dispatch('model.installment.split', new Event('model.installment.split', [
+            'order_id' => $orderId,
+            'original_id' => $installmentId,
+            'parts' => $parts,
+            'new_ids' => $newIds,
+            'original_amount' => $totalAmount,
+        ]));
+
+        return $newIds;
+    }
+
+    /**
+     * Renumera as parcelas de um pedido para manter sequência contínua.
+     * Preserva entrada (installment_number=0) como 0, e as regulares são renumeradas 1, 2, 3...
+     *
+     * @param int $orderId ID do pedido
+     * @return void
+     */
+    private function renumberInstallments($orderId) {
+        $q = "SELECT id, installment_number FROM order_installments
+              WHERE order_id = :oid
+              ORDER BY installment_number ASC, due_date ASC, id ASC";
+        $s = $this->conn->prepare($q);
+        $s->execute([':oid' => $orderId]);
+        $all = $s->fetchAll(PDO::FETCH_ASSOC);
+
+        $qUpd = "UPDATE order_installments SET installment_number = :num WHERE id = :id";
+        $sUpd = $this->conn->prepare($qUpd);
+
+        // Fase 1: Mover todos os não-zero para números temporários altos (evita colisão com unique key)
+        $tempBase = 90000;
+        foreach ($all as $idx => $row) {
+            if ((int)$row['installment_number'] !== 0) {
+                $sUpd->execute([':num' => $tempBase + $idx, ':id' => $row['id']]);
+            }
+        }
+
+        // Fase 2: Renumerar de 1 em diante na ordem correta
+        // Re-buscar ordenando pelo vencimento para manter a sequência lógica por data
+        $q2 = "SELECT id, installment_number FROM order_installments
+               WHERE order_id = :oid
+               ORDER BY (installment_number = 0) DESC, due_date ASC, id ASC";
+        $s2 = $this->conn->prepare($q2);
+        $s2->execute([':oid' => $orderId]);
+        $all = $s2->fetchAll(PDO::FETCH_ASSOC);
+
+        $num = 1;
+        foreach ($all as $row) {
+            if ((int)$row['installment_number'] === 0) {
+                // Entrada mantém número 0
+                continue;
+            } else {
+                $sUpd->execute([':num' => $num, ':id' => $row['id']]);
+                $num++;
+            }
+        }
+
+        // Atualizar campo installments e installment_value na tabela orders
+        $regularCount = $num - 1;
+        if ($regularCount > 0) {
+            $qSum = "SELECT SUM(amount) FROM order_installments WHERE order_id = :oid AND installment_number > 0";
+            $sSum = $this->conn->prepare($qSum);
+            $sSum->execute([':oid' => $orderId]);
+            $totalRegular = (float)$sSum->fetchColumn();
+            $installmentValue = round($totalRegular / $regularCount, 2);
+
+            $qOrd = "UPDATE orders SET installments = :inst, installment_value = :iv WHERE id = :id";
+            $sOrd = $this->conn->prepare($qOrd);
+            $sOrd->execute([
+                ':inst' => ($regularCount >= 2) ? $regularCount : null,
+                ':iv' => ($regularCount >= 2) ? $installmentValue : null,
+                ':id' => $orderId,
+            ]);
+        }
+    }
+
     /**
      * Retorna parcelas pendentes de confirmação (pagamentos manuais)
      * @return array Lista de parcelas

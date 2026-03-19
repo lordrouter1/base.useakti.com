@@ -197,6 +197,15 @@
                                     <?php endif; ?>
                                 </span>
                             </div>
+
+                            <?php if (!empty($order['quote_confirmed_at'])): ?>
+                            <!-- Badge de Orçamento Aprovado -->
+                            <div class="mb-2">
+                                <span class="badge bg-success w-100 py-1" style="font-size:0.7rem;">
+                                    <i class="fas fa-clipboard-check me-1"></i> Orçamento Aprovado
+                                </span>
+                            </div>
+                            <?php endif; ?>
                         </div>
 
                         <!-- Footer: botão de visualizar -->
@@ -302,13 +311,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Alerta automático de atrasados ao entrar na página
     <?php if(count($delayedOrders) > 0): ?>
     Swal.fire({
-        icon: 'warning',
-        title: 'Atenção!',
-        html: '<b><?= count($delayedOrders) ?></b> pedido(s) estão atrasados!<br>Clique em "Ver Detalhes" para analisar.',
-        showCancelButton: true,
-        confirmButtonText: '<i class="fas fa-eye me-1"></i> Ver Detalhes',
-        cancelButtonText: 'Fechar',
-        confirmButtonColor: '#c0392b'
+        title: '<strong class="fs-3">Atenção!</strong>',
+        toast: true,
+        position: 'bottom-end',
+        html: '<small><b><?= count($delayedOrders) ?></b> pedido(s) estão <strong class="text-light">atrasados</strong>!</small>',
+        showCancelButton: false,
+        confirmButtonText: '<span style="color:#ef4444"><i class="fas fa-eye me-1"></i> Ver Detalhes</span>',
+        confirmButtonColor: '#ffffff',
+        background: '#ef4444',
+        color:'#ffffff',
+        timer: 5000,
+        timerProgressBar: true,
+        customClass:{
+            popup: 'shadow',
+        }
     }).then((result) => {
         if (result.isConfirmed) {
             var modal = new bootstrap.Modal(document.getElementById('delayedModal'));

@@ -29,6 +29,7 @@ class ComposerStaticInitebeac99ebddc893c5a201d8ace38367f
             'Akti\\Security\\' => 14,
             'Akti\\Models\\' => 12,
             'Akti\\Middleware\\' => 16,
+            'Akti\\Gateways\\' => 14,
             'Akti\\Core\\' => 10,
             'Akti\\Controllers\\' => 17,
             'Akti\\Config\\' => 12,
@@ -72,6 +73,10 @@ class ComposerStaticInitebeac99ebddc893c5a201d8ace38367f
         array (
             0 => __DIR__ . '/../..' . '/app/middleware',
         ),
+        'Akti\\Gateways\\' =>
+        array (
+            0 => __DIR__ . '/../..' . '/app/gateways',
+        ),
         'Akti\\Core\\' =>
         array (
             0 => __DIR__ . '/../..' . '/app/core',
@@ -87,6 +92,7 @@ class ComposerStaticInitebeac99ebddc893c5a201d8ace38367f
     );
 
     public static $classMap = array (
+        'Akti\\Controllers\\ApiController' => __DIR__ . '/../..' . '/app/controllers/ApiController.php',
         'Akti\\Controllers\\CatalogController' => __DIR__ . '/../..' . '/app/controllers/CatalogController.php',
         'Akti\\Controllers\\CategoryController' => __DIR__ . '/../..' . '/app/controllers/CategoryController.php',
         'Akti\\Controllers\\CustomerController' => __DIR__ . '/../..' . '/app/controllers/CustomerController.php',
@@ -94,6 +100,7 @@ class ComposerStaticInitebeac99ebddc893c5a201d8ace38367f
         'Akti\\Controllers\\FinancialController' => __DIR__ . '/../..' . '/app/controllers/FinancialController.php',
         'Akti\\Controllers\\HomeController' => __DIR__ . '/../..' . '/app/controllers/HomeController.php',
         'Akti\\Controllers\\OrderController' => __DIR__ . '/../..' . '/app/controllers/OrderController.php',
+        'Akti\\Controllers\\PaymentGatewayController' => __DIR__ . '/../..' . '/app/controllers/PaymentGatewayController.php',
         'Akti\\Controllers\\PipelineController' => __DIR__ . '/../..' . '/app/controllers/PipelineController.php',
         'Akti\\Controllers\\ProductController' => __DIR__ . '/../..' . '/app/controllers/ProductController.php',
         'Akti\\Controllers\\SectorController' => __DIR__ . '/../..' . '/app/controllers/SectorController.php',
@@ -106,12 +113,19 @@ class ComposerStaticInitebeac99ebddc893c5a201d8ace38367f
         'Akti\\Core\\ModuleBootloader' => __DIR__ . '/../..' . '/app/core/ModuleBootloader.php',
         'Akti\\Core\\Router' => __DIR__ . '/../..' . '/app/core/Router.php',
         'Akti\\Core\\Security' => __DIR__ . '/../..' . '/app/core/Security.php',
+        'Akti\\Gateways\\AbstractGateway' => __DIR__ . '/../..' . '/app/gateways/AbstractGateway.php',
+        'Akti\\Gateways\\Contracts\\PaymentGatewayInterface' => __DIR__ . '/../..' . '/app/gateways/Contracts/PaymentGatewayInterface.php',
+        'Akti\\Gateways\\GatewayManager' => __DIR__ . '/../..' . '/app/gateways/GatewayManager.php',
+        'Akti\\Gateways\\Providers\\MercadoPagoGateway' => __DIR__ . '/../..' . '/app/gateways/Providers/MercadoPagoGateway.php',
+        'Akti\\Gateways\\Providers\\PagSeguroGateway' => __DIR__ . '/../..' . '/app/gateways/Providers/PagSeguroGateway.php',
+        'Akti\\Gateways\\Providers\\StripeGateway' => __DIR__ . '/../..' . '/app/gateways/Providers/StripeGateway.php',
         'Akti\\Middleware\\CsrfMiddleware' => __DIR__ . '/../..' . '/app/middleware/CsrfMiddleware.php',
         'Akti\\Models\\CatalogLink' => __DIR__ . '/../..' . '/app/models/CatalogLink.php',
         'Akti\\Models\\Category' => __DIR__ . '/../..' . '/app/models/Category.php',
         'Akti\\Models\\CategoryGrade' => __DIR__ . '/../..' . '/app/models/CategoryGrade.php',
         'Akti\\Models\\CompanySettings' => __DIR__ . '/../..' . '/app/models/CompanySettings.php',
         'Akti\\Models\\Customer' => __DIR__ . '/../..' . '/app/models/Customer.php',
+        'Akti\\Models\\DashboardWidget' => __DIR__ . '/../..' . '/app/models/DashboardWidget.php',
         'Akti\\Models\\Financial' => __DIR__ . '/../..' . '/app/models/Financial.php',
         'Akti\\Models\\IpGuard' => __DIR__ . '/../..' . '/app/models/IpGuard.php',
         'Akti\\Models\\Logger' => __DIR__ . '/../..' . '/app/models/Logger.php',
@@ -119,6 +133,7 @@ class ComposerStaticInitebeac99ebddc893c5a201d8ace38367f
         'Akti\\Models\\Order' => __DIR__ . '/../..' . '/app/models/Order.php',
         'Akti\\Models\\OrderItemLog' => __DIR__ . '/../..' . '/app/models/OrderItemLog.php',
         'Akti\\Models\\OrderPreparation' => __DIR__ . '/../..' . '/app/models/OrderPreparation.php',
+        'Akti\\Models\\PaymentGateway' => __DIR__ . '/../..' . '/app/models/PaymentGateway.php',
         'Akti\\Models\\Pipeline' => __DIR__ . '/../..' . '/app/models/Pipeline.php',
         'Akti\\Models\\PreparationStep' => __DIR__ . '/../..' . '/app/models/PreparationStep.php',
         'Akti\\Models\\PriceTable' => __DIR__ . '/../..' . '/app/models/PriceTable.php',
@@ -139,7 +154,13 @@ class ComposerStaticInitebeac99ebddc893c5a201d8ace38367f
         'Akti\\Tests\\Pages\\StockFinancialTest' => __DIR__ . '/../..' . '/tests/Pages/StockFinancialTest.php',
         'Akti\\Tests\\Pages\\UserTest' => __DIR__ . '/../..' . '/tests/Pages/UserTest.php',
         'Akti\\Tests\\TestCase' => __DIR__ . '/../..' . '/tests/TestCase.php',
+        'Akti\\Tests\\Unit\\DashboardWidgetTest' => __DIR__ . '/../..' . '/tests/Unit/DashboardWidgetTest.php',
         'Akti\\Tests\\Unit\\EventDispatcherTest' => __DIR__ . '/../..' . '/tests/Unit/EventDispatcherTest.php',
+        'Akti\\Utils\\Escape' => __DIR__ . '/../..' . '/app/utils/Escape.php',
+        'Akti\\Utils\\Input' => __DIR__ . '/../..' . '/app/utils/Input.php',
+        'Akti\\Utils\\JwtHelper' => __DIR__ . '/../..' . '/app/utils/JwtHelper.php',
+        'Akti\\Utils\\Sanitizer' => __DIR__ . '/../..' . '/app/utils/Sanitizer.php',
+        'Akti\\Utils\\Validator' => __DIR__ . '/../..' . '/app/utils/Validator.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'Database' => __DIR__ . '/../..' . '/app/config/database.php',
         'DeepCopy\\DeepCopy' => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy/DeepCopy.php',

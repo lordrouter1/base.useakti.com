@@ -538,6 +538,102 @@ class FinancialController {
     }
 
     // ═══════════════════════════════════════════
+    // UNIFICAÇÃO E DIVISÃO DE PARCELAS
+    // ═══════════════════════════════════════════
+
+    /**
+     * Unifica (merge) parcelas pendentes em uma só (AJAX POST)
+     */
+    public function mergeInstallments() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit;
+        }
+
+        $ids = $_POST['installment_ids'] ?? [];
+        if (!is_array($ids)) {
+            $ids = explode(',', (string)$ids);
+        }
+        $ids = array_map('intval', array_filter($ids));
+
+        $dueDate = Input::post('due_date', 'date') ?: date('Y-m-d');
+
+        if (count($ids) < 2) {
+            echo json_encode(['success' => false, 'message' => 'Selecione ao menos 2 parcelas em aberto para unificar.']);
+            exit;
+        }
+
+        try {
+            $newId = $this->financial->mergeInstallments($ids, $dueDate);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao unificar parcelas. Tente novamente.']);
+            exit;
+        }
+
+        if ($newId) {
+            $logger = new \Akti\Models\Logger($this->db);
+            $logger->log('INSTALLMENTS_MERGED', 'Merged installments [' . implode(',', $ids) . '] into #' . $newId);
+
+            echo json_encode([
+                'success' => true,
+                'message' => count($ids) . ' parcelas unificadas com sucesso.',
+                'new_id' => $newId,
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Não foi possível unificar. Verifique se todas as parcelas estão em aberto e pertencem ao mesmo pedido.']);
+        }
+        exit;
+    }
+
+    /**
+     * Divide uma parcela pendente em N partes (AJAX POST)
+     */
+    public function splitInstallment() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit;
+        }
+
+        $installmentId = Input::post('installment_id', 'int', 0);
+        $parts = Input::post('parts', 'int', 2);
+        $firstDueDate = Input::post('first_due_date', 'date');
+
+        if (!$installmentId) {
+            echo json_encode(['success' => false, 'message' => 'Parcela não informada.']);
+            exit;
+        }
+        if ($parts < 2 || $parts > 24) {
+            echo json_encode(['success' => false, 'message' => 'Informe entre 2 e 24 partes.']);
+            exit;
+        }
+
+        try {
+            $newIds = $this->financial->splitInstallment($installmentId, $parts, $firstDueDate);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao dividir parcela. Tente novamente.']);
+            exit;
+        }
+
+        if (!empty($newIds)) {
+            $logger = new \Akti\Models\Logger($this->db);
+            $logger->log('INSTALLMENT_SPLIT', "Split installment #$installmentId into $parts parts [" . implode(',', $newIds) . "]");
+
+            echo json_encode([
+                'success' => true,
+                'message' => "Parcela dividida em $parts partes com sucesso.",
+                'new_ids' => $newIds,
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Não foi possível dividir. A parcela deve estar em aberto (pendente/atrasada).']);
+        }
+        exit;
+    }
+
+    // ═══════════════════════════════════════════
     // API (AJAX)
     // ═══════════════════════════════════════════
 

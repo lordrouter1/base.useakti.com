@@ -32,21 +32,24 @@ class CatalogLink {
      * @param int $orderId ID do pedido
      * @param bool $showPrices Se os preços devem ser exibidos (default: true)
      * @param string|null $expiresAt Data/hora de expiração (Y-m-d H:i:s) ou null
+     * @param bool $requireConfirmation Se o cliente deve confirmar o orçamento (default: false)
      * @return array|false Retorna array com dados do link criado ou false em caso de erro
      */
-    public function create($orderId, $showPrices = true, $expiresAt = null) {
+    public function create($orderId, $showPrices = true, $expiresAt = null, $requireConfirmation = false) {
         // Desativar links anteriores do mesmo pedido
         $this->deactivateByOrder($orderId);
 
         $token = bin2hex(random_bytes(32)); // 64 chars hex
 
-        $query = "INSERT INTO {$this->table} (order_id, token, show_prices, is_active, expires_at, created_at)
-                  VALUES (:order_id, :token, :show_prices, 1, :expires_at, NOW())";
+        $query = "INSERT INTO {$this->table} (order_id, token, show_prices, require_confirmation, is_active, expires_at, created_at)
+                  VALUES (:order_id, :token, :show_prices, :require_confirmation, 1, :expires_at, NOW())";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':order_id', $orderId, PDO::PARAM_INT);
         $stmt->bindParam(':token', $token);
         $showPricesInt = $showPrices ? 1 : 0;
         $stmt->bindParam(':show_prices', $showPricesInt, PDO::PARAM_INT);
+        $requireConfirmationInt = $requireConfirmation ? 1 : 0;
+        $stmt->bindParam(':require_confirmation', $requireConfirmationInt, PDO::PARAM_INT);
         $stmt->bindParam(':expires_at', $expiresAt);
         
         if ($stmt->execute()) {
@@ -60,6 +63,7 @@ class CatalogLink {
                 'order_id' => $orderId,
                 'token' => $token,
                 'show_prices' => $showPricesInt,
+                'require_confirmation' => $requireConfirmationInt,
                 'is_active' => 1,
                 'expires_at' => $expiresAt
             ];
@@ -73,7 +77,8 @@ class CatalogLink {
      * @return array|null Retorna array com dados do link ou null se não encontrado/expirado
      */
     public function findByToken($token) {
-        $query = "SELECT cl.*, o.customer_id, o.total_amount, o.pipeline_stage,
+        $query = "SELECT cl.*, o.customer_id, o.total_amount, o.discount, o.pipeline_stage,
+                         o.quote_confirmed_at, o.quote_confirmed_ip,
                          c.name as customer_name, c.price_table_id as customer_price_table_id
                   FROM {$this->table} cl
                   JOIN orders o ON cl.order_id = o.id

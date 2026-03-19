@@ -42,6 +42,23 @@ class Customer {
     }
 
     /**
+     * Retorna clientes com paginação
+     * @param int $page  Página atual (1-based)
+     * @param int $perPage Itens por página
+     * @return array Lista de clientes
+     */
+    public function readPaginated(int $page = 1, int $perPage = 15): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $query = "SELECT * FROM {$this->table_name} ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Retorna um cliente pelo ID
      * @param int $id ID do cliente
      * @return array|null Dados do cliente ou null

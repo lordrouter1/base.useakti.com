@@ -25,7 +25,7 @@
             width: 302px; /* 80mm */
             background: #fff;
             margin: 0 auto;
-            padding: 8px 10px;
+            padding: 8px 18px;
             box-shadow: 0 0 10px rgba(0,0,0,0.15);
         }
 
@@ -156,14 +156,14 @@
 
         @media print {
             body { 
-                padding: 0; 
+                padding-left: 0;
                 margin: 0; 
                 background: #fff; 
             }
             .receipt { 
                 box-shadow: none; 
                 margin: 0;
-                padding: 2px 4px;
+                padding: 2px 12px;
             }
             .no-print { display: none !important; }
             .cut-line { display: none; }
@@ -197,6 +197,7 @@
         'boleto'         => 'Boleto',
         'transferencia'  => 'Transferencia',
         'cheque'         => 'Cheque',
+        'gateway'        => 'Gateway Online',
     ];
     $paymentStatusMap = [
         'pendente' => 'PENDENTE',

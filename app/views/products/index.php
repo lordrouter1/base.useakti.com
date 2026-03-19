@@ -180,6 +180,7 @@
         </tbody>
     </table>
 </div>
+<?php require 'app/views/layout/pagination.php'; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

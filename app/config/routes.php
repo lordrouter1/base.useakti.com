@@ -49,6 +49,9 @@ return [
             'removeFromCart' => 'removeFromCart',
             'updateCartItem' => 'updateCartItem',
             'getCart'        => 'getCart',
+            'confirmQuote'   => 'confirmQuote',
+            'revokeQuote'    => 'revokeQuote',
+            'getProducts'    => 'getProducts',
         ],
     ],
 
@@ -223,6 +226,7 @@ return [
             'countInstallments'    => 'countInstallments',
             'deleteInstallments'   => 'deleteInstallments',
             'generateMercadoPagoLink' => 'generateMercadoPagoLink',
+            'generatePaymentLink'     => 'generatePaymentLink',
             'productionBoard'      => 'productionBoard',
             'printProductionOrder' => 'printProductionOrder',
             'printThermalReceipt'  => 'printThermalReceipt',
@@ -265,6 +269,23 @@ return [
     ],
 
     // ══════════════════════════════════════════════════════════════
+    // GATEWAYS DE PAGAMENTO
+    // ══════════════════════════════════════════════════════════════
+
+    'payment_gateways' => [
+        'controller'     => 'PaymentGatewayController',
+        'default_action' => 'index',
+        'actions'        => [
+            'edit'           => 'edit',
+            'update'         => 'update',
+            'testConnection' => 'testConnection',
+            'createCharge'   => 'createCharge',
+            'chargeStatus'   => 'chargeStatus',
+            'transactions'   => 'transactions',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════════
     // CONFIGURAÇÕES DO SISTEMA
     // ══════════════════════════════════════════════════════════════
 
@@ -287,6 +308,8 @@ return [
             'saveBankSettings'      => 'saveBankSettings',
             'saveFiscalSettings'    => 'saveFiscalSettings',
             'saveSecuritySettings'  => 'saveSecuritySettings',
+            'saveDashboardWidgets'  => 'saveDashboardWidgets',
+            'resetDashboardWidgets' => 'resetDashboardWidgets',
         ],
     ],
 
@@ -369,6 +392,8 @@ return [
             'cancelInstallment'   => 'cancelInstallment',
             'uploadAttachment'    => 'uploadAttachment',
             'removeAttachment'    => 'removeAttachment',
+            'mergeInstallments'   => 'mergeInstallments',
+            'splitInstallment'    => 'splitInstallment',
             'transactions'        => 'transactions',
             'addTransaction'      => 'addTransaction',
             'deleteTransaction'   => 'deleteTransaction',
@@ -387,6 +412,45 @@ return [
     'financial_transactions' => [
         'controller'     => 'FinancialController',
         'default_action' => 'transactions',
+    ],
+
+    // ══════════════════════════════════════════════════════════════
+    // NF-e — NOTA FISCAL ELETRÔNICA
+    // ══════════════════════════════════════════════════════════════
+
+    'nfe_credentials' => [
+        'controller'     => 'NfeCredentialController',
+        'default_action' => 'index',
+        'actions'        => [
+            'store'          => 'store',
+            'update'         => 'update',
+            'testConnection' => 'testConnection',
+        ],
+    ],
+
+    'nfe_documents' => [
+        'controller'     => 'NfeDocumentController',
+        'default_action' => 'index',
+        'actions'        => [
+            'emit'        => 'emit',
+            'cancel'      => 'cancel',
+            'correction'  => 'correction',
+            'download'    => 'download',
+            'checkStatus' => 'checkStatus',
+            'detail'      => 'detail',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════════
+    // API — Geração de token JWT para consumo da API Node.js
+    // ══════════════════════════════════════════════════════════════
+
+    'api' => [
+        'controller'     => 'ApiController',
+        'default_action' => 'token',
+        'actions'        => [
+            'token' => 'token',
+        ],
     ],
 
 ];

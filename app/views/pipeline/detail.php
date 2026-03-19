@@ -169,6 +169,23 @@
     </div>
     <?php endif; ?>
 
+    <?php if (!empty($order['quote_confirmed_at'])): ?>
+    <div class="alert alert-success border-success d-flex align-items-center mb-4 shadow-sm" role="alert" style="border-left: 5px solid #198754 !important;">
+        <div class="me-3">
+            <i class="fas fa-clipboard-check fs-3 text-success"></i>
+        </div>
+        <div>
+            <strong class="fs-6"><i class="fas fa-check-circle me-1"></i> Orçamento Aprovado pelo Cliente!</strong>
+            <div class="small mt-1 text-muted">
+                O cliente confirmou o orçamento em <strong><?= date('d/m/Y \à\s H:i', strtotime($order['quote_confirmed_at'])) ?></strong> através do link do catálogo.
+                <?php if (!empty($order['quote_confirmed_ip'])): ?>
+                    <br><i class="fas fa-globe me-1"></i>IP do dispositivo: <code><?= e($order['quote_confirmed_ip']) ?></code>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div class="row g-4">
         <!-- Coluna Esquerda: Informações e Formulário -->
         <div class="col-lg-8">
@@ -257,11 +274,14 @@
                             <div id="catalogLinkForm">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-md-4">
-                                        <label class="form-label small fw-bold text-muted">Mostrar preços?</label>
-                                        <select class="form-select form-select-sm" id="catalogShowPrices">
-                                            <option value="0" selected>🚫 Não mostrar preços</option>
-                                            <option value="1">✅ Sim, mostrar preços</option>
+                                        <label class="form-label small fw-bold text-muted">Receber confirmação do cliente?</label>
+                                        <select class="form-select form-select-sm" id="catalogRequireConfirmation">
+                                            <option value="0" selected>🚫 Não — apenas montar lista</option>
+                                            <option value="1">✅ Sim — exibir orçamento para aprovação</option>
                                         </select>
+                                        <small class="text-muted d-block mt-1" id="catalogConfirmHint" style="display:none !important;">
+                                            <i class="fas fa-info-circle me-1"></i>O cliente verá preços, descontos e custos extras, podendo confirmar o orçamento.
+                                        </small>
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label small fw-bold text-muted">Validade (dias)</label>
@@ -462,19 +482,8 @@
                             <div class="row g-2 align-items-end" id="addItemRowPipeline">
                                 <div class="col-md-5">
                                     <label class="form-label small fw-bold text-muted">Produto</label>
-                                    <select class="form-select form-select-sm" id="pipProductSelect">
+                                    <select class="form-select form-select-sm product-select" id="pipProductSelect" data-placeholder="Digite para buscar um produto...">
                                         <option value="">Selecione um produto...</option>
-                                        <?php foreach ($products as $prod): 
-                                            $displayPrice = isset($customerPrices[$prod['id']]) ? $customerPrices[$prod['id']] : $prod['price'];
-                                        ?>
-                                        <option value="<?= $prod['id'] ?>" data-price="<?= $displayPrice ?>" data-original-price="<?= $prod['price'] ?>"
-                                                data-has-combos="<?= !empty($productCombinations[$prod['id']]) ? '1' : '0' ?>">
-                                            <?= e($prod['name']) ?> — R$ <?= number_format($displayPrice, 2, ',', '.') ?>
-                                            <?php if (isset($customerPrices[$prod['id']]) && $customerPrices[$prod['id']] != $prod['price']): ?>
-                                            (base: R$ <?= number_format($prod['price'], 2, ',', '.') ?>)
-                                            <?php endif; ?>
-                                        </option>
-                                        <?php endforeach; ?>
                                     </select>
                                     <!-- Seletor de variação (aparece dinamicamente) -->
                                     <div id="variationWrapPipeline" class="mt-1" style="display:none;">
@@ -1125,14 +1134,37 @@
                 <?php endif; ?>
 
                 <!-- ═══════════════════════════════════════════════════════════ -->
-                <!-- ═══ FINANCEIRO — Card completo na etapa "financeiro" ═══ -->
+                <!-- ═══════════════════════════════════════════════════════════ -->
+                <!-- ═══ FINANCEIRO — Card completo (reformulado) ═══ -->
                 <!-- ═══════════════════════════════════════════════════════════ -->
                 <?php
                     $isFinanceiroStage = ($currentStage === 'financeiro');
                     $finBorderColor = $isFinanceiroStage ? '#f39c12' : '#dee2e6';
+
+                    // Carregar gateways ativos para a seção de links de pagamento
+                    $__gwModel = new \Akti\Models\PaymentGateway($db ?? $this->db ?? (new \Database())->getConnection());
+                    $__activeGateways = $__gwModel->getActive();
+                    $__hasActiveGateway = !empty($__activeGateways);
+
+                    // Construir mapa de métodos suportados por gateway para uso no JS
+                    $__gwMethodsMap = [];
+                    foreach ($__activeGateways as $__gw) {
+                        try {
+                            $__gwInst = \Akti\Gateways\GatewayManager::make($__gw['gateway_slug']);
+                            $__gwMethodsMap[$__gw['gateway_slug']] = $__gwInst->getSupportedMethods();
+                        } catch (\Exception $e) {
+                            $__gwMethodsMap[$__gw['gateway_slug']] = ['auto', 'pix', 'credit_card', 'boleto'];
+                        }
+                    }
+
+                    // Link de pagamento salvo
+                    $savedPaymentLink = $order['payment_link_url'] ?? '';
+                    $savedPaymentGateway = $order['payment_link_gateway'] ?? '';
+                    $savedPaymentMethod = $order['payment_link_method'] ?? '';
+                    $savedPaymentLinkAt = $order['payment_link_created_at'] ?? '';
                 ?>
                 <fieldset class="p-4 mb-4" style="border: 2px solid <?= $finBorderColor ?>; border-radius: 8px;">
-                    <legend class="float-none w-auto px-3 fs-5" style="color: <?= $isFinanceiroStage ? '#f39c12' : '' ?>;">
+                    <legend class="float-none w-auto px-3 fs-5" style="color: #f39c12;">
                         <i class="fas fa-coins me-2"></i>Financeiro
                         <?php if ($isFinanceiroStage): ?>
                         <span class="badge ms-2" style="font-size:0.7rem;background:#f39c12;color:#fff;">
@@ -1142,7 +1174,7 @@
                     </legend>
 
                     <?php if ($isFinanceiroStage && !empty($orderItems)): ?>
-                    <!-- Resumo dos produtos com desconto por item (visível apenas na etapa financeiro) -->
+                    <!-- ── Resumo dos produtos com desconto por item ── -->
                     <div class="alert alert-light border py-2 px-3 mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <small class="fw-bold text-muted"><i class="fas fa-boxes-stacked me-1"></i>Produtos do Pedido</small>
@@ -1215,47 +1247,131 @@
 
                     <input type="hidden" name="discount" id="finDiscount" value="<?= $order['discount'] ?? 0 ?>">
 
-                    <!-- Linha 1: Valor, Status, Forma de Pagamento -->
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted"><i class="fas fa-dollar-sign me-1"></i>Valor Total</label>
-                            <div class="input-group">
-                                <span class="input-group-text">R$</span>
-                                <input type="text" class="form-control fw-bold fs-5" id="finTotalDisplay" value="<?= number_format($order['total_amount'], 2, ',', '.') ?>" disabled>
+                    <!-- ═══════════════════════════════════════════════════ -->
+                    <!-- ══ STEP 1 — Forma de Pagamento (sempre visível) ══ -->
+                    <!-- ═══════════════════════════════════════════════════ -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header py-2" style="background: linear-gradient(135deg, #f39c1215 0%, #e67e2210 100%);">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <h6 class="mb-0" style="font-size:0.9rem; color:#e67e22;">
+                                    <i class="fas fa-wallet me-2"></i>Forma de Pagamento
+                                </h6>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-bold fs-5" style="color:#e67e22;" id="finTotalDisplay">
+                                        R$ <?= number_format($order['total_amount'], 2, ',', '.') ?>
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted"><i class="fas fa-flag me-1"></i>Status Pagamento</label>
-                            <select class="form-select" name="payment_status" id="finPaymentStatus" <?= $isReadOnly ? 'disabled' : '' ?>>
-                                <option value="pendente" <?= ($order['payment_status'] ?? '') == 'pendente' ? 'selected' : '' ?>>⏳ Pendente</option>
-                                <option value="parcial" <?= ($order['payment_status'] ?? '') == 'parcial' ? 'selected' : '' ?>>💳 Parcial</option>
-                                <option value="pago" <?= ($order['payment_status'] ?? '') == 'pago' ? 'selected' : '' ?>>✅ Pago</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted"><i class="fas fa-credit-card me-1"></i>Forma de Pagamento</label>
-                            <select class="form-select" name="payment_method" id="finPaymentMethod" <?= $isReadOnly ? 'disabled' : '' ?>>
+                        <div class="card-body p-3">
+                            <!-- Seletor visual de forma de pagamento -->
+                            <div class="row g-2 mb-3" id="paymentMethodCards">
+                                <?php 
+                                $payMethods = [
+                                    'dinheiro'        => ['label' => 'Dinheiro',     'icon' => 'fas fa-money-bill-wave', 'color' => '#27ae60', 'emoji' => '💵'],
+                                    'pix'             => ['label' => 'PIX',          'icon' => 'fas fa-qrcode',          'color' => '#00b4a0', 'emoji' => '📱'],
+                                    'cartao_credito'  => ['label' => 'Crédito',      'icon' => 'fas fa-credit-card',     'color' => '#3498db', 'emoji' => '💳'],
+                                    'cartao_debito'   => ['label' => 'Débito',       'icon' => 'fas fa-credit-card',     'color' => '#8e44ad', 'emoji' => '💳'],
+                                    'boleto'          => ['label' => 'Boleto',       'icon' => 'fas fa-barcode',         'color' => '#e67e22', 'emoji' => '📄'],
+                                    'transferencia'   => ['label' => 'Transferência','icon' => 'fas fa-university',      'color' => '#2c3e50', 'emoji' => '🏦'],
+                                    'gateway'         => ['label' => 'Gateway Online','icon' => 'fas fa-globe',          'color' => '#9b59b6', 'emoji' => '🌐'],
+                                ];
+                                $selectedMethod = $order['payment_method'] ?? '';
+                                ?>
+                                <?php foreach ($payMethods as $pmKey => $pm): ?>
+                                <div class="col-6 col-sm-4 col-lg">
+                                    <div class="card h-100 text-center payment-method-card <?= $selectedMethod === $pmKey ? 'border-2 shadow' : 'border' ?>" 
+                                         role="button" data-method="<?= $pmKey ?>"
+                                         style="cursor:<?= $isReadOnly ? 'default' : 'pointer' ?>; border-color:<?= $selectedMethod === $pmKey ? $pm['color'] : '#dee2e6' ?>; transition:all 0.2s; border-radius: 10px;">
+                                        <div class="card-body p-2">
+                                            <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center mb-1"
+                                                 style="width:38px; height:38px; background:<?= $selectedMethod === $pmKey ? $pm['color'] : '#f8f9fa' ?>; color:<?= $selectedMethod === $pmKey ? '#fff' : $pm['color'] ?>; transition:all 0.2s;">
+                                                <i class="<?= $pm['icon'] ?>" style="font-size:0.95rem;"></i>
+                                            </div>
+                                            <div class="small fw-bold" style="font-size:0.72rem; color:<?= $selectedMethod === $pmKey ? $pm['color'] : '#6c757d' ?>;">
+                                                <?= $pm['label'] ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <select class="form-select d-none" name="payment_method" id="finPaymentMethod" <?= $isReadOnly ? 'disabled' : '' ?>>
                                 <option value="">Selecione...</option>
-                                <option value="dinheiro" <?= ($order['payment_method'] ?? '') == 'dinheiro' ? 'selected' : '' ?>>💵 Dinheiro</option>
-                                <option value="pix" <?= ($order['payment_method'] ?? '') == 'pix' ? 'selected' : '' ?>>📱 PIX</option>
-                                <option value="cartao_credito" <?= ($order['payment_method'] ?? '') == 'cartao_credito' ? 'selected' : '' ?>>💳 Cartão Crédito</option>
-                                <option value="cartao_debito" <?= ($order['payment_method'] ?? '') == 'cartao_debito' ? 'selected' : '' ?>>💳 Cartão Débito</option>
-                                <option value="boleto" <?= ($order['payment_method'] ?? '') == 'boleto' ? 'selected' : '' ?>>📄 Boleto</option>
-                                <option value="transferencia" <?= ($order['payment_method'] ?? '') == 'transferencia' ? 'selected' : '' ?>>🏦 Transferência</option>
+                                <?php foreach ($payMethods as $pmKey => $pm): ?>
+                                <option value="<?= $pmKey ?>" <?= $selectedMethod === $pmKey ? 'selected' : '' ?>><?= $pm['emoji'] ?> <?= $pm['label'] ?></option>
+                                <?php endforeach; ?>
                             </select>
+
+                            <!-- ═══ Status + Entrada (aparece após selecionar forma de pagamento) ═══ -->
+                            <div id="finPaymentDetails" style="<?= empty($selectedMethod) ? 'display:none;' : '' ?>">
+                                <hr class="my-3" style="border-color:#f39c12; opacity:0.2;">
+
+                                <!-- Aviso quando modo Gateway Online está selecionado -->
+                                <div class="alert alert-info py-2 px-3 mb-3" id="finGatewayModeAlert" style="border-radius:8px; <?= ($selectedMethod !== 'gateway') ? 'display:none;' : '' ?>">
+                                    <i class="fas fa-globe me-2 text-primary"></i>
+                                    <strong>Pagamento via Gateway Online:</strong>
+                                    <span class="small">O status e os valores serão controlados automaticamente pelo gateway de pagamento. Gere o link abaixo e envie ao cliente.</span>
+                                </div>
+
+                                <div class="row g-3" id="finManualPaymentFields" style="<?= ($selectedMethod === 'gateway') ? 'display:none;' : '' ?>">
+                                    <!-- Status do Pagamento -->
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted"><i class="fas fa-flag me-1"></i>Status do Pagamento</label>
+                                        <?php
+                                        $payStatusInfo = [
+                                            'pendente' => ['color' => '#f39c12', 'bg' => '#fff3cd', 'icon' => 'fas fa-clock',       'label' => 'Pendente'],
+                                            'parcial'  => ['color' => '#3498db', 'bg' => '#cfe2ff', 'icon' => 'fas fa-adjust',      'label' => 'Parcial'],
+                                            'pago'     => ['color' => '#198754', 'bg' => '#d1e7dd', 'icon' => 'fas fa-check-circle', 'label' => 'Pago'],
+                                        ];
+                                        $curStatus = $order['payment_status'] ?? 'pendente';
+                                        $csInfo = $payStatusInfo[$curStatus] ?? $payStatusInfo['pendente'];
+                                        ?>
+                                        <select class="form-select" name="payment_status" id="finPaymentStatus" <?= $isReadOnly ? 'disabled' : '' ?>
+                                                style="border-color:<?= $csInfo['color'] ?>; background-color:<?= $csInfo['bg'] ?>;">
+                                            <option value="pendente" <?= $curStatus == 'pendente' ? 'selected' : '' ?>>⏳ Pendente</option>
+                                            <option value="parcial" <?= $curStatus == 'parcial' ? 'selected' : '' ?>>💳 Parcial</option>
+                                            <option value="pago" <?= $curStatus == 'pago' ? 'selected' : '' ?>>✅ Pago</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Entrada (Sinal) -->
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-muted"><i class="fas fa-hand-holding-usd me-1"></i>Entrada / Sinal (R$)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">R$</span>
+                                            <input type="number" step="0.01" min="0" class="form-control" name="down_payment" id="finDownPayment"
+                                                   value="<?= $order['down_payment'] ?? '0' ?>" 
+                                                   placeholder="0,00"
+                                                   <?= $isReadOnly ? 'disabled' : '' ?>>
+                                        </div>
+                                        <small class="text-muted" style="font-size:0.63rem;">Gera uma parcela aberta no financeiro.</small>
+                                    </div>
+
+                                    <!-- Info restante -->
+                                    <div class="col-md-4 d-flex align-items-center">
+                                        <div class="alert alert-info py-2 px-3 mb-0 small w-100" id="downPaymentInfo" style="display:none; border-radius:8px;">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            <span id="downPaymentInfoText"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- ═══ PARCELAMENTO / BOLETO — Aparece para cartão crédito e boleto ═══ -->
-                    <div class="card mt-3 border-0 shadow-sm" id="installmentRow" style="display:none;">
-                        <div class="card-header py-2 bg-warning bg-opacity-10">
-                            <h6 class="mb-0 text-warning" style="font-size:0.85rem;" id="installmentCardTitle">
+                    <!-- ═══════════════════════════════════════════════════ -->
+                    <!-- ══ STEP 2 — Parcelamento (condicional)         ══ -->
+                    <!-- ═══════════════════════════════════════════════════ -->
+                    <div class="card mb-3 border-0 shadow-sm" id="installmentRow" style="display:none;">
+                        <div class="card-header py-2" style="background:linear-gradient(135deg, #f39c1210 0%, #e67e2208 100%);">
+                            <h6 class="mb-0" style="font-size:0.85rem; color:#e67e22;" id="installmentCardTitle">
                                 <i class="fas fa-calculator me-2"></i><span id="installmentCardTitleText">Parcelamento</span>
                             </h6>
                         </div>
                         <div class="card-body p-3">
                             <div class="row g-3">
-                                <div class="col-md-3">
+                                <div class="col-md-4">
                                     <label class="form-label small fw-bold text-muted">Nº de Parcelas</label>
                                     <select class="form-select" name="installments" id="finInstallments" <?= $isReadOnly ? 'disabled' : '' ?>>
                                         <option value="">À vista</option>
@@ -1264,18 +1380,7 @@
                                         <?php endfor; ?>
                                     </select>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label small fw-bold text-muted">Entrada (R$)</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">R$</span>
-                                        <input type="number" step="0.01" min="0" class="form-control" name="down_payment" id="finDownPayment"
-                                               value="<?= $order['down_payment'] ?? '0' ?>" 
-                                               placeholder="0,00"
-                                               <?= $isReadOnly ? 'disabled' : '' ?>>
-                                    </div>
-                                    <small class="text-muted" style="font-size:0.65rem;">Deixe 0 se não houver entrada</small>
-                                </div>
-                                <div class="col-md-3">
+                                <div class="col-md-4">
                                     <label class="form-label small fw-bold text-muted">Valor por Parcela</label>
                                     <div class="input-group">
                                         <span class="input-group-text">R$</span>
@@ -1284,8 +1389,8 @@
                                         <input type="hidden" name="installment_value" id="finInstallmentValueHidden" value="<?= $order['installment_value'] ?? '' ?>">
                                     </div>
                                 </div>
-                                <div class="col-md-3 d-flex align-items-end">
-                                    <div class="alert alert-info py-1 px-3 mb-0 small w-100" id="installmentInfo" style="display:none;">
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <div class="alert alert-info py-1 px-3 mb-0 small w-100" id="installmentInfo" style="display:none; border-radius:8px;">
                                         <i class="fas fa-calculator me-1"></i>
                                         <span id="installmentInfoText"></span>
                                     </div>
@@ -1317,48 +1422,123 @@
                                                 <th class="text-center" style="width:100px;">Status</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                            <!-- Preenchido via JS -->
-                                        </tbody>
+                                        <tbody></tbody>
                                     </table>
                                 </div>
                                 <small class="text-muted" style="font-size:0.65rem;">
-                                    <i class="fas fa-info-circle me-1"></i>Os vencimentos são gerados a cada 30 dias a partir de hoje. Edite as datas conforme necessário antes de imprimir.
+                                    <i class="fas fa-info-circle me-1"></i>Os vencimentos são gerados a cada 30 dias a partir de hoje. Edite as datas conforme necessário.
                                 </small>
                             </div>
                         </div>
                     </div>
 
-                    <!-- ═══ LINKS DE PAGAMENTO — Mercado Pago ═══ -->
-                    <div class="card mt-3 border-dashed border-secondary border-opacity-25" style="border-style:dashed !important;" id="paymentLinksSection">
-                        <div class="card-header py-2 bg-light">
-                            <h6 class="mb-0 text-muted" style="font-size:0.85rem;">
-                                <i class="fas fa-link me-2"></i>Links de Pagamento
-                            </h6>
-                        </div>
-                        <div class="card-body p-3 text-center">
-                            <i class="fas fa-shopping-bag text-primary d-block mb-2" style="font-size:1.2rem;opacity:0.8;"></i>
-                            <p class="small text-muted mb-1"><strong>Mercado Pago — Link de Pagamento</strong></p>
-                            <p class="small text-muted mb-2" style="font-size:0.72rem;">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Gere um link de pagamento para o cliente pagar online.
-                            </p>
-                            <?php if ($isFinanceiroStage && !$isReadOnly): ?>
-                            <div class="mt-2 d-flex justify-content-center align-items-center gap-2 flex-wrap">
-                                <button type="button" class="btn btn-sm btn-primary" id="btnGenerateMpLink" style="font-size:0.75rem;">
-                                    <i class="fas fa-external-link-alt me-1"></i> Gerar Link Mercado Pago
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyMpLink" style="font-size:0.75rem; display:none;">
-                                    <i class="fas fa-copy me-1"></i> Copiar Link
-                                </button>
+                    <!-- ═══════════════════════════════════════════════════ -->
+                    <!-- ══ STEP 3 — Link de Pagamento (Gateway)        ══ -->
+                    <!-- ═══════════════════════════════════════════════════ -->
+                    <div class="card mb-3 border-0 shadow-sm" id="paymentLinksSection" style="<?= ($selectedMethod !== 'gateway') ? 'display:none;' : '' ?>">
+                        <div class="card-header py-2" style="background:linear-gradient(135deg, #9b59b610 0%, #8e44ad08 100%);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0" style="font-size:0.85rem; color:#8e44ad;">
+                                    <i class="fas fa-link me-2"></i>Link de Pagamento
+                                </h6>
+                                <?php if (!empty($savedPaymentLink)): ?>
+                                <span class="badge" style="font-size:0.6rem; background:#8e44ad20; color:#8e44ad;">
+                                    <i class="fas fa-check-circle me-1"></i>Link ativo
+                                </span>
+                                <?php endif; ?>
                             </div>
-                            <input type="text" class="form-control form-control-sm mt-2" id="mpLinkOutput" style="display:none;" readonly>
-                            <small class="text-muted d-block mt-1" style="font-size:0.68rem;">Configure o Access Token em Configurações → Boleto / Bancário.</small>
-                            <?php else: ?>
-                            <small class="text-muted" style="font-size:0.68rem;">Disponível quando o pedido estiver na etapa Financeiro.</small>
+                        </div>
+                        <div class="card-body p-3">
+                            <?php if (!empty($savedPaymentLink)): ?>
+                            <!-- ── Link já gerado — exibir de forma compacta ── -->
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size:0.65rem;">
+                                    <i class="fas fa-check-circle me-1"></i><?= e(ucfirst($savedPaymentGateway)) ?>
+                                    <?php if ($savedPaymentMethod && $savedPaymentMethod !== 'auto'): ?>
+                                     · <?= e(strtoupper(str_replace('_', ' ', $savedPaymentMethod))) ?>
+                                    <?php endif; ?>
+                                </span>
+                                <?php if ($savedPaymentLinkAt): ?>
+                                <small class="text-muted" style="font-size:0.6rem;">
+                                    <i class="fas fa-clock me-1"></i><?= date('d/m/Y H:i', strtotime($savedPaymentLinkAt)) ?>
+                                </small>
+                                <?php endif; ?>
+                            </div>
+                            <div class="input-group input-group-sm mb-2">
+                                <input type="text" class="form-control text-primary fw-bold" id="savedGwLinkUrl" 
+                                       value="<?= e($savedPaymentLink) ?>" readonly onclick="this.select()" style="font-size:0.78rem;">
+                                <button type="button" class="btn btn-outline-secondary" id="btnCopySavedGwLink" title="Copiar link">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <a href="<?= e($savedPaymentLink) ?>" target="_blank" class="btn btn-outline-primary" title="Abrir link">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                                <?php if (!empty($order['customer_phone'])): ?>
+                                <button type="button" class="btn btn-outline-success" id="btnResendGwWhatsApp" title="Reenviar via WhatsApp">
+                                    <i class="fab fa-whatsapp"></i>
+                                </button>
+                                <?php endif; ?>
+                            </div>
+                            <input type="hidden" name="payment_link_url" value="<?= e($savedPaymentLink) ?>">
+                            <input type="hidden" name="payment_link_gateway" value="<?= e($savedPaymentGateway) ?>">
+                            <input type="hidden" name="payment_link_method" value="<?= e($savedPaymentMethod) ?>">
+                            <?php endif; ?>
+
+                            <?php if ($isFinanceiroStage && !$isReadOnly): ?>
+                                <?php if ($__hasActiveGateway): ?>
+                                <!-- ── Geração de link compacta ── -->
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <select class="form-select form-select-sm" id="gwSelectGateway" style="max-width:180px;font-size:0.75rem;">
+                                        <?php foreach ($__activeGateways as $__gw): ?>
+                                        <option value="<?= htmlspecialchars($__gw['gateway_slug']) ?>"
+                                                <?= !empty($__gw['is_default']) ? 'selected' : '' ?>
+                                                data-methods="<?= htmlspecialchars(json_encode($__gwMethodsMap[$__gw['gateway_slug']] ?? [])) ?>">
+                                            <?= htmlspecialchars($__gw['display_name']) ?>
+                                            <?= $__gw['environment'] === 'sandbox' ? ' ⚠' : '' ?>
+                                            <?= !empty($__gw['is_default']) ? ' ★' : '' ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+
+                                    <!-- Método: auto por padrão (cliente escolhe no checkout), com opção de forçar -->
+                                    <input type="hidden" id="gwSelectMethod" value="auto">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnToggleMethodSelect"
+                                            title="Escolher método específico" style="font-size:0.7rem;padding:0.2rem 0.5rem;">
+                                        <i class="fas fa-filter"></i>
+                                    </button>
+                                    <select class="form-select form-select-sm d-none" id="gwSelectMethodVisible" style="max-width:200px;font-size:0.75rem;">
+                                        <option value="auto" selected>🔄 Cliente Escolhe</option>
+                                        <option value="pix">📱 PIX</option>
+                                        <option value="credit_card">💳 Cartão de Crédito</option>
+                                        <option value="debit_card">💳 Cartão de Débito</option>
+                                        <option value="boleto">📄 Boleto</option>
+                                    </select>
+
+                                    <button type="button" class="btn btn-sm btn-primary" id="btnGenerateGwLink" style="font-size:0.75rem;">
+                                        <i class="fas fa-bolt me-1"></i> <?= !empty($savedPaymentLink) ? 'Novo Link' : 'Gerar Link' ?>
+                                    </button>
+                                </div>
+                                <?php else: ?>
+                                <div class="text-center py-2">
+                                    <i class="fas fa-plug text-muted d-block mb-2" style="font-size:1.2rem;opacity:0.6;"></i>
+                                    <p class="small text-muted mb-1">Nenhum gateway de pagamento ativo.</p>
+                                    <a href="?page=payment_gateways" class="btn btn-sm btn-outline-primary" style="font-size:0.72rem;">
+                                        <i class="fas fa-cog me-1"></i> Configurar Gateways
+                                    </a>
+                                </div>
+                                <?php endif; ?>
+                            <?php elseif (empty($savedPaymentLink)): ?>
+                            <div class="text-center py-2">
+                                <small class="text-muted" style="font-size:0.68rem;">
+                                    <i class="fas fa-info-circle me-1"></i>Geração de links disponível na etapa Financeiro.
+                                </small>
+                            </div>
                             <?php endif; ?>
                         </div>
                     </div>
+
+                    <!-- Toast container para notificações de link de pagamento (push canto direito) -->
+                    <div id="gwPaymentToastContainer" style="position:fixed;bottom:20px;right:20px;z-index:9999;max-width:380px;width:100%;pointer-events:none;"></div>
 
                     <!-- ═══ CUPOM NÃO FISCAL — Impressão Térmica ═══ -->
                     <div class="card mt-3 border-0 shadow-sm" id="thermalReceiptSection">
@@ -1398,21 +1578,156 @@
                     </div>
 
                     <?php if ($canUseFiscalModule && $canUseNfeModule): ?>
-                    <!-- ═══ FISCAL — Nota Fiscal ═══ -->
+                    <?php
+                        // ═══ NF-e — Carregar dados da nota vinculada ao pedido ═══
+                        $nfeDoc = null;
+                        $nfeStatusLabel = '';
+                        $nfeStatusColor = 'secondary';
+                        $nfeStatusIcon = 'fas fa-circle';
+                        $hasNfe = false;
+                        try {
+                            $nfeDocModel = new \Akti\Models\NfeDocument($db ?? $database->getConnection());
+                            $nfeDoc = $nfeDocModel->readByOrder($order['id']);
+                            if ($nfeDoc) {
+                                $hasNfe = true;
+                                $_nfeStatusMap = [
+                                    'rascunho'    => ['label' => 'Rascunho',    'color' => 'secondary', 'icon' => 'fas fa-pencil-alt'],
+                                    'processando' => ['label' => 'Processando', 'color' => 'info',      'icon' => 'fas fa-spinner fa-spin'],
+                                    'autorizada'  => ['label' => 'Autorizada',  'color' => 'success',   'icon' => 'fas fa-check-circle'],
+                                    'rejeitada'   => ['label' => 'Rejeitada',   'color' => 'danger',    'icon' => 'fas fa-times-circle'],
+                                    'cancelada'   => ['label' => 'Cancelada',   'color' => 'dark',      'icon' => 'fas fa-ban'],
+                                    'denegada'    => ['label' => 'Denegada',     'color' => 'warning',   'icon' => 'fas fa-exclamation'],
+                                    'corrigida'   => ['label' => 'Corrigida',    'color' => 'primary',   'icon' => 'fas fa-pen'],
+                                ];
+                                $_si = $_nfeStatusMap[$nfeDoc['status']] ?? ['label' => $nfeDoc['status'], 'color' => 'secondary', 'icon' => 'fas fa-circle'];
+                                $nfeStatusLabel = $_si['label'];
+                                $nfeStatusColor = $_si['color'];
+                                $nfeStatusIcon = $_si['icon'];
+                            }
+                        } catch (\Exception $e) { /* ignora se tabela não existe ainda */ }
+                    ?>
+                    <!-- ═══ FISCAL — Nota Fiscal Eletrônica (SEFAZ) ═══ -->
                     <div class="card mt-3 border-0 shadow-sm" id="fiscalSection">
                         <div class="card-header py-2 bg-success bg-opacity-10">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0 text-success" style="font-size:0.85rem;">
-                                    <i class="fas fa-file-invoice me-2"></i>Fiscal / Nota Fiscal
+                                    <i class="fas fa-file-invoice me-2"></i>NF-e — Nota Fiscal Eletrônica
+                                    <?php if ($hasNfe): ?>
+                                    <span class="badge bg-<?= $nfeStatusColor ?> ms-2" style="font-size:0.6rem;">
+                                        <i class="<?= $nfeStatusIcon ?> me-1"></i><?= $nfeStatusLabel ?>
+                                    </span>
+                                    <?php endif; ?>
                                 </h6>
-                                <?php if (!$isReadOnly): ?>
-                                <button type="button" class="btn btn-sm btn-outline-success" id="btnEmitirNF" style="font-size:0.7rem;">
-                                    <i class="fas fa-file-export me-1"></i> Emitir NF
-                                </button>
-                                <?php endif; ?>
+                                <div class="d-flex gap-1">
+                                    <?php if ($hasNfe): ?>
+                                    <a href="?page=nfe_documents&action=detail&id=<?= $nfeDoc['id'] ?>" 
+                                       class="btn btn-sm btn-outline-primary" style="font-size:0.7rem;" title="Ver detalhe da NF-e">
+                                        <i class="fas fa-eye me-1"></i> Detalhe
+                                    </a>
+                                    <?php endif; ?>
+                                    <?php if (!$hasNfe && !$isReadOnly && in_array($currentStage, ['venda', 'financeiro', 'concluido'])): ?>
+                                    <button type="button" class="btn btn-sm btn-success" id="btnEmitirNfeSefaz" style="font-size:0.7rem;">
+                                        <i class="fas fa-file-export me-1"></i> Emitir NF-e (SEFAZ)
+                                    </button>
+                                    <?php elseif ($hasNfe && $nfeDoc['status'] === 'rejeitada' && !$isReadOnly): ?>
+                                    <button type="button" class="btn btn-sm btn-warning text-dark" id="btnEmitirNfeSefaz" style="font-size:0.7rem;">
+                                        <i class="fas fa-redo me-1"></i> Reemitir NF-e
+                                    </button>
+                                    <?php endif; ?>
+                                    <?php if (!$isReadOnly): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-success" id="btnEmitirNF" style="font-size:0.7rem;">
+                                        <i class="fas fa-edit me-1"></i> Manual
+                                    </button>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                         <div class="card-body p-3">
+
+                            <?php if ($hasNfe): ?>
+                            <!-- ═══ Dados da NF-e emitida ═══ -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-3">
+                                    <span class="small text-muted d-block">Número</span>
+                                    <span class="fw-bold"><?= e($nfeDoc['numero']) ?></span>
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="small text-muted d-block">Série</span>
+                                    <span class="fw-bold"><?= e($nfeDoc['serie']) ?></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="small text-muted d-block">Protocolo</span>
+                                    <span class="fw-bold"><?= e($nfeDoc['protocolo'] ?? '—') ?></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <span class="small text-muted d-block">Valor</span>
+                                    <span class="fw-bold text-success">R$ <?= number_format($nfeDoc['valor_total'], 2, ',', '.') ?></span>
+                                </div>
+                                <?php if (!empty($nfeDoc['chave'])): ?>
+                                <div class="col-12">
+                                    <span class="small text-muted d-block">Chave de Acesso</span>
+                                    <span class="fw-bold" style="font-size:0.72rem; word-break:break-all; font-family:monospace;"><?= e($nfeDoc['chave']) ?></span>
+                                </div>
+                                <?php endif; ?>
+                                <?php if ($nfeDoc['emitted_at']): ?>
+                                <div class="col-md-6">
+                                    <span class="small text-muted d-block">Data Emissão</span>
+                                    <span class="fw-bold"><?= date('d/m/Y H:i', strtotime($nfeDoc['emitted_at'])) ?></span>
+                                </div>
+                                <?php endif; ?>
+                                <?php if ($nfeDoc['status'] === 'rejeitada' && !empty($nfeDoc['motivo_sefaz'])): ?>
+                                <div class="col-12">
+                                    <div class="alert alert-danger py-1 px-2 mb-0 small">
+                                        <i class="fas fa-times-circle me-1"></i>
+                                        <strong>SEFAZ:</strong> <?= e($nfeDoc['motivo_sefaz']) ?>
+                                        <?php if ($nfeDoc['status_sefaz']): ?> (cStat: <?= e($nfeDoc['status_sefaz']) ?>)<?php endif; ?>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                                <?php if ($nfeDoc['status'] === 'cancelada'): ?>
+                                <div class="col-12">
+                                    <div class="alert alert-dark py-1 px-2 mb-0 small">
+                                        <i class="fas fa-ban me-1"></i>
+                                        <strong>Cancelada:</strong> <?= e($nfeDoc['cancel_motivo'] ?? '') ?>
+                                        <?php if ($nfeDoc['cancel_date']): ?> em <?= date('d/m/Y H:i', strtotime($nfeDoc['cancel_date'])) ?><?php endif; ?>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Ações da NF-e emitida -->
+                            <div class="d-flex flex-wrap gap-1">
+                                <?php if ($nfeDoc['xml_autorizado']): ?>
+                                <a href="?page=nfe_documents&action=download&id=<?= $nfeDoc['id'] ?>&type=xml" 
+                                   class="btn btn-sm btn-outline-secondary" style="font-size:0.7rem;">
+                                    <i class="fas fa-file-code me-1"></i> XML
+                                </a>
+                                <a href="?page=nfe_documents&action=download&id=<?= $nfeDoc['id'] ?>&type=danfe" 
+                                   class="btn btn-sm btn-outline-danger" style="font-size:0.7rem;" target="_blank">
+                                    <i class="fas fa-file-pdf me-1"></i> DANFE
+                                </a>
+                                <?php endif; ?>
+                                <?php if (in_array($nfeDoc['status'], ['autorizada', 'corrigida'])): ?>
+                                <button type="button" class="btn btn-sm btn-outline-dark btn-cancel-nfe-pipeline" 
+                                        data-id="<?= $nfeDoc['id'] ?>" data-numero="<?= e($nfeDoc['numero']) ?>"
+                                        style="font-size:0.7rem;">
+                                    <i class="fas fa-ban me-1"></i> Cancelar
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-info btn-correcao-nfe-pipeline"
+                                        data-id="<?= $nfeDoc['id'] ?>" data-numero="<?= e($nfeDoc['numero']) ?>"
+                                        style="font-size:0.7rem;">
+                                    <i class="fas fa-pen me-1"></i> Carta Correção
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary btn-check-status-pipeline"
+                                        data-id="<?= $nfeDoc['id'] ?>" style="font-size:0.7rem;">
+                                    <i class="fas fa-sync me-1"></i> Consultar SEFAZ
+                                </button>
+                                <?php endif; ?>
+                            </div>
+                            <hr class="my-2">
+                            <?php endif; ?>
+
+                            <!-- ═══ Campos manuais (fallback / complemento) ═══ -->
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label small fw-bold text-muted">Nº da Nota Fiscal</label>
@@ -1450,29 +1765,6 @@
                                            placeholder="Observações sobre a nota fiscal..."
                                            value="<?= e($order['nf_notes'] ?? '') ?>"
                                            <?= $isReadOnly ? 'disabled' : '' ?>>
-                                </div>
-                            </div>
-
-                            <!-- Placeholder para integração com emissor de NF -->
-                            <div class="alert alert-light border mt-3 mb-0 py-2 px-3">
-                                <div class="d-flex align-items-start gap-2">
-                                    <i class="fas fa-plug text-muted mt-1" style="opacity:0.4;"></i>
-                                    <div>
-                                        <p class="small text-muted mb-0" style="font-size:0.72rem;">
-                                            <strong>Integração com Emissor Fiscal:</strong>
-                                            Em breve será possível emitir NF-e e NFC-e diretamente pelo sistema, com integração 
-                                            via API (ex: Bling, Tiny ERP, NFe.io, eNotas). Por enquanto, preencha os dados manualmente 
-                                            após emitir pelo sistema fiscal.
-                                        </p>
-                                        <?php if ($isFinanceiroStage && !$isReadOnly): ?>
-                                        <div class="mt-1 d-flex gap-2">
-                                            <span class="badge bg-light text-muted border" style="font-size:0.6rem;"><i class="fas fa-file-invoice me-1"></i>NFe.io</span>
-                                            <span class="badge bg-light text-muted border" style="font-size:0.6rem;"><i class="fas fa-bolt me-1"></i>Bling</span>
-                                            <span class="badge bg-light text-muted border" style="font-size:0.6rem;"><i class="fas fa-cube me-1"></i>Tiny ERP</span>
-                                            <span class="badge bg-light text-muted border" style="font-size:0.6rem;"><i class="fas fa-file-alt me-1"></i>eNotas</span>
-                                        </div>
-                                        <?php endif; ?>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1922,6 +2214,22 @@
 </div>
 
 <style>
+/* ═══ Toast Push para Link de Pagamento ═══ */
+@keyframes gwToastSlideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes gwToastTimer {
+    from { width: 100%; }
+    to   { width: 0%;   }
+}
+.gw-payment-toast {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.gw-payment-toast .input-group .form-control {
+    font-size: 0.7rem !important;
+}
+
 /* ═══ Estilos Controle de Produção por Produto ═══ */
 .production-item-card {
     transition: box-shadow 0.2s;
@@ -1950,10 +2258,11 @@
 </style>
 
 <script>
+// ── CSRF token global para fetch POST (acessível por todas as funções, inclusive fora do DOMContentLoaded) ──
+const __csrfMeta = document.querySelector('meta[name="csrf-token"]');
+const __csrfToken = __csrfMeta ? __csrfMeta.getAttribute('content') : '';
+
 document.addEventListener('DOMContentLoaded', function() {
-    // ── CSRF token global para fetch POST (não coberto pelo $.ajaxSetup do jQuery) ──
-    const __csrfMeta = document.querySelector('meta[name="csrf-token"]');
-    const __csrfToken = __csrfMeta ? __csrfMeta.getAttribute('content') : '';
     
     <?php if(isset($_GET['status'])): ?>
     // Limpar o parâmetro status da URL para não disparar novamente
@@ -2243,8 +2552,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Product combinations data for variation selector
-    const productCombosPipeline = <?= json_encode($productCombinations ?? []) ?>;
+    // Product combinations data — variável global usada como fallback pelo product-select2.js
+    // (ex: preços customizados por tabela de preço do cliente)
+    const productCombinations = <?= json_encode($productCombinations ?? []) ?>;
 
     // Auto-preencher preço ao selecionar produto (pipeline)
     const pipProductSelect = document.getElementById('pipProductSelect');
@@ -2252,37 +2562,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const pipVariationWrap = document.getElementById('variationWrapPipeline');
     const pipVariationSelect = document.getElementById('pipVariationSelect');
 
-    if (pipProductSelect && pipPriceInput) {
-        pipProductSelect.addEventListener('change', function() {
+    // Nota: A seleção de produto e preenchimento de preço/variações é feita pelo
+    // product-select2.js via Select2 AJAX + API Node.js.
+    // Mantemos apenas o handler de variação para override de preço.
+    if (pipVariationSelect) {
+        pipVariationSelect.addEventListener('change', function() {
             const opt = this.options[this.selectedIndex];
-            if (opt && opt.dataset.price) {
+            if (opt && opt.dataset.price && opt.dataset.price !== '') {
                 pipPriceInput.value = parseFloat(opt.dataset.price).toFixed(2);
             }
-            // Show/hide variation selector
-            const pid = this.value;
-            if (pipVariationWrap && pipVariationSelect) {
-                if (pid && productCombosPipeline[pid] && productCombosPipeline[pid].length > 0) {
-                    pipVariationWrap.style.display = '';
-                    pipVariationSelect.innerHTML = '<option value="">Selecione a variação...</option>';
-                    productCombosPipeline[pid].forEach(c => {
-                        const lbl = c.combination_label + (c.price_override ? ' — R$ ' + parseFloat(c.price_override).toFixed(2).replace('.', ',') : '');
-                        pipVariationSelect.innerHTML += `<option value="${c.id}" data-price="${c.price_override || ''}" data-label="${c.combination_label}">${lbl}</option>`;
-                    });
-                } else {
-                    pipVariationWrap.style.display = 'none';
-                    pipVariationSelect.innerHTML = '';
-                }
-            }
         });
-
-        if (pipVariationSelect) {
-            pipVariationSelect.addEventListener('change', function() {
-                const opt = this.options[this.selectedIndex];
-                if (opt && opt.dataset.price && opt.dataset.price !== '') {
-                    pipPriceInput.value = parseFloat(opt.dataset.price).toFixed(2);
-                }
-            });
-        }
     }
 
     // Adicionar item via form dinâmico (evita nesting de forms)
@@ -2685,13 +2974,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicializar verificação do link
     if (document.getElementById('catalogLinkSection')) {
         checkExistingCatalogLink();
+        
+        // Toggle da dica de confirmação
+        const confirmSelect = document.getElementById('catalogRequireConfirmation');
+        const confirmHint = document.getElementById('catalogConfirmHint');
+        if (confirmSelect && confirmHint) {
+            confirmSelect.addEventListener('change', function() {
+                confirmHint.style.display = this.value === '1' ? 'block' : 'none';
+                confirmHint.style.setProperty('display', this.value === '1' ? 'block' : 'none', 'important');
+            });
+        }
     }
 });
 
 // ── Funções globais do catálogo (fora do DOMContentLoaded) ──
 
 function generateCatalogLink() {
-    const showPrices = document.getElementById('catalogShowPrices').value;
+    const requireConfirmation = document.getElementById('catalogRequireConfirmation').value;
+    const showPrices = requireConfirmation === '1' ? '1' : '0'; // Se requer confirmação, mostrar preços
     const expiresIn = document.getElementById('catalogExpires').value;
     const btn = document.getElementById('btnGenerateCatalog');
     
@@ -2702,7 +3002,7 @@ function generateCatalogLink() {
     fetch('?page=pipeline&action=generateCatalogLink', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `order_id=<?= $order['id'] ?>&show_prices=${showPrices}&expires_in=${expiresIn}&csrf_token=${encodeURIComponent(__csrfToken)}`
+        body: `order_id=<?= $order['id'] ?>&show_prices=${showPrices}&require_confirmation=${requireConfirmation}&expires_in=${expiresIn}&csrf_token=${encodeURIComponent(__csrfToken)}`
     })
     .then(r => r.json())
     .then(data => {
@@ -2775,7 +3075,7 @@ function showActiveCatalogLink(data) {
     activeEl.style.display = '';
     
     // Desabilitar campos do formulário (já tem link ativo)
-    document.getElementById('catalogShowPrices').disabled = true;
+    document.getElementById('catalogRequireConfirmation').disabled = true;
     document.getElementById('catalogExpires').disabled = true;
     const btn = document.getElementById('btnGenerateCatalog');
     btn.disabled = true;
@@ -2786,7 +3086,13 @@ function showActiveCatalogLink(data) {
     document.getElementById('catalogLinkOpen').href = data.url;
     
     const priceInfo = document.getElementById('catalogLinkPriceInfo');
-    priceInfo.textContent = data.show_prices ? '(com preços)' : '(sem preços)';
+    if (data.require_confirmation) {
+        priceInfo.textContent = '(com confirmação de orçamento)';
+    } else if (data.show_prices) {
+        priceInfo.textContent = '(com preços)';
+    } else {
+        priceInfo.textContent = '(sem preços)';
+    }
     
     const meta = document.getElementById('catalogLinkMeta');
     let metaText = '';
@@ -2809,7 +3115,7 @@ function showCatalogLinkForm() {
     // Esconder o link e reabilitar o formulário
     activeEl.style.display = 'none';
     
-    document.getElementById('catalogShowPrices').disabled = false;
+    document.getElementById('catalogRequireConfirmation').disabled = false;
     document.getElementById('catalogExpires').disabled = false;
     const btn = document.getElementById('btnGenerateCatalog');
     btn.disabled = false;
@@ -3144,6 +3450,7 @@ setInterval(() => {
             el.innerHTML = '<i class="fas fa-coins me-1"></i>Total: R$ ' + formattedTotal;
         });
         calcInstallment();
+        updateDownPaymentInfo();
         // Só sincronizar se já existe configuração de parcelas definida
         if (installmentsConfigured()) {
             scheduleSyncInstallments(500);
@@ -3168,6 +3475,9 @@ setInterval(() => {
         // Parcelável: precisa que o usuário já tenha definido as parcelas
         if (installmentsUserTouched) return true;
         if (existingInstallmentCount > 0) return true;
+        // Se tem entrada definida, considerar como configurado para permitir sync
+        const dp = parseFloat(downPaymentField ? downPaymentField.value : 0) || 0;
+        if (dp > 0) return true;
         return false;
     }
     
@@ -3204,6 +3514,28 @@ setInterval(() => {
             calcInstallment();
         }
         updateCardTitle();
+        updateDownPaymentInfo();
+    }
+    
+    /**
+     * Atualiza informações visuais do campo de entrada (sempre visível)
+     */
+    function updateDownPaymentInfo() {
+        const dpInfo = document.getElementById('downPaymentInfo');
+        const dpInfoText = document.getElementById('downPaymentInfoText');
+        if (!dpInfo || !dpInfoText) return;
+        
+        const dp = parseFloat(downPaymentField ? downPaymentField.value : 0) || 0;
+        const discount = parseFloat(discountField ? discountField.value : 0) || 0;
+        const finalTotal = Math.max(0, totalAmount - discount);
+        
+        if (dp > 0 && finalTotal > 0) {
+            const remaining = Math.max(0, finalTotal - dp);
+            dpInfo.style.display = '';
+            dpInfoText.textContent = 'Entrada de R$ ' + dp.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + ' — Restante: R$ ' + remaining.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+        } else {
+            dpInfo.style.display = 'none';
+        }
     }
     
     function calcInstallment() {
@@ -3616,8 +3948,11 @@ setInterval(() => {
             // Se veio de não-parcelável, não sincronizar — esperar seleção de parcelas
         } else {
             // Método não parcelável (dinheiro, pix, etc.): sincronizar imediatamente
-            // para gerar uma única parcela / limpar parcelamento anterior
-            scheduleSyncInstallments(300);
+            // para gerar uma única parcela / limpar parcelamento anterior.
+            // Gateway online: NÃO sincronizar — o pagamento é gerido pelo gateway.
+            if (newMethod !== 'gateway') {
+                scheduleSyncInstallments(300);
+            }
         }
     });
 
@@ -3654,7 +3989,10 @@ setInterval(() => {
             return;
         }
         calcInstallment();
-        if (installmentsConfigured()) {
+        updateDownPaymentInfo();
+        // Sempre sincronizar parcelas ao alterar entrada — independente do método de pagamento
+        // A entrada gera uma parcela aberta (installment_number = 0) no financeiro
+        if (paymentMethod && paymentMethod.value) {
             scheduleSyncInstallments(800);
         }
     });
@@ -3678,6 +4016,22 @@ setInterval(() => {
     });
     
     toggleInstallmentRow();
+    updateDownPaymentInfo();
+
+    // ═══ Estilização dinâmica do select de status de pagamento ═══
+    var finPaymentStatus = document.getElementById('finPaymentStatus');
+    if (finPaymentStatus) {
+        var statusStyles = {
+            'pendente': { color: '#f39c12', bg: '#fff3cd' },
+            'parcial':  { color: '#3498db', bg: '#cfe2ff' },
+            'pago':     { color: '#198754', bg: '#d1e7dd' }
+        };
+        finPaymentStatus.addEventListener('change', function() {
+            var s = statusStyles[this.value] || statusStyles['pendente'];
+            this.style.borderColor = s.color;
+            this.style.backgroundColor = s.bg;
+        });
+    }
 
     // Bloquear campos se há parcelas pagas (logo no carregamento da página)
     lockFinancialFieldsIfPaid();
@@ -4219,34 +4573,281 @@ setInterval(() => {
         });
     }
 
-    // ═══ Emitir NF (placeholder) ═══
+    // ═══ Emitir NF-e Manual (abre campos para preencher) ═══
     var btnNF = document.getElementById('btnEmitirNF');
     if (btnNF) {
         btnNF.addEventListener('click', function() {
             Swal.fire({
                 icon: 'info',
-                title: 'Emissão de Nota Fiscal',
-                html: '<p class="mb-2">A emissão automática de NF-e ainda não está integrada.</p><p class="small text-muted">Por enquanto, emita a nota no seu sistema fiscal e preencha os dados (número, série, chave de acesso) nos campos acima.</p><hr><p class="small text-muted mb-0"><i class="fas fa-plug me-1"></i>Integração futura com: NFe.io, Bling, Tiny ERP, eNotas</p>',
+                title: 'Preenchimento Manual',
+                html: '<p class="mb-2">Use os campos abaixo para preencher os dados da NF-e manualmente, caso tenha emitido a nota por outro sistema.</p><p class="small text-muted">Para emitir via SEFAZ diretamente, use o botão <strong>"Emitir NF-e (SEFAZ)"</strong>.</p>',
                 confirmButtonText: 'Entendi',
                 confirmButtonColor: '#27ae60'
             });
         });
     }
 
-    // ═══ Link de pagamento Mercado Pago ═══
-    var btnGenerateMpLink = document.getElementById('btnGenerateMpLink');
-    var btnCopyMpLink = document.getElementById('btnCopyMpLink');
-    var mpLinkOutput = document.getElementById('mpLinkOutput');
+    // ═══ Emitir NF-e via SEFAZ ═══
+    var btnEmitirSefaz = document.getElementById('btnEmitirNfeSefaz');
+    if (btnEmitirSefaz) {
+        btnEmitirSefaz.addEventListener('click', function() {
+            var btn = this;
+            var orderId = <?= (int)$order['id'] ?>;
 
-    if (btnGenerateMpLink) {
-        btnGenerateMpLink.addEventListener('click', function() {
-            btnGenerateMpLink.disabled = true;
-            btnGenerateMpLink.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Gerando...';
+            Swal.fire({
+                icon: 'warning',
+                title: 'Emitir NF-e via SEFAZ?',
+                html: '<p>Será gerada e enviada uma NF-e para o <strong>Pedido #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></strong>.</p>'
+                    + '<p class="small text-muted">Valor: <strong>R$ <?= number_format($order['total_amount'] ?? 0, 2, ',', '.') ?></strong></p>'
+                    + '<p class="small text-danger">Confira os dados do pedido e do cliente antes de emitir.</p>',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-file-export me-1"></i> Emitir NF-e',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#28a745',
+                showLoaderOnConfirm: true,
+                preConfirm: function() {
+                    return $.ajax({
+                        url: '?page=nfe_documents&action=emit',
+                        method: 'POST',
+                        dataType: 'json',
+                        data: { order_id: orderId },
+                        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                    }).then(function(resp) {
+                        return resp;
+                    }).catch(function() {
+                        Swal.showValidationMessage('Falha na comunicação com o servidor.');
+                    });
+                },
+                allowOutsideClick: function() { return !Swal.isLoading(); }
+            }).then(function(result) {
+                if (result.isConfirmed && result.value) {
+                    var resp = result.value;
+                    if (resp.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'NF-e Autorizada!',
+                            html: resp.message + (resp.chave ? '<br><small class="text-muted">Chave: ' + resp.chave + '</small>' : ''),
+                            confirmButtonText: 'OK'
+                        }).then(function() { location.reload(); });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erro na Emissão',
+                            html: resp.message,
+                            confirmButtonText: 'OK'
+                        }).then(function() { if (resp.nfe_id) location.reload(); });
+                    }
+                }
+            });
+        });
+    }
 
-            fetch('?page=pipeline&action=generateMercadoPagoLink', {
+    // ═══ Cancelar NF-e no Pipeline ═══
+    $(document).on('click', '.btn-cancel-nfe-pipeline', function() {
+        var nfeId = $(this).data('id');
+        var nfeNum = $(this).data('numero');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Cancelar NF-e #' + nfeNum + '?',
+            html: '<p>Esta ação é <strong>irreversível</strong>. A NF-e será cancelada na SEFAZ.</p>'
+                + '<div class="mb-3"><label class="form-label small fw-bold">Justificativa (mín. 15 chars)</label>'
+                + '<textarea id="swalCancelMotivo" class="form-control" rows="3" placeholder="Descreva o motivo..."></textarea></div>',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-ban me-1"></i> Cancelar NF-e',
+            cancelButtonText: 'Voltar',
+            confirmButtonColor: '#dc3545',
+            showLoaderOnConfirm: true,
+            preConfirm: function() {
+                var motivo = document.getElementById('swalCancelMotivo').value.trim();
+                if (motivo.length < 15) {
+                    Swal.showValidationMessage('Justificativa deve ter no mínimo 15 caracteres.');
+                    return false;
+                }
+                return $.ajax({
+                    url: '?page=nfe_documents&action=cancel',
+                    method: 'POST',
+                    dataType: 'json',
+                    data: { nfe_id: nfeId, motivo: motivo },
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                }).then(function(r){ return r; }).catch(function(){ Swal.showValidationMessage('Erro de comunicação.'); });
+            },
+            allowOutsideClick: function() { return !Swal.isLoading(); }
+        }).then(function(result) {
+            if (result.isConfirmed && result.value) {
+                Swal.fire(result.value.success ? 'Cancelada!' : 'Erro', result.value.message, result.value.success ? 'success' : 'error')
+                    .then(function() { if (result.value.success) location.reload(); });
+            }
+        });
+    });
+
+    // ═══ Carta de Correção no Pipeline ═══
+    $(document).on('click', '.btn-correcao-nfe-pipeline', function() {
+        var nfeId = $(this).data('id');
+        var nfeNum = $(this).data('numero');
+        Swal.fire({
+            icon: 'info',
+            title: 'Carta de Correção — NF-e #' + nfeNum,
+            html: '<div class="mb-3"><label class="form-label small fw-bold">Texto da Correção (mín. 15 chars)</label>'
+                + '<textarea id="swalCorrecaoTexto" class="form-control" rows="4" placeholder="Descreva a correção..."></textarea></div>'
+                + '<div class="alert alert-info small py-2"><i class="fas fa-info-circle me-1"></i>Não altera valores, impostos ou dados do emitente.</div>',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-paper-plane me-1"></i> Enviar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#17a2b8',
+            showLoaderOnConfirm: true,
+            preConfirm: function() {
+                var texto = document.getElementById('swalCorrecaoTexto').value.trim();
+                if (texto.length < 15) {
+                    Swal.showValidationMessage('Texto deve ter no mínimo 15 caracteres.');
+                    return false;
+                }
+                return $.ajax({
+                    url: '?page=nfe_documents&action=correction',
+                    method: 'POST',
+                    dataType: 'json',
+                    data: { nfe_id: nfeId, texto: texto },
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                }).then(function(r){ return r; }).catch(function(){ Swal.showValidationMessage('Erro de comunicação.'); });
+            },
+            allowOutsideClick: function() { return !Swal.isLoading(); }
+        }).then(function(result) {
+            if (result.isConfirmed && result.value) {
+                Swal.fire(result.value.success ? 'Enviada!' : 'Erro', result.value.message, result.value.success ? 'success' : 'error')
+                    .then(function() { if (result.value.success) location.reload(); });
+            }
+        });
+    });
+
+    // ═══ Consultar Status NF-e no Pipeline ═══
+    $(document).on('click', '.btn-check-status-pipeline', function() {
+        var btn = $(this);
+        var nfeId = btn.data('id');
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Consultando...');
+        $.ajax({
+            url: '?page=nfe_documents&action=checkStatus&id=' + nfeId,
+            method: 'POST',
+            dataType: 'json',
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+        }).done(function(resp) {
+            Swal.fire('Consulta SEFAZ', resp.message || 'Sem resposta', resp.success ? 'success' : 'error');
+        }).fail(function() {
+            Swal.fire('Erro', 'Falha na comunicação.', 'error');
+        }).always(function() {
+            btn.prop('disabled', false).html('<i class="fas fa-sync me-1"></i> Consultar SEFAZ');
+        });
+    });
+
+    // ═══ Link de pagamento via Gateway — Push Toast ═══
+    var btnGenerateGwLink = document.getElementById('btnGenerateGwLink');
+    var gwPaymentToastContainer = document.getElementById('gwPaymentToastContainer');
+
+    // ── Seletor de Método de Pagamento ──
+    // Elementos: hidden (valor real enviado), visible select (quando expandido), botão toggle
+    var gwMethodHidden  = document.getElementById('gwSelectMethod');        // <input hidden value="auto">
+    var gwMethodSelect  = document.getElementById('gwSelectMethodVisible'); // <select> (d-none por padrão)
+    var btnToggleMethod = document.getElementById('btnToggleMethodSelect'); // botão filtro
+
+    // Sincronizar visible → hidden sempre que mudar
+    if (gwMethodSelect && gwMethodHidden) {
+        gwMethodSelect.addEventListener('change', function() {
+            gwMethodHidden.value = this.value;
+        });
+    }
+
+    // Toggle: mostrar/esconder o select de método específico
+    if (btnToggleMethod && gwMethodSelect && gwMethodHidden) {
+        btnToggleMethod.addEventListener('click', function() {
+            var isShown = !gwMethodSelect.classList.contains('d-none');
+            if (isShown) {
+                // Esconder — voltar para auto
+                gwMethodSelect.classList.add('d-none');
+                gwMethodHidden.value = 'auto';
+                btnToggleMethod.classList.remove('btn-primary');
+                btnToggleMethod.classList.add('btn-outline-secondary');
+                btnToggleMethod.title = 'Escolher método específico';
+            } else {
+                // Mostrar — usar valor selecionado no select
+                gwMethodSelect.classList.remove('d-none');
+                gwMethodHidden.value = gwMethodSelect.value;
+                btnToggleMethod.classList.remove('btn-outline-secondary');
+                btnToggleMethod.classList.add('btn-primary');
+                btnToggleMethod.title = 'Voltar para cliente escolhe';
+            }
+        });
+    }
+
+    /**
+     * Cria uma notificação push (toast) no canto inferior direito da tela.
+     * @param {string} type - 'loading', 'success', 'error'
+     * @param {string} title
+     * @param {string} body - HTML content
+     * @param {number|null} autoDismissMs - auto fechar após X ms (null = manual)
+     * @returns {HTMLElement} o elemento do toast
+     */
+    function createPaymentToast(type, title, body, autoDismissMs) {
+        if (!gwPaymentToastContainer) return null;
+        // Limpar toasts anteriores
+        gwPaymentToastContainer.innerHTML = '';
+
+        var icons = {
+            loading: '<div class="spinner-border spinner-border-sm text-primary" role="status"></div>',
+            success: '<i class="fas fa-check-circle text-success" style="font-size:1.2rem;"></i>',
+            error:   '<i class="fas fa-times-circle text-danger" style="font-size:1.2rem;"></i>'
+        };
+        var borderColors = { loading: '#0d6efd', success: '#198754', error: '#dc3545' };
+
+        var toast = document.createElement('div');
+        toast.className = 'gw-payment-toast';
+        toast.style.cssText = 'pointer-events:auto;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);' +
+            'border-left:4px solid ' + (borderColors[type] || '#6c757d') + ';padding:14px 16px;margin-top:8px;' +
+            'animation:gwToastSlideIn 0.35s cubic-bezier(0.34,1.56,0.64,1);position:relative;max-width:380px;';
+
+        var timerBar = '';
+        if (autoDismissMs) {
+            timerBar = '<div class="gw-toast-timer" style="position:absolute;bottom:0;left:4px;right:0;height:3px;' +
+                'background:' + (borderColors[type] || '#6c757d') + ';border-radius:0 0 12px 0;' +
+                'animation:gwToastTimer ' + autoDismissMs + 'ms linear forwards;"></div>';
+        }
+
+        toast.innerHTML =
+            '<div class="d-flex align-items-start gap-2">' +
+                '<div class="flex-shrink-0 mt-1">' + (icons[type] || '') + '</div>' +
+                '<div class="flex-grow-1" style="min-width:0;">' +
+                    '<div class="fw-bold small" style="font-size:0.8rem;">' + title + '</div>' +
+                    '<div class="small text-muted mt-1" style="font-size:0.72rem;">' + body + '</div>' +
+                '</div>' +
+                '<button type="button" class="btn-close flex-shrink-0" style="font-size:0.55rem;margin-top:2px;" ' +
+                    'onclick="this.closest(\'.gw-payment-toast\').remove()"></button>' +
+            '</div>' + timerBar;
+
+        gwPaymentToastContainer.appendChild(toast);
+
+        if (autoDismissMs) {
+            setTimeout(function() { if (toast.parentNode) toast.remove(); }, autoDismissMs);
+        }
+
+        return toast;
+    }
+
+    if (btnGenerateGwLink) {
+        btnGenerateGwLink.addEventListener('click', function() {
+            var gatewaySlug = document.getElementById('gwSelectGateway').value;
+            var method = document.getElementById('gwSelectMethod').value;
+
+            btnGenerateGwLink.disabled = true;
+            btnGenerateGwLink.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Gerando...';
+
+            // Mostrar toast de loading
+            createPaymentToast('loading', 'Gerando link de pagamento...',
+                'Aguarde enquanto o link é criado via <strong>' + gatewaySlug + '</strong>.' +
+                (method === 'auto' ? '<br><small class="text-muted">O cliente escolherá a forma de pagamento no checkout.</small>' : ''),
+                null
+            );
+
+            fetch('?page=pipeline&action=generatePaymentLink', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'order_id=<?= (int)$order['id'] ?>&csrf_token=' + encodeURIComponent(__csrfToken)
+                body: 'order_id=<?= (int)$order['id'] ?>&gateway_slug=' + encodeURIComponent(gatewaySlug) + '&method=' + encodeURIComponent(method) + '&csrf_token=' + encodeURIComponent(__csrfToken)
             })
             .then(function(r) { return r.json(); })
             .then(function(resp) {
@@ -4254,43 +4855,261 @@ setInterval(() => {
                     throw new Error(resp.message || 'Não foi possível gerar o link de pagamento.');
                 }
 
-                if (mpLinkOutput) {
-                    mpLinkOutput.style.display = '';
-                    mpLinkOutput.value = resp.payment_url || '';
-                }
-                if (btnCopyMpLink) {
-                    btnCopyMpLink.style.display = '';
+                var url = resp.payment_url || resp.boleto_url || resp.qr_code || '';
+                var bodyHtml = '';
+
+                if (url) {
+                    bodyHtml += '<div class="input-group input-group-sm mt-1">' +
+                        '<input type="text" class="form-control" value="' + url.replace(/"/g, '&quot;') + '" readonly onclick="this.select()" style="font-size:0.7rem;">' +
+                        '<button type="button" class="btn btn-outline-secondary btn-sm" onclick="navigator.clipboard.writeText(\'' + url.replace(/'/g, "\\'") + '\');this.innerHTML=\'<i class=\'fas fa-check\'></i>\';" title="Copiar">' +
+                        '<i class="fas fa-copy"></i></button>' +
+                        '<a href="' + url + '" target="_blank" class="btn btn-outline-primary btn-sm" title="Abrir"><i class="fas fa-external-link-alt"></i></a>' +
+                        '</div>';
                 }
 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Link gerado com sucesso',
-                    html: '<p class="small mb-2">O link do Mercado Pago foi gerado para o pedido.</p><a href="' + (resp.payment_url || '#') + '" target="_blank" class="btn btn-sm btn-primary">Abrir link</a>',
-                    confirmButtonText: 'Fechar'
-                });
+                if (resp.qr_code_base64) {
+                    bodyHtml += '<div class="text-center mt-2">' +
+                        '<img src="data:image/png;base64,' + resp.qr_code_base64 + '" alt="QR Code" ' +
+                        'style="max-width:140px;border-radius:8px;border:1px solid #dee2e6;padding:4px;">' +
+                        '</div>';
+                }
+
+                bodyHtml += '<div class="mt-1"><small class="text-muted" style="font-size:0.6rem;">' +
+                    (method === 'auto' ? '🔄 O cliente escolhe a forma no checkout' : '✅ Método: ' + method.replace('_', ' ').toUpperCase()) +
+                    '</small></div>';
+
+                // Sucesso: toast com timer de 30 segundos
+                createPaymentToast('success', '✅ Link gerado com sucesso!', bodyHtml, 30000);
             })
             .catch(function(err) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Falha ao gerar link',
-                    text: err.message || 'Erro inesperado ao gerar link no Mercado Pago.'
-                });
+                createPaymentToast('error', 'Falha ao gerar link',
+                    '<span class="text-danger">' + (err.message || 'Erro inesperado.') + '</span>',
+                    10000
+                );
             })
             .finally(function() {
-                btnGenerateMpLink.disabled = false;
-                btnGenerateMpLink.innerHTML = '<i class="fas fa-external-link-alt me-1"></i> Gerar Link Mercado Pago';
+                btnGenerateGwLink.disabled = false;
+                btnGenerateGwLink.innerHTML = '<i class="fas fa-bolt me-1"></i> Gerar Link';
             });
         });
     }
 
-    if (btnCopyMpLink && mpLinkOutput) {
-        btnCopyMpLink.addEventListener('click', function() {
-            if (!mpLinkOutput.value) return;
-            mpLinkOutput.select();
-            mpLinkOutput.setSelectionRange(0, 99999);
-            document.execCommand('copy');
-            Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1200, timerProgressBar: true })
-                .fire({ icon: 'success', title: 'Link copiado!' });
+    // ═══ Copiar link salvo (saved payment link) ═══
+    var btnCopySavedGwLink = document.getElementById('btnCopySavedGwLink');
+    var savedGwLinkUrl = document.getElementById('savedGwLinkUrl');
+    if (btnCopySavedGwLink && savedGwLinkUrl) {
+        btnCopySavedGwLink.addEventListener('click', function() {
+            if (!savedGwLinkUrl.value) return;
+            navigator.clipboard.writeText(savedGwLinkUrl.value).then(function() {
+                Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1200, timerProgressBar: true })
+                    .fire({ icon: 'success', title: 'Link copiado!' });
+            });
+        });
+    }
+
+    // ═══ Reenviar link de pagamento salvo via WhatsApp ═══
+    var btnResendGwWhatsApp = document.getElementById('btnResendGwWhatsApp');
+    if (btnResendGwWhatsApp && savedGwLinkUrl) {
+        btnResendGwWhatsApp.addEventListener('click', function() {
+            var link = savedGwLinkUrl.value;
+            if (!link) return;
+            var phone = <?= json_encode($order['customer_phone'] ?? '') ?>;
+            // Limpar telefone — manter apenas dígitos
+            phone = phone.replace(/\D/g, '');
+            // Adicionar código do país (Brasil) se não tiver
+            if (phone.length <= 11) phone = '55' + phone;
+            var msg = encodeURIComponent('Olá! Segue o link para pagamento do seu pedido: ' + link);
+            var waUrl = 'https://wa.me/' + phone + '?text=' + msg;
+            window.open(waUrl, '_blank');
+        });
+    }
+
+    // ═══ Filtrar métodos de pagamento por gateway selecionado ═══
+    var gwSelectGateway = document.getElementById('gwSelectGateway');
+    if (gwSelectGateway && gwMethodSelect) {
+        var allMethodLabels = {
+            'auto': '🔄 Cliente Escolhe',
+            'pix': '📱 PIX',
+            'credit_card': '💳 Cartão de Crédito',
+            'debit_card': '💳 Cartão de Débito',
+            'boleto': '📄 Boleto'
+        };
+
+        function filterGatewayMethods() {
+            var selected = gwSelectGateway.options[gwSelectGateway.selectedIndex];
+            if (!selected) return;
+
+            var methods = [];
+            try {
+                methods = JSON.parse(selected.getAttribute('data-methods') || '[]');
+            } catch(e) {
+                methods = ['auto', 'pix', 'credit_card', 'boleto'];
+            }
+
+            // Sempre incluir 'auto' como primeira opção
+            if (methods.indexOf('auto') === -1) {
+                methods.unshift('auto');
+            }
+
+            var currentVal = gwMethodSelect.value;
+            gwMethodSelect.innerHTML = '';
+
+            methods.forEach(function(m) {
+                var opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = allMethodLabels[m] || m;
+                gwMethodSelect.appendChild(opt);
+            });
+
+            // Tentar manter a seleção anterior
+            if (methods.indexOf(currentVal) !== -1) {
+                gwMethodSelect.value = currentVal;
+            } else {
+                gwMethodSelect.value = 'auto';
+            }
+
+            // Sincronizar com o hidden apenas se o select está visível
+            if (gwMethodHidden && !gwMethodSelect.classList.contains('d-none')) {
+                gwMethodHidden.value = gwMethodSelect.value;
+            }
+        }
+
+        gwSelectGateway.addEventListener('change', filterGatewayMethods);
+        // Filtrar na carga inicial
+        filterGatewayMethods();
+    }
+
+    // ═══ Seletor visual de formas de pagamento (cards) ═══
+    var payMethodCards = document.querySelectorAll('#paymentMethodCards .payment-method-card');
+    var finPaymentMethodSelect = document.getElementById('finPaymentMethod');
+    var finPaymentDetails = document.getElementById('finPaymentDetails');
+    var isCardReadOnly = <?= $isReadOnly ? 'true' : 'false' ?>;
+
+    // Elementos condicionais gateway vs manual
+    var paymentLinksSection = document.getElementById('paymentLinksSection');
+    var finManualPaymentFields = document.getElementById('finManualPaymentFields');
+    var finGatewayModeAlert = document.getElementById('finGatewayModeAlert');
+    var finInstallmentRow = document.getElementById('installmentRow');
+
+    /**
+     * Alterna visibilidade entre modo gateway e modo manual
+     * - Gateway: esconde status + entrada + parcelamento, mostra link de pagamento
+     * - Manual: mostra status + entrada, esconde link de pagamento
+     */
+    function toggleGatewayMode(method) {
+        var isGateway = (method === 'gateway');
+
+        // Seção de link de pagamento: só visível no modo gateway
+        if (paymentLinksSection) {
+            paymentLinksSection.style.display = isGateway ? '' : 'none';
+        }
+
+        // Campos manuais (status, entrada): ocultos no modo gateway
+        if (finManualPaymentFields) {
+            finManualPaymentFields.style.display = isGateway ? 'none' : '';
+        }
+
+        // Alerta informativo do modo gateway
+        if (finGatewayModeAlert) {
+            finGatewayModeAlert.style.display = isGateway ? '' : 'none';
+        }
+
+        // Parcelamento: esconder no modo gateway
+        if (isGateway && finInstallmentRow) {
+            finInstallmentRow.style.display = 'none';
+        }
+    }
+
+    // Executar no carregamento da página
+    toggleGatewayMode(finPaymentMethodSelect ? finPaymentMethodSelect.value : '');
+
+    if (payMethodCards.length && finPaymentMethodSelect && !isCardReadOnly) {
+        var methodColors = <?= json_encode(array_map(function($pm) { return $pm['color']; }, $payMethods)) ?>;
+
+        /**
+         * Atualiza visualmente os cards de forma de pagamento para refletir o método ativo.
+         * @param {string} activeMethod  Chave do método ativo (ex: 'pix', 'transferencia')
+         */
+        function updatePayMethodCardsVisual(activeMethod) {
+            payMethodCards.forEach(function(c) {
+                var m = c.getAttribute('data-method');
+                var mColor = methodColors[m] || '#dee2e6';
+                var isActive = (m === activeMethod);
+
+                // Gerenciar classes Bootstrap de borda
+                c.classList.toggle('border-2', isActive);
+                c.classList.toggle('shadow', isActive);
+                c.classList.toggle('border', !isActive);
+
+                // Forçar cor da borda via CSS variable do Bootstrap + inline important
+                c.style.setProperty('border-color', isActive ? mColor : '#dee2e6', 'important');
+                c.style.setProperty('--bs-border-color', isActive ? mColor : '#dee2e6');
+
+                // Ícone circular
+                var circle = c.querySelector('.rounded-circle');
+                if (circle) {
+                    circle.style.background = isActive ? mColor : '#f8f9fa';
+                    circle.style.color = isActive ? '#fff' : mColor;
+                }
+
+                // Label
+                var label = c.querySelector('.small.fw-bold');
+                if (label) {
+                    label.style.color = isActive ? mColor : '#6c757d';
+                }
+            });
+        }
+
+        payMethodCards.forEach(function(card) {
+            card.addEventListener('click', function() {
+                var method = this.getAttribute('data-method');
+                if (!method) return;
+
+                // Se o select está desabilitado (ex: parcelas pagas), bloquear e avisar
+                if (finPaymentMethodSelect.disabled) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Alteração bloqueada',
+                        html: 'Existem parcelas já pagas. Para alterar a forma de pagamento, estorne os pagamentos primeiro no módulo <strong>Financeiro</strong>.',
+                        confirmButtonColor: '#f39c12'
+                    });
+                    return;
+                }
+
+                // Atualizar select oculto
+                finPaymentMethodSelect.value = method;
+
+                // Atualizar visual dos cards ANTES de disparar change (para evitar conflito)
+                updatePayMethodCardsVisual(method);
+
+                // Disparar evento change para que os outros listeners reajam
+                finPaymentMethodSelect.dispatchEvent(new Event('change'));
+
+                // Verificar se o change handler reverteu o valor (ex: parcelas pagas)
+                var actualValue = finPaymentMethodSelect.value;
+                if (actualValue !== method) {
+                    // O valor foi revertido — atualizar visual de volta para o valor real
+                    updatePayMethodCardsVisual(actualValue);
+                }
+
+                // Mostrar seção de detalhes (status + entrada)
+                if (finPaymentDetails) {
+                    finPaymentDetails.style.display = actualValue ? '' : 'none';
+                }
+
+                // Alternar modo gateway vs manual
+                toggleGatewayMode(actualValue);
+            });
+        });
+
+        // Sincronizar visual dos cards ao carregar (garante que o visual bate com o select)
+        updatePayMethodCardsVisual(finPaymentMethodSelect.value);
+    }
+
+    // Também reagir ao change do select oculto (caso disparado programaticamente)
+    if (finPaymentMethodSelect) {
+        finPaymentMethodSelect.addEventListener('change', function() {
+            toggleGatewayMode(this.value);
         });
     }
 })();

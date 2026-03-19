@@ -38,8 +38,15 @@ class CsrfMiddleware
      * @var array
      */
     private static array $exemptRoutes = [
-        // Exemplo: 'webhook:*',
-        // Exemplo: 'api:callback',
+        // Catálogo público: usa token próprio (catalog_links.token) para autenticação,
+        // não há sessão de usuário logado, portanto CSRF de sessão não se aplica.
+        'catalog:addToCart',
+        'catalog:removeFromCart',
+        'catalog:updateCartItem',
+        'catalog:getCart',
+        'catalog:confirmQuote',
+        'catalog:revokeQuote',
+        'catalog:getProducts',
     ];
 
     // ══════════════════════════════════════════════════════════════

@@ -12,6 +12,7 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#2c3e50">
     <?= csrf_meta() ?>
+    <meta name="api-base-url" content="<?= getenv('AKTI_API_URL') ?: 'http://localhost:3000' ?>">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
@@ -47,6 +48,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SweetAlert2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <!-- Custom CSS -->
     <link rel="stylesheet" href="assets/css/theme.css">
     <link rel="stylesheet" href="assets/css/style.css">
@@ -408,35 +412,26 @@
               <?= isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin' ? 'Admin' : 'Usuário' ?>
             </span>
           </a>
-        </li>
-        <?php if($isAdmin || in_array('settings', $userPermissions)): ?>
-        <li class="nav-item">
-          <a href="?page=settings"
-             class="nav-link nav-icon-btn <?= ($currentPage == 'settings') ? 'active' : '' ?>"
-             title="Configurações">
-            <i class="fas fa-building"></i>
-          </a>
-        </li>
-        <?php endif; ?>
-        <?php if($isAdmin || in_array('users', $userPermissions)): ?>
-        <li class="nav-item">
-          <a href="?page=users"
-             class="nav-link nav-icon-btn <?= ($currentPage == 'users') ? 'active' : '' ?>"
-             title="Gestão de Usuários">
-            <i class="fas fa-users-cog"></i>
-          </a>
-        </li>
-        <?php endif; ?>
+        </li>        
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle btn-logout" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-sign-out-alt"></i><span class="d-none d-lg-inline">Sair</span>
+            <i class="fa-solid fa-gear"></i>
           </a>
           <ul class="dropdown-menu dropdown-menu-end">
+            <?php if($isAdmin || in_array('users', $userPermissions)): ?>
             <li>
-              <a class="dropdown-item" href="?page=login&action=logout">
-                <i class="fas fa-sign-out-alt me-2"></i>Sair do sistema
+              <a href="?page=users" class="dropdown-item" title="Gestão de Usuários">
+                <i class="fas fa-users-cog me-2"></i>Usuários
               </a>
             </li>
+            <?php endif; ?>
+            <?php if($isAdmin || in_array('settings', $userPermissions)): ?>
+            <li>
+              <a href="?page=settings" class="dropdown-item" title="Configurações">
+                <i class="fas fa-building me-2"></i>Configurações
+              </a>
+            </li>
+            <?php endif; ?>
             <li><hr class="dropdown-divider"></li>
             <li>
                 <a class="dropdown-item wt-help-trigger" href="javascript:void(0);" onclick="window.aktiWalkthrough.start(0);">
@@ -445,8 +440,8 @@
             </li>
             <li><hr class="dropdown-divider"></li>
             <li>
-                <a class="dropdown-item text-danger" href="?page=logout">
-                    <i class="fas fa-sign-out-alt me-2"></i>Sair
+                <a class="dropdown-item text-danger" href="?page=login&action=logout">
+                <i class="fas fa-sign-out-alt me-2"></i>Sair do sistema
                 </a>
             </li>
           </ul>

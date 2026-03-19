@@ -15,7 +15,9 @@ export const corsOptions = {
     const isAllowed =
       origin.endsWith(pattern) ||
       origin.includes('localhost') ||
-      origin.includes('127.0.0.1');
+      origin.includes('127.0.0.1') ||
+      origin.includes('.akti.com') ||
+      origin.includes('akti.com');
 
     if (isAllowed) {
       return callback(null, true);

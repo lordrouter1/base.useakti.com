@@ -109,6 +109,28 @@ class Order {
         return $stmt;
     }
 
+    /**
+     * Retorna pedidos com paginação
+     * @param int $page  Página atual (1-based)
+     * @param int $perPage Itens por página
+     * @return array Lista de pedidos
+     */
+    public function readPaginated(int $page = 1, int $perPage = 15): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $query = "SELECT o.id, o.total_amount, o.status, o.pipeline_stage, o.priority, 
+                         o.deadline, o.payment_status, o.created_at, c.name as customer_name 
+                  FROM {$this->table_name} o
+                  LEFT JOIN customers c ON o.customer_id = c.id
+                  ORDER BY o.created_at DESC
+                  LIMIT :limit OFFSET :offset";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function readOne($id) {
         $query = "SELECT o.*, c.name as customer_name, c.phone as customer_phone, 
                          c.document as customer_document, c.email as customer_email, 
@@ -152,6 +174,35 @@ class Order {
             EventDispatcher::dispatch('model.order.deleted', new Event('model.order.deleted', ['id' => $id]));
         }
         return $result;
+    }
+
+    /**
+     * Atualiza os campos de link de pagamento do pedido.
+     *
+     * @param int   $orderId ID do pedido
+     * @param array $data    Dados do link: payment_link_url, payment_link_gateway, payment_link_method, payment_link_created_at
+     * @return bool
+     */
+    public function updatePaymentLink(int $orderId, array $data): bool
+    {
+        $fields = [];
+        $params = [':id' => $orderId];
+
+        $allowed = ['payment_link_url', 'payment_link_gateway', 'payment_link_method', 'payment_link_created_at'];
+        foreach ($allowed as $field) {
+            if (array_key_exists($field, $data)) {
+                $fields[] = "{$field} = :{$field}";
+                $params[":{$field}"] = $data[$field];
+            }
+        }
+
+        if (empty($fields)) {
+            return false;
+        }
+
+        $q = "UPDATE {$this->table_name} SET " . implode(', ', $fields) . " WHERE id = :id";
+        $s = $this->conn->prepare($q);
+        return $s->execute($params);
     }
 
     /**

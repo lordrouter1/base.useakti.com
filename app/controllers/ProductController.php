@@ -36,16 +36,23 @@ class ProductController {
     }
 
     public function index() {
-        // Buscar produtos do banco
-        $stmt = $this->productModel->readAll();
-        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $perPage     = 15;
+        $ctPage = max(1, (Input::get('pg', 'int')?? 1));
+        $totalItems  = (int) $this->productModel->countAll();
+        $totalPages  = max(1, (int) ceil($totalItems / $perPage));
+        $ctPage = min($ctPage, $totalPages);
+
+        $products = $this->productModel->readPaginated($ctPage, $perPage);
 
         // Verificar limite de produtos do tenant
         $maxProducts = TenantManager::getTenantLimit('max_products');
-        $currentProducts = $this->productModel->countAll();
+        $currentProducts = $totalItems;
         $limitReached = ($maxProducts !== null && $currentProducts >= $maxProducts);
         $limitInfo = $limitReached ? ['current' => $currentProducts, 'max' => $maxProducts] : null;
-        
+
+        // Variáveis para o componente de paginação
+        $baseUrl = '?page=products';
+
         require 'app/views/layout/header.php';
         require 'app/views/products/index.php';
         require 'app/views/layout/footer.php';

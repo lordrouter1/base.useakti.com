@@ -48,6 +48,7 @@
         'boleto'            => '📄 Boleto',
         'transferencia'     => '🏦 Transferência',
         'cheque'            => '📝 Cheque',
+        'gateway'           => '🌐 Gateway Online',
         'outro'             => 'Outro',
     ];
     $paymentStatusMap = [

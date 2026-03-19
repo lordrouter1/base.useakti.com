@@ -3,6 +3,7 @@ namespace Akti\Models;
 
 use PDO;
 use DateTime;
+use DateTimeZone;
 use RuntimeException;
 
 /**
@@ -100,6 +101,8 @@ class LoginAttempt
      */
     public function checkLockout(string $ip, string $email): array
     {
+        $dateZone = new \DateTimeZone('America/Sao_Paulo');
+
         $email = strtolower(trim($email));
 
         // Buscar a tentativa falha que causou o bloqueio (a 5ª falha na janela)
@@ -123,10 +126,10 @@ class LoginAttempt
         }
 
         // Calcular quando o bloqueio expira
-        $lockoutStart = new DateTime($row['attempted_at']);
+        $lockoutStart = new DateTime($row['attempted_at'],$dateZone);
         $lockoutEnd   = clone $lockoutStart;
         $lockoutEnd->modify('+' . self::LOCKOUT_MINUTES . ' minutes');
-        $now = new DateTime();
+        $now = new DateTime('now',$dateZone);
 
         if ($now < $lockoutEnd) {
             $diff = $now->diff($lockoutEnd);

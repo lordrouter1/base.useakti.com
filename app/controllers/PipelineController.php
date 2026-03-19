@@ -14,6 +14,8 @@ use Akti\Models\OrderPreparation;
 use Akti\Models\PreparationStep;
 use Akti\Models\CompanySettings;
 use Akti\Models\Financial;
+use Akti\Models\PaymentGateway;
+use Akti\Gateways\GatewayManager;
 use Akti\Core\ModuleBootloader;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
@@ -248,6 +250,20 @@ class PipelineController {
      * nem ser cancelado, enquanto houver pagamentos sem estorno.
      */
     private static $stagesBlockedByPaidInstallments = ['contato', 'orcamento', 'venda', 'producao', 'cancelado'];
+
+    /**
+     * Remove a confirmação de orçamento quando o pedido é modificado.
+     * Isso força o cliente a reaprovar via catálogo.
+     */
+    private function clearQuoteConfirmation($orderId) {
+        if (!$orderId) return;
+        $stmt = $this->db->prepare("UPDATE orders SET quote_confirmed_at = NULL, quote_confirmed_ip = NULL WHERE id = :id AND quote_confirmed_at IS NOT NULL");
+        $stmt->execute([':id' => $orderId]);
+        if ($stmt->rowCount() > 0) {
+            $logger = new Logger($this->db);
+            $logger->log('QUOTE_CONFIRMATION_CLEARED', "Confirmação de orçamento do pedido #{$orderId} removida devido a alteração no pipeline");
+        }
+    }
 
     public function move() {
         $orderId = Input::get('id', 'int');
@@ -525,8 +541,11 @@ class PipelineController {
             $logger = new Logger($this->db);
             $logger->log('PIPELINE_UPDATE', "Updated order details #" . $data['id']);
 
-            // ═══ AUTO-GERAR/REGENERAR PARCELAS ═══
+            // ═══ Limpar confirmação de orçamento se desconto foi alterado ═══
             $orderId = $data['id'];
+            $this->clearQuoteConfirmation($orderId);
+
+            // ═══ AUTO-GERAR/REGENERAR PARCELAS ═══
             $stmtStage = $this->db->prepare("SELECT pipeline_stage, total_amount FROM orders WHERE id = :id");
             $stmtStage->execute([':id' => $orderId]);
             $currentOrderData = $stmtStage->fetch(PDO::FETCH_ASSOC);
@@ -663,9 +682,11 @@ class PipelineController {
     }
 
     /**
-     * API JSON: Gera link de pagamento via Mercado Pago para pedido em etapa financeira.
+     * API JSON: Gera link de pagamento via Gateway configurado.
+     * Substitui o antigo generateMercadoPagoLink para suportar múltiplos gateways.
+     * Mantém compatibilidade com o método antigo via alias.
      */
-    public function generateMercadoPagoLink() {
+    public function generatePaymentLink() {
         header('Content-Type: application/json');
 
         $orderId = Input::post('order_id', 'int');
@@ -674,10 +695,8 @@ class PipelineController {
             exit;
         }
 
-        if (!ModuleBootloader::isModuleEnabled('financial')) {
-            echo json_encode(['success' => false, 'message' => 'Módulo financeiro desativado para este tenant.']);
-            exit;
-        }
+        $gatewaySlug = Input::post('gateway_slug', 'string', '');
+        $method = Input::post('method', 'string', 'auto');
 
         $orderModel = new Order($this->db);
         $order = $orderModel->readOne($orderId);
@@ -686,20 +705,32 @@ class PipelineController {
             exit;
         }
 
-        if (($order['pipeline_stage'] ?? '') !== 'financeiro') {
-            echo json_encode(['success' => false, 'message' => 'Link de pagamento disponível apenas para pedidos na etapa financeira.']);
+        // Resolver o gateway: se informado, usar o slug; senão, usar o padrão
+        $gwModel = new PaymentGateway($this->db);
+
+        if (!empty($gatewaySlug)) {
+            $gatewayRow = $gwModel->readBySlug($gatewaySlug);
+        } else {
+            $gatewayRow = $gwModel->getDefault();
+        }
+
+        if (!$gatewayRow || !$gatewayRow['is_active']) {
+            // Fallback: tentar credenciais antigas do company_settings (compatibilidade)
+            $result = $this->legacyMercadoPagoLink($order, $orderId);
+            echo json_encode($result);
             exit;
         }
 
-        $settingsModel = new CompanySettings($this->db);
-        $settings = $settingsModel->getAll();
-        $accessToken = trim((string)($settings['mercadopago_access_token'] ?? getenv('MERCADOPAGO_ACCESS_TOKEN') ?? ''));
+        try {
+            $gateway = GatewayManager::resolveFromRow($gatewayRow);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Erro ao inicializar gateway: ' . $e->getMessage()]);
+            exit;
+        }
 
-        if ($accessToken === '') {
-            echo json_encode([
-                'success' => false,
-                'message' => 'Access Token do Mercado Pago não configurado. Vá em Configurações → Boleto/Bancário.',
-            ]);
+        // Verificar se o gateway suporta o método selecionado
+        if (!$gateway->supports($method)) {
+            echo json_encode(['success' => false, 'message' => "O gateway {$gatewayRow['display_name']} não suporta o método '{$method}'."]);
             exit;
         }
 
@@ -712,8 +743,116 @@ class PipelineController {
             exit;
         }
 
+        // Buscar a primeira parcela pendente do pedido para vincular ao gateway
+        $installmentId = null;
+        try {
+            $stmtInst = $this->db->prepare(
+                "SELECT id FROM order_installments
+                 WHERE order_id = :oid AND status IN ('pendente', 'atrasado')
+                 ORDER BY installment_number ASC LIMIT 1"
+            );
+            $stmtInst->execute([':oid' => $orderId]);
+            $pendingInst = $stmtInst->fetch(\PDO::FETCH_ASSOC);
+            if ($pendingInst) {
+                $installmentId = (int) $pendingInst['id'];
+            }
+        } catch (\Exception $e) {
+            // Se não existem parcelas, continua sem installment_id
+        }
+
+        $chargeData = [
+            'amount'         => $totalAmount,
+            'description'    => 'Pedido #' . str_pad((string)$orderId, 4, '0', STR_PAD_LEFT),
+            'method'         => $method,
+            'order_id'       => $orderId,
+            'installment_id' => $installmentId,
+            'customer'       => [
+                'name'     => $order['customer_name'] ?? '',
+                'email'    => $order['customer_email'] ?? '',
+                'document' => $order['customer_document'] ?? '',
+            ],
+            'metadata'       => [
+                'order_id'       => $orderId,
+                'installment_id' => $installmentId,
+                'source'         => 'akti',
+                'tenant'         => $_SESSION['tenant']['db_name'] ?? ($_SESSION['tenant']['database'] ?? ''),
+            ],
+        ];
+
+        $result = $gateway->createCharge($chargeData);
+
+        if (!$result['success']) {
+            echo json_encode(['success' => false, 'message' => $result['error'] ?? $result['message'] ?? 'Erro ao gerar cobrança no gateway.']);
+            exit;
+        }
+
+        // Logar transação
+        $gwModel->logTransaction([
+            'gateway_slug'        => $gatewayRow['gateway_slug'],
+            'order_id'            => $orderId,
+            'external_id'         => $result['external_id'] ?? null,
+            'external_status'     => $result['status'] ?? null,
+            'amount'              => $totalAmount,
+            'payment_method_type' => $method,
+            'raw_payload'         => $result['raw'] ?? null,
+            'event_type'          => 'charge.created',
+        ]);
+
+        // Persistir link de pagamento no pedido para reenvio
+        $paymentUrl = $result['payment_url'] ?? $result['qr_code'] ?? $result['boleto_url'] ?? null;
+        if ($paymentUrl) {
+            $orderModel->updatePaymentLink($orderId, [
+                'payment_link_url'        => $paymentUrl,
+                'payment_link_gateway'    => $gatewayRow['gateway_slug'],
+                'payment_link_method'     => $method,
+                'payment_link_created_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        echo json_encode([
+            'success'        => true,
+            'payment_url'    => $result['payment_url'] ?? null,
+            'qr_code'        => $result['qr_code'] ?? null,
+            'qr_code_base64' => $result['qr_code_base64'] ?? null,
+            'boleto_url'     => $result['boleto_url'] ?? null,
+            'external_id'    => $result['external_id'] ?? null,
+        ]);
+        exit;
+    }
+
+    /**
+     * Alias para manter compatibilidade com chamadas antigas.
+     */
+    public function generateMercadoPagoLink() {
+        $this->generatePaymentLink();
+    }
+
+    /**
+     * Fallback: gera link via Mercado Pago usando credenciais antigas (company_settings).
+     * Mantido para retrocompatibilidade com tenants que ainda não migraram para o módulo de gateways.
+     */
+    private function legacyMercadoPagoLink(array $order, int $orderId): array {
+        $settingsModel = new CompanySettings($this->db);
+        $settings = $settingsModel->getAll();
+        $accessToken = trim((string)($settings['mercadopago_access_token'] ?? getenv('MERCADOPAGO_ACCESS_TOKEN') ?? ''));
+
+        if ($accessToken === '') {
+            return [
+                'success' => false,
+                'message' => 'Nenhum gateway de pagamento ativo. Configure em Gateways de Pagamento ou defina o Access Token do Mercado Pago nas configurações.',
+            ];
+        }
+
+        $grossTotal = (float)($order['total_amount'] ?? 0);
+        $discount = (float)($order['discount'] ?? 0);
+        $totalAmount = round(max(0, $grossTotal - $discount), 2);
+
+        if ($totalAmount <= 0) {
+            return ['success' => false, 'message' => 'Pedido com valor inválido para gerar link de pagamento.'];
+        }
+
         $baseUrl = $this->getAppBaseUrl();
-        $externalRef = 'order_' . (int)$orderId . '_tenant_' . ($_SESSION['tenant']['database'] ?? 'default');
+        $externalRef = 'order_' . $orderId . '_tenant_' . ($_SESSION['tenant']['database'] ?? 'default');
 
         $payload = [
             'items' => [[
@@ -728,38 +867,26 @@ class PipelineController {
                 'email' => (string)($order['customer_email'] ?? ''),
             ],
             'external_reference' => $externalRef,
-            'statement_descriptor' => substr(preg_replace('/[^A-Za-z0-9 ]/', '', (string)($settings['company_name'] ?? 'AKTI')), 0, 13),
             'back_urls' => [
-                'success' => $baseUrl . '/?page=pipeline&action=detail&id=' . (int)$orderId . '&mp_status=success',
-                'pending' => $baseUrl . '/?page=pipeline&action=detail&id=' . (int)$orderId . '&mp_status=pending',
-                'failure' => $baseUrl . '/?page=pipeline&action=detail&id=' . (int)$orderId . '&mp_status=failure',
+                'success' => $baseUrl . '/?page=pipeline&action=detail&id=' . $orderId . '&mp_status=success',
+                'pending' => $baseUrl . '/?page=pipeline&action=detail&id=' . $orderId . '&mp_status=pending',
+                'failure' => $baseUrl . '/?page=pipeline&action=detail&id=' . $orderId . '&mp_status=failure',
             ],
             'auto_return' => 'approved',
-            'notification_url' => $baseUrl . '/?page=financial&action=payments',
-            'metadata' => [
-                'order_id' => (int)$orderId,
-                'tenant' => (string)($_SESSION['tenant']['database'] ?? ''),
-            ],
+            'metadata' => ['order_id' => $orderId, 'tenant' => (string)($_SESSION['tenant']['database'] ?? '')],
         ];
 
         $result = $this->createMercadoPagoPreference($accessToken, $payload);
         if (!$result['success']) {
-            echo json_encode(['success' => false, 'message' => $result['message']]);
-            exit;
+            return $result;
         }
 
         $link = $result['data']['init_point'] ?? $result['data']['sandbox_init_point'] ?? '';
         if (!$link) {
-            echo json_encode(['success' => false, 'message' => 'Mercado Pago não retornou URL de pagamento.']);
-            exit;
+            return ['success' => false, 'message' => 'Mercado Pago não retornou URL de pagamento.'];
         }
 
-        echo json_encode([
-            'success' => true,
-            'payment_url' => $link,
-            'preference_id' => $result['data']['id'] ?? null,
-        ]);
-        exit;
+        return ['success' => true, 'payment_url' => $link, 'preference_id' => $result['data']['id'] ?? null];
     }
 
     private function createMercadoPagoPreference(string $accessToken, array $payload): array {
@@ -967,6 +1094,9 @@ class PipelineController {
             if ($orderId && $description && $amount != 0) {
                 $orderModel = new Order($this->db);
                 $orderModel->addExtraCost($orderId, $description, $amount);
+
+                // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
+                $this->clearQuoteConfirmation($orderId);
             }
 
             header('Location: ?page=pipeline&action=detail&id=' . $orderId . '&status=extra_added');
@@ -994,6 +1124,9 @@ class PipelineController {
         if ($costId) {
             $orderModel = new Order($this->db);
             $orderModel->deleteExtraCost($costId);
+
+            // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
+            $this->clearQuoteConfirmation($orderId);
         }
 
         header('Location: ?page=pipeline&action=detail&id=' . $orderId . '&status=extra_deleted');

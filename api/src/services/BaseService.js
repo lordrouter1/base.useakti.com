@@ -3,13 +3,16 @@ import { PAGINATION } from '../config/constants.js';
 /**
  * BaseService — shared business-logic helpers.
  *
- * Extend this class in concrete services to inherit common CRUD behaviour
- * that automatically scopes queries to the current tenant.
+ * Na arquitetura multi-tenant do Akti, cada tenant possui seu próprio
+ * banco de dados. Por isso, NÃO é necessário filtrar por tenant_id nas
+ * queries — o isolamento já é garantido pela conexão Sequelize em req.db.
+ *
+ * O model é recebido no construtor e pode ser trocado por request
+ * (via controller) para garantir que aponte para o banco correto.
  *
  * Usage:
- *   class OrderService extends BaseService {
- *     constructor() { super(OrderModel); }
- *   }
+ *   const service = new ProductService(req.models.Product);
+ *   const results = await service.findAll({ page: 1 });
  */
 export class BaseService {
   /**
@@ -20,14 +23,22 @@ export class BaseService {
   }
 
   /**
-   * Find all records scoped to a tenant with pagination.
+   * Permite trocar o model em runtime (usado pelo controller por request).
+   * @param {import('sequelize').ModelStatic} model
    */
-  async findAll(tenantId, { page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT } = {}) {
+  setModel(model) {
+    this.model = model;
+    return this;
+  }
+
+  /**
+   * Find all records with pagination.
+   */
+  async findAll({ page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT } = {}) {
     const safeLimit = Math.min(limit, PAGINATION.MAX_LIMIT) || PAGINATION.DEFAULT_LIMIT;
     const offset = (page - 1) * safeLimit;
 
     const { count, rows } = await this.model.findAndCountAll({
-      where: { tenant_id: tenantId },
       limit: safeLimit,
       offset,
       order: [['created_at', 'DESC']],
@@ -40,35 +51,35 @@ export class BaseService {
   }
 
   /**
-   * Find a single record by primary key, scoped to a tenant.
+   * Find a single record by primary key.
    */
-  async findById(tenantId, id) {
-    return this.model.findOne({ where: { id, tenant_id: tenantId } });
+  async findById(id) {
+    return this.model.findOne({ where: { id } });
   }
 
   /**
-   * Create a new record, attaching the tenant id automatically.
+   * Create a new record.
    */
-  async create(tenantId, data) {
-    return this.model.create({ ...data, tenant_id: tenantId });
+  async create(data) {
+    return this.model.create(data);
   }
 
   /**
-   * Update a record scoped to a tenant.
+   * Update a record.
    */
-  async update(tenantId, id, data) {
+  async update(id, data) {
     const [affectedRows] = await this.model.update(data, {
-      where: { id, tenant_id: tenantId },
+      where: { id },
     });
     return affectedRows > 0;
   }
 
   /**
-   * Delete a record scoped to a tenant.
+   * Delete a record.
    */
-  async delete(tenantId, id) {
+  async delete(id) {
     const deleted = await this.model.destroy({
-      where: { id, tenant_id: tenantId },
+      where: { id },
     });
     return deleted > 0;
   }

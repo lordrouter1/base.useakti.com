@@ -113,3 +113,4 @@ O roteamento é baseado nos parâmetros `page` e `action` via GET.
 - `modulo-financeiro.md`: modulo responsavel pela confirmação de pagamentos e gestão financeira.
 - `Bootloader.md`: responsavel pelo carregamento de modulos.
 - `funcoes.md`: definições basicas da estrutura necessária para criação de novas funções ou alterações de funções existentes;
+- `nodejs-api`: definições do funcionamento do servidor nodejs para a api.

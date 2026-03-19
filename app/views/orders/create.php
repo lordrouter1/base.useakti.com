@@ -190,7 +190,7 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                                 <tbody>
                                     <tr class="item-row">
                                         <td>
-                                            <select class="form-select product-select" name="items[0][product_id]">
+                                            <select class="form-select product-select" name="items[0][product_id]" data-placeholder="Digite para buscar um produto...">
                                                 <option value="">Escolha...</option>
                                             </select>
                                         </td>
@@ -416,12 +416,18 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
 .agenda-calendar td:hover {
     background-color: rgba(52,152,219,0.08) !important;
 }
+/* Select2 dentro da tabela de itens */
+#orderItemsTable .select2-container {
+    width: 100% !important;
+}
+#orderItemsTable .select2-container .select2-selection--single {
+    min-height: 36px;
+    font-size: 0.875rem;
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const products = <?= json_encode($products ?? []) ?>;
-    const productCombosCreate = <?= json_encode($productCombinations ?? []) ?>;
     const sectionContato = document.getElementById('sectionContato');
     const sectionOrcamento = document.getElementById('sectionOrcamento');
     const totalSection = document.getElementById('totalSection');
@@ -445,84 +451,44 @@ document.addEventListener('DOMContentLoaded', function() {
     stageOrcamento.addEventListener('change', toggleSections);
     toggleSections(); // Estado inicial
 
-    // ── Produtos ──
-    function populateProductSelect(selectElement) {
-        products.forEach(p => {
-            let option = document.createElement('option');
-            option.value = p.id;
-            option.text = p.name;
-            option.dataset.price = p.price;
-            option.dataset.hasCombos = (productCombosCreate[p.id] && productCombosCreate[p.id].length > 0) ? '1' : '0';
-            selectElement.appendChild(option);
-        });
-    }
-
-    function handleProductChange(row, selectElement) {
-        const pid = selectElement.value;
-        const variationSelect = row.querySelector('.variation-select');
-        const gradeDescInput = row.querySelector('.grade-desc-input');
-        const noVariation = row.querySelector('.no-variation-text');
-        
-        if (pid && productCombosCreate[pid] && productCombosCreate[pid].length > 0) {
-            variationSelect.style.display = '';
-            noVariation.style.display = 'none';
-            variationSelect.innerHTML = '<option value="">Variação...</option>';
-            productCombosCreate[pid].forEach(c => {
-                const lbl = c.combination_label + (c.price_override ? ' — R$ ' + parseFloat(c.price_override).toFixed(2).replace('.', ',') : '');
-                variationSelect.innerHTML += `<option value="${c.id}" data-price="${c.price_override || ''}" data-label="${c.combination_label}">${lbl}</option>`;
-            });
-            gradeDescInput.value = '';
-        } else {
-            variationSelect.style.display = 'none';
-            noVariation.style.display = '';
-            variationSelect.innerHTML = '';
-            gradeDescInput.value = '';
-        }
-    }
-
-    const firstSelect = document.querySelector('.product-select');
-    if(firstSelect) populateProductSelect(firstSelect);
-
-    // Adicionar novo item
+    // ── Adicionar novo item (cria HTML limpo para que o MutationObserver do product-select2.js inicialize o Select2) ──
     document.getElementById('btnAddItem').addEventListener('click', function() {
         const tbody = document.querySelector('#orderItemsTable tbody');
         const rowCount = tbody.rows.length;
-        const newRow = tbody.rows[0].cloneNode(true);
-        
-        newRow.querySelectorAll('input').forEach(input => {
-            if (input.classList.contains('item-qty')) {
-                input.value = 1;
-            } else if (input.classList.contains('grade-desc-input')) {
-                input.value = '';
-            } else if (!input.classList.contains('item-subtotal')) {
-                input.value = '';
-            }
-            if(input.name) input.name = input.name.replace(/\[\d+\]/, `[${rowCount}]`);
-        });
-        
-        newRow.querySelectorAll('select').forEach(sel => {
-            sel.name = sel.name.replace(/\[\d+\]/, `[${rowCount}]`);
-            sel.value = "";
-        });
-
-        // Reset variation column
-        const varSel = newRow.querySelector('.variation-select');
-        if (varSel) { varSel.style.display = 'none'; varSel.innerHTML = ''; }
-        const noVar = newRow.querySelector('.no-variation-text');
-        if (noVar) noVar.style.display = '';
-        
-        tbody.appendChild(newRow);
+        const tr = document.createElement('tr');
+        tr.className = 'item-row';
+        tr.innerHTML = `
+            <td>
+                <select class="form-select product-select" name="items[${rowCount}][product_id]" data-placeholder="Digite para buscar...">
+                    <option value="">Escolha...</option>
+                </select>
+            </td>
+            <td>
+                <select class="form-select variation-select" name="items[${rowCount}][combination_id]" style="display:none;">
+                    <option value="">Variação...</option>
+                </select>
+                <input type="hidden" class="grade-desc-input" name="items[${rowCount}][grade_description]" value="">
+                <span class="no-variation-text text-muted small">—</span>
+            </td>
+            <td>
+                <input type="number" class="form-control item-qty" name="items[${rowCount}][quantity]" value="1" min="1">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control item-price" name="items[${rowCount}][price]" placeholder="0.00">
+            </td>
+            <td>
+                <input type="text" class="form-control item-subtotal" readonly value="0.00">
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        // O MutationObserver do product-select2.js inicializará o Select2 automaticamente
     });
 
-    // Cálculo de subtotal e total
+    // Cálculo de subtotal e total (escuta change em qty, price e variação)
     document.querySelector('#orderItemsTable').addEventListener('change', function(e) {
-        if(e.target.classList.contains('product-select')) {
-            const price = e.target.options[e.target.selectedIndex].dataset.price;
-            const row = e.target.closest('tr');
-            row.querySelector('.item-price').value = price;
-            calculateRow(row);
-            handleProductChange(row, e.target);
-        }
         if(e.target.classList.contains('variation-select')) {
             const opt = e.target.options[e.target.selectedIndex];
             const row = e.target.closest('tr');
@@ -535,6 +501,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         if(e.target.classList.contains('item-qty') || e.target.classList.contains('item-price')) {
+            calculateRow(e.target.closest('tr'));
+        }
+        // Recalcular quando o product-select2.js dispara change após selecionar produto
+        if(e.target.classList.contains('product-select')) {
             calculateRow(e.target.closest('tr'));
         }
     });
@@ -561,12 +531,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if(e.target.closest('.btn-remove-item')) {
             const tbody = document.querySelector('#orderItemsTable tbody');
             if(tbody.rows.length > 1) {
-                e.target.closest('tr').remove();
+                const row = e.target.closest('tr');
+                // Destruir Select2 antes de remover o DOM
+                const $ps = $(row).find('.product-select');
+                if ($ps.data('select2')) $ps.select2('destroy');
+                row.remove();
                 calculateTotal();
             } else {
-                // Limpar a última linha em vez de impedir remoção
+                // Limpar a última linha
                 const lastRow = tbody.rows[0];
-                lastRow.querySelector('.product-select').value = '';
+                const $ps = $(lastRow).find('.product-select');
+                if ($ps.data('select2')) {
+                    $ps.val(null).trigger('change');
+                }
                 lastRow.querySelector('.item-qty').value = 1;
                 lastRow.querySelector('.item-price').value = '';
                 lastRow.querySelector('.item-subtotal').value = '0.00';

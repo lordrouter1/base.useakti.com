@@ -21,9 +21,17 @@ class CustomerController {
     }
 
     public function index() {
-        $stmt = $this->customerModel->readAll();
-        $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+        $perPage     = 15;
+        $ctPage = max(1, (Input::get('pg', 'int')?? 1));
+        $totalItems  = (int) $this->customerModel->countAll();
+        $totalPages  = max(1, (int) ceil($totalItems / $perPage));
+        $ctPage = min($ctPage, $totalPages);
+
+        $customers = $this->customerModel->readPaginated($ctPage, $perPage);
+
+        // Variáveis para o componente de paginação
+        $baseUrl = '?page=customers';
+
         require 'app/views/layout/header.php';
         require 'app/views/customers/index.php';
         require 'app/views/layout/footer.php';

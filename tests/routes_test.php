@@ -229,6 +229,13 @@ return [
         'contains' => ['<html'],
     ],
 
+    [
+        'route'    => '?page=settings&tab=dashboard',
+        'label'    => 'Configurações — Dashboard Widgets',
+        'auth'     => true,
+        'contains' => ['Dashboard'],
+    ],
+
     // ══════════════════════════════════════════════════════════════
     // FINANCEIRO
     // ══════════════════════════════════════════════════════════════

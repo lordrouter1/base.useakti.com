@@ -31,6 +31,7 @@ $methodLabels = [
     'cartao_debito'  => '💳 Débito',
     'boleto'         => '📄 Boleto',
     'transferencia'  => '🏦 Transf.',
+    'gateway'        => '🌐 Gateway Online',
 ];
 
 // ── Resumo rápido ──
@@ -414,8 +415,8 @@ foreach ($installments as $inst) {
                                 <?php endif; ?>
 
                                 <!-- Link para ver todas as parcelas do pedido -->
-                                <a href="?page=financial&action=installments&order_id=<?= $orderId ?>" class="btn btn-outline-secondary" title="Ver todas as parcelas deste pedido">
-                                    <i class="fas fa-eye"></i>
+                                <a href="?page=financial&action=installments&order_id=<?= $orderId ?>" class="btn btn-outline-secondary" title="Gerenciar parcelas deste pedido">
+                                    <i class="fas fa-cog"></i>
                                 </a>
                             </div>
                         </td>
@@ -466,6 +467,7 @@ foreach ($installments as $inst) {
                                 <option value="cartao_debito">💳 Cartão Débito</option>
                                 <option value="boleto">📄 Boleto</option>
                                 <option value="transferencia">🏦 Transferência</option>
+                                <option value="gateway">🌐 Gateway Online</option>
                             </select>
                             <small class="text-muted" id="payMethodHint"></small>
                         </div>

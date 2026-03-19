@@ -6,6 +6,8 @@ use Akti\Models\PriceTable;
 use Akti\Models\Product;
 use Akti\Models\PreparationStep;
 use Akti\Models\Logger;
+use Akti\Models\DashboardWidget;
+use Akti\Models\UserGroup;
 use Akti\Core\ModuleBootloader;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
@@ -50,6 +52,26 @@ class SettingsController {
         $currentPriceTables = $this->priceTable->countAll();
         $priceTableLimitReached = ($maxPriceTables !== null && $currentPriceTables >= $maxPriceTables);
         $priceTableLimitInfo = $priceTableLimitReached ? ['current' => $currentPriceTables, 'max' => $maxPriceTables] : null;
+
+        // ── Dados para aba Dashboard Widgets ──
+        $dashGroups = [];
+        $dashSelectedGroupId = null;
+        $dashGroupConfig = [];
+        $dashAvailableWidgets = DashboardWidget::getAvailableWidgets();
+        $dashHasCustomConfig = false;
+
+        if ($safeTab === 'dashboard') {
+            $userGroupModel = new UserGroup($this->db);
+            $dashGroups = $userGroupModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
+
+            $dashSelectedGroupId = Input::get('group_id', 'int');
+
+            if ($dashSelectedGroupId) {
+                $dashWidgetModel = new DashboardWidget($this->db);
+                $dashGroupConfig = $dashWidgetModel->getByGroup($dashSelectedGroupId);
+                $dashHasCustomConfig = $dashWidgetModel->hasConfig($dashSelectedGroupId);
+            }
+        }
 
         require 'app/views/layout/header.php';
         require 'app/views/settings/index.php';
@@ -469,6 +491,77 @@ class SettingsController {
         $logger->log('SETTINGS_UPDATE', "Configurações de segurança atualizadas (timeout={$timeout}min)");
 
         header('Location: ?page=settings&tab=security&status=saved');
+        exit;
+    }
+
+    // ──────── DASHBOARD WIDGETS ────────
+
+    /**
+     * Salvar configuração de widgets do dashboard para um grupo (AJAX/JSON)
+     */
+    public function saveDashboardWidgets() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
+            exit;
+        }
+
+        $groupId = Input::post('group_id', 'int');
+        $widgetsJson = Input::post('widgets');
+
+        if (!$groupId) {
+            echo json_encode(['success' => false, 'message' => 'Grupo não informado.']);
+            exit;
+        }
+
+        $widgets = json_decode($widgetsJson, true);
+        if (!is_array($widgets)) {
+            echo json_encode(['success' => false, 'message' => 'Dados de widgets inválidos.']);
+            exit;
+        }
+
+        $dashWidgetModel = new DashboardWidget($this->db);
+        $result = $dashWidgetModel->saveForGroup($groupId, $widgets);
+
+        if ($result) {
+            $logger = new Logger($this->db);
+            $logger->log('SETTINGS_UPDATE', "Widgets do dashboard atualizados para o grupo #{$groupId}");
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Erro ao salvar configuração.']);
+        }
+        exit;
+    }
+
+    /**
+     * Resetar configuração de widgets de um grupo para o padrão global (AJAX/JSON)
+     */
+    public function resetDashboardWidgets() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
+            exit;
+        }
+
+        $groupId = Input::post('group_id', 'int');
+
+        if (!$groupId) {
+            echo json_encode(['success' => false, 'message' => 'Grupo não informado.']);
+            exit;
+        }
+
+        $dashWidgetModel = new DashboardWidget($this->db);
+        $result = $dashWidgetModel->resetGroup($groupId);
+
+        if ($result) {
+            $logger = new Logger($this->db);
+            $logger->log('SETTINGS_UPDATE', "Widgets do dashboard resetados para o grupo #{$groupId}");
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Erro ao restaurar padrão.']);
+        }
         exit;
     }
 

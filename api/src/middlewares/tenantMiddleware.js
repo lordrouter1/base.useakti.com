@@ -1,47 +1,66 @@
+import { tenantPool } from '../config/database.js';
+import { getModels } from '../models/index.js';
+import { HTTP_STATUS } from '../config/constants.js';
+
 /**
- * Tenant Identification Middleware
+ * ════════════════════════════════════════════════════════════════
+ * Tenant Middleware — resolve o banco do tenant e injeta no request.
  *
- * Resolves the current tenant from:
- *   1. The `x-tenant-id` request header (priority — useful for testing / mobile).
- *   2. The first segment of the Host subdomain (e.g. cliente1.useakti.com → "cliente1").
+ * O tenant é identificado pelo campo `tenant_db` presente no JWT
+ * (decodificado previamente pelo authMiddleware).
  *
- * The resolved value is injected into `req.tenantId` so that downstream
- * controllers, services and models can scope queries accordingly.
+ * Após resolver, injeta:
+ *   • req.tenantDb   → Nome do banco (string)
+ *   • req.db         → Instância Sequelize conectada ao banco do tenant
+ *   • req.models     → Objeto com todos os models já definidos
+ *
+ * Dependência: Este middleware DEVE rodar DEPOIS do authMiddleware.
+ * ════════════════════════════════════════════════════════════════
  */
 
-const TENANT_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
-const MAX_TENANT_LENGTH = 64;
+const TENANT_DB_PATTERN = /^[a-zA-Z0-9_]+$/;
+const MAX_TENANT_DB_LENGTH = 64;
 
-function isValidTenantId(value) {
+function isValidTenantDb(value) {
   return (
     typeof value === 'string' &&
     value.length > 0 &&
-    value.length <= MAX_TENANT_LENGTH &&
-    TENANT_ID_PATTERN.test(value)
+    value.length <= MAX_TENANT_DB_LENGTH &&
+    TENANT_DB_PATTERN.test(value)
   );
 }
 
-export function tenantMiddleware(req, _res, next) {
-  // 1. Explicit header takes precedence
-  const headerTenant = req.headers['x-tenant-id'];
+export async function tenantMiddleware(req, res, next) {
+  try {
+    // O authMiddleware já decodificou o JWT e populou req.user
+    const tenantDb = req.user?.tenant_db;
 
-  if (headerTenant) {
-    const sanitized = String(headerTenant).trim();
-    req.tenantId = isValidTenantId(sanitized) ? sanitized : null;
+    if (!tenantDb) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        error: 'Token JWT não contém tenant_db.',
+      });
+    }
+
+    if (!isValidTenantDb(tenantDb)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        error: 'Valor de tenant_db inválido.',
+      });
+    }
+
+    // Obter (ou criar) o pool Sequelize para este tenant
+    const sequelize = await tenantPool.acquire(tenantDb);
+
+    // Injetar no request para uso nos controllers/services
+    req.tenantDb = tenantDb;
+    req.db = sequelize;
+    req.models = getModels(sequelize);
+
     return next();
+  } catch (err) {
+    // Se o tenant não foi encontrado no master, retornar 404
+    if (err.status) {
+      return res.status(err.status).json({ error: err.message });
+    }
+    return next(err);
   }
-
-  // 2. Extract from subdomain
-  const host = req.hostname || '';
-  const parts = host.split('.');
-
-  // A valid subdomain host has at least 3 parts (sub.domain.tld)
-  if (parts.length >= 3 && isValidTenantId(parts[0])) {
-    req.tenantId = parts[0];
-    return next();
-  }
-
-  // Fallback: no tenant resolved (useful for health-check, public routes, etc.)
-  req.tenantId = null;
-  return next();
 }
