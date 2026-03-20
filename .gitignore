@@ -2,6 +2,8 @@ assets/uploads/
 
 !assests/uploads/.gitkeep
 
+vendor/
+
 # Node.js (API microservice)
 api/node_modules/
 api/.env
