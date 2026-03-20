@@ -133,19 +133,11 @@ return [
         'icon'     => 'fas fa-coins',
         'menu'     => true,
         'children' => [
-            'financial_payments' => [
-                'label'      => 'Pagamentos',
+            'financial' => [
+                'label'      => 'Financeiro',
                 'icon'       => 'fas fa-file-invoice-dollar',
                 'menu'       => true,
                 'permission' => true,
-                'permission_alias' => 'financial',
-            ],
-            'financial_transactions' => [
-                'label'      => 'Entradas / Saídas',
-                'icon'       => 'fas fa-exchange-alt',
-                'menu'       => true,
-                'permission' => true,
-                'permission_alias' => 'financial',
             ],
             'payment_gateways' => [
                 'label'      => 'Gateways de Pagamento',
@@ -161,6 +153,14 @@ return [
                 'module'     => 'nfe',
             ],
         ],
+    ],
+
+    // ─── Relatórios (item direto no menu principal) ───
+    'reports' => [
+        'label'      => 'Relatórios',
+        'icon'       => 'fas fa-chart-bar',
+        'menu'       => true,
+        'permission' => true,
     ],
 
     // ─── Itens ocultos do menu principal (ficam no menu direito) ───

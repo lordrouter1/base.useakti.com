@@ -36,13 +36,8 @@ class ProductController {
     }
 
     public function index() {
-        $perPage     = 15;
-        $ctPage = max(1, (Input::get('pg', 'int')?? 1));
+        // Contagem total
         $totalItems  = (int) $this->productModel->countAll();
-        $totalPages  = max(1, (int) ceil($totalItems / $perPage));
-        $ctPage = min($ctPage, $totalPages);
-
-        $products = $this->productModel->readPaginated($ctPage, $perPage);
 
         // Verificar limite de produtos do tenant
         $maxProducts = TenantManager::getTenantLimit('max_products');
@@ -50,8 +45,23 @@ class ProductController {
         $limitReached = ($maxProducts !== null && $currentProducts >= $maxProducts);
         $limitInfo = $limitReached ? ['current' => $currentProducts, 'max' => $maxProducts] : null;
 
-        // Variáveis para o componente de paginação
-        $baseUrl = '?page=products';
+        // Categorias para filtro
+        $stmt = $this->categoryModel->readAll();
+        $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Campos disponíveis para mapeamento de importação
+        $importFields = [
+            'name'        => ['label' => 'Nome do Produto', 'required' => true],
+            'price'       => ['label' => 'Preço de Venda', 'required' => true],
+            'cost_price'  => ['label' => 'Preço de Custo', 'required' => false],
+            'sku'         => ['label' => 'SKU / Código', 'required' => false],
+            'category'    => ['label' => 'Categoria', 'required' => false],
+            'subcategory' => ['label' => 'Subcategoria', 'required' => false],
+            'description' => ['label' => 'Descrição', 'required' => false],
+            'format'      => ['label' => 'Formato', 'required' => false],
+            'material'    => ['label' => 'Material', 'required' => false],
+            'ncm'         => ['label' => 'NCM Fiscal', 'required' => false],
+        ];
 
         require 'app/views/layout/header.php';
         require 'app/views/products/index.php';
@@ -449,6 +459,315 @@ class ProductController {
             }
             exit;
         }
+    }
+
+    /**
+     * AJAX: Lista produtos com filtros e paginação (para a seção de visão geral)
+     */
+    public function getProductsList() {
+        header('Content-Type: application/json');
+
+        $search     = Input::get('search');
+        $categoryId = Input::get('category_id', 'int');
+        $page       = max(1, Input::get('pg', 'int', 1));
+        $perPage    = Input::get('per_page', 'int', 20);
+
+        $result = $this->productModel->readPaginatedFiltered($page, $perPage, $categoryId ?: null, $search ?: null);
+
+        $total      = $result['total'];
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        $items      = $result['data'];
+
+        echo json_encode([
+            'success'     => true,
+            'items'       => $items,
+            'total'       => $total,
+            'page'        => $page,
+            'per_page'    => $perPage,
+            'total_pages' => $totalPages,
+        ]);
+        exit;
+    }
+
+    /**
+     * AJAX: Analisa arquivo de importação (CSV/XLS/XLSX) e retorna preview
+     * sem efetuar a importação. Retorna colunas detectadas e primeiras linhas.
+     */
+    public function parseImportFile() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['import_file'])) {
+            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo enviado.']);
+            exit;
+        }
+
+        $file = $_FILES['import_file'];
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['success' => false, 'message' => 'Erro no upload do arquivo.']);
+            exit;
+        }
+
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['csv', 'xls', 'xlsx'])) {
+            echo json_encode(['success' => false, 'message' => 'Formato não suportado. Use CSV, XLS ou XLSX.']);
+            exit;
+        }
+
+        $rows = [];
+        if ($ext === 'csv') {
+            $rows = $this->parseCsvFile($file['tmp_name']);
+        } elseif (in_array($ext, ['xls', 'xlsx'])) {
+            if (class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
+                $rows = $this->parseExcelFile($file['tmp_name']);
+            } else {
+                $rows = $this->parseCsvFile($file['tmp_name']);
+            }
+        }
+
+        if (empty($rows)) {
+            echo json_encode(['success' => false, 'message' => 'Arquivo vazio ou não foi possível ler os dados.']);
+            exit;
+        }
+
+        // Salvar o arquivo temporário para uso posterior na importação confirmada
+        $tmpDir = sys_get_temp_dir() . '/akti_imports/';
+        if (!is_dir($tmpDir)) {
+            mkdir($tmpDir, 0755, true);
+        }
+        $tmpName = 'import_' . session_id() . '_' . time() . '.' . $ext;
+        $tmpPath = $tmpDir . $tmpName;
+        move_uploaded_file($file['tmp_name'], $tmpPath);
+        $_SESSION['import_tmp_file'] = $tmpPath;
+        $_SESSION['import_tmp_ext'] = $ext;
+
+        // Extrair colunas do arquivo
+        $columns = [];
+        if (!empty($rows)) {
+            $columns = array_keys($rows[0]);
+        }
+
+        // Amostra das primeiras 10 linhas
+        $preview = array_slice($rows, 0, 10);
+        $totalRows = count($rows);
+
+        // Tentar auto-mapear colunas
+        $colMap = [
+            'nome' => 'name', 'name' => 'name', 'produto' => 'name',
+            'preco' => 'price', 'preço' => 'price', 'price' => 'price', 'valor' => 'price',
+            'preco_custo' => 'cost_price', 'preço_custo' => 'cost_price', 'custo' => 'cost_price', 'cost_price' => 'cost_price',
+            'sku' => 'sku', 'codigo' => 'sku', 'código' => 'sku', 'code' => 'sku',
+            'categoria' => 'category', 'category' => 'category',
+            'subcategoria' => 'subcategory', 'subcategory' => 'subcategory',
+            'descricao' => 'description', 'descrição' => 'description', 'description' => 'description',
+            'formato' => 'format', 'format' => 'format', 'dimensoes' => 'format',
+            'material' => 'material', 'papel' => 'material',
+            'ncm' => 'ncm', 'fiscal_ncm' => 'ncm',
+        ];
+
+        $autoMapping = [];
+        foreach ($columns as $col) {
+            $normalized = strtolower(trim($col));
+            $normalized = str_replace([' ', '-', 'ç', 'ã', 'á', 'é', 'ó', 'ú'], ['_', '_', 'c', 'a', 'a', 'e', 'o', 'u'], $normalized);
+            if (isset($colMap[$normalized])) {
+                $autoMapping[$col] = $colMap[$normalized];
+            }
+        }
+
+        echo json_encode([
+            'success'     => true,
+            'columns'     => $columns,
+            'preview'     => $preview,
+            'total_rows'  => $totalRows,
+            'auto_mapping' => $autoMapping,
+        ]);
+        exit;
+    }
+
+    /**
+     * AJAX: Importa produtos usando mapeamento de colunas definido pelo usuário.
+     * Usa o arquivo temporário salvo pela parseImportFile.
+     */
+    public function importProductsMapped() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit;
+        }
+
+        // Receber mapeamento
+        $mapping = json_decode(Input::post('mapping'), true);
+        if (empty($mapping)) {
+            echo json_encode(['success' => false, 'message' => 'Nenhum mapeamento de colunas definido.']);
+            exit;
+        }
+
+        // Verificar campos obrigatórios no mapeamento
+        $mappedFields = array_values($mapping);
+        if (!in_array('name', $mappedFields)) {
+            echo json_encode(['success' => false, 'message' => 'O campo "Nome do Produto" é obrigatório no mapeamento.']);
+            exit;
+        }
+        if (!in_array('price', $mappedFields)) {
+            echo json_encode(['success' => false, 'message' => 'O campo "Preço de Venda" é obrigatório no mapeamento.']);
+            exit;
+        }
+
+        // Recuperar arquivo temporário
+        $tmpPath = $_SESSION['import_tmp_file'] ?? null;
+        $ext = $_SESSION['import_tmp_ext'] ?? 'csv';
+        if (!$tmpPath || !file_exists($tmpPath)) {
+            echo json_encode(['success' => false, 'message' => 'Arquivo temporário não encontrado. Faça o upload novamente.']);
+            exit;
+        }
+
+        // Ler arquivo novamente
+        $rows = [];
+        if ($ext === 'csv') {
+            $rows = $this->parseCsvFile($tmpPath);
+        } else {
+            if (class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
+                $rows = $this->parseExcelFile($tmpPath);
+            } else {
+                $rows = $this->parseCsvFile($tmpPath);
+            }
+        }
+
+        if (empty($rows)) {
+            echo json_encode(['success' => false, 'message' => 'Arquivo vazio ou não foi possível reler os dados.']);
+            exit;
+        }
+
+        $maxProducts = TenantManager::getTenantLimit('max_products');
+        $currentProducts = $this->productModel->countAll();
+
+        $imported = 0;
+        $errors = [];
+        $categoryCache = [];
+        $subcategoryCache = [];
+
+        // Inverter mapeamento: file_column => system_field
+        // $mapping é { "file_column": "system_field", ... }
+
+        foreach ($rows as $lineNum => $row) {
+            $lineDisplay = $lineNum + 2;
+
+            // Aplicar mapeamento
+            $mapped = [];
+            foreach ($mapping as $fileCol => $sysField) {
+                if (!empty($sysField) && $sysField !== '_skip' && isset($row[$fileCol])) {
+                    $mapped[$sysField] = trim($row[$fileCol]);
+                }
+            }
+
+            // Validar obrigatórios
+            if (empty($mapped['name'])) {
+                $errors[] = ['line' => $lineDisplay, 'message' => 'Nome do produto é obrigatório.'];
+                continue;
+            }
+
+            $price = isset($mapped['price']) ? str_replace(',', '.', $mapped['price']) : '';
+            if ($price === '' || !is_numeric($price) || floatval($price) < 0) {
+                $errors[] = ['line' => $lineDisplay, 'message' => 'Preço inválido ou não informado para "' . $mapped['name'] . '".'];
+                continue;
+            }
+
+            // Resolver categoria
+            $categoryId = null;
+            if (!empty($mapped['category'])) {
+                $catName = $mapped['category'];
+                if (isset($categoryCache[$catName])) {
+                    $categoryId = $categoryCache[$catName];
+                } else {
+                    $stmt = $this->categoryModel->readAll();
+                    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    foreach ($categories as $cat) {
+                        if (mb_strtolower($cat['name']) === mb_strtolower($catName)) {
+                            $categoryId = $cat['id'];
+                            break;
+                        }
+                    }
+                    if (!$categoryId) {
+                        $this->categoryModel->name = $catName;
+                        if ($this->categoryModel->create()) {
+                            $categoryId = $this->categoryModel->id;
+                        }
+                    }
+                    $categoryCache[$catName] = $categoryId;
+                }
+            }
+
+            // Resolver subcategoria
+            $subcategoryId = null;
+            if (!empty($mapped['subcategory']) && $categoryId) {
+                $subName = $mapped['subcategory'];
+                $subKey = $categoryId . '_' . $subName;
+                if (isset($subcategoryCache[$subKey])) {
+                    $subcategoryId = $subcategoryCache[$subKey];
+                } else {
+                    $subs = $this->categoryModel->getSubcategories($categoryId);
+                    if (is_array($subs)) {
+                        foreach ($subs as $sub) {
+                            if (mb_strtolower($sub['name']) === mb_strtolower($subName)) {
+                                $subcategoryId = $sub['id'];
+                                break;
+                            }
+                        }
+                    }
+                    if (!$subcategoryId) {
+                        $this->subcategoryModel->name = $subName;
+                        $this->subcategoryModel->category_id = $categoryId;
+                        if ($this->subcategoryModel->create()) {
+                            $subcategoryId = $this->subcategoryModel->id;
+                        }
+                    }
+                    $subcategoryCache[$subKey] = $subcategoryId;
+                }
+            }
+
+            if ($maxProducts !== null && ($currentProducts + $imported) >= $maxProducts) {
+                $errors[] = ['line' => $lineDisplay, 'message' => 'Limite de produtos atingido para este cliente.'];
+                continue;
+            }
+
+            $data = [
+                'name'           => $mapped['name'],
+                'sku'            => $mapped['sku'] ?? '',
+                'description'    => $mapped['description'] ?? '',
+                'category_id'    => $categoryId,
+                'subcategory_id' => $subcategoryId,
+                'price'          => floatval($price),
+            ];
+
+            if (!empty($mapped['ncm'])) {
+                $data['fiscal_ncm'] = $mapped['ncm'];
+            }
+
+            try {
+                $productId = $this->productModel->create($data);
+                if ($productId) {
+                    $imported++;
+                    $this->logger->log('IMPORT_PRODUCT', 'Imported product ID: ' . $productId . ' Name: ' . $data['name']);
+                } else {
+                    $errors[] = ['line' => $lineDisplay, 'message' => 'Erro ao salvar "' . $mapped['name'] . '" no banco de dados.'];
+                }
+            } catch (\Exception $e) {
+                $errors[] = ['line' => $lineDisplay, 'message' => 'Erro: ' . $e->getMessage()];
+            }
+        }
+
+        // Limpar arquivo temporário
+        if (file_exists($tmpPath)) {
+            unlink($tmpPath);
+        }
+        unset($_SESSION['import_tmp_file'], $_SESSION['import_tmp_ext']);
+
+        echo json_encode([
+            'success'  => true,
+            'imported' => $imported,
+            'errors'   => $errors,
+        ]);
+        exit;
     }
 
     /**

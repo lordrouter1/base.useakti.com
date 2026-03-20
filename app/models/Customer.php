@@ -156,4 +156,80 @@ class Customer {
         $stmt->execute();
         return $stmt->fetchColumn();
     }
+
+    /**
+     * Retorna clientes com paginação e filtros
+     * @param int $page Página atual (1-based)
+     * @param int $perPage Itens por página
+     * @param string|null $search Busca por nome, email, telefone ou documento
+     * @return array ['data' => [...], 'total' => int]
+     */
+    public function readPaginatedFiltered(int $page = 1, int $perPage = 15, ?string $search = null): array
+    {
+        $where = "1=1";
+        $params = [];
+
+        if ($search) {
+            $where .= " AND (name LIKE :s1 OR email LIKE :s2 OR phone LIKE :s3 OR document LIKE :s4)";
+            $params[':s1'] = "%{$search}%";
+            $params[':s2'] = "%{$search}%";
+            $params[':s3'] = "%{$search}%";
+            $params[':s4'] = "%{$search}%";
+        }
+
+        // Total
+        $stmtCount = $this->conn->prepare("SELECT COUNT(*) FROM {$this->table_name} WHERE {$where}");
+        foreach ($params as $k => $v) $stmtCount->bindValue($k, $v);
+        $stmtCount->execute();
+        $total = (int) $stmtCount->fetchColumn();
+
+        // Data
+        $offset = ($page - 1) * $perPage;
+        $stmt = $this->conn->prepare("SELECT * FROM {$this->table_name} WHERE {$where} ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
+        foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return ['data' => $data, 'total' => $total];
+    }
+
+    /**
+     * Importa um cliente a partir de dados mapeados
+     * @param array $data Dados mapeados
+     * @return int|false ID do cliente criado ou false
+     */
+    public function importFromMapped(array $data)
+    {
+        $address = json_encode([
+            'zipcode'        => $data['zipcode'] ?? '',
+            'address_type'   => $data['address_type'] ?? '',
+            'address_name'   => $data['address_name'] ?? '',
+            'address_number' => $data['address_number'] ?? '',
+            'neighborhood'   => $data['neighborhood'] ?? '',
+            'complement'     => $data['complement'] ?? '',
+        ]);
+
+        $query = "INSERT INTO {$this->table_name} (name, email, phone, document, address, created_at) VALUES (?, ?, ?, ?, ?, NOW())";
+        $stmt = $this->conn->prepare($query);
+        $result = $stmt->execute([
+            $data['name'],
+            $data['email'] ?? null,
+            $data['phone'] ?? null,
+            $data['document'] ?? null,
+            $address,
+        ]);
+
+        if ($result) {
+            $newId = $this->conn->lastInsertId();
+            EventDispatcher::dispatch('model.customer.created', new Event('model.customer.created', [
+                'id'    => $newId,
+                'name'  => $data['name'],
+                'email' => $data['email'] ?? '',
+            ]));
+            return $newId;
+        }
+        return false;
+    }
 }

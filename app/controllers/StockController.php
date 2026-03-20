@@ -31,35 +31,45 @@ class StockController {
         $this->stockModel->ensureOrderWarehouseColumn();
     }
 
-    // ─── Página principal: visão geral do estoque ───
+    // ─── Página principal: visão geral do estoque (com sidebar unificada) ───
     public function index() {
+        // ── Dados da Visão Geral (resumo — carregamento leve, tabelas via AJAX) ──
         $warehouseId = Input::get('warehouse_id', 'int');
         $search = Input::get('search');
         $lowStock = Input::get('low_stock') === '1';
 
         $warehouses = $this->stockModel->getAllWarehouses();
-        $stockItems = $this->stockModel->getStockItems($warehouseId, $search, $lowStock);
+        $warehousesAll = $this->stockModel->getAllWarehouses(false); // inclui inativos para gestão
         $summary = $this->stockModel->getDashboardSummary();
         $lowStockItems = $this->stockModel->getLowStockItems(5);
 
-        require 'app/views/layout/header.php';
-        require 'app/views/stock/index.php';
-        require 'app/views/layout/footer.php';
-    }
+        // ── Filtros de Movimentações (valores iniciais para preencher selects) ──
+        $movFilters = [
+            'warehouse_id' => Input::get('mov_warehouse_id', 'int'),
+            'product_id'   => Input::get('mov_product_id', 'int'),
+            'type'         => Input::get('mov_type'),
+            'date_from'    => Input::get('mov_date_from', 'date'),
+            'date_to'      => Input::get('mov_date_to', 'date'),
+        ];
 
-    // ─── Armazéns: listagem e gestão ───
-    public function warehouses() {
-        $warehouses = $this->stockModel->getAllWarehouses(false);
+        // ── Dados para Entrada/Saída ──
+        $products = $this->stockModel->getProductsForSelection();
 
-        // Verificar limite de armazéns do tenant
+        // ── Dados de Armazéns ──
         $maxWarehouses = TenantManager::getTenantLimit('max_warehouses');
         $currentWarehouses = $this->stockModel->countWarehouses();
         $limitReached = ($maxWarehouses !== null && $currentWarehouses >= $maxWarehouses);
         $limitInfo = $limitReached ? ['current' => $currentWarehouses, 'max' => $maxWarehouses] : null;
 
         require 'app/views/layout/header.php';
-        require 'app/views/stock/warehouses.php';
+        require 'app/views/stock/index.php';
         require 'app/views/layout/footer.php';
+    }
+
+    // ─── Armazéns: redireciona para a página unificada ───
+    public function warehouses() {
+        header('Location: ?page=stock&section=warehouses');
+        exit;
     }
 
     public function storeWarehouse() {
@@ -69,7 +79,7 @@ class StockController {
             if ($maxWarehouses !== null) {
                 $currentWarehouses = $this->stockModel->countWarehouses();
                 if ($currentWarehouses >= $maxWarehouses) {
-                    header('Location: ?page=stock&action=warehouses&status=limit_warehouses');
+                    header('Location: ?page=stock&section=warehouses&status=limit_warehouses');
                     exit;
                 }
             }
@@ -86,7 +96,7 @@ class StockController {
             ];
 
             if (empty($data['name'])) {
-                header('Location: ?page=stock&action=warehouses&error=name');
+                header('Location: ?page=stock&section=warehouses&error=name');
                 exit;
             }
 
@@ -94,7 +104,7 @@ class StockController {
             if ($id) {
                 $this->logger->log('STOCK_WAREHOUSE_CREATE', "Armazém criado: {$data['name']} (ID: $id)" . ($data['is_default'] ? ' [PADRÃO]' : ''));
             }
-            header('Location: ?page=stock&action=warehouses&status=created');
+            header('Location: ?page=stock&section=warehouses&status=created');
             exit;
         }
     }
@@ -116,7 +126,7 @@ class StockController {
 
             $this->stockModel->updateWarehouse($data);
             $this->logger->log('STOCK_WAREHOUSE_UPDATE', "Armazém atualizado: {$data['name']} (ID: {$data['id']})" . ($data['is_default'] ? ' [PADRÃO]' : ''));
-            header('Location: ?page=stock&action=warehouses&status=updated');
+            header('Location: ?page=stock&section=warehouses&status=updated');
             exit;
         }
     }
@@ -128,11 +138,11 @@ class StockController {
             $this->stockModel->deleteWarehouse($id);
             $this->logger->log('STOCK_WAREHOUSE_DELETE', "Armazém removido: " . ($wh['name'] ?? $id));
         }
-        header('Location: ?page=stock&action=warehouses&status=deleted');
+        header('Location: ?page=stock&section=warehouses&status=deleted');
         exit;
     }
 
-    // ─── Movimentações ───
+    // ─── Movimentações (JSON para AJAX, ou redireciona para página unificada) ───
     public function movements() {
         $filters = [
             'warehouse_id' => Input::get('warehouse_id', 'int'),
@@ -152,22 +162,74 @@ class StockController {
             exit;
         }
 
-        $warehouses = $this->stockModel->getAllWarehouses();
-        $products = $this->stockModel->getProductsForSelection();
-
-        require 'app/views/layout/header.php';
-        require 'app/views/stock/movements.php';
-        require 'app/views/layout/footer.php';
+        // Redireciona para página unificada na seção de movimentações
+        header('Location: ?page=stock&section=movements');
+        exit;
     }
 
-    // ─── Entrada de Estoque ───
+    // ─── Entrada de Estoque: redireciona para página unificada ───
     public function entry() {
-        $warehouses = $this->stockModel->getAllWarehouses();
-        $products = $this->stockModel->getProductsForSelection();
+        header('Location: ?page=stock&section=entry');
+        exit;
+    }
 
-        require 'app/views/layout/header.php';
-        require 'app/views/stock/entry.php';
-        require 'app/views/layout/footer.php';
+    // ─── AJAX: Buscar itens de estoque (para filtros dinâmicos + paginação) ───
+    public function getStockItems() {
+        header('Content-Type: application/json');
+
+        $warehouseId = Input::get('warehouse_id', 'int');
+        $search = Input::get('search');
+        $lowStock = Input::get('low_stock') === '1';
+        $page = max(1, Input::get('pg', 'int', 1));
+        $perPage = Input::get('per_page', 'int', 25);
+
+        $allItems = $this->stockModel->getStockItems($warehouseId, $search, $lowStock);
+        $total = count($allItems);
+        $totalPages = max(1, ceil($total / $perPage));
+        $offset = ($page - 1) * $perPage;
+        $items = array_slice($allItems, $offset, $perPage);
+
+        echo json_encode([
+            'success' => true,
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'total_pages' => $totalPages,
+        ]);
+        exit;
+    }
+
+    // ─── AJAX: Buscar movimentações (para filtros dinâmicos + paginação) ───
+    public function getMovements() {
+        header('Content-Type: application/json');
+
+        $filters = [
+            'warehouse_id' => Input::get('warehouse_id', 'int'),
+            'product_id'   => Input::get('product_id', 'int'),
+            'type'         => Input::get('type'),
+            'date_from'    => Input::get('date_from', 'date'),
+            'date_to'      => Input::get('date_to', 'date'),
+            'limit'        => 5000, // buscar todos e paginar no PHP
+        ];
+        $page = max(1, Input::get('pg', 'int', 1));
+        $perPage = Input::get('per_page', 'int', 25);
+
+        $allMovements = $this->stockModel->getMovements($filters);
+        $total = count($allMovements);
+        $totalPages = max(1, ceil($total / $perPage));
+        $offset = ($page - 1) * $perPage;
+        $items = array_slice($allMovements, $offset, $perPage);
+
+        echo json_encode([
+            'success' => true,
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'total_pages' => $totalPages,
+        ]);
+        exit;
     }
 
     // ─── AJAX: Processar movimentação (entrada/saída/ajuste/transferência) ───
@@ -234,6 +296,110 @@ class StockController {
             'errors' => $errors,
             'message' => "$processed item(s) processado(s) com sucesso."
         ]);
+        exit;
+    }
+
+    // ─── AJAX: Buscar uma movimentação pelo ID ───
+    public function getMovement() {
+        header('Content-Type: application/json');
+        $id = Input::get('id', 'int', 0);
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
+            exit;
+        }
+        $movement = $this->stockModel->getMovement($id);
+        if (!$movement) {
+            echo json_encode(['success' => false, 'message' => 'Movimentação não encontrada.']);
+            exit;
+        }
+        echo json_encode(['success' => true, 'movement' => $movement]);
+        exit;
+    }
+
+    // ─── AJAX: Atualizar uma movimentação existente ───
+    public function updateMovement() {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit;
+        }
+
+        $id = Input::post('id', 'int', 0);
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
+            exit;
+        }
+
+        $movement = $this->stockModel->getMovement($id);
+        if (!$movement) {
+            echo json_encode(['success' => false, 'message' => 'Movimentação não encontrada.']);
+            exit;
+        }
+
+        // Não permitir edição de movimentações automáticas (pedidos, reversões)
+        $autoTypes = ['order', 'order_reversal', 'transfer'];
+        if (in_array($movement['reference_type'], $autoTypes)) {
+            echo json_encode(['success' => false, 'message' => 'Movimentações automáticas não podem ser editadas.']);
+            exit;
+        }
+
+        $data = [
+            'type'     => Input::post('type', 'enum', $movement['type'], ['entrada', 'saida', 'ajuste']),
+            'quantity' => Input::post('quantity', 'float', $movement['quantity']),
+            'reason'   => Input::post('reason'),
+        ];
+
+        if ($data['quantity'] <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Quantidade deve ser maior que zero.']);
+            exit;
+        }
+
+        $result = $this->stockModel->updateMovement($id, $data);
+        if ($result) {
+            $typeLabels = ['entrada' => 'Entrada', 'saida' => 'Saída', 'ajuste' => 'Ajuste'];
+            $this->logger->log('STOCK_MOVEMENT_UPDATE', "Movimentação #{$id} atualizada: {$typeLabels[$data['type']]} — Qtd: {$data['quantity']} — Produto: {$movement['product_name']}");
+            echo json_encode(['success' => true, 'message' => 'Movimentação atualizada com sucesso.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Erro ao atualizar movimentação.']);
+        }
+        exit;
+    }
+
+    // ─── AJAX: Excluir uma movimentação ───
+    public function deleteMovement() {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit;
+        }
+
+        $id = Input::post('id', 'int', 0);
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
+            exit;
+        }
+
+        $movement = $this->stockModel->getMovement($id);
+        if (!$movement) {
+            echo json_encode(['success' => false, 'message' => 'Movimentação não encontrada.']);
+            exit;
+        }
+
+        // Não permitir exclusão de movimentações automáticas
+        $autoTypes = ['order', 'order_reversal', 'transfer'];
+        if (in_array($movement['reference_type'], $autoTypes)) {
+            echo json_encode(['success' => false, 'message' => 'Movimentações automáticas não podem ser excluídas.']);
+            exit;
+        }
+
+        $result = $this->stockModel->deleteMovement($id);
+        if ($result) {
+            $typeLabels = ['entrada' => 'Entrada', 'saida' => 'Saída', 'ajuste' => 'Ajuste', 'transferencia' => 'Transferência'];
+            $this->logger->log('STOCK_MOVEMENT_DELETE', "Movimentação #{$id} excluída: {$typeLabels[$movement['type']]} — Qtd: {$movement['quantity']} — Produto: {$movement['product_name']}");
+            echo json_encode(['success' => true, 'message' => 'Movimentação excluída com sucesso. Saldo revertido.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Erro ao excluir movimentação.']);
+        }
         exit;
     }
 

@@ -1,19 +1,25 @@
 <?php
 /**
- * Fiscal — Pagamentos (Parcelas)
- * Lista TODAS as parcelas de todos os pedidos, ordenadas por vencimento (mais próximo primeiro).
- * Ações diretas por linha:
- *   - Registrar pagamento (pendente/atrasado) — com forma de pagamento pré-selecionada do pedido
- *   - Confirmar pagamento (pago + não confirmado)
- *   - Estornar (pago → pendente, registra saída no livro caixa)
- *   - Anexar comprovante (upload de foto/documento)
- *   - Reimprimir boleto (quando método é boleto)
+ * Financeiro — Página Unificada com Sidebar
+ * Layout inspirado na página de estoque: sidebar com seções à esquerda,
+ * conteúdo da seção ativa à direita.
  *
- * Variáveis: $orders, $installments
+ * Seções:
+ *   - payments     → Pagamentos (parcelas) — PRINCIPAL
+ *   - transactions → Visão Geral (entradas/saídas)
+ *   - import       → Importação (OFX/CSV/Excel)
+ *   - new          → Nova Transação
+ *
+ * Variáveis disponíveis (carregadas pelo FinancialController::payments):
+ *   $summary, $categories, $company, $companyAddress
+ *   $overdueCount, $pendingConfirmCount
+ *
+ * Tabelas são carregadas via AJAX com filtros dinâmicos e paginação.
  */
-$filterStatus = $_GET['status'] ?? '';
-$filterMonth  = $_GET['filter_month'] ?? '';
-$filterYear   = $_GET['filter_year'] ?? '';
+
+$activeSection = $_GET['section'] ?? 'payments';
+$validSections = ['payments', 'transactions', 'import', 'new'];
+if (!in_array($activeSection, $validSections)) $activeSection = 'payments';
 
 $canUseBoletoModule = \Akti\Core\ModuleBootloader::isModuleEnabled('boleto');
 
@@ -34,400 +40,716 @@ $methodLabels = [
     'gateway'        => '🌐 Gateway Online',
 ];
 
-// ── Resumo rápido ──
-$totalParcelas = count($installments ?? []);
-$totalPendentes = 0; $totalAtrasadas = 0; $totalPagas = 0; $totalAguardando = 0;
-$valorPendente = 0; $valorPago = 0;
-foreach ($installments as $inst) {
-    if ($inst['status'] === 'pendente')  { $totalPendentes++; $valorPendente += (float)$inst['amount']; }
-    if ($inst['status'] === 'atrasado')  { $totalAtrasadas++; $valorPendente += (float)$inst['amount']; }
-    if ($inst['status'] === 'pago')      { $totalPagas++; $valorPago += (float)($inst['paid_amount'] ?? $inst['amount']); }
-    if ($inst['status'] === 'pago' && empty($inst['is_confirmed'])) $totalAguardando++;
-}
+$allCats = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? [], \Akti\Models\Financial::getInternalCategories());
 ?>
 
-<?php if (!empty($_SESSION['flash_success'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'success',title:'Sucesso!',text:'<?= addslashes($_SESSION['flash_success']) ?>',timer:2500,showConfirmButton:false}));</script>
-<?php unset($_SESSION['flash_success']); endif; ?>
+<!-- ══════ Flash messages ══════ -->
 <?php if (!empty($_SESSION['flash_error'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'error',title:'Erro',text:'<?= addslashes($_SESSION['flash_error']) ?>'}));</script>
+<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'error',title:'Erro',html:'<?= addslashes($_SESSION['flash_error']) ?>',confirmButtonColor:'#3498db'}));</script>
 <?php unset($_SESSION['flash_error']); endif; ?>
+<?php if (!empty($_SESSION['flash_success'])): ?>
+<script>document.addEventListener('DOMContentLoaded',()=>Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2500,timerProgressBar:true}).fire({icon:'success',title:'<?= addslashes($_SESSION['flash_success']) ?>'}));</script>
+<?php unset($_SESSION['flash_success']); endif; ?>
 
-<!-- ══════ Header ══════ -->
-<div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-2 mb-4 border-bottom">
-    <h1 class="h2 mb-0"><i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Pagamentos</h1>
-    <div class="btn-toolbar gap-2">
-        <a href="?page=financial&action=transactions" class="btn btn-sm btn-outline-success">
-            <i class="fas fa-exchange-alt me-1"></i> Entradas / Saídas
-        </a>
-    </div>
-</div>
+<style>
+    /* ── Sidebar nav ── */
+    .fin-sidebar .fin-nav-item{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;border-radius:10px;text-decoration:none;color:#555;font-size:.82rem;font-weight:500;transition:all .15s ease;margin-bottom:2px;border:1px solid transparent;cursor:pointer}
+    .fin-sidebar .fin-nav-item:hover{background:#f1f5f9;color:#333}
+    .fin-sidebar .fin-nav-item.active{background:var(--bs-primary,#3498db);color:#fff;box-shadow:0 2px 8px rgba(52,152,219,.3)}
+    .fin-sidebar .fin-nav-item.active .fin-nav-icon{background:rgba(255,255,255,.2) !important;color:#fff !important}
+    .fin-sidebar .fin-nav-item.active .fin-nav-count{background:rgba(255,255,255,.25) !important;color:#fff !important}
+    .fin-nav-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:all .15s ease}
+    .fin-nav-count{font-size:.65rem;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:auto}
+    .fin-sidebar-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;padding:0 1rem;margin-bottom:.3rem;margin-top:.6rem}
+    .fin-sidebar-divider{height:1px;background:#e9ecef;margin:.5rem 1rem}
 
-<!-- ══════ Cards Resumo ══════ -->
-<div class="row g-3 mb-4">
-    <div class="col-xl-3 col-md-6">
-        <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
-            <div class="card-body d-flex align-items-center p-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;background:rgba(52,152,219,0.15);">
-                    <i class="fas fa-list-ol fa-lg text-primary"></i>
-                </div>
-                <div>
-                    <div class="text-muted small text-uppercase fw-bold">Total Parcelas</div>
-                    <div class="fw-bold fs-4"><?= $totalParcelas ?></div>
-                </div>
-            </div>
+    /* ── Section transition ── */
+    .fin-section{display:none;animation:finFadeIn .25s ease}
+    .fin-section.active{display:block}
+    @keyframes finFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── Mobile sidebar ── */
+    @media(max-width:991.98px){
+        .fin-sidebar-col{margin-bottom:1rem}
+        .fin-sidebar{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:thin}
+        .fin-sidebar .fin-nav-item{white-space:nowrap;flex-shrink:0;padding:.5rem .85rem;font-size:.75rem}
+        .fin-sidebar-label{display:none}
+        .fin-sidebar-divider{display:none}
+    }
+
+    /* ── Pagination style ── */
+    .fin-pagination{display:flex;align-items:center;justify-content:center;gap:.5rem;margin-top:1rem}
+    .fin-pagination .btn{min-width:36px;font-size:.78rem}
+    .fin-pagination .page-info{font-size:.75rem;color:#888}
+
+    /* ── Import styles (dropzone + stepper) ── */
+    .import-dropzone{border:2px dashed #ccc;border-radius:12px;padding:2.5rem 1.5rem;text-align:center;transition:all .2s ease;cursor:pointer;background:#fafbfc}
+    .import-dropzone:hover,.import-dropzone.dragover{border-color:#17a2b8;background:rgba(23,162,184,.05)}
+    .import-dropzone.has-file{border-color:#27ae60;background:rgba(39,174,96,.05)}
+    .import-step{display:none}
+    .import-step.active{display:block}
+    .mapping-select{font-size:.78rem;padding:.25rem .5rem}
+    .preview-table{font-size:.72rem;max-height:350px;overflow:auto}
+    .preview-table th{position:sticky;top:0;z-index:2;background:#e9ecef}
+    .preview-table td{white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+</style>
+
+<div class="container-fluid py-3">
+
+    <!-- ══════ Header ══════ -->
+    <div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-2 mb-4 border-bottom">
+        <div>
+            <h1 class="h2 mb-1"><i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Financeiro</h1>
+            <p class="text-muted mb-0" style="font-size:.82rem;">Pagamentos, entradas/saídas, importação e transações.</p>
+        </div>
+        <div class="btn-toolbar gap-2">
+            <a href="?page=financial" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-chart-line me-1"></i> Dashboard
+            </a>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
-            <div class="card-body d-flex align-items-center p-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;background:rgba(243,156,18,0.15);">
-                    <i class="fas fa-clock fa-lg text-warning"></i>
+
+    <div class="row g-4">
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- SIDEBAR — Menu Lateral de Seções (3/12)         -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div class="col-lg-3 fin-sidebar-col">
+            <div class="card border-0 shadow-sm" style="border-radius:12px;">
+                <div class="card-body p-3">
+                    <nav class="fin-sidebar">
+
+                        <div class="fin-sidebar-label">Financeiro</div>
+
+                        <a href="#" class="fin-nav-item <?= $activeSection === 'payments' ? 'active' : '' ?>" data-section="payments">
+                            <span class="fin-nav-icon" style="background:rgba(52,152,219,.1);color:#3498db;">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                            </span>
+                            <span>Pagamentos</span>
+                            <?php if ($overdueCount > 0): ?>
+                            <span class="fin-nav-count" style="background:rgba(231,76,60,.15);color:#e74c3c;"><?= $overdueCount ?></span>
+                            <?php endif; ?>
+                        </a>
+
+                        <a href="#" class="fin-nav-item <?= $activeSection === 'transactions' ? 'active' : '' ?>" data-section="transactions">
+                            <span class="fin-nav-icon" style="background:rgba(39,174,96,.1);color:#27ae60;">
+                                <i class="fas fa-exchange-alt"></i>
+                            </span>
+                            <span>Visão Geral</span>
+                        </a>
+
+                        <div class="fin-sidebar-divider"></div>
+
+                        <a href="#" class="fin-nav-item <?= $activeSection === 'import' ? 'active' : '' ?>" data-section="import">
+                            <span class="fin-nav-icon" style="background:rgba(23,162,184,.1);color:#17a2b8;">
+                                <i class="fas fa-file-import"></i>
+                            </span>
+                            <span>Importação</span>
+                        </a>
+
+                        <a href="#" class="fin-nav-item <?= $activeSection === 'new' ? 'active' : '' ?>" data-section="new">
+                            <span class="fin-nav-icon" style="background:rgba(155,89,182,.1);color:#9b59b6;">
+                                <i class="fas fa-plus-circle"></i>
+                            </span>
+                            <span>Nova Transação</span>
+                        </a>
+
+                    </nav>
                 </div>
-                <div>
-                    <div class="text-muted small text-uppercase fw-bold">Pendentes / Atrasadas</div>
-                    <div class="fw-bold fs-4"><?= $totalPendentes + $totalAtrasadas ?>
-                        <small class="text-muted fs-6">(R$ <?= number_format($valorPendente, 2, ',', '.') ?>)</small>
+            </div>
+
+            <!-- Mini-dica -->
+            <div class="card border-0 shadow-sm mt-3 d-none d-lg-block" style="border-radius:12px;">
+                <div class="card-body p-3">
+                    <h6 class="mb-2 fw-bold" style="font-size:.78rem;color:#17a2b8;">
+                        <i class="fas fa-lightbulb me-1"></i>Dica
+                    </h6>
+                    <p class="mb-0 text-muted" style="font-size:.72rem;line-height:1.55;">
+                        Use <span class="fw-bold text-primary">Pagamentos</span> para gerenciar parcelas de pedidos,
+                        <span class="fw-bold text-success">Visão Geral</span> para entradas e saídas
+                        e <span class="fw-bold" style="color:#17a2b8;">Importação</span> para arquivos OFX/CSV.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Alertas -->
+            <?php if ($pendingConfirmCount > 0): ?>
+            <div class="card border-0 shadow-sm mt-3 border-start border-warning border-4" style="border-radius:12px;">
+                <div class="card-body p-3">
+                    <h6 class="mb-1 fw-bold text-warning" style="font-size:.78rem;">
+                        <i class="fas fa-user-clock me-1"></i>Aguardando Confirmação
+                    </h6>
+                    <p class="mb-0 text-muted" style="font-size:.72rem;">
+                        <strong><?= $pendingConfirmCount ?></strong> pagamento(s) pendente(s) de confirmação.
+                    </p>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- CONTEÚDO PRINCIPAL — Seção Ativa (9/12)         -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div class="col-lg-9">
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- SEÇÃO: Pagamentos (Parcelas) — PRINCIPAL -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="fin-section <?= $activeSection === 'payments' ? 'active' : '' ?>" id="fin-payments">
+
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(52,152,219,.1);">
+                        <i class="fas fa-file-invoice-dollar" style="color:#3498db;font-size:.85rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0" style="font-size:1rem;">Pagamentos</h5>
+                        <p class="text-muted mb-0" style="font-size:.72rem;">Parcelas de pedidos nas etapas Financeiro e Concluído.</p>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
-            <div class="card-body d-flex align-items-center p-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;background:rgba(39,174,96,0.15);">
-                    <i class="fas fa-check-circle fa-lg text-success"></i>
-                </div>
-                <div>
-                    <div class="text-muted small text-uppercase fw-bold">Pagas</div>
-                    <div class="fw-bold fs-4"><?= $totalPagas ?>
-                        <small class="text-muted fs-6">(R$ <?= number_format($valorPago, 2, ',', '.') ?>)</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
-            <div class="card-body d-flex align-items-center p-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;background:rgba(23,162,184,0.15);">
-                    <i class="fas fa-user-clock fa-lg text-info"></i>
-                </div>
-                <div>
-                    <div class="text-muted small text-uppercase fw-bold">Aguardando Confirmação</div>
-                    <div class="fw-bold fs-4"><?= $totalAguardando ?></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- ══════ Filtros ══════ -->
-<form method="get" class="row g-2 mb-3 align-items-end">
-    <input type="hidden" name="page" value="financial">
-    <input type="hidden" name="action" value="payments">
-    <div class="col-auto">
-        <label class="form-label small fw-bold mb-1">Status</label>
-        <select name="status" class="form-select form-select-sm" style="width:170px">
-            <option value="">Todos</option>
-            <option value="pendente"    <?= $filterStatus==='pendente'   ?'selected':'' ?>>Pendentes/Atrasadas</option>
-            <option value="pago"        <?= $filterStatus==='pago'       ?'selected':'' ?>>Pagas</option>
-            <option value="atrasado"    <?= $filterStatus==='atrasado'   ?'selected':'' ?>>Atrasadas</option>
-            <option value="aguardando"  <?= $filterStatus==='aguardando' ?'selected':'' ?>>Aguardando Confirm.</option>
-        </select>
-    </div>
-    <div class="col-auto">
-        <label class="form-label small fw-bold mb-1">Mês</label>
-        <select name="filter_month" class="form-select form-select-sm" style="width:120px">
-            <option value="">Todos</option>
-            <?php $mn = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-                  for ($m = 1; $m <= 12; $m++): ?>
-            <option value="<?= $m ?>" <?= $filterMonth == $m ? 'selected' : '' ?>><?= $mn[$m] ?></option>
-            <?php endfor; ?>
-        </select>
-    </div>
-    <div class="col-auto">
-        <label class="form-label small fw-bold mb-1">Ano</label>
-        <select name="filter_year" class="form-select form-select-sm" style="width:100px">
-            <option value="">Todos</option>
-            <?php for ($y = date('Y') - 2; $y <= date('Y') + 1; $y++): ?>
-            <option value="<?= $y ?>" <?= $filterYear == $y ? 'selected' : '' ?>><?= $y ?></option>
-            <?php endfor; ?>
-        </select>
-    </div>
-    <div class="col-auto">
-        <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-filter me-1"></i> Filtrar</button>
-        <a href="?page=financial&action=payments" class="btn btn-sm btn-outline-secondary"><i class="fas fa-times"></i></a>
-    </div>
-</form>
-
-<!-- ══════ Busca ══════ -->
-<div class="mb-3">
-    <div class="input-group">
-        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
-        <input type="text" class="form-control" id="searchPayments" placeholder="Buscar por nº pedido, cliente, status, método..." autocomplete="off">
-    </div>
-</div>
-
-<div class="alert alert-info py-2 small mb-3">
-    <i class="fas fa-info-circle me-1"></i>
-    Exibindo apenas parcelas de pedidos nas etapas <strong>Financeiro</strong> e <strong>Concluído</strong>.
-    Pedidos em outras etapas do pipeline não aparecem aqui.
-</div>
-
-<!-- ══════ Tabela de Parcelas ══════ -->
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
-        <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Todas as Parcelas <small class="text-muted fw-normal">(ordenadas por vencimento)</small></h6>
-        <span class="badge bg-secondary"><?= $totalParcelas ?> registro(s)</span>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" id="paymentsTable">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="py-3 ps-3">Pedido</th>
-                        <th class="py-3">Cliente</th>
-                        <th class="py-3">Parcela</th>
-                        <th class="py-3">Vencimento</th>
-                        <th class="py-3">Valor</th>
-                        <th class="py-3">Pago em</th>
-                        <th class="py-3">Valor Pago</th>
-                        <th class="py-3">Método</th>
-                        <th class="py-3">Status</th>
-                        <th class="py-3">Confirmação</th>
-                        <th class="py-3 text-center">Anexo</th>
-                        <th class="py-3 text-end pe-3">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($installments)): ?>
-                    <tr>
-                        <td colspan="12" class="text-center text-muted py-5">
-                            <i class="fas fa-inbox fa-3x mb-2 d-block opacity-50"></i>
-                            <div class="fw-bold">Nenhuma parcela encontrada</div>
-                            <small>Ajuste os filtros ou verifique se existem pedidos com parcelas geradas.</small>
-                        </td>
-                    </tr>
-                    <?php else: ?>
-                    <?php foreach ($installments as $inst):
-                        $st = $statusMap[$inst['status']] ?? $statusMap['pendente'];
-                        $isEntrada = ((int)($inst['installment_number'] ?? 1) === 0);
-                        $orderId = $inst['order_id'];
-                        // Forma de pagamento do pedido (pré-seleção)
-                        $orderMethod = $inst['order_payment_method'] ?? '';
-                        // Forma de pagamento efetiva da parcela (se já paga)
-                        $instMethod = $inst['payment_method'] ?? '';
-                        // Determinar método exibido
-                        $displayMethod = !empty($instMethod) ? $instMethod : $orderMethod;
-                        // Verificar se é boleto (para reimpressão)
-                        $isBoleto = ($displayMethod === 'boleto');
-                        // Mês referente para boleto (baseado no vencimento)
-                        $boletoMesRef = date('m/Y', strtotime($inst['due_date']));
-                        // Comprovante
-                        $hasAttachment = !empty($inst['attachment_path']);
-                        // Endereço formatado do cliente (address é JSON)
-                        $customerAddrFormatted = '';
-                        if (!empty($inst['customer_address'])) {
-                            $customerAddrFormatted = \Akti\Models\CompanySettings::formatCustomerAddress($inst['customer_address']);
-                        }
-                    ?>
-                    <tr class="<?= $inst['status'] === 'atrasado' ? 'table-danger' : '' ?>">
-                        <!-- Pedido -->
-                        <td class="ps-3 fw-bold">
-                            <a href="?page=pipeline&action=detail&id=<?= $orderId ?>" class="text-decoration-none text-dark" title="Ver pedido">
-                                #<?= str_pad($orderId, 4, '0', STR_PAD_LEFT) ?>
-                            </a>
-                        </td>
-                        <!-- Cliente -->
-                        <td class="small"><?= e($inst['customer_name'] ?? 'N/A') ?></td>
-                        <!-- Parcela -->
-                        <td>
-                            <?php if ($isEntrada): ?>
-                                <span class="badge bg-info">Entrada</span>
-                            <?php else: ?>
-                                <span class="fw-bold"><?= $inst['installment_number'] ?>ª</span>
-                            <?php endif; ?>
-                        </td>
-                        <!-- Vencimento -->
-                        <td class="small">
-                            <?= date('d/m/Y', strtotime($inst['due_date'])) ?>
-                            <?php if ($inst['status'] === 'atrasado'):
-                                $diasAtraso = max(0, (int)((time() - strtotime($inst['due_date'])) / 86400));
-                            ?>
-                                <span class="badge bg-danger rounded-pill ms-1" style="font-size:0.6rem;">+<?= $diasAtraso ?>d</span>
-                            <?php endif; ?>
-                        </td>
-                        <!-- Valor -->
-                        <td class="fw-bold">R$ <?= number_format($inst['amount'], 2, ',', '.') ?></td>
-                        <!-- Pago em -->
-                        <td class="small">
-                            <?= !empty($inst['paid_date']) ? date('d/m/Y', strtotime($inst['paid_date'])) : '<span class="text-muted">—</span>' ?>
-                        </td>
-                        <!-- Valor Pago -->
-                        <td>
-                            <?php if (!empty($inst['paid_amount'])): ?>
-                                <span class="fw-bold text-success">R$ <?= number_format($inst['paid_amount'], 2, ',', '.') ?></span>
-                            <?php else: ?>
-                                <span class="text-muted">—</span>
-                            <?php endif; ?>
-                        </td>
-                        <!-- Método -->
-                        <td class="small">
-                            <?php if (!empty($displayMethod)): ?>
-                                <?= $methodLabels[$displayMethod] ?? ucfirst($displayMethod) ?>
-                                <?php if (!empty($instMethod) && $instMethod !== $orderMethod && !empty($orderMethod)): ?>
-                                    <i class="fas fa-exchange-alt text-muted ms-1" title="Alterado (pedido: <?= $methodLabels[$orderMethod] ?? ucfirst($orderMethod) ?>)" style="font-size:0.65rem;cursor:help;"></i>
-                                <?php endif; ?>
-                            <?php else: ?>
-                                <span class="text-muted">—</span>
-                            <?php endif; ?>
-                        </td>
-                        <!-- Status -->
-                        <td>
-                            <span class="badge <?= $st['badge'] ?>"><i class="<?= $st['icon'] ?> me-1"></i><?= $st['label'] ?></span>
-                        </td>
-                        <!-- Confirmação -->
-                        <td>
-                            <?php if ($inst['status'] === 'pago' && !empty($inst['is_confirmed'])): ?>
-                                <span class="text-success small" title="Confirmado por <?= eAttr($inst['confirmed_by_name'] ?? '—') ?> em <?= !empty($inst['confirmed_at']) ? date('d/m/Y H:i', strtotime($inst['confirmed_at'])) : '' ?>">
-                                    <i class="fas fa-check-double me-1"></i>Confirmado
-                                </span>
-                            <?php elseif ($inst['status'] === 'pago' && empty($inst['is_confirmed'])): ?>
-                                <span class="badge bg-warning text-dark"><i class="fas fa-user-clock me-1"></i>Aguardando</span>
-                            <?php else: ?>
-                                <span class="text-muted small">—</span>
-                            <?php endif; ?>
-                        </td>
-                        <!-- Anexo (Comprovante) -->
-                        <td class="text-center">
-                            <?php if ($hasAttachment): ?>
-                                <a href="<?= eAttr($inst['attachment_path']) ?>" target="_blank" class="text-success" title="Ver comprovante">
-                                    <i class="fas fa-paperclip fa-lg"></i>
-                                </a>
-                            <?php else: ?>
-                                <span class="text-muted small">—</span>
-                            <?php endif; ?>
-                        </td>
-                        <!-- Ações -->
-                        <td class="text-end pe-3">
-                            <div class="btn-group btn-group-sm">
-                                <?php if ($inst['status'] === 'pendente' || $inst['status'] === 'atrasado'): ?>
-                                    <!-- Registrar Pagamento -->
-                                    <button type="button" class="btn btn-success btn-register-pay"
-                                            data-id="<?= $inst['id'] ?>"
-                                            data-order-id="<?= $orderId ?>"
-                                            data-amount="<?= $inst['amount'] ?>"
-                                            data-number="<?= $inst['installment_number'] ?>"
-                                            data-customer="<?= eAttr($inst['customer_name'] ?? '') ?>"
-                                            data-order-method="<?= eAttr($orderMethod) ?>"
-                                            data-due-date="<?= $inst['due_date'] ?>"
-                                            title="Registrar Pagamento">
-                                        <i class="fas fa-hand-holding-usd me-1"></i> Pagar
-                                    </button>
-                                    <!-- Boleto: Reimprimir -->
-                                    <?php if ($isBoleto): ?>
-                                    <?php if ($canUseBoletoModule): ?>
-                                    <button type="button" class="btn btn-outline-primary btn-print-boleto"
-                                            data-id="<?= $inst['id'] ?>"
-                                            data-order-id="<?= $orderId ?>"
-                                            data-amount="<?= $inst['amount'] ?>"
-                                            data-due="<?= $inst['due_date'] ?>"
-                                            data-mes-ref="<?= $boletoMesRef ?>"
-                                            data-number="<?= $inst['installment_number'] ?>"
-                                            data-customer="<?= eAttr($inst['customer_name'] ?? '') ?>"
-                                            data-customer-doc="<?= eAttr($inst['customer_document'] ?? '') ?>"
-                                            data-customer-addr="<?= eAttr($customerAddrFormatted) ?>"
-                                            title="Reimprimir Boleto (ref. <?= $boletoMesRef ?>)">
-                                        <i class="fas fa-print"></i>
-                                    </button>
-                                    <?php else: ?>
-                                    <button type="button" class="btn btn-outline-secondary" title="Módulo Boleto inativo"
-                                            onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('boleto') ?>">
-                                        <i class="fas fa-print"></i>
-                                    </button>
-                                    <?php endif; ?>
-                                    <?php endif; ?>
-                                <?php elseif ($inst['status'] === 'pago' && empty($inst['is_confirmed'])): ?>
-                                    <!-- Confirmar -->
-                                    <form method="post" action="?page=financial&action=confirmPayment" class="d-inline">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="installment_id" value="<?= $inst['id'] ?>">
-                                        <input type="hidden" name="redirect" value="?page=financial&action=payments<?= $filterStatus ? '&status='.$filterStatus : '' ?>">
-                                        <button type="submit" class="btn btn-outline-success btn-confirm" title="Confirmar Pagamento">
-                                            <i class="fas fa-check me-1"></i> Confirmar
-                                        </button>
-                                    </form>
-                                    <!-- Estornar -->
-                                    <form method="post" action="?page=financial&action=cancelInstallment" class="d-inline">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="installment_id" value="<?= $inst['id'] ?>">
-                                        <input type="hidden" name="order_id" value="<?= $orderId ?>">
-                                        <button type="submit" class="btn btn-outline-danger btn-estornar" title="Estornar Pagamento">
-                                            <i class="fas fa-undo"></i>
-                                        </button>
-                                    </form>
-                                <?php elseif ($inst['status'] === 'pago' && !empty($inst['is_confirmed'])): ?>
-                                    <!-- Já confirmado — permitir estorno -->
-                                    <form method="post" action="?page=financial&action=cancelInstallment" class="d-inline">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="installment_id" value="<?= $inst['id'] ?>">
-                                        <input type="hidden" name="order_id" value="<?= $orderId ?>">
-                                        <button type="submit" class="btn btn-outline-danger btn-estornar" title="Estornar Pagamento">
-                                            <i class="fas fa-undo me-1"></i> Estornar
-                                        </button>
-                                    </form>
-                                <?php endif; ?>
-
-                                <!-- Anexar Comprovante (sempre disponível) -->
-                                <button type="button" class="btn btn-outline-secondary btn-attach"
-                                        data-id="<?= $inst['id'] ?>"
-                                        data-order-id="<?= $orderId ?>"
-                                        data-has-attachment="<?= $hasAttachment ? '1' : '0' ?>"
-                                        data-attachment-path="<?= eAttr($inst['attachment_path'] ?? '') ?>"
-                                        title="<?= $hasAttachment ? 'Gerenciar comprovante' : 'Anexar comprovante' ?>">
-                                    <i class="fas fa-<?= $hasAttachment ? 'file-alt' : 'upload' ?>"></i>
-                                </button>
-
-                                <!-- Boleto: Reimprimir (para parcelas pagas com boleto) -->
-                                <?php if ($inst['status'] === 'pago' && $isBoleto): ?>
-                                <?php if ($canUseBoletoModule): ?>
-                                <button type="button" class="btn btn-outline-primary btn-print-boleto"
-                                        data-id="<?= $inst['id'] ?>"
-                                        data-order-id="<?= $orderId ?>"
-                                        data-amount="<?= $inst['paid_amount'] ?? $inst['amount'] ?>"
-                                        data-due="<?= $inst['due_date'] ?>"
-                                        data-mes-ref="<?= $boletoMesRef ?>"
-                                        data-number="<?= $inst['installment_number'] ?>"
-                                        data-customer="<?= eAttr($inst['customer_name'] ?? '') ?>"
-                                        data-customer-doc="<?= eAttr($inst['customer_document'] ?? '') ?>"
-                                        data-customer-addr="<?= eAttr($customerAddrFormatted) ?>"
-                                        title="Reimprimir Boleto (ref. <?= $boletoMesRef ?>)">
-                                    <i class="fas fa-print"></i>
-                                </button>
-                                <?php else: ?>
-                                <button type="button" class="btn btn-outline-secondary" title="Módulo Boleto inativo"
-                                        onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('boleto') ?>">
-                                    <i class="fas fa-print"></i>
-                                </button>
-                                <?php endif; ?>
-                                <?php endif; ?>
-
-                                <!-- Link para ver todas as parcelas do pedido -->
-                                <a href="?page=financial&action=installments&order_id=<?= $orderId ?>" class="btn btn-outline-secondary" title="Gerenciar parcelas deste pedido">
-                                    <i class="fas fa-cog"></i>
-                                </a>
+                <!-- Cards de Resumo (preenchidos via AJAX) -->
+                <div class="row g-3 mb-4" id="paymentsSummaryCards">
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
+                            <div class="card-body d-flex align-items-center p-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:42px;height:42px;background:rgba(52,152,219,0.15);">
+                                    <i class="fas fa-list-ol text-primary"></i>
+                                </div>
+                                <div>
+                                    <div class="text-muted small text-uppercase fw-bold" style="font-size:.65rem;">Total</div>
+                                    <div class="fw-bold fs-5" id="cardPayTotal">—</div>
+                                </div>
                             </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+                            <div class="card-body d-flex align-items-center p-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:42px;height:42px;background:rgba(243,156,18,0.15);">
+                                    <i class="fas fa-clock text-warning"></i>
+                                </div>
+                                <div>
+                                    <div class="text-muted small text-uppercase fw-bold" style="font-size:.65rem;">Pendentes</div>
+                                    <div class="fw-bold fs-5" id="cardPayPending">—</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                            <div class="card-body d-flex align-items-center p-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:42px;height:42px;background:rgba(39,174,96,0.15);">
+                                    <i class="fas fa-check-circle text-success"></i>
+                                </div>
+                                <div>
+                                    <div class="text-muted small text-uppercase fw-bold" style="font-size:.65rem;">Pagas</div>
+                                    <div class="fw-bold fs-5" id="cardPayPaid">—</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
+                            <div class="card-body d-flex align-items-center p-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:42px;height:42px;background:rgba(23,162,184,0.15);">
+                                    <i class="fas fa-user-clock text-info"></i>
+                                </div>
+                                <div>
+                                    <div class="text-muted small text-uppercase fw-bold" style="font-size:.65rem;">Aguardando</div>
+                                    <div class="fw-bold fs-5" id="cardPayAwaiting">—</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtros Dinâmicos -->
+                <div class="row g-2 mb-3 align-items-end">
+                    <div class="col-auto">
+                        <label class="form-label small fw-bold mb-1">Status</label>
+                        <select id="fPayStatus" class="form-select form-select-sm" style="width:170px">
+                            <option value="">Todos</option>
+                            <option value="pendente">Pendentes/Atrasadas</option>
+                            <option value="pago">Pagas</option>
+                            <option value="atrasado">Atrasadas</option>
+                            <option value="aguardando">Aguardando Confirm.</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label small fw-bold mb-1">Mês</label>
+                        <select id="fPayMonth" class="form-select form-select-sm" style="width:120px">
+                            <option value="">Todos</option>
+                            <?php $mn=['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; for($m=1;$m<=12;$m++): ?>
+                            <option value="<?= $m ?>"><?= $mn[$m] ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label small fw-bold mb-1">Ano</label>
+                        <select id="fPayYear" class="form-select form-select-sm" style="width:100px">
+                            <option value="">Todos</option>
+                            <?php for($y=date('Y')-2;$y<=date('Y')+1;$y++): ?>
+                            <option value="<?= $y ?>"><?= $y ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" class="form-control" id="fPaySearch" placeholder="Buscar pedido, cliente..." autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabela de Parcelas -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Parcelas</h6>
+                        <span class="badge bg-secondary" id="payTotalBadge">—</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="py-3 ps-3">Pedido</th>
+                                        <th class="py-3">Cliente</th>
+                                        <th class="py-3">Parcela</th>
+                                        <th class="py-3">Vencimento</th>
+                                        <th class="py-3">Valor</th>
+                                        <th class="py-3">Pago em</th>
+                                        <th class="py-3">Valor Pago</th>
+                                        <th class="py-3">Status</th>
+                                        <th class="py-3 text-end pe-3">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="paymentsTableBody">
+                                    <tr><td colspan="9" class="text-center text-muted py-5">
+                                        <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block opacity-50"></i>Carregando...
+                                    </td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="fin-pagination" id="paymentsPagination"></div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- SEÇÃO: Visão Geral (Entradas/Saídas)    -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="fin-section <?= $activeSection === 'transactions' ? 'active' : '' ?>" id="fin-transactions">
+
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(39,174,96,.1);">
+                        <i class="fas fa-exchange-alt" style="color:#27ae60;font-size:.85rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0" style="font-size:1rem;">Visão Geral — Entradas e Saídas</h5>
+                        <p class="text-muted mb-0" style="font-size:.72rem;">Todas as movimentações financeiras do sistema.</p>
+                    </div>
+                </div>
+
+                <!-- Cards de Resumo (via AJAX) -->
+                <div class="row g-3 mb-4" id="txSummaryCards">
+                    <div class="col-xl-4 col-md-4">
+                        <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                            <div class="card-body d-flex align-items-center p-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(39,174,96,0.15);">
+                                    <i class="fas fa-arrow-down fa-lg text-success"></i>
+                                </div>
+                                <div>
+                                    <div class="text-muted small text-uppercase" style="font-size:.65rem;">Entradas</div>
+                                    <div class="fw-bold fs-5 text-success" id="cardTxEntradas">R$ —</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-4 col-md-4">
+                        <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
+                            <div class="card-body d-flex align-items-center p-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(192,57,43,0.15);">
+                                    <i class="fas fa-arrow-up fa-lg text-danger"></i>
+                                </div>
+                                <div>
+                                    <div class="text-muted small text-uppercase" style="font-size:.65rem;">Saídas</div>
+                                    <div class="fw-bold fs-5 text-danger" id="cardTxSaidas">R$ —</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-4 col-md-4">
+                        <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
+                            <div class="card-body d-flex align-items-center p-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(52,152,219,0.15);">
+                                    <i class="fas fa-balance-scale fa-lg text-primary"></i>
+                                </div>
+                                <div>
+                                    <div class="text-muted small text-uppercase" style="font-size:.65rem;">Saldo</div>
+                                    <div class="fw-bold fs-5" id="cardTxSaldo">R$ —</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtros Dinâmicos -->
+                <div class="row g-2 mb-3 align-items-end">
+                    <div class="col-auto">
+                        <label class="form-label small fw-bold mb-1">Tipo</label>
+                        <select id="fTxType" class="form-select form-select-sm" style="width:140px">
+                            <option value="">Todos</option>
+                            <option value="entrada">Entradas</option>
+                            <option value="saida">Saídas</option>
+                            <option value="registro">Registros</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label small fw-bold mb-1">Categoria</label>
+                        <select id="fTxCategory" class="form-select form-select-sm" style="width:180px">
+                            <option value="">Todas</option>
+                            <optgroup label="Entradas">
+                                <?php foreach ($categories['entrada'] ?? [] as $k => $v): ?>
+                                <option value="<?= $k ?>"><?= $v ?></option>
+                                <?php endforeach; ?>
+                            </optgroup>
+                            <optgroup label="Saídas">
+                                <?php foreach ($categories['saida'] ?? [] as $k => $v): ?>
+                                <option value="<?= $k ?>"><?= $v ?></option>
+                                <?php endforeach; ?>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label small fw-bold mb-1">Mês</label>
+                        <select id="fTxMonth" class="form-select form-select-sm" style="width:120px">
+                            <option value="">Todos</option>
+                            <?php for($m=1;$m<=12;$m++): ?>
+                            <option value="<?= $m ?>"><?= $mn[$m] ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label small fw-bold mb-1">Ano</label>
+                        <select id="fTxYear" class="form-select form-select-sm" style="width:100px">
+                            <option value="">Todos</option>
+                            <?php for($y=date('Y')-2;$y<=date('Y')+1;$y++): ?>
+                            <option value="<?= $y ?>"><?= $y ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" class="form-control" id="fTxSearch" placeholder="Buscar descrição..." autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabela de Transações -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold text-success"><i class="fas fa-exchange-alt me-2"></i>Transações</h6>
+                        <span class="badge bg-secondary" id="txTotalBadge">—</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-3 py-3">Data</th>
+                                        <th class="py-3">Tipo</th>
+                                        <th class="py-3">Categoria</th>
+                                        <th class="py-3">Descrição</th>
+                                        <th class="py-3">Valor</th>
+                                        <th class="py-3">Método</th>
+                                        <th class="py-3 text-end pe-3">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="txTableBody">
+                                    <tr><td colspan="7" class="text-center text-muted py-5">
+                                        <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block opacity-50"></i>Carregando...
+                                    </td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="fin-pagination" id="txPagination"></div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- SEÇÃO: Importação OFX/CSV/Excel         -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="fin-section <?= $activeSection === 'import' ? 'active' : '' ?>" id="fin-import">
+
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(23,162,184,.1);">
+                            <i class="fas fa-file-import" style="color:#17a2b8;font-size:.85rem;"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0" style="font-size:1rem;">Importação de Arquivos</h5>
+                            <p class="text-muted mb-0" style="font-size:.72rem;">Importe extratos bancários (OFX) ou planilhas (CSV/Excel) com mapeamento dinâmico de colunas.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Stepper visual ── -->
+                <div class="d-flex align-items-center mb-4 gap-2" id="importStepper">
+                    <div class="import-step-indicator active" data-step="1">
+                        <span class="badge bg-primary rounded-pill px-3 py-2"><i class="fas fa-upload me-1"></i>1. Upload</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-muted small"></i>
+                    <div class="import-step-indicator" data-step="2">
+                        <span class="badge bg-secondary rounded-pill px-3 py-2"><i class="fas fa-columns me-1"></i>2. Mapeamento</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-muted small"></i>
+                    <div class="import-step-indicator" data-step="3">
+                        <span class="badge bg-secondary rounded-pill px-3 py-2"><i class="fas fa-check-circle me-1"></i>3. Resultado</span>
+                    </div>
+                </div>
+
+                <!-- ══ Step 1: Upload do Arquivo ══ -->
+                <div class="import-step active" id="importStep1">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+
+                            <div class="import-dropzone" id="importDropzone">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                <h6 class="mb-1">Arraste o arquivo aqui</h6>
+                                <p class="text-muted small mb-2">ou clique para selecionar</p>
+                                <input type="file" id="importFileInput" accept=".ofx,.ofc,.csv,.txt,.xls,.xlsx" style="display:none;">
+                                <p class="text-muted mb-0" style="font-size:.7rem;">Formatos aceitos: <strong>OFX</strong>, <strong>CSV</strong>, <strong>TXT</strong>, <strong>XLS</strong>, <strong>XLSX</strong></p>
+                            </div>
+
+                            <div id="importFileInfo" style="display:none;" class="mt-3">
+                                <div class="alert alert-success d-flex align-items-center py-2 mb-0">
+                                    <i class="fas fa-file-circle-check fa-lg me-3 text-success"></i>
+                                    <div class="flex-grow-1">
+                                        <strong id="importFileName">arquivo.csv</strong>
+                                        <span class="text-muted small ms-2" id="importFileSize"></span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="btnRemoveFile">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-3 align-items-end">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Modo de importação</label>
+                                    <select id="importMode" class="form-select form-select-sm">
+                                        <option value="registro">📋 Apenas Registro (não contabiliza)</option>
+                                        <option value="contabilizar">✅ Contabilizar (entradas/saídas no caixa)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <button type="button" class="btn btn-info text-white" id="btnParseFile" disabled>
+                                        <i class="fas fa-cog me-1"></i>Analisar Arquivo
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-light border small mt-3 mb-0">
+                                <i class="fas fa-info-circle text-info me-1"></i>
+                                <strong>Registro:</strong> apenas para consulta (não altera saldo).
+                                <strong>Contabilizar:</strong> créditos como entrada e débitos como saída no caixa.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══ Step 2: Preview / Mapeamento ══ -->
+                <div class="import-step" id="importStep2">
+
+                    <!-- CSV Column Mapping Table (only for CSV/TXT/XLS/XLSX) -->
+                    <div class="card border-0 shadow-sm mb-3 d-none" id="csvMappingSection">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold"><i class="fas fa-columns me-2 text-primary"></i>Mapeamento de Colunas</h6>
+                                <div>
+                                    <span class="badge bg-info text-white me-1" id="importFileType">—</span>
+                                    <span class="badge bg-secondary" id="totalRowsBadge">0 linhas</span>
+                                </div>
+                            </div>
+                            <p class="text-muted mb-0 mt-1" style="font-size:.72rem;">Selecione a qual campo financeiro cada coluna do arquivo corresponde. Colunas sem mapeamento serão ignoradas.</p>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm align-middle mb-0" id="finMappingTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width:40px;" class="text-center">
+                                                <input type="checkbox" class="form-check-input" id="finCheckAllCols" checked title="Marcar/desmarcar todas">
+                                            </th>
+                                            <th>Coluna do Arquivo</th>
+                                            <th>Amostra de Dados</th>
+                                            <th style="width:220px;">Corresponde a</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="finMappingTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Mapping validation messages -->
+                            <div id="mappingValidation" class="mt-3" style="display:none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Preview table + row selection -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold"><i class="fas fa-table me-2 text-info"></i>Pré-visualização</h6>
+                                <div>
+                                    <span class="badge bg-info text-white me-2" id="importFileTypeBadge">—</span>
+                                    <span class="badge bg-secondary" id="importRowCount">0 linhas</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <!-- Row selection controls -->
+                            <div class="p-3 border-bottom">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary me-1" id="btnSelectAll">
+                                            <i class="fas fa-check-square me-1"></i>Selecionar Todas
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary me-1" id="btnDeselectAll">
+                                            <i class="far fa-square me-1"></i>Desmarcar Todas
+                                        </button>
+                                        <span class="text-muted small ms-2"><strong id="selectedCount">0</strong> selecionada(s)</span>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="skipFirstRow" checked>
+                                        <label class="form-check-label small" for="skipFirstRow">Pular 1ª linha (cabeçalho)</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Preview table -->
+                            <div class="preview-table">
+                                <table class="table table-sm table-striped table-bordered table-hover align-middle mb-0" id="importPreviewTable">
+                                    <thead class="table-light"><tr id="importPreviewHead"></tr></thead>
+                                    <tbody id="importPreviewBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" id="btnImportBack">
+                            <i class="fas fa-arrow-left me-1"></i>Voltar
+                        </button>
+                        <button type="button" class="btn btn-success btn-lg" id="btnImportConfirm">
+                            <i class="fas fa-file-import me-1"></i>Importar <span id="importCountLabel">0</span> Transação(ões)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ══ Step 3: Resultado ══ -->
+                <div class="import-step" id="importStep3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4" id="importResultContent">
+                            <!-- Preenchido via JS -->
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button type="button" class="btn btn-outline-info" id="btnNewImport">
+                            <i class="fas fa-redo me-1"></i>Nova Importação
+                        </button>
+                        <a href="#" class="btn btn-primary ms-2 fin-go-transactions">
+                            <i class="fas fa-exchange-alt me-1"></i>Ver Transações
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- SEÇÃO: Nova Transação                    -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="fin-section <?= $activeSection === 'new' ? 'active' : '' ?>" id="fin-new">
+
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(155,89,182,.1);">
+                        <i class="fas fa-plus-circle" style="color:#9b59b6;font-size:.85rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0" style="font-size:1rem;">Nova Transação</h5>
+                        <p class="text-muted mb-0" style="font-size:.72rem;">Registre uma entrada ou saída manual.</p>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <form id="formNewTransaction" method="post" action="?page=financial&action=addTransaction">
+                            <?= csrf_field() ?>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Tipo</label>
+                                    <select name="type" id="newTxType" class="form-select" required>
+                                        <option value="entrada">✅ Entrada</option>
+                                        <option value="saida">🔴 Saída</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Categoria</label>
+                                    <select name="category" id="newTxCategory" class="form-select" required>
+                                        <?php foreach ($categories['entrada'] ?? [] as $k => $v): ?>
+                                        <option value="<?= $k ?>" data-type="entrada"><?= $v ?></option>
+                                        <?php endforeach; ?>
+                                        <?php foreach ($categories['saida'] ?? [] as $k => $v): ?>
+                                        <option value="<?= $k ?>" data-type="saida" style="display:none;"><?= $v ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold">Descrição</label>
+                                    <input type="text" name="description" class="form-control" placeholder="Ex: Compra de papel A4" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Valor (R$)</label>
+                                    <input type="number" step="0.01" min="0.01" name="amount" class="form-control" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Data</label>
+                                    <input type="date" name="transaction_date" class="form-control" value="<?= date('Y-m-d') ?>" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Forma de Pagamento</label>
+                                    <select name="payment_method" class="form-select">
+                                        <option value="">— Não informado —</option>
+                                        <option value="dinheiro">💵 Dinheiro</option>
+                                        <option value="pix">📱 PIX</option>
+                                        <option value="cartao_credito">💳 Cartão Crédito</option>
+                                        <option value="cartao_debito">💳 Cartão Débito</option>
+                                        <option value="boleto">📄 Boleto</option>
+                                        <option value="transferencia">🏦 Transferência</option>
+                                        <option value="gateway">🌐 Gateway Online</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold">Observação <span class="text-muted fw-normal">(opcional)</span></label>
+                                    <input type="text" name="notes" class="form-control" placeholder="Nota adicional">
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check me-1"></i> Registrar Transação
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /col-lg-9 -->
+    </div><!-- /row -->
+</div><!-- /container-fluid -->
+
 
 <!-- ══════ Modal Registrar Pagamento ══════ -->
 <div class="modal fade" id="modalPay" tabindex="-1">
@@ -437,7 +759,7 @@ foreach ($installments as $inst) {
                 <?= csrf_field() ?>
                 <input type="hidden" name="installment_id" id="payInstId">
                 <input type="hidden" name="order_id" id="payOrderId">
-                <div class="modal-header bg-success  border-0">
+                <div class="modal-header bg-success border-0">
                     <h5 class="modal-title text-success"><i class="fas fa-hand-holding-usd me-2"></i>Registrar Pagamento</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -471,35 +793,9 @@ foreach ($installments as $inst) {
                             </select>
                             <small class="text-muted" id="payMethodHint"></small>
                         </div>
-                        <!-- Campo Boleto: Reimprimir para mês referente -->
-                        <div class="col-12 d-none" id="payBoletoSection">
-                            <div class="card bg-light border-0">
-                                <div class="card-body py-2 px-3">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <i class="fas fa-barcode text-primary me-2"></i>
-                                            <span class="small fw-bold">Boleto — Mês Referente:</span>
-                                            <span class="badge bg-primary ms-1" id="payBoletoMesRef">—</span>
-                                        </div>
-                                        <?php if ($canUseBoletoModule): ?>
-                                        <button type="button" class="btn btn-sm btn-outline-primary" id="btnPrintBoletoModal" title="Reimprimir Boleto">
-                                            <i class="fas fa-print me-1"></i> Reimprimir
-                                        </button>
-                                        <?php else: ?>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" title="Módulo Boleto inativo"
-                                                onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('boleto') ?>">
-                                            <i class="fas fa-print me-1"></i> Reimprimir
-                                        </button>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Comprovante (upload) -->
                         <div class="col-12">
                             <label class="form-label small fw-bold"><i class="fas fa-paperclip me-1"></i>Comprovante <span class="text-muted fw-normal">(opcional)</span></label>
                             <input type="file" name="attachment" class="form-control form-control-sm" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
-                            <small class="text-muted">Formatos aceitos: JPG, PNG, WEBP, GIF, PDF (máx 5MB)</small>
                         </div>
                         <div class="col-12">
                             <label class="form-label small fw-bold">Observação <span class="text-muted fw-normal">(opcional)</span></label>
@@ -518,95 +814,85 @@ foreach ($installments as $inst) {
     </div>
 </div>
 
-<!-- ══════ Modal Anexar Comprovante ══════ -->
-<div class="modal fade" id="modalAttach" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+<!-- ══════ Modal Editar Transação ══════ -->
+<div class="modal fade" id="modalEditTx" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-secondary  border-0">
-                <h5 class="modal-title"><i class="fas fa-paperclip me-2 text-secondary"></i>Comprovante</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Transação</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <!-- Preview do anexo existente -->
-                <div id="attachPreview" class="d-none mb-3 text-center">
-                    <div class="border rounded p-3 bg-light">
-                        <div id="attachPreviewImg" class="d-none mb-2">
-                            <img src="" class="img-fluid rounded shadow-sm" style="max-height:300px;" id="attachImgTag">
-                        </div>
-                        <div id="attachPreviewPdf" class="d-none mb-2">
-                            <i class="fas fa-file-pdf fa-3x text-danger"></i>
-                            <p class="small mt-1 mb-0">Documento PDF</p>
-                        </div>
-                        <a href="" target="_blank" class="btn btn-sm btn-outline-primary" id="attachViewLink">
-                            <i class="fas fa-external-link-alt me-1"></i> Abrir
-                        </a>
-                        <form method="post" action="?page=financial&action=removeAttachment" class="d-inline" id="formRemoveAttach">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="installment_id" id="removeAttachInstId">
-                            <input type="hidden" name="redirect" value="?page=financial&action=payments">
-                            <button type="submit" class="btn btn-sm btn-outline-danger ms-2 btn-remove-attach">
-                                <i class="fas fa-trash me-1"></i> Remover
-                            </button>
-                        </form>
-                    </div>
-                </div>
-                <!-- Upload de novo anexo -->
-                <form method="post" action="?page=financial&action=uploadAttachment" enctype="multipart/form-data" id="formUploadAttach">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="installment_id" id="uploadAttachInstId">
-                    <input type="hidden" name="redirect" value="?page=financial&action=payments">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold" id="attachUploadLabel">Enviar comprovante</label>
-                        <input type="file" name="attachment" class="form-control" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf" required>
-                        <small class="text-muted">JPG, PNG, WEBP, GIF ou PDF (máx 5MB)</small>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-upload me-1"></i> Enviar Comprovante
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ══════ Modal Reimprimir Boleto ══════ -->
-<div class="modal fade" id="modalBoleto" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-primary  border-0">
-                <h5 class="modal-title text-primary"><i class="fas fa-barcode me-2"></i>Reimprimir Boleto</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info py-2 mb-3">
-                    <i class="fas fa-info-circle me-1"></i>
-                    Pedido <strong id="boletoOrderDisplay">—</strong> ·
-                    Cliente: <strong id="boletoCustomerDisplay">—</strong>
-                </div>
+                <input type="hidden" id="editTxId">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label small fw-bold">Valor do Boleto</label>
-                        <div class="form-control bg-light" id="boletoAmountDisplay">—</div>
+                        <label class="form-label small fw-bold">Tipo</label>
+                        <select id="editTxType" class="form-select" required>
+                            <option value="entrada">✅ Entrada</option>
+                            <option value="saida">🔴 Saída</option>
+                            <option value="registro">📋 Registro</option>
+                        </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label small fw-bold">Vencimento</label>
-                        <div class="form-control bg-light" id="boletoDueDisplay">—</div>
+                        <label class="form-label small fw-bold">Categoria</label>
+                        <select id="editTxCategory" class="form-select" required>
+                            <optgroup label="Entradas" id="editCatEntrada">
+                                <?php foreach ($categories['entrada'] ?? [] as $k => $v): ?>
+                                <option value="<?= $k ?>" data-type="entrada"><?= $v ?></option>
+                                <?php endforeach; ?>
+                            </optgroup>
+                            <optgroup label="Saídas" id="editCatSaida">
+                                <?php foreach ($categories['saida'] ?? [] as $k => $v): ?>
+                                <option value="<?= $k ?>" data-type="saida"><?= $v ?></option>
+                                <?php endforeach; ?>
+                            </optgroup>
+                            <optgroup label="Sistema">
+                                <option value="registro_ofx" data-type="registro">Registro OFX/Importação</option>
+                                <option value="estorno_pagamento" data-type="registro">Estorno de Pagamento</option>
+                            </optgroup>
+                        </select>
                     </div>
                     <div class="col-12">
-                        <label class="form-label small fw-bold">Mês Referente</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-                            <input type="month" class="form-control" id="boletoMesInput">
-                        </div>
-                        <small class="text-muted">Selecione o mês de referência para o boleto (pode alterar se necessário).</small>
+                        <label class="form-label small fw-bold">Descrição</label>
+                        <input type="text" id="editTxDescription" class="form-control" placeholder="Descrição da transação" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Valor (R$)</label>
+                        <input type="number" step="0.01" min="0.01" id="editTxAmount" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Data</label>
+                        <input type="date" id="editTxDate" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Forma de Pagamento</label>
+                        <select id="editTxMethod" class="form-select">
+                            <option value="">— Não informado —</option>
+                            <option value="dinheiro">💵 Dinheiro</option>
+                            <option value="pix">📱 PIX</option>
+                            <option value="cartao_credito">💳 Cartão Crédito</option>
+                            <option value="cartao_debito">💳 Cartão Débito</option>
+                            <option value="boleto">📄 Boleto</option>
+                            <option value="transferencia">🏦 Transferência</option>
+                            <option value="gateway">🌐 Gateway Online</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold">Observação <span class="text-muted fw-normal">(opcional)</span></label>
+                        <input type="text" id="editTxNotes" class="form-control" placeholder="Nota adicional">
                     </div>
                 </div>
             </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fechar</button>
-                <button type="button" class="btn btn-primary" id="btnConfirmPrintBoleto">
-                    <i class="fas fa-print me-1"></i> Imprimir Boleto
+            <div class="modal-footer border-0 d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-danger" id="btnEditTxDelete">
+                    <i class="fas fa-trash me-1"></i>Excluir
                 </button>
+                <div>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnEditTxSave">
+                        <i class="fas fa-save me-1"></i>Salvar Alterações
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -616,851 +902,1130 @@ foreach ($installments as $inst) {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
-    // ═══════════════════════════════════════════════════════════════════
-    // DADOS BANCÁRIOS (injetados via PHP — configurações da empresa)
-    // ═══════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════
+    // DADOS PHP injetados
+    // ═══════════════════════════════════════════
+    var statusMap = <?= json_encode($statusMap) ?>;
+    var methodLabels = <?= json_encode($methodLabels) ?>;
+    var allCats = <?= json_encode($allCats) ?>;
     var bankConfig = {
-        banco:         <?= json_encode($company['boleto_banco'] ?? '') ?>,
-        agencia:       <?= json_encode($company['boleto_agencia'] ?? '') ?>,
-        agenciaDv:     <?= json_encode($company['boleto_agencia_dv'] ?? '') ?>,
-        conta:         <?= json_encode($company['boleto_conta'] ?? '') ?>,
-        contaDv:       <?= json_encode($company['boleto_conta_dv'] ?? '') ?>,
-        carteira:      <?= json_encode($company['boleto_carteira'] ?? '109') ?>,
-        especie:       <?= json_encode($company['boleto_especie'] ?? 'R$') ?>,
-        cedente:       <?= json_encode($company['boleto_cedente'] ?? $company['company_name'] ?? 'Empresa') ?>,
-        cedenteDoc:    <?= json_encode($company['boleto_cedente_documento'] ?? $company['company_document'] ?? '') ?>,
-        convenio:      <?= json_encode($company['boleto_convenio'] ?? '') ?>,
-        nossoNumero:   parseInt(<?= json_encode($company['boleto_nosso_numero'] ?? '1') ?>) || 1,
-        nossoNumDigitos: parseInt(<?= json_encode($company['boleto_nosso_numero_digitos'] ?? '7') ?>) || 7,
-        instrucoes:    <?= json_encode($company['boleto_instrucoes'] ?? "Não receber após o vencimento.\nMulta de 2% após o vencimento.\nJuros de 1% ao mês.") ?>,
-        multa:         <?= json_encode($company['boleto_multa'] ?? '2.00') ?>,
-        juros:         <?= json_encode($company['boleto_juros'] ?? '1.00') ?>,
-        aceite:        <?= json_encode($company['boleto_aceite'] ?? 'N') ?>,
-        especieDoc:    <?= json_encode($company['boleto_especie_doc'] ?? 'DM') ?>,
-        demonstrativo: <?= json_encode($company['boleto_demonstrativo'] ?? '') ?>,
-        localPagamento: <?= json_encode($company['boleto_local_pagamento'] ?? 'Pagável em qualquer banco até o vencimento') ?>,
-        cedenteEndereco: <?= json_encode($company['boleto_cedente_endereco'] ?? ($companyAddress ?? '')) ?>
+        banco: <?= json_encode($company['boleto_banco'] ?? '') ?>,
+        agencia: <?= json_encode($company['boleto_agencia'] ?? '') ?>,
+        conta: <?= json_encode($company['boleto_conta'] ?? '') ?>
     };
+    var csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-    var bancosNomes = {
-        '001': 'Banco do Brasil S.A.', '033': 'Banco Santander S.A.', '104': 'Caixa Econômica Federal',
-        '237': 'Banco Bradesco S.A.', '341': 'Itaú Unibanco S.A.', '399': 'HSBC', '422': 'Banco Safra S.A.',
-        '748': 'Sicredi', '756': 'Sicoob', '077': 'Banco Inter S.A.', '260': 'Nu Pagamentos S.A.',
-        '336': 'Banco C6 S.A.', '290': 'PagSeguro Internet S.A.', '380': 'PicPay', '323': 'Mercado Pago'
-    };
-
-    // ═══════════════════════════════════════════════════════════════════
-    // FUNÇÕES FEBRABAN / CNAB 400 — Geração de Boleto Bancário
-    // ═══════════════════════════════════════════════════════════════════
-    function mod10(value) {
-        var soma = 0, peso = 2;
-        for (var i = value.length - 1; i >= 0; i--) {
-            var parcial = parseInt(value[i]) * peso;
-            if (parcial > 9) parcial = Math.floor(parcial / 10) + (parcial % 10);
-            soma += parcial;
-            peso = peso === 2 ? 1 : 2;
-        }
-        var resto = soma % 10;
-        return resto === 0 ? 0 : 10 - resto;
+    // ═══════════════════════════════════════════
+    // UTILIDADES
+    // ═══════════════════════════════════════════
+    function escHtml(str) {
+        if (!str) return '';
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
     }
-
-    function mod11(value, base) {
-        base = base || 9;
-        var soma = 0, peso = 2;
-        for (var i = value.length - 1; i >= 0; i--) {
-            soma += parseInt(value[i]) * peso;
-            peso++;
-            if (peso > base) peso = 2;
-        }
-        var resto = soma % 11;
-        if (resto === 0 || resto === 1 || resto === 10) return 1;
-        return 11 - resto;
-    }
-
-    function padLeft(str, len, ch) {
-        ch = ch || '0';
-        str = String(str);
-        while (str.length < len) str = ch + str;
-        return str;
-    }
-
-    function fatorVencimento(dateStr) {
-        var base = new Date(1997, 9, 7); // 07/10/1997
-        var dt = new Date(dateStr + 'T12:00:00');
-        var diff = Math.round((dt - base) / (1000 * 60 * 60 * 24));
-        return padLeft(Math.max(0, diff), 4);
-    }
-
-    function formatarValorBoleto(valor) {
-        return padLeft(Math.round(valor * 100), 10);
-    }
-
-    function gerarCodigoBarras(banco, vencStr, valor, nossoNumStr) {
-        var fv = fatorVencimento(vencStr);
-        var vl = formatarValorBoleto(valor);
-        var ag = padLeft(bankConfig.agencia, 4);
-        var ct = padLeft(bankConfig.conta, 8);
-        var ctDv = bankConfig.contaDv || '0';
-        var cart = padLeft(bankConfig.carteira, 3);
-        var nn = nossoNumStr;
-        var conv = padLeft(bankConfig.convenio, 7);
-
-        var campoLivre = '';
-        if (banco === '001') {
-            campoLivre = padLeft(conv, 7) + padLeft(nn, 10) + ag + padLeft(ct, 8) + padLeft(cart, 2).substring(0, 2);
-            campoLivre = campoLivre.substring(0, 25);
-        } else if (banco === '341') {
-            var nn8 = padLeft(nn, 8);
-            var ct5 = padLeft(bankConfig.conta, 5);
-            var dacNN = mod10(ag + ct5 + cart + nn8);
-            campoLivre = (cart + nn8 + ag + ct5 + String(dacNN) + '000').substring(0, 25);
-        } else if (banco === '237') {
-            campoLivre = (ag + padLeft(cart, 2) + padLeft(nn, 11) + padLeft(ct, 7) + '0').substring(0, 25);
-        } else if (banco === '104') {
-            campoLivre = (padLeft(conv, 6) + padLeft(nn, 17) + '04').substring(0, 25);
-        } else if (banco === '033') {
-            campoLivre = ('9' + padLeft(conv, 7) + padLeft(nn, 13) + '0' + padLeft(cart, 3)).substring(0, 25);
-        } else {
-            campoLivre = (ag + padLeft(ct, 8) + ctDv + padLeft(cart, 3) + padLeft(nn, 10)).substring(0, 25);
-            while (campoLivre.length < 25) campoLivre += '0';
-        }
-
-        var semDv = banco + '9' + fv + vl + campoLivre;
-        var dvGeral = mod11(semDv.replace(/[^0-9]/g, ''), 9);
-        var cb = banco + '9' + String(dvGeral) + fv + vl + campoLivre;
-        return cb.substring(0, 44);
-    }
-
-    function gerarLinhaDigitavel(cb) {
-        var campo1 = cb.substring(0, 4) + cb.substring(19, 24);
-        var dv1 = mod10(campo1);
-        var c1 = campo1.substring(0, 5) + '.' + campo1.substring(5) + String(dv1);
-
-        var campo2 = cb.substring(24, 34);
-        var dv2 = mod10(campo2);
-        var c2 = campo2.substring(0, 5) + '.' + campo2.substring(5) + String(dv2);
-
-        var campo3 = cb.substring(34, 44);
-        var dv3 = mod10(campo3);
-        var c3 = campo3.substring(0, 5) + '.' + campo3.substring(5) + String(dv3);
-
-        var c4 = cb.substring(4, 5);
-        var c5 = cb.substring(5, 19);
-
-        return c1 + ' ' + c2 + ' ' + c3 + ' ' + c4 + ' ' + c5;
-    }
-
-    function gerarBarcode128Svg(code, width, height) {
-        var patterns = {
-            '0': 'nnwwn', '1': 'wnnnw', '2': 'nwnnw', '3': 'wwnnn', '4': 'nnwnw',
-            '5': 'wnwnn', '6': 'nwwnn', '7': 'nnnww', '8': 'wnnwn', '9': 'nwnwn'
-        };
-        var data = code;
-        if (data.length % 2 !== 0) data = '0' + data;
-        var bars = 'nnnn';
-        for (var i = 0; i < data.length; i += 2) {
-            var patBar = patterns[data[i]] || 'nnwwn';
-            var patSpace = patterns[data[i + 1]] || 'nnwwn';
-            for (var j = 0; j < 5; j++) {
-                bars += patBar[j];
-                bars += patSpace[j];
-            }
-        }
-        bars += 'wnn';
-        var totalUnits = 0;
-        for (var k = 0; k < bars.length; k++) totalUnits += (bars[k] === 'w') ? 3 : 1;
-        var unitWidth = width / totalUnits;
-        var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '">';
-        var x = 0;
-        for (var m = 0; m < bars.length; m++) {
-            var bw = (bars[m] === 'w') ? unitWidth * 3 : unitWidth;
-            if (m % 2 === 0) svg += '<rect x="' + x.toFixed(2) + '" y="0" width="' + bw.toFixed(2) + '" height="' + height + '" fill="#000"/>';
-            x += bw;
-        }
-        svg += '</svg>';
-        return svg;
-    }
-
     function formatCurrency(v) {
-        return parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return parseFloat(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-
     function formatDateBR(dateStr) {
         if (!dateStr) return '—';
-        var d = new Date(dateStr + 'T12:00:00');
-        return d.toLocaleDateString('pt-BR');
+        var parts = dateStr.split('-');
+        if (parts.length === 3) return parts[2] + '/' + parts[1] + '/' + parts[0];
+        return dateStr;
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // Gerar HTML completo do boleto FEBRABAN para uma parcela
-    // ═══════════════════════════════════════════════════════════════════
-    function gerarBoletoHTML(params) {
-        // params: { orderId, parcLabel, dueDate, valor, customer, customerDoc, customerAddr, instNumber }
-
-        if (!bankConfig.banco || !bankConfig.agencia || !bankConfig.conta) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Configurações Bancárias Incompletas',
-                html: '<p>Para gerar boletos no padrão FEBRABAN, é necessário configurar os dados bancários.</p><p class="small text-muted">Vá em <strong>Configurações → Boleto/Bancário</strong> e preencha os dados do banco, agência, conta e cedente.</p>',
-                confirmButtonText: '<i class="fas fa-cog me-1"></i> Ir para Configurações',
-                showCancelButton: true,
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#f39c12'
-            }).then(r => {
-                if (r.isConfirmed) window.open('?page=settings&tab=boleto', '_blank');
-            });
-            return null;
-        }
-
-        if (!bankConfig.cedente || !bankConfig.cedenteDoc) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Dados do Cedente Incompletos',
-                html: '<p>Preencha o <strong>Nome/Razão Social</strong> e o <strong>CNPJ/CPF do Cedente</strong> nas configurações.</p>',
-                confirmButtonText: '<i class="fas fa-cog me-1"></i> Ir para Configurações',
-                showCancelButton: true,
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#f39c12'
-            }).then(r => {
-                if (r.isConfirmed) window.open('?page=settings&tab=boleto', '_blank');
-            });
-            return null;
-        }
-
-        var orderNum = String(params.orderId).padStart(4, '0');
-        var bancoNome = bancosNomes[bankConfig.banco] || ('Banco ' + bankConfig.banco);
-        var bancoCode = padLeft(bankConfig.banco, 3);
-        var bancoDv   = mod11(bancoCode);
-        var bancoFull = bancoCode + '-' + bancoDv;
-        var agenciaStr = bankConfig.agencia + (bankConfig.agenciaDv ? '-' + bankConfig.agenciaDv : '');
-        var contaStr = bankConfig.conta + (bankConfig.contaDv ? '-' + bankConfig.contaDv : '');
-        var agCodCedente = agenciaStr + ' / ' + (bankConfig.convenio || contaStr);
-        var instrucoes = bankConfig.instrucoes ? bankConfig.instrucoes.split('\n') : [];
-        var dataProcessamento = new Date().toLocaleDateString('pt-BR');
-        var multaPct = parseFloat(bankConfig.multa) || 0;
-        var jurosPct = parseFloat(bankConfig.juros) || 0;
-        var cedenteAddr = bankConfig.cedenteEndereco || '';
-
-        var dueDateFmt = formatDateBR(params.dueDate);
-        var valorNum = parseFloat(params.valor) || 0;
-        var parcLabel = params.parcLabel;
-        var instNum = parseInt(params.instNumber) || 0;
-
-        var nossoNum = padLeft(bankConfig.nossoNumero + instNum, bankConfig.nossoNumDigitos);
-        var nossoNumComDv = nossoNum + '-' + mod11(nossoNum);
-        var numDocumento = orderNum + '-' + padLeft(instNum, 2);
-
-        var codigoBarras = gerarCodigoBarras(bancoCode, params.dueDate, valorNum, nossoNum);
-        var linhaDigitavel = gerarLinhaDigitavel(codigoBarras);
-        var barcodeSvg = gerarBarcode128Svg(codigoBarras, 580, 55);
-
-        var instrCompletas = instrucoes.slice();
-        if (multaPct > 0 && !instrCompletas.some(l => l.toLowerCase().indexOf('multa') >= 0)) {
-            instrCompletas.push('Multa de ' + multaPct.toFixed(2).replace('.', ',') + '% após o vencimento.');
-        }
-        if (jurosPct > 0 && !instrCompletas.some(l => l.toLowerCase().indexOf('juro') >= 0)) {
-            instrCompletas.push('Juros de ' + jurosPct.toFixed(2).replace('.', ',') + '% ao mês por atraso.');
-        }
-
-        var custName = params.customer || '—';
-        var custDoc = params.customerDoc || '';
-        var custAddr = params.customerAddr || '';
-
-        var boletoHtml = `
-        <div class="boleto-page">
-            <!-- RECIBO DO SACADO -->
-            <div class="recibo-sacado">
-                <table class="topo w100">
-                    <tr>
-                        <td class="topo-logo"><strong class="banco-nome">${bancoNome}</strong></td>
-                        <td class="topo-codigo"><span class="banco-numero">${bancoFull}</span></td>
-                        <td class="topo-ld"><span class="linha-digitavel">${linhaDigitavel}</span></td>
-                    </tr>
-                </table>
-                <table class="w100 body-table">
-                    <tr>
-                        <td class="cell" style="width:60%;"><span class="lbl">Beneficiário</span><br><strong>${bankConfig.cedente}</strong><br><small>${bankConfig.cedenteDoc}</small></td>
-                        <td class="cell" style="width:20%;"><span class="lbl">Agência/Cód. Beneficiário</span><br>${agCodCedente}</td>
-                        <td class="cell" style="width:20%;"><span class="lbl">Nosso Número</span><br><strong>${nossoNumComDv}</strong></td>
-                    </tr>
-                    <tr>
-                        <td class="cell"><span class="lbl">Pagador</span><br>${custName}${custDoc ? ' — CPF/CNPJ: ' + custDoc : ''}</td>
-                        <td class="cell"><span class="lbl">Vencimento</span><br><strong class="venc">${dueDateFmt}</strong></td>
-                        <td class="cell"><span class="lbl">Valor Documento</span><br><strong class="valor">R$ ${formatCurrency(valorNum)}</strong></td>
-                    </tr>
-                    <tr>
-                        <td class="cell"><span class="lbl">Endereço Pagador</span><br><small>${custAddr || '—'}</small></td>
-                        <td class="cell" colspan="2">
-                            <span class="lbl">Nº Documento</span> ${numDocumento}
-                            &nbsp;|&nbsp; <span class="lbl">Parcela</span> ${parcLabel}
-                            &nbsp;|&nbsp; <span class="lbl">Pedido</span> #${orderNum}
-                        </td>
-                    </tr>
-                </table>
-                <div class="recibo-footer">
-                    <span class="tesoura">✂</span>
-                    <span class="recibo-texto">Recibo do Sacado</span>
-                </div>
-            </div>
-            <!-- FICHA DE COMPENSAÇÃO — Padrão FEBRABAN (CNAB 240/400) -->
-            <div class="ficha-compensacao">
-                <table class="topo w100">
-                    <tr>
-                        <td class="topo-logo"><strong class="banco-nome">${bancoNome}</strong></td>
-                        <td class="topo-codigo"><span class="banco-numero">${bancoFull}</span></td>
-                        <td class="topo-ld"><span class="linha-digitavel">${linhaDigitavel}</span></td>
-                    </tr>
-                </table>
-                <table class="w100 body-table fc-body">
-                    <tr>
-                        <td class="cell" colspan="6"><span class="lbl">Local de Pagamento</span><br>${bankConfig.localPagamento}</td>
-                        <td class="cell r" style="width:25%;"><span class="lbl">Vencimento</span><br><strong class="venc venc-destaque">${dueDateFmt}</strong></td>
-                    </tr>
-                    <tr>
-                        <td class="cell" colspan="6"><span class="lbl">Beneficiário</span><br><strong>${bankConfig.cedente}</strong> — CNPJ/CPF: ${bankConfig.cedenteDoc}<br><small>${cedenteAddr}</small></td>
-                        <td class="cell r"><span class="lbl">Agência / Código Cedente</span><br><strong>${agCodCedente}</strong></td>
-                    </tr>
-                    <tr>
-                        <td class="cell"><span class="lbl">Data do Documento</span><br>${dataProcessamento}</td>
-                        <td class="cell" colspan="2"><span class="lbl">Nº do Documento</span><br>${numDocumento}</td>
-                        <td class="cell"><span class="lbl">Espécie Doc.</span><br>${bankConfig.especieDoc}</td>
-                        <td class="cell"><span class="lbl">Aceite</span><br>${bankConfig.aceite}</td>
-                        <td class="cell"><span class="lbl">Data Processamento</span><br>${dataProcessamento}</td>
-                        <td class="cell r"><span class="lbl">Nosso Número</span><br><strong>${nossoNumComDv}</strong></td>
-                    </tr>
-                    <tr>
-                        <td class="cell"><span class="lbl">Uso do Banco</span><br>&nbsp;</td>
-                        <td class="cell"><span class="lbl">Carteira</span><br>${bankConfig.carteira}</td>
-                        <td class="cell"><span class="lbl">Espécie</span><br>${bankConfig.especie}</td>
-                        <td class="cell" colspan="2"><span class="lbl">Quantidade</span><br>&nbsp;</td>
-                        <td class="cell"><span class="lbl">(x) Valor</span><br>&nbsp;</td>
-                        <td class="cell r"><span class="lbl">(=) Valor do Documento</span><br><strong class="valor">R$ ${formatCurrency(valorNum)}</strong></td>
-                    </tr>
-                    <tr>
-                        <td class="cell instrucoes" colspan="6" rowspan="5">
-                            <span class="lbl">Instruções (Texto de responsabilidade do beneficiário)</span><br>
-                            ${instrCompletas.map(l => l.trim()).filter(l => l).map(l => '<span class="inst-line">• ' + l + '</span>').join('<br>')}
-                            ${bankConfig.demonstrativo ? '<br><br><span class="lbl">Demonstrativo:</span><br><span class="inst-line">' + bankConfig.demonstrativo + '</span>' : ''}
-                            <br><br>
-                            <span class="inst-line"><strong>Ref: Pedido #${orderNum} — Parcela: ${parcLabel}</strong></span>
-                        </td>
-                        <td class="cell r"><span class="lbl">(-) Desconto / Abatimento</span><br>&nbsp;</td>
-                    </tr>
-                    <tr><td class="cell r"><span class="lbl">(-) Outras Deduções</span><br>&nbsp;</td></tr>
-                    <tr><td class="cell r"><span class="lbl">(+) Mora / Multa</span><br>&nbsp;</td></tr>
-                    <tr><td class="cell r"><span class="lbl">(+) Outros Acréscimos</span><br>&nbsp;</td></tr>
-                    <tr><td class="cell r"><span class="lbl">(=) Valor Cobrado</span><br>&nbsp;</td></tr>
-                    <tr>
-                        <td class="cell sacado" colspan="7">
-                            <span class="lbl">Sacado / Pagador</span><br>
-                            <strong>${custName}</strong>${custDoc ? ' — CPF/CNPJ: ' + custDoc : ''}<br>
-                            ${custAddr || ''}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="cell" colspan="5" style="border-bottom:none;">
-                            <span class="lbl">Sacador/Avalista</span><br>&nbsp;
-                        </td>
-                        <td class="cell" colspan="2" style="border-bottom:none;text-align:right;">
-                            <span class="lbl">Cód. Baixa</span><br>&nbsp;
-                        </td>
-                    </tr>
-                </table>
-                <!-- Código de Barras ITF (Interleaved 2 of 5 — Padrão FEBRABAN) -->
-                <div class="barcode-area">
-                    <div class="barcode-svg">${barcodeSvg}</div>
-                    <div class="barcode-numeros">${codigoBarras}</div>
-                </div>
-                <div class="fc-rodape">
-                    <span>Ficha de Compensação — Autenticação Mecânica</span>
-                    <span>FEBRABAN — CNAB 240/400</span>
-                </div>
-            </div>
-        </div>`;
-
-        return boletoHtml;
+    var debounceTimers = {};
+    function debounce(key, fn, delay) {
+        clearTimeout(debounceTimers[key]);
+        debounceTimers[key] = setTimeout(fn, delay || 400);
     }
 
-    // Abrir janela de impressão com boleto FEBRABAN completo
-    function abrirJanelaBoleto(boletoHtml, orderNum, bancoNome, bancoFull) {
-        var printWin = window.open('', '_blank', 'width=850,height=1000');
-        printWin.document.write(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Boleto Bancário — Pedido #${orderNum}</title>
-<style>
-    @page { size: A4 portrait; margin: 8mm 10mm; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 10px; line-height: 1.3; background: #fff; }
-    .w100 { width: 100%; border-collapse: collapse; }
-    table.topo { border-collapse: collapse; }
-    table.topo td { border: 2px solid #000; padding: 4px 8px; vertical-align: middle; }
-    .topo-logo { width: 22%; }
-    .topo-codigo { width: 13%; text-align: center; }
-    .topo-ld { width: 65%; }
-    .banco-nome { font-size: 13px; font-weight: bold; }
-    .banco-numero { font-size: 22px; font-weight: bold; letter-spacing: 1px; }
-    .linha-digitavel { font-size: 13px; font-weight: bold; letter-spacing: 0.8px; text-align: right; display: block; font-family: 'Courier New', monospace; }
-    .body-table { border-collapse: collapse; }
-    .cell { border: 1px solid #000; padding: 2px 5px; vertical-align: top; font-size: 9px; }
-    .cell.r { text-align: right; }
-    .lbl { font-size: 6.5px; color: #444; text-transform: uppercase; display: block; margin-bottom: 1px; letter-spacing: 0.3px; }
-    .venc { font-size: 13px; font-weight: bold; }
-    .venc-destaque { font-size: 14px; }
-    .valor { font-size: 12px; font-weight: bold; }
-    .inst-line { font-size: 9px; line-height: 1.6; display: block; }
-    .instrucoes { min-height: 90px; vertical-align: top; }
-    .sacado { min-height: 36px; }
-    .recibo-sacado { margin-bottom: 0; }
-    .recibo-footer { display: flex; align-items: center; justify-content: center; gap: 15px; padding: 2px 0; font-size: 8px; color: #777; border-bottom: 1px dashed #999; margin-bottom: 3px; letter-spacing: 0.5px; }
-    .recibo-footer .tesoura { font-size: 14px; }
-    .recibo-footer .recibo-texto { text-transform: uppercase; }
-    .ficha-compensacao { margin-top: 4px; }
-    .barcode-area { padding: 6px 0 2px 0; text-align: left; }
-    .barcode-svg svg { max-width: 100%; height: 55px; }
-    .barcode-numeros { font-family: 'Courier New', monospace; font-size: 8px; color: #555; letter-spacing: 2px; margin-top: 2px; }
-    .fc-rodape { display: flex; justify-content: space-between; font-size: 7px; color: #666; padding: 4px 4px 0; border-top: 2px solid #000; }
-    .boleto-page { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #eee; }
-    .no-print { text-align: center; padding: 20px; background: #f8f8f8; border-top: 2px solid #ddd; margin-top: 10px; }
-    .no-print .info-texto { font-size: 11px; color: #666; margin-bottom: 10px; }
-    @media print { .no-print { display: none !important; } .boleto-page { page-break-inside: avoid; border-bottom: none; margin-bottom: 0; } }
-</style></head><body>
-    <div class="no-print">
-        <p class="info-texto">
-            <strong>📄 Boleto Bancário — Pedido #${orderNum}</strong><br>
-            Banco: <strong>${bancoNome} (${bancoFull})</strong> | Cedente: <strong>${bankConfig.cedente}</strong><br>
-            <small>Boleto gerado conforme padrão FEBRABAN (CNAB 240/400) com código de barras Interleaved 2 of 5</small>
-        </p>
-        <button onclick="window.print()" style="padding:10px 30px;font-size:14px;cursor:pointer;border:2px solid #333;border-radius:4px;background:#fff;font-weight:bold;">🖨️ Imprimir Boleto</button>
-        <button onclick="window.close()" style="padding:10px 20px;font-size:14px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#f5f5f5;margin-left:8px;">Fechar</button>
-    </div>
-    ${boletoHtml}
-    <div class="no-print" style="margin-top:20px;">
-        <button onclick="window.print()" style="padding:10px 30px;font-size:14px;cursor:pointer;border:2px solid #333;border-radius:4px;background:#fff;font-weight:bold;">🖨️ Imprimir Boleto</button>
-        <button onclick="window.close()" style="padding:10px 20px;font-size:14px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#f5f5f5;margin-left:8px;">Fechar</button>
-    </div>
-</body></html>`);
-        printWin.document.close();
-        printWin.focus();
+    // ═══════════════════════════════════════════
+    // SIDEBAR NAVIGATION (SPA-like)
+    // ═══════════════════════════════════════════
+    function navigateToSection(sectionId) {
+        document.querySelectorAll('.fin-nav-item').forEach(function(n) { n.classList.remove('active'); });
+        var navItem = document.querySelector('.fin-nav-item[data-section="' + sectionId + '"]');
+        if (navItem) navItem.classList.add('active');
+
+        document.querySelectorAll('.fin-section').forEach(function(s) { s.classList.remove('active'); });
+        var target = document.getElementById('fin-' + sectionId);
+        if (target) target.classList.add('active');
+
+        var url = new URL(window.location);
+        url.searchParams.set('section', sectionId);
+        history.replaceState(null, '', url);
+
+        if (sectionId === 'payments') loadPayments(1);
+        if (sectionId === 'transactions') loadTransactions(1);
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // EVENT HANDLERS
-    // ═══════════════════════════════════════════════════════════════════
-
-    // ── Busca instantânea ──
-    const searchInput = document.getElementById('searchPayments');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const term = this.value.toLowerCase();
-            document.querySelectorAll('#paymentsTable tbody tr').forEach(tr => {
-                tr.style.display = tr.textContent.toLowerCase().includes(term) ? '' : 'none';
-            });
-        });
-    }
-
-    // ── Abrir modal de registrar pagamento ──
-    document.querySelectorAll('.btn-register-pay').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id          = this.dataset.id;
-            const orderId     = this.dataset.orderId;
-            const amount      = parseFloat(this.dataset.amount);
-            const num         = this.dataset.number;
-            const customer    = this.dataset.customer || '';
-            const orderMethod = this.dataset.orderMethod || '';
-            const dueDate     = this.dataset.dueDate || '';
-
-            document.getElementById('payInstId').value = id;
-            document.getElementById('payOrderId').value = orderId;
-            document.getElementById('payOrderDisplay').textContent = '#' + String(orderId).padStart(4, '0');
-            document.getElementById('payNumber').textContent = (num == 0) ? 'Entrada' : num + 'ª';
-            document.getElementById('payAmountDisplay').textContent = 'R$ ' + amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-            document.getElementById('payAmountInput').value = amount.toFixed(2);
-            document.getElementById('payAmountInput').dataset.originalAmount = amount.toFixed(2);
-            document.getElementById('payCustomerDisplay').textContent = customer ? 'Cliente: ' + customer : '';
-
-            // Pré-selecionar forma de pagamento do pedido
-            const methodSelect = document.getElementById('payMethodSelect');
-            const hintEl = document.getElementById('payMethodHint');
-            if (orderMethod) {
-                methodSelect.value = orderMethod;
-                hintEl.innerHTML = '<i class="fas fa-info-circle me-1"></i>Forma de pagamento pré-selecionada do pedido. Você pode alterá-la se necessário.';
-            } else {
-                methodSelect.selectedIndex = 0;
-                hintEl.textContent = '';
-            }
-
-            // Mostrar/ocultar seção de boleto
-            toggleBoletoSection(methodSelect.value, dueDate);
-
-            new bootstrap.Modal(document.getElementById('modalPay')).show();
-        });
-    });
-
-    // ── Toggle seção boleto ao mudar método ──
-    const payMethodSelect = document.getElementById('payMethodSelect');
-    if (payMethodSelect) {
-        payMethodSelect.addEventListener('change', function() {
-            toggleBoletoSection(this.value, '');
-        });
-    }
-
-    function toggleBoletoSection(method, dueDate) {
-        const boletoSection = document.getElementById('payBoletoSection');
-        const mesRefEl = document.getElementById('payBoletoMesRef');
-        if (method === 'boleto') {
-            boletoSection.classList.remove('d-none');
-            if (dueDate) {
-                const parts = dueDate.split('-');
-                const meses = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-                const mesNum = parseInt(parts[1]);
-                mesRefEl.textContent = meses[mesNum] + '/' + parts[0];
-            } else {
-                mesRefEl.textContent = 'Mês atual';
-            }
-        } else {
-            boletoSection.classList.add('d-none');
-        }
-    }
-
-    // ── Print boleto do modal de pagamento (gera FEBRABAN real) ──
-    document.getElementById('btnPrintBoletoModal')?.addEventListener('click', function() {
-        // Usar dados do modal para gerar boleto
-        var orderId  = document.getElementById('payOrderId').value;
-        var amount   = parseFloat(document.getElementById('payAmountInput').value) || 0;
-        var num      = document.getElementById('payNumber').textContent;
-        var customer = (document.getElementById('payCustomerDisplay').textContent || '').replace('Cliente: ', '');
-
-        var html = gerarBoletoHTML({
-            orderId: orderId,
-            parcLabel: num,
-            dueDate: new Date().toISOString().split('T')[0], // data atual como fallback
-            valor: amount,
-            customer: customer,
-            customerDoc: '',
-            customerAddr: '',
-            instNumber: 0
-        });
-
-        if (html) {
-            var bancoNome = bancosNomes[bankConfig.banco] || ('Banco ' + bankConfig.banco);
-            var bancoCode = padLeft(bankConfig.banco, 3);
-            var bancoFull = bancoCode + '-' + mod11(bancoCode);
-            abrirJanelaBoleto(html, String(orderId).padStart(4, '0'), bancoNome, bancoFull);
-        }
-    });
-
-    // ── Modal Reimprimir Boleto (botão na tabela) — preenche modal ──
-    var currentBoletoData = {};
-    document.querySelectorAll('.btn-print-boleto').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const instId       = this.dataset.id;
-            const orderId      = this.dataset.orderId;
-            const amount       = parseFloat(this.dataset.amount);
-            const due          = this.dataset.due;
-            const mesRef       = this.dataset.mesRef;
-            const customer     = this.dataset.customer || '';
-            const customerDoc  = this.dataset.customerDoc || '';
-            const customerAddr = this.dataset.customerAddr || '';
-            const instNumber   = this.dataset.number || '0';
-
-            document.getElementById('boletoOrderDisplay').textContent = '#' + String(orderId).padStart(4, '0');
-            document.getElementById('boletoCustomerDisplay').textContent = customer || 'N/A';
-            document.getElementById('boletoAmountDisplay').textContent = 'R$ ' + amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-
-            const dParts = due.split('-');
-            document.getElementById('boletoDueDisplay').textContent = dParts[2] + '/' + dParts[1] + '/' + dParts[0];
-            document.getElementById('boletoMesInput').value = dParts[0] + '-' + dParts[1];
-
-            // Guardar dados completos para geração
-            currentBoletoData = {
-                orderId: orderId,
-                parcLabel: (instNumber == '0') ? 'Entrada' : instNumber + 'ª',
-                dueDate: due,
-                valor: amount,
-                customer: customer,
-                customerDoc: customerDoc,
-                customerAddr: customerAddr,
-                instNumber: instNumber
-            };
-
-            new bootstrap.Modal(document.getElementById('modalBoleto')).show();
-        });
-    });
-
-    // ── Confirmar impressão do boleto (gera FEBRABAN real) ──
-    document.getElementById('btnConfirmPrintBoleto')?.addEventListener('click', function() {
-        var mesRefInput = document.getElementById('boletoMesInput').value;
-
-        // Se o mês referente mudou, ajustar a data de vencimento para o último dia do mês selecionado
-        if (mesRefInput && currentBoletoData.dueDate) {
-            var origParts = currentBoletoData.dueDate.split('-');
-            var newParts = mesRefInput.split('-');
-            // Manter o dia original, mas trocar mês/ano se alterado
-            if (newParts[0] !== origParts[0] || newParts[1] !== origParts[1]) {
-                var newDay = origParts[2];
-                // Verificar se o dia existe no novo mês
-                var lastDay = new Date(parseInt(newParts[0]), parseInt(newParts[1]), 0).getDate();
-                if (parseInt(newDay) > lastDay) newDay = String(lastDay);
-                currentBoletoData.dueDate = newParts[0] + '-' + newParts[1] + '-' + padLeft(newDay, 2);
-            }
-        }
-
-        var html = gerarBoletoHTML(currentBoletoData);
-        if (html) {
-            var bancoNome = bancosNomes[bankConfig.banco] || ('Banco ' + bankConfig.banco);
-            var bancoCode = padLeft(bankConfig.banco, 3);
-            var bancoFull = bancoCode + '-' + mod11(bancoCode);
-            abrirJanelaBoleto(html, String(currentBoletoData.orderId).padStart(4, '0'), bancoNome, bancoFull);
-            bootstrap.Modal.getInstance(document.getElementById('modalBoleto'))?.hide();
-        }
-    });
-
-    // ── Modal Anexar Comprovante ──
-    document.querySelectorAll('.btn-attach').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const instId        = this.dataset.id;
-            const hasAttachment = this.dataset.hasAttachment === '1';
-            const attachPath    = this.dataset.attachmentPath || '';
-
-            document.getElementById('uploadAttachInstId').value = instId;
-            document.getElementById('removeAttachInstId').value = instId;
-
-            const previewDiv    = document.getElementById('attachPreview');
-            const previewImg    = document.getElementById('attachPreviewImg');
-            const previewPdf    = document.getElementById('attachPreviewPdf');
-            const imgTag        = document.getElementById('attachImgTag');
-            const viewLink      = document.getElementById('attachViewLink');
-            const uploadLabel   = document.getElementById('attachUploadLabel');
-
-            if (hasAttachment && attachPath) {
-                previewDiv.classList.remove('d-none');
-                viewLink.href = attachPath;
-                const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(attachPath);
-                if (isImage) {
-                    previewImg.classList.remove('d-none');
-                    previewPdf.classList.add('d-none');
-                    imgTag.src = attachPath;
-                } else {
-                    previewImg.classList.add('d-none');
-                    previewPdf.classList.remove('d-none');
-                }
-                uploadLabel.textContent = 'Substituir comprovante';
-            } else {
-                previewDiv.classList.add('d-none');
-                previewImg.classList.add('d-none');
-                previewPdf.classList.add('d-none');
-                uploadLabel.textContent = 'Enviar comprovante';
-            }
-
-            new bootstrap.Modal(document.getElementById('modalAttach')).show();
-        });
-    });
-
-    // ── Remover comprovante com SweetAlert2 ──
-    document.querySelectorAll('.btn-remove-attach').forEach(btn => {
-        btn.addEventListener('click', function(e) {
+    document.querySelectorAll('.fin-nav-item').forEach(function(item) {
+        item.addEventListener('click', function(e) {
             e.preventDefault();
-            const form = this.closest('form');
-            Swal.fire({
-                title: 'Remover comprovante?',
-                text: 'O arquivo anexado será removido permanentemente.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#e74c3c',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-trash me-1"></i> Remover',
-                cancelButtonText: 'Manter'
-            }).then(result => {
-                if (result.isConfirmed) form.submit();
-            });
+            var section = this.dataset.section;
+            if (!section) return;
+            navigateToSection(section);
         });
     });
 
-    // ── Registrar pagamento com fluxo inteligente ──
-    // Se pago < total → pergunta se quer criar parcela restante
-    // Se pago >= total → confirma automaticamente (sem etapa extra)
-    const formPay = document.getElementById('formPay');
+    // ═══════════════════════════════════════════
+    // PAGAMENTOS — AJAX + Paginação
+    // ═══════════════════════════════════════════
+    var payPage = 1;
+
+    function loadPayments(page) {
+        payPage = page || 1;
+        var params = new URLSearchParams({
+            page: 'financial', action: 'getInstallmentsPaginated',
+            pg: payPage,
+            per_page: 25,
+            status: document.getElementById('fPayStatus').value,
+            month: document.getElementById('fPayMonth').value,
+            year: document.getElementById('fPayYear').value,
+            search: document.getElementById('fPaySearch').value,
+        });
+
+        document.getElementById('paymentsTableBody').innerHTML =
+            '<tr><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x mb-2 d-block opacity-50"></i>Carregando...</td></tr>';
+
+        fetch('?' + params.toString())
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.success) return;
+
+            // Update summary cards
+            var s = data.summary || {};
+            document.getElementById('cardPayTotal').textContent = (parseInt(s.total_parcelas) || 0);
+            document.getElementById('cardPayPending').innerHTML = (parseInt(s.pendentes || 0) + parseInt(s.atrasadas || 0)) +
+                ' <small class="text-muted fs-6">(R$ ' + formatCurrency(s.valor_pendente) + ')</small>';
+            document.getElementById('cardPayPaid').innerHTML = (parseInt(s.pagas) || 0) +
+                ' <small class="text-muted fs-6">(R$ ' + formatCurrency(s.valor_pago) + ')</small>';
+            document.getElementById('cardPayAwaiting').textContent = (parseInt(s.aguardando) || 0);
+            document.getElementById('payTotalBadge').textContent = data.total + ' registro(s)';
+
+            // Build table
+            var tbody = document.getElementById('paymentsTableBody');
+            if (!data.items || data.items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-inbox fa-3x mb-2 d-block opacity-50"></i><div class="fw-bold">Nenhuma parcela encontrada</div></td></tr>';
+                document.getElementById('paymentsPagination').innerHTML = '';
+                return;
+            }
+
+            var html = '';
+            data.items.forEach(function(inst) {
+                var st = statusMap[inst.status] || statusMap['pendente'];
+                var isEntrada = parseInt(inst.installment_number) === 0;
+                var orderId = inst.order_id;
+                var orderMethod = inst.order_payment_method || '';
+                var instMethod = inst.payment_method || '';
+                var displayMethod = instMethod || orderMethod;
+                var rowClass = inst.status === 'atrasado' ? ' class="table-danger"' : '';
+
+                html += '<tr' + rowClass + '>';
+                // Pedido
+                html += '<td class="ps-3 fw-bold"><a href="?page=pipeline&action=detail&id=' + orderId + '" class="text-decoration-none text-dark">#' + String(orderId).padStart(4, '0') + '</a></td>';
+                // Cliente
+                html += '<td class="small">' + escHtml(inst.customer_name || 'N/A') + '</td>';
+                // Parcela
+                if (isEntrada) {
+                    html += '<td><span class="badge bg-info">Entrada</span></td>';
+                } else {
+                    html += '<td><span class="fw-bold">' + inst.installment_number + 'ª</span></td>';
+                }
+                // Vencimento
+                html += '<td class="small">' + formatDateBR(inst.due_date);
+                if (inst.status === 'atrasado') {
+                    var diasAtraso = Math.max(0, Math.round((Date.now() - new Date(inst.due_date + 'T12:00:00').getTime()) / 86400000));
+                    html += ' <span class="badge bg-danger rounded-pill ms-1" style="font-size:0.6rem;">+' + diasAtraso + 'd</span>';
+                }
+                html += '</td>';
+                // Valor
+                html += '<td class="fw-bold">R$ ' + formatCurrency(inst.amount) + '</td>';
+                // Pago em
+                html += '<td class="small">' + (inst.paid_date ? formatDateBR(inst.paid_date) : '<span class="text-muted">—</span>') + '</td>';
+                // Valor Pago
+                if (inst.paid_amount) {
+                    html += '<td><span class="fw-bold text-success">R$ ' + formatCurrency(inst.paid_amount) + '</span></td>';
+                } else {
+                    html += '<td><span class="text-muted">—</span></td>';
+                }
+                // Status
+                html += '<td><span class="badge ' + st.badge + '"><i class="' + st.icon + ' me-1"></i>' + st.label + '</span></td>';
+                // Ações
+                html += '<td class="text-end pe-3"><div class="btn-group btn-group-sm">';
+                if (inst.status === 'pendente' || inst.status === 'atrasado') {
+                    html += '<button type="button" class="btn btn-success btn-register-pay" data-id="' + inst.id + '" data-order-id="' + orderId + '" data-amount="' + inst.amount + '" data-number="' + inst.installment_number + '" data-customer="' + escHtml(inst.customer_name || '') + '" data-order-method="' + escHtml(orderMethod) + '" title="Registrar Pagamento"><i class="fas fa-hand-holding-usd me-1"></i>Pagar</button>';
+                } else if (inst.status === 'pago' && !inst.is_confirmed) {
+                    html += '<button type="button" class="btn btn-outline-success btn-confirm-pay" data-id="' + inst.id + '" title="Confirmar"><i class="fas fa-check me-1"></i>Confirmar</button>';
+                    html += '<button type="button" class="btn btn-outline-danger btn-cancel-pay" data-id="' + inst.id + '" data-order-id="' + orderId + '" title="Estornar"><i class="fas fa-undo"></i></button>';
+                } else if (inst.status === 'pago' && inst.is_confirmed) {
+                    html += '<button type="button" class="btn btn-outline-danger btn-cancel-pay" data-id="' + inst.id + '" data-order-id="' + orderId + '" title="Estornar"><i class="fas fa-undo me-1"></i>Estornar</button>';
+                }
+                html += '<a href="?page=financial&action=installments&order_id=' + orderId + '" class="btn btn-outline-secondary" title="Gerenciar parcelas"><i class="fas fa-cog"></i></a>';
+                html += '</div></td>';
+                html += '</tr>';
+            });
+            tbody.innerHTML = html;
+
+            // Pagination
+            renderPagination('paymentsPagination', data.page, data.total_pages, data.total, function(p) { loadPayments(p); });
+
+            // Attach event listeners to new buttons
+            attachPaymentButtonListeners();
+        })
+        .catch(function(err) {
+            console.error('Erro ao carregar pagamentos:', err);
+        });
+    }
+
+    function attachPaymentButtonListeners() {
+        // Register payment
+        document.querySelectorAll('#paymentsTableBody .btn-register-pay').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var id = this.dataset.id, orderId = this.dataset.orderId;
+                var amount = parseFloat(this.dataset.amount), num = this.dataset.number;
+                var customer = this.dataset.customer || '', orderMethod = this.dataset.orderMethod || '';
+
+                document.getElementById('payInstId').value = id;
+                document.getElementById('payOrderId').value = orderId;
+                document.getElementById('payOrderDisplay').textContent = '#' + String(orderId).padStart(4, '0');
+                document.getElementById('payNumber').textContent = (num == 0) ? 'Entrada' : num + 'ª';
+                document.getElementById('payAmountDisplay').textContent = 'R$ ' + formatCurrency(amount);
+                document.getElementById('payAmountInput').value = amount.toFixed(2);
+                document.getElementById('payAmountInput').dataset.originalAmount = amount.toFixed(2);
+                document.getElementById('payCustomerDisplay').textContent = customer ? 'Cliente: ' + customer : '';
+
+                var methodSelect = document.getElementById('payMethodSelect');
+                if (orderMethod) {
+                    methodSelect.value = orderMethod;
+                    document.getElementById('payMethodHint').innerHTML = '<i class="fas fa-info-circle me-1"></i>Pré-selecionada do pedido.';
+                } else {
+                    methodSelect.selectedIndex = 0;
+                    document.getElementById('payMethodHint').textContent = '';
+                }
+
+                new bootstrap.Modal(document.getElementById('modalPay')).show();
+            });
+        });
+
+        // Confirm payment
+        document.querySelectorAll('#paymentsTableBody .btn-confirm-pay').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var id = this.dataset.id;
+                Swal.fire({
+                    title: 'Confirmar pagamento?', text: 'A parcela será marcada como confirmada.', icon: 'question',
+                    showCancelButton: true, confirmButtonColor: '#27ae60', cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-check-double me-1"></i>Confirmar', cancelButtonText: 'Cancelar'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        var fd = new FormData();
+                        fd.append('installment_id', id);
+                        fd.append('csrf_token', csrfToken);
+                        fetch('?page=financial&action=confirmPayment', {
+                            method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd
+                        }).then(function(r) { return r.json(); }).then(function(data) {
+                            if (data.success) {
+                                Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2000,timerProgressBar:true}).fire({icon:'success',title:'Pagamento confirmado!'});
+                                loadPayments(payPage);
+                            }
+                        });
+                    }
+                });
+            });
+        });
+
+        // Cancel/reverse payment
+        document.querySelectorAll('#paymentsTableBody .btn-cancel-pay').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var id = this.dataset.id;
+                Swal.fire({
+                    title: 'Estornar pagamento?',
+                    html: 'O pagamento será <strong>revertido</strong> e registrado como saída no livro caixa.',
+                    icon: 'warning', showCancelButton: true, confirmButtonColor: '#e74c3c', cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-undo me-1"></i>Estornar', cancelButtonText: 'Manter'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        var fd = new FormData();
+                        fd.append('installment_id', id);
+                        fd.append('csrf_token', csrfToken);
+                        fetch('?page=financial&action=cancelInstallment', {
+                            method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd
+                        }).then(function(r) { return r.json(); }).then(function(data) {
+                            if (data.success) {
+                                Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2000,timerProgressBar:true}).fire({icon:'success',title:'Pagamento estornado!'});
+                                loadPayments(payPage);
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    }
+
+    // Payment form submit
+    var formPay = document.getElementById('formPay');
     if (formPay) {
         formPay.addEventListener('submit', function(e) {
             e.preventDefault();
-            const form = this;
-            const paidAmount = parseFloat(document.getElementById('payAmountInput').value) || 0;
-            const originalAmount = parseFloat(document.getElementById('payAmountInput').dataset.originalAmount) || paidAmount;
+            var form = this;
+            var paidAmount = parseFloat(document.getElementById('payAmountInput').value) || 0;
+            var originalAmount = parseFloat(document.getElementById('payAmountInput').dataset.originalAmount) || paidAmount;
 
-            // Valor pago é menor que o valor da parcela?
             if (paidAmount > 0 && paidAmount < originalAmount) {
                 var restante = (originalAmount - paidAmount).toFixed(2);
-                var restanteFmt = parseFloat(restante).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-                var pagoFmt = paidAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-
                 Swal.fire({
                     title: 'Pagamento parcial detectado',
-                    html: '<div class="text-start">' +
-                          '<p>O valor pago (<strong>R$ ' + pagoFmt + '</strong>) é menor que o valor da parcela (<strong>R$ ' + parseFloat(originalAmount).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + '</strong>).</p>' +
-                          '<p>Valor restante: <strong class="text-danger">R$ ' + restanteFmt + '</strong></p>' +
-                          '<hr>' +
-                          '<p class="mb-2"><strong>Deseja criar uma nova parcela com o valor restante?</strong></p>' +
-                          '<div class="mb-3" id="swalDueDateContainer">' +
-                          '  <label class="form-label small fw-bold">Vencimento da nova parcela:</label>' +
-                          '  <input type="date" id="swalRemainingDueDate" class="form-control form-control-sm" value="' + getDefaultDueDate() + '">' +
-                          '</div>' +
-                          '</div>',
-                    icon: 'question',
-                    showCancelButton: true,
-                    showDenyButton: true,
-                    confirmButtonColor: '#27ae60',
-                    denyButtonColor: '#3085d6',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: '<i class="fas fa-plus-circle me-1"></i> Sim, criar parcela restante',
-                    denyButtonText: '<i class="fas fa-check me-1"></i> Não, quitar assim mesmo',
-                    cancelButtonText: 'Cancelar',
-                    reverseButtons: false,
-                    customClass: { popup: 'text-start' }
-                }).then(function(result) {
-                    if (result.isConfirmed) {
-                        // Criar parcela restante
-                        submitPaymentAjax(form, 1, document.getElementById('swalRemainingDueDate')?.value || '');
-                    } else if (result.isDenied) {
-                        // Quitar como está (auto-confirmar)
-                        submitPaymentAjax(form, 0, '');
-                    }
-                });
-            } else {
-                // Valor igual ou maior → confirma automaticamente
-                Swal.fire({
-                    title: 'Confirmar pagamento?',
-                    text: 'O pagamento será registrado e confirmado automaticamente.',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#27ae60',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: '<i class="fas fa-check me-1"></i> Confirmar Pagamento',
+                    html: '<div class="text-start"><p>Pago: <strong>R$ ' + formatCurrency(paidAmount) + '</strong> de <strong>R$ ' + formatCurrency(originalAmount) + '</strong></p>' +
+                          '<p>Restante: <strong class="text-danger">R$ ' + formatCurrency(restante) + '</strong></p><hr>' +
+                          '<p><strong>Criar parcela para o valor restante?</strong></p>' +
+                          '<div class="mb-3"><label class="form-label small fw-bold">Vencimento:</label>' +
+                          '<input type="date" id="swalRemainingDueDate" class="form-control form-control-sm" value="' + getDefaultDueDate() + '"></div></div>',
+                    icon: 'question', showCancelButton: true, showDenyButton: true,
+                    confirmButtonColor: '#27ae60', denyButtonColor: '#3085d6', cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-plus-circle me-1"></i>Sim, criar parcela',
+                    denyButtonText: '<i class="fas fa-check me-1"></i>Não, quitar assim',
                     cancelButtonText: 'Cancelar'
                 }).then(function(result) {
-                    if (result.isConfirmed) {
-                        submitPaymentAjax(form, 0, '');
-                    }
+                    if (result.isConfirmed) submitPaymentAjax(form, 1, document.getElementById('swalRemainingDueDate')?.value || '');
+                    else if (result.isDenied) submitPaymentAjax(form, 0, '');
+                });
+            } else {
+                Swal.fire({
+                    title: 'Confirmar pagamento?', icon: 'question', showCancelButton: true,
+                    confirmButtonColor: '#27ae60', cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-check me-1"></i>Confirmar', cancelButtonText: 'Cancelar'
+                }).then(function(result) {
+                    if (result.isConfirmed) submitPaymentAjax(form, 0, '');
                 });
             }
         });
     }
 
     function getDefaultDueDate() {
-        var d = new Date();
-        d.setDate(d.getDate() + 30);
+        var d = new Date(); d.setDate(d.getDate() + 30);
         return d.toISOString().split('T')[0];
     }
 
     function submitPaymentAjax(form, createRemaining, remainingDueDate) {
         var formData = new FormData(form);
         formData.append('create_remaining', createRemaining);
-        if (remainingDueDate) {
-            formData.append('remaining_due_date', remainingDueDate);
-        }
+        if (remainingDueDate) formData.append('remaining_due_date', remainingDueDate);
 
-        // Adicionar CSRF token via header
-        var csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
-        var btnSubmit = document.getElementById('btnSubmitPay');
-        if (btnSubmit) {
-            btnSubmit.disabled = true;
-            btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processando...';
-        }
+        var btn = document.getElementById('btnSubmitPay');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processando...'; }
 
         fetch('?page=financial&action=payInstallment', {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfToken
-            },
-            body: formData
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
+            method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrfToken }, body: formData
+        }).then(function(r) { return r.json(); }).then(function(data) {
             if (data.success) {
-                // Fechar modal
                 var modal = bootstrap.Modal.getInstance(document.getElementById('modalPay'));
                 if (modal) modal.hide();
-
-                var msg = 'Pagamento registrado e confirmado!';
-                if (data.remaining_created) {
-                    var restFmt = parseFloat(data.remaining_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-                    msg = 'Pagamento registrado! Uma nova parcela de R$ ' + restFmt + ' foi criada para o valor restante.';
-                }
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Sucesso!',
-                    text: msg,
-                    timer: 3000,
-                    showConfirmButton: true,
-                    confirmButtonText: 'OK'
-                }).then(function() {
-                    location.reload();
-                });
+                var msg = data.remaining_created ? 'Pagamento registrado! Parcela restante de R$ ' + formatCurrency(data.remaining_amount) + ' criada.' : 'Pagamento registrado e confirmado!';
+                Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:3000,timerProgressBar:true}).fire({icon:'success',title:msg});
+                loadPayments(payPage);
             } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erro',
-                    text: data.message || 'Erro ao processar pagamento.'
-                });
-                if (btnSubmit) {
-                    btnSubmit.disabled = false;
-                    btnSubmit.innerHTML = '<i class="fas fa-check me-1"></i> Registrar Pagamento';
-                }
+                Swal.fire({ icon: 'error', title: 'Erro', text: data.message || 'Erro ao processar pagamento.' });
             }
-        })
-        .catch(function(err) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro de Conexão',
-                text: 'Não foi possível processar o pagamento. Tente novamente.'
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-1"></i>Registrar Pagamento'; }
+        }).catch(function() {
+            Swal.fire({ icon: 'error', title: 'Erro de Conexão', text: 'Tente novamente.' });
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-1"></i>Registrar Pagamento'; }
+        });
+    }
+
+    // Dynamic filters for payments
+    ['fPayStatus', 'fPayMonth', 'fPayYear'].forEach(function(id) {
+        document.getElementById(id)?.addEventListener('change', function() { loadPayments(1); });
+    });
+    document.getElementById('fPaySearch')?.addEventListener('input', function() {
+        debounce('paySearch', function() { loadPayments(1); }, 400);
+    });
+
+
+    // ═══════════════════════════════════════════
+    // TRANSAÇÕES — AJAX + Paginação
+    // ═══════════════════════════════════════════
+    var txPage = 1;
+
+    function loadTransactions(page) {
+        txPage = page || 1;
+        var params = new URLSearchParams({
+            page: 'financial', action: 'getTransactionsPaginated',
+            pg: txPage, per_page: 25,
+            type: document.getElementById('fTxType').value,
+            category: document.getElementById('fTxCategory').value,
+            month: document.getElementById('fTxMonth').value,
+            year: document.getElementById('fTxYear').value,
+            search: document.getElementById('fTxSearch').value,
+        });
+
+        document.getElementById('txTableBody').innerHTML =
+            '<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x mb-2 d-block opacity-50"></i>Carregando...</td></tr>';
+
+        fetch('?' + params.toString())
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.success) return;
+
+            var entradas = parseFloat(data.totalEntradas) || 0;
+            var saidas = parseFloat(data.totalSaidas) || 0;
+            var saldo = entradas - saidas;
+
+            document.getElementById('cardTxEntradas').textContent = 'R$ ' + formatCurrency(entradas);
+            document.getElementById('cardTxSaidas').textContent = 'R$ ' + formatCurrency(saidas);
+            var saldoEl = document.getElementById('cardTxSaldo');
+            saldoEl.textContent = 'R$ ' + formatCurrency(saldo);
+            saldoEl.className = 'fw-bold fs-5 ' + (saldo >= 0 ? 'text-primary' : 'text-danger');
+            document.getElementById('txTotalBadge').textContent = data.total + ' registro(s)';
+
+            var tbody = document.getElementById('txTableBody');
+            if (!data.items || data.items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-inbox fa-3x mb-2 d-block opacity-50"></i><div class="fw-bold">Nenhuma transação encontrada</div></td></tr>';
+                document.getElementById('txPagination').innerHTML = '';
+                return;
+            }
+
+            var html = '';
+            data.items.forEach(function(t) {
+                var isRegistro = (t.type === 'registro' || t.category === 'estorno_pagamento' || t.category === 'registro_ofx');
+                var rowClass = isRegistro ? ' class="table-light"' : '';
+
+                html += '<tr' + rowClass + '>';
+                html += '<td class="ps-3 small">' + formatDateBR(t.transaction_date) + '</td>';
+                // Type badge
+                if (isRegistro) {
+                    html += '<td><span class="badge bg-secondary"><i class="fas fa-minus me-1"></i>' + (t.category === 'estorno_pagamento' ? 'Estorno' : 'Registro') + '</span></td>';
+                } else if (t.type === 'entrada') {
+                    html += '<td><span class="badge bg-success"><i class="fas fa-arrow-down me-1"></i>Entrada</span></td>';
+                } else {
+                    html += '<td><span class="badge bg-danger"><i class="fas fa-arrow-up me-1"></i>Saída</span></td>';
+                }
+                html += '<td class="small">' + escHtml(allCats[t.category] || t.category) + '</td>';
+                html += '<td class="small">' + escHtml(t.description) + '</td>';
+                // Value
+                var valClass = isRegistro ? 'text-secondary' : (t.type === 'entrada' ? 'text-success' : 'text-danger');
+                var valPrefix = isRegistro ? '—' : (t.type === 'entrada' ? '+' : '-');
+                html += '<td class="fw-bold ' + valClass + '">' + valPrefix + ' R$ ' + formatCurrency(t.amount) + '</td>';
+                html += '<td class="small">' + (methodLabels[t.payment_method] || (t.payment_method ? t.payment_method : '—')) + '</td>';
+                // Actions
+                html += '<td class="text-end pe-3">';
+                if (!t.reference_type || t.reference_type === 'manual') {
+                    html += '<button class="btn btn-sm btn-outline-danger btn-delete-tx" data-id="' + t.id + '" title="Excluir"><i class="fas fa-trash"></i></button>';
+                } else {
+                    html += '<span class="badge bg-light text-muted border" style="font-size:0.65rem;">' + (isRegistro ? 'Registro' : 'Automática') + '</span>';
+                }
+                html += '</td></tr>';
             });
-            if (btnSubmit) {
-                btnSubmit.disabled = false;
-                btnSubmit.innerHTML = '<i class="fas fa-check me-1"></i> Registrar Pagamento';
+            tbody.innerHTML = html;
+
+            renderPagination('txPagination', data.page, data.total_pages, data.total, function(p) { loadTransactions(p); });
+            attachTxButtonListeners();
+        })
+        .catch(function(err) { console.error('Erro ao carregar transações:', err); });
+    }
+
+    function attachTxButtonListeners() {
+        document.querySelectorAll('#txTableBody .btn-delete-tx').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var id = this.dataset.id;
+                Swal.fire({
+                    title: 'Excluir transação?', text: 'Essa ação não pode ser desfeita.', icon: 'warning',
+                    showCancelButton: true, confirmButtonColor: '#e74c3c', cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-trash me-1"></i>Excluir', cancelButtonText: 'Manter'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        var fd = new FormData();
+                        fd.append('transaction_id', id);
+                        fd.append('csrf_token', csrfToken);
+                        fetch('?page=financial&action=deleteTransaction', {
+                            method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd
+                        }).then(function(r) { return r.json(); }).then(function(data) {
+                            if (data.success) {
+                                Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2000,timerProgressBar:true}).fire({icon:'success',title:'Transação removida!'});
+                                loadTransactions(txPage);
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    }
+
+    // Dynamic filters for transactions
+    ['fTxType', 'fTxCategory', 'fTxMonth', 'fTxYear'].forEach(function(id) {
+        document.getElementById(id)?.addEventListener('change', function() { loadTransactions(1); });
+    });
+    document.getElementById('fTxSearch')?.addEventListener('input', function() {
+        debounce('txSearch', function() { loadTransactions(1); }, 400);
+    });
+
+
+    // ═══════════════════════════════════════════
+    // NOVA TRANSAÇÃO — Filtro categorias por tipo
+    // ═══════════════════════════════════════════
+    var newTxType = document.getElementById('newTxType');
+    var newTxCat = document.getElementById('newTxCategory');
+    if (newTxType && newTxCat) {
+        function filterNewTxCats() {
+            var type = newTxType.value;
+            var defaultCat = type === 'entrada' ? 'outra_entrada' : 'outra_saida';
+            newTxCat.querySelectorAll('option').forEach(function(opt) {
+                var show = opt.dataset.type === type;
+                opt.style.display = show ? '' : 'none';
+            });
+            var defaultOpt = newTxCat.querySelector('option[value="' + defaultCat + '"]');
+            if (defaultOpt) newTxCat.value = defaultCat;
+        }
+        newTxType.addEventListener('change', filterNewTxCats);
+        filterNewTxCats();
+    }
+
+    // Submit new transaction
+    document.getElementById('formNewTransaction')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var form = this;
+        Swal.fire({
+            title: 'Registrar transação?', icon: 'question', showCancelButton: true,
+            confirmButtonColor: '#27ae60', cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-check me-1"></i>Registrar', cancelButtonText: 'Cancelar'
+        }).then(function(result) {
+            if (result.isConfirmed) form.submit();
+        });
+    });
+
+
+    // ═══════════════════════════════════════════
+    // IMPORTAÇÃO — OFX/CSV/Excel (Dropzone + 3 Steps)
+    // ═══════════════════════════════════════════
+    var importDropzone   = document.getElementById('importDropzone');
+    var importFileInput  = document.getElementById('importFileInput');
+    var importFileInfo   = document.getElementById('importFileInfo');
+    var btnParseFile     = document.getElementById('btnParseFile');
+    var btnRemoveFile    = document.getElementById('btnRemoveFile');
+    var btnImportBack    = document.getElementById('btnImportBack');
+    var btnImportConfirm = document.getElementById('btnImportConfirm');
+    var btnNewImport     = document.getElementById('btnNewImport');
+
+    var importData = { file_type: null, rows: [], headers: [], columns: [], preview: [], auto_mapping: {}, selectedRows: new Set() };
+
+    // ─── Step navigation ───
+    function goToImportStep(step) {
+        document.querySelectorAll('.import-step').forEach(function(s) { s.classList.remove('active'); });
+        var stepEl = document.getElementById('importStep' + step);
+        if (stepEl) stepEl.classList.add('active');
+
+        document.querySelectorAll('.import-step-indicator').forEach(function(ind) {
+            var badge = ind.querySelector('.badge');
+            if (parseInt(ind.dataset.step) <= step) {
+                badge.classList.remove('bg-secondary');
+                badge.classList.add('bg-primary');
+            } else {
+                badge.classList.remove('bg-primary');
+                badge.classList.add('bg-secondary');
             }
         });
     }
 
-    // ── Confirmar pagamento via SweetAlert2 ──
-    document.querySelectorAll('.btn-confirm').forEach(btn => {
-        btn.addEventListener('click', function(e) {
+    // ─── Dropzone: click to select ───
+    if (importDropzone) {
+        importDropzone.addEventListener('click', function() {
+            importFileInput.click();
+        });
+
+        // Drag & drop
+        importDropzone.addEventListener('dragover', function(e) {
             e.preventDefault();
-            const form = this.closest('form');
-            Swal.fire({
-                title: 'Confirmar pagamento?',
-                text: 'A parcela será marcada como confirmada no sistema.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#27ae60',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-check-double me-1"></i> Confirmar',
-                cancelButtonText: 'Cancelar'
-            }).then(result => {
-                if (result.isConfirmed) form.submit();
+            this.classList.add('dragover');
+        });
+        importDropzone.addEventListener('dragleave', function() {
+            this.classList.remove('dragover');
+        });
+        importDropzone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                importFileInput.files = e.dataTransfer.files;
+                handleImportFileSelected();
+            }
+        });
+    }
+
+    // File input change
+    if (importFileInput) {
+        importFileInput.addEventListener('change', handleImportFileSelected);
+    }
+
+    function handleImportFileSelected() {
+        var file = importFileInput.files[0];
+        if (!file) return;
+
+        var validExts = ['.ofx', '.ofc', '.csv', '.txt', '.xls', '.xlsx'];
+        var ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        if (!validExts.includes(ext)) {
+            Swal.fire({ icon: 'error', title: 'Formato inválido', text: 'Use arquivos OFX, CSV, TXT, XLS ou XLSX.' });
+            return;
+        }
+
+        document.getElementById('importFileName').textContent = file.name;
+        document.getElementById('importFileSize').textContent = formatImportFileSize(file.size);
+        importFileInfo.style.display = '';
+        importDropzone.classList.add('has-file');
+        btnParseFile.disabled = false;
+    }
+
+    // Remove file
+    if (btnRemoveFile) {
+        btnRemoveFile.addEventListener('click', function() {
+            importFileInput.value = '';
+            importFileInfo.style.display = 'none';
+            importDropzone.classList.remove('has-file');
+            btnParseFile.disabled = true;
+        });
+    }
+
+    function formatImportFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    // ─── Parse file (Step 1 → Step 2) ───
+    if (btnParseFile) {
+        btnParseFile.addEventListener('click', function() {
+            var file = importFileInput.files[0];
+            if (!file) {
+                Swal.fire({ icon: 'warning', title: 'Selecione um arquivo.' });
+                return;
+            }
+
+            var btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Analisando...';
+
+            var fd = new FormData();
+            fd.append('import_file', file);
+            fd.append('csrf_token', csrfToken);
+
+            fetch('?page=financial&action=parseImportFile', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrfToken },
+                body: fd
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-cog me-1"></i>Analisar Arquivo';
+
+                if (!data.success) {
+                    Swal.fire({ icon: 'error', title: 'Erro', text: data.message });
+                    return;
+                }
+
+                importData.file_type = data.file_type;
+                importData.rows      = data.rows;
+                importData.headers   = data.headers || [];
+                importData.columns   = data.columns || [];
+                importData.preview   = data.preview || [];
+                importData.auto_mapping = data.auto_mapping || {};
+                importData.selectedRows = new Set();
+
+                // Update badges
+                var fileTypeBadge = document.getElementById('importFileTypeBadge');
+                var fileTypeLabel = document.getElementById('importFileType');
+                var totalRowsBadge = document.getElementById('totalRowsBadge');
+                if (fileTypeBadge) fileTypeBadge.textContent = data.file_type.toUpperCase();
+                if (fileTypeLabel) fileTypeLabel.textContent = data.file_type.toUpperCase();
+                if (totalRowsBadge) totalRowsBadge.textContent = data.total_rows + ' linha(s)';
+                document.getElementById('importRowCount').textContent = data.total_rows + ' linhas';
+
+                // Show/hide CSV mapping table
+                var mappingSection = document.getElementById('csvMappingSection');
+                if (data.file_type === 'csv') {
+                    mappingSection.classList.remove('d-none');
+                    buildFinMappingTable(data.columns, data.preview, data.auto_mapping);
+                    validateFinMapping();
+                } else {
+                    mappingSection.classList.add('d-none');
+                }
+
+                // Build preview table
+                buildImportPreviewTable(data);
+
+                // Go to step 2
+                goToImportStep(2);
+            })
+            .catch(function(err) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-cog me-1"></i>Analisar Arquivo';
+                console.error('Parse error:', err);
+                Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha ao analisar o arquivo. Verifique o formato.' });
             });
+        });
+    }
+
+    // ─── Financial import field options (matching backend getFinancialImportFields) ───
+    var finImportFieldOptions = {
+        'date':           { label: 'Data',                  required: true  },
+        'description':    { label: 'Descrição',             required: true  },
+        'amount':         { label: 'Valor',                 required: true  },
+        'type':           { label: 'Tipo (Entrada/Saída)',  required: false },
+        'category':       { label: 'Categoria',             required: false },
+        'payment_method': { label: 'Método de Pagamento',   required: false },
+        'notes':          { label: 'Observações',           required: false }
+    };
+
+    // ─── Build mapping table (like products) ───
+    function buildFinMappingTable(columns, preview, autoMapping) {
+        var tbody = document.getElementById('finMappingTableBody');
+        var html = '';
+
+        columns.forEach(function(col) {
+            // Sample: first 3 non-empty values
+            var samples = [];
+            for (var i = 0; i < Math.min(preview.length, 3); i++) {
+                var val = preview[i][col];
+                if (val && String(val).trim() !== '') {
+                    samples.push(String(val).trim());
+                }
+            }
+            var sampleHtml = samples.length > 0
+                ? samples.map(function(s) { return '<span class="badge bg-light text-dark border me-1" style="font-size:.7rem;">' + escHtml(s.substring(0, 40)) + '</span>'; }).join('')
+                : '<span class="text-muted" style="font-size:.7rem;">—</span>';
+
+            var autoVal = autoMapping[col] || '';
+
+            // Build select options
+            var optionsHtml = '<option value="_skip"' + (autoVal === '' ? ' selected' : '') + '>— Ignorar coluna —</option>';
+            for (var field in finImportFieldOptions) {
+                var info = finImportFieldOptions[field];
+                var isReq = info.required ? ' *' : '';
+                optionsHtml += '<option value="' + field + '"' + (autoVal === field ? ' selected' : '') + '>' +
+                    info.label + isReq + '</option>';
+            }
+
+            html += '<tr>' +
+                '<td class="text-center"><input type="checkbox" class="form-check-input fin-col-check" data-col="' + escHtml(col) + '" checked></td>' +
+                '<td><strong style="font-size:.82rem;"><i class="fas fa-columns me-1 text-muted"></i>' + escHtml(col) + '</strong></td>' +
+                '<td>' + sampleHtml + '</td>' +
+                '<td><select class="form-select mapping-select fin-mapping-select" data-col="' + escHtml(col) + '">' + optionsHtml + '</select></td>' +
+            '</tr>';
+        });
+
+        tbody.innerHTML = html;
+
+        // Event listeners for validation
+        tbody.querySelectorAll('.fin-mapping-select').forEach(function(sel) {
+            sel.addEventListener('change', validateFinMapping);
+        });
+        tbody.querySelectorAll('.fin-col-check').forEach(function(chk) {
+            chk.addEventListener('change', function() {
+                var row = this.closest('tr');
+                var sel = row.querySelector('.fin-mapping-select');
+                if (!this.checked) {
+                    sel.value = '_skip';
+                    sel.disabled = true;
+                } else {
+                    sel.disabled = false;
+                }
+                validateFinMapping();
+            });
+        });
+
+        // Check all
+        var checkAll = document.getElementById('finCheckAllCols');
+        if (checkAll) {
+            checkAll.addEventListener('change', function() {
+                var checked = this.checked;
+                tbody.querySelectorAll('.fin-col-check').forEach(function(chk) {
+                    chk.checked = checked;
+                    chk.dispatchEvent(new Event('change'));
+                });
+            });
+        }
+    }
+
+    // ─── Get current mapping as { "Column Name": "field_key" } ───
+    function getFinMapping() {
+        var mapping = {};
+        document.querySelectorAll('#finMappingTableBody .fin-mapping-select').forEach(function(sel) {
+            var col = sel.dataset.col;
+            var val = sel.value;
+            if (val && val !== '_skip') {
+                mapping[col] = val;
+            }
+        });
+        return mapping;
+    }
+
+    // ─── Validate financial mapping ───
+    function validateFinMapping() {
+        var validationEl = document.getElementById('mappingValidation');
+        if (!validationEl) return;
+        var mapping = getFinMapping();
+        var mappedFields = Object.values(mapping).filter(function(v) { return v !== '_skip'; });
+
+        var warnings = [];
+        var errors = [];
+
+        // Check required fields
+        if (!mappedFields.includes('date')) {
+            errors.push('<i class="fas fa-times-circle text-danger me-1"></i><strong>Data</strong> é obrigatória. Mapeie uma coluna para este campo.');
+        }
+        if (!mappedFields.includes('description')) {
+            errors.push('<i class="fas fa-times-circle text-danger me-1"></i><strong>Descrição</strong> é obrigatória. Mapeie uma coluna para este campo.');
+        }
+        if (!mappedFields.includes('amount')) {
+            errors.push('<i class="fas fa-times-circle text-danger me-1"></i><strong>Valor</strong> é obrigatório. Mapeie uma coluna para este campo.');
+        }
+
+        // Check duplicate mappings
+        var fieldCount = {};
+        mappedFields.forEach(function(f) {
+            fieldCount[f] = (fieldCount[f] || 0) + 1;
+        });
+        for (var f in fieldCount) {
+            if (fieldCount[f] > 1) {
+                var label = finImportFieldOptions[f] ? finImportFieldOptions[f].label : f;
+                warnings.push('<i class="fas fa-exclamation-triangle text-warning me-1"></i>O campo <strong>' + label + '</strong> está mapeado para mais de uma coluna.');
+            }
+        }
+
+        if (errors.length > 0 || warnings.length > 0) {
+            var html = '';
+            errors.forEach(function(e) { html += '<div class="alert alert-danger py-1 mb-1 small">' + e + '</div>'; });
+            warnings.forEach(function(w) { html += '<div class="alert alert-warning py-1 mb-1 small">' + w + '</div>'; });
+            validationEl.innerHTML = html;
+            validationEl.style.display = '';
+        } else {
+            validationEl.innerHTML = '<div class="alert alert-success py-1 mb-1 small"><i class="fas fa-check-circle text-success me-1"></i>Mapeamento válido! Pronto para importar.</div>';
+            validationEl.style.display = '';
+        }
+
+        // Enable/disable import button based on mapping validity (for CSV files)
+        if (importData.file_type === 'csv' && btnImportConfirm) {
+            btnImportConfirm.disabled = errors.length > 0;
+        }
+    }
+
+    // ─── Build preview table ───
+    function buildImportPreviewTable(data) {
+        var thead = document.getElementById('importPreviewHead');
+        var tbody = document.getElementById('importPreviewBody');
+        var skipFirst = document.getElementById('skipFirstRow').checked;
+
+        var headHtml = '<th style="width:40px;"><input type="checkbox" id="checkAllRows" checked></th>';
+
+        if (data.file_type === 'ofx') {
+            headHtml += '<th class="small">Data</th><th class="small">Descrição</th><th class="small">Valor</th><th class="small">Tipo</th><th class="small">FITID</th>';
+            thead.innerHTML = headHtml;
+
+            var bodyHtml = '';
+            data.rows.forEach(function(row, idx) {
+                importData.selectedRows.add(idx);
+                bodyHtml += '<tr>';
+                bodyHtml += '<td><input type="checkbox" class="import-row-check" data-idx="' + idx + '" checked></td>';
+                bodyHtml += '<td class="small">' + escHtml(row.date) + '</td>';
+                bodyHtml += '<td class="small">' + escHtml(row.description) + '</td>';
+                bodyHtml += '<td class="small fw-bold ' + (row.amount >= 0 ? 'text-success' : 'text-danger') + '">R$ ' + formatCurrency(Math.abs(row.amount)) + '</td>';
+                bodyHtml += '<td class="small">' + (row.amount >= 0 ? '<span class="badge bg-success-subtle text-success">Crédito</span>' : '<span class="badge bg-danger-subtle text-danger">Débito</span>') + '</td>';
+                bodyHtml += '<td class="small text-muted">' + escHtml(row.fitid || '') + '</td>';
+                bodyHtml += '</tr>';
+            });
+            tbody.innerHTML = bodyHtml;
+        } else {
+            // CSV: show all columns
+            if (data.headers && data.headers.length > 0) {
+                data.headers.forEach(function(h) {
+                    headHtml += '<th class="small">' + escHtml(h) + '</th>';
+                });
+            } else if (data.rows.length > 0) {
+                data.rows[0].forEach(function(_, idx) {
+                    headHtml += '<th class="small">Col ' + (idx + 1) + '</th>';
+                });
+            }
+            thead.innerHTML = headHtml;
+
+            var bodyHtml = '';
+            data.rows.forEach(function(row, idx) {
+                var isHeader = (idx === 0 && skipFirst);
+                if (!isHeader) importData.selectedRows.add(idx);
+                bodyHtml += '<tr class="' + (isHeader ? 'table-secondary' : '') + '">';
+                bodyHtml += '<td><input type="checkbox" class="import-row-check" data-idx="' + idx + '" ' + (!isHeader ? 'checked' : '') + '></td>';
+                row.forEach(function(cell) {
+                    bodyHtml += '<td class="small" title="' + escHtml(String(cell)) + '">' + escHtml(String(cell).substring(0, 60)) + '</td>';
+                });
+                bodyHtml += '</tr>';
+            });
+            tbody.innerHTML = bodyHtml;
+        }
+
+        updateImportSelectedCount();
+
+        // Attach checkbox listeners
+        document.querySelectorAll('.import-row-check').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                var idx = parseInt(this.dataset.idx);
+                if (this.checked) importData.selectedRows.add(idx);
+                else importData.selectedRows.delete(idx);
+                updateImportSelectedCount();
+            });
+        });
+
+        var checkAllRows = document.getElementById('checkAllRows');
+        if (checkAllRows) {
+            checkAllRows.addEventListener('change', function() {
+                var checked = this.checked;
+                document.querySelectorAll('.import-row-check').forEach(function(cb) {
+                    cb.checked = checked;
+                    var idx = parseInt(cb.dataset.idx);
+                    if (checked) importData.selectedRows.add(idx);
+                    else importData.selectedRows.delete(idx);
+                });
+                updateImportSelectedCount();
+            });
+        }
+    }
+
+    function updateImportSelectedCount() {
+        document.getElementById('selectedCount').textContent = importData.selectedRows.size;
+        var countLabel = document.getElementById('importCountLabel');
+        if (countLabel) countLabel.textContent = importData.selectedRows.size;
+    }
+
+    // Select/Deselect all buttons
+    document.getElementById('btnSelectAll')?.addEventListener('click', function() {
+        document.querySelectorAll('.import-row-check').forEach(function(cb) {
+            cb.checked = true;
+            importData.selectedRows.add(parseInt(cb.dataset.idx));
+        });
+        var checkAll = document.getElementById('checkAllRows');
+        if (checkAll) checkAll.checked = true;
+        updateImportSelectedCount();
+    });
+
+    document.getElementById('btnDeselectAll')?.addEventListener('click', function() {
+        document.querySelectorAll('.import-row-check').forEach(function(cb) {
+            cb.checked = false;
+            importData.selectedRows.delete(parseInt(cb.dataset.idx));
+        });
+        var checkAll = document.getElementById('checkAllRows');
+        if (checkAll) checkAll.checked = false;
+        updateImportSelectedCount();
+    });
+
+    // Skip first row toggle
+    document.getElementById('skipFirstRow')?.addEventListener('change', function() {
+        if (importData.rows.length > 0) {
+            buildImportPreviewTable({
+                file_type: importData.file_type,
+                rows: importData.rows,
+                headers: importData.headers,
+                total_rows: importData.rows.length
+            });
+        }
+    });
+
+    // Back button (Step 2 → Step 1)
+    if (btnImportBack) {
+        btnImportBack.addEventListener('click', function() {
+            goToImportStep(1);
+        });
+    }
+
+    // Link "Ver Transações"
+    document.querySelectorAll('.fin-go-transactions').forEach(function(a) {
+        a.addEventListener('click', function(e) {
+            e.preventDefault();
+            navigateToSection('transactions');
         });
     });
 
-    // ── Estornar com SweetAlert2 ──
-    document.querySelectorAll('.btn-estornar').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const form = this.closest('form');
+    // ─── Import confirm (Step 2 → Step 3) ───
+    if (btnImportConfirm) {
+        btnImportConfirm.addEventListener('click', function() {
+            if (importData.selectedRows.size === 0) {
+                Swal.fire({ icon: 'warning', title: 'Selecione ao menos uma linha para importar.' });
+                return;
+            }
+
+            // Validate mapping for CSV files
+            if (importData.file_type === 'csv') {
+                var mapping = getFinMapping();
+                var mappedFields = Object.values(mapping);
+                if (!mappedFields.includes('date') || !mappedFields.includes('description') || !mappedFields.includes('amount')) {
+                    Swal.fire({ icon: 'error', title: 'Mapeamento incompleto', text: 'Os campos Data, Descrição e Valor são obrigatórios.' });
+                    return;
+                }
+            }
+
+            var btn = this;
+
             Swal.fire({
-                title: 'Estornar pagamento?',
-                html: 'O pagamento será <strong>revertido</strong> e registrado como <strong>saída</strong> no livro caixa.<br><small class="text-muted">A parcela voltará como pendente.</small>',
-                icon: 'warning',
+                title: 'Confirmar importação?',
+                html: '<strong>' + importData.selectedRows.size + '</strong> transação(ões) serão importadas como <strong>' +
+                    (document.getElementById('importMode').value === 'registro' ? 'Registro' : 'Contabilizado') + '</strong>.',
+                icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#e74c3c',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-undo me-1"></i> Estornar',
-                cancelButtonText: 'Manter'
-            }).then(result => {
-                if (result.isConfirmed) form.submit();
+                confirmButtonText: '<i class="fas fa-file-import me-1"></i>Importar',
+                confirmButtonColor: '#17a2b8',
+                cancelButtonText: 'Cancelar'
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Importando...';
+
+                var fd = new FormData();
+                fd.append('import_file', importFileInput.files[0]);
+                fd.append('import_mode', document.getElementById('importMode').value);
+                fd.append('selected_rows', JSON.stringify(Array.from(importData.selectedRows)));
+                fd.append('csrf_token', csrfToken);
+
+                var actionUrl;
+                if (importData.file_type === 'ofx') {
+                    actionUrl = '?page=financial&action=importOfxSelected';
+                } else {
+                    actionUrl = '?page=financial&action=importCsv';
+                    // Send column-name→field mapping (new table-based format)
+                    fd.append('mapping', JSON.stringify(getFinMapping()));
+                }
+
+                fetch(actionUrl, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrfToken },
+                    body: fd
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-file-import me-1"></i>Importar <span id="importCountLabel">' + importData.selectedRows.size + '</span> Transação(ões)';
+
+                    showImportResult(data);
+                    goToImportStep(3);
+                })
+                .catch(function(err) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-file-import me-1"></i>Importar Selecionadas';
+                    console.error('Import error:', err);
+                    Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha ao importar. Tente novamente.' });
+                });
             });
         });
-    });
+    }
+
+    // ─── Show import result (Step 3) ───
+    function showImportResult(data) {
+        var container = document.getElementById('importResultContent');
+        if (!container) return;
+        var html = '';
+
+        if (data.success) {
+            if (data.imported > 0) {
+                html += '<div class="text-center mb-4">';
+                html += '<div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(39,174,96,.1);">';
+                html += '<i class="fas fa-check-circle fa-2x text-success"></i></div>';
+                html += '<h4 class="text-success">Importação Concluída!</h4>';
+                html += '<p class="text-muted">' + escHtml(data.message || (data.imported + ' transação(ões) importada(s).')) + '</p>';
+                html += '</div>';
+            } else {
+                html += '<div class="text-center mb-4">';
+                html += '<div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(243,156,18,.1);">';
+                html += '<i class="fas fa-exclamation-triangle fa-2x text-warning"></i></div>';
+                html += '<h4 class="text-warning">Nenhuma transação importada</h4>';
+                html += '<p class="text-muted">Verifique os dados do arquivo e tente novamente.</p>';
+                html += '</div>';
+            }
+
+            // Stats
+            html += '<div class="row g-3 mb-4 justify-content-center">';
+            html += '<div class="col-auto"><div class="badge bg-success-subtle text-success px-3 py-2"><i class="fas fa-check me-1"></i>Importadas: ' + (data.imported || 0) + '</div></div>';
+            if (data.skipped > 0) html += '<div class="col-auto"><div class="badge bg-warning-subtle text-warning px-3 py-2"><i class="fas fa-forward me-1"></i>Ignoradas: ' + data.skipped + '</div></div>';
+            if (data.errors && data.errors.length > 0) html += '<div class="col-auto"><div class="badge bg-danger-subtle text-danger px-3 py-2"><i class="fas fa-times me-1"></i>Erros: ' + data.errors.length + '</div></div>';
+            html += '</div>';
+
+            // Errors list
+            if (data.errors && data.errors.length > 0) {
+                html += '<div class="alert alert-warning py-2 d-flex align-items-center">';
+                html += '<i class="fas fa-exclamation-triangle me-2"></i>';
+                html += '<strong>' + data.errors.length + '</strong>&nbsp;linha(s) com erro:</div>';
+                html += '<div class="list-group" style="max-height:250px;overflow-y:auto;">';
+                data.errors.forEach(function(err) {
+                    var errMsg = typeof err === 'object' ? (err.message || JSON.stringify(err)) : String(err);
+                    html += '<div class="list-group-item list-group-item-danger py-2 small">';
+                    html += '<i class="fas fa-times-circle me-1"></i>' + escHtml(errMsg) + '</div>';
+                });
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center">';
+            html += '<div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(192,57,43,.1);">';
+            html += '<i class="fas fa-times-circle fa-2x text-danger"></i></div>';
+            html += '<h4 class="text-danger">Erro na Importação</h4>';
+            html += '<p class="text-muted">' + escHtml(data.message || 'Erro desconhecido.') + '</p></div>';
+        }
+
+        container.innerHTML = html;
+    }
+
+    // ─── New Import (Step 3 → Step 1) ───
+    if (btnNewImport) {
+        btnNewImport.addEventListener('click', function() {
+            importFileInput.value = '';
+            importFileInfo.style.display = 'none';
+            importDropzone.classList.remove('has-file');
+            btnParseFile.disabled = true;
+            importData = { file_type: null, rows: [], headers: [], columns: [], preview: [], auto_mapping: {}, selectedRows: new Set() };
+            goToImportStep(1);
+        });
+    }
+
+
+    // ═══════════════════════════════════════════
+    // PAGINAÇÃO — Componente reutilizável
+    // ═══════════════════════════════════════════
+    function renderPagination(containerId, currentPage, totalPages, totalItems, onPageClick) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+        var html = '';
+        html += '<button class="btn btn-sm btn-outline-secondary" ' + (currentPage <= 1 ? 'disabled' : '') + ' data-page="' + (currentPage - 1) + '"><i class="fas fa-chevron-left"></i></button>';
+
+        var startPage = Math.max(1, currentPage - 2);
+        var endPage = Math.min(totalPages, currentPage + 2);
+        if (startPage > 1) html += '<button class="btn btn-sm btn-outline-secondary" data-page="1">1</button>';
+        if (startPage > 2) html += '<span class="page-info">…</span>';
+
+        for (var p = startPage; p <= endPage; p++) {
+            if (p === currentPage) {
+                html += '<button class="btn btn-sm btn-primary" disabled>' + p + '</button>';
+            } else {
+                html += '<button class="btn btn-sm btn-outline-secondary" data-page="' + p + '">' + p + '</button>';
+            }
+        }
+
+        if (endPage < totalPages - 1) html += '<span class="page-info">…</span>';
+        if (endPage < totalPages) html += '<button class="btn btn-sm btn-outline-secondary" data-page="' + totalPages + '">' + totalPages + '</button>';
+        html += '<button class="btn btn-sm btn-outline-secondary" ' + (currentPage >= totalPages ? 'disabled' : '') + ' data-page="' + (currentPage + 1) + '"><i class="fas fa-chevron-right"></i></button>';
+        html += '<span class="page-info ms-2">' + totalItems + ' registro(s)</span>';
+
+        container.innerHTML = html;
+        container.querySelectorAll('button[data-page]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var pg = parseInt(this.dataset.page);
+                if (pg && !isNaN(pg)) onPageClick(pg);
+            });
+        });
+    }
+
+
+    // ═══════════════════════════════════════════
+    // INICIALIZAÇÃO
+    // ═══════════════════════════════════════════
+    var initialSection = '<?= $activeSection ?>';
+    if (initialSection === 'payments') loadPayments(1);
+    if (initialSection === 'transactions') loadTransactions(1);
 
 });
 </script>

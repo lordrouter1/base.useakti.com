@@ -3,7 +3,9 @@
     "description": "Akti - Gestão em Produção — Sistema de gestão focado na linha de produção",
     "type": "project",
     "require": {
-        "php": ">=7.4"
+        "php": ">=7.4",
+        "phpoffice/phpspreadsheet": "^5.5",
+        "tecnickcom/tcpdf": "^6.11"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6"

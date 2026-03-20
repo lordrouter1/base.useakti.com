@@ -344,6 +344,154 @@ class Stock {
     }
 
     /**
+     * Buscar uma movimentação pelo ID
+     */
+    public function getMovement($id) {
+        $stmt = $this->conn->prepare("
+            SELECT sm.*, 
+                   p.name as product_name,
+                   pgc.combination_label,
+                   w.name as warehouse_name,
+                   dw.name as dest_warehouse_name,
+                   u.name as user_name
+            FROM stock_movements sm
+            JOIN products p ON sm.product_id = p.id
+            JOIN warehouses w ON sm.warehouse_id = w.id
+            LEFT JOIN product_grade_combinations pgc ON sm.combination_id = pgc.id
+            LEFT JOIN warehouses dw ON sm.destination_warehouse_id = dw.id
+            LEFT JOIN users u ON sm.user_id = u.id
+            WHERE sm.id = :id
+        ");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Atualizar uma movimentação e recalcular saldo do stock_item
+     */
+    public function updateMovement($id, $data) {
+        $movement = $this->getMovement($id);
+        if (!$movement) return false;
+
+        // Reverter efeito da movimentação original no saldo
+        $stockItem = $this->getOrCreateStockItem(
+            $movement['warehouse_id'],
+            $movement['product_id'],
+            $movement['combination_id']
+        );
+        $currentQty = (float) $stockItem['quantity'];
+
+        // Reverter: desfazer o efeito original
+        if ($movement['type'] === 'entrada') {
+            $currentQty -= (float) $movement['quantity'];
+        } elseif ($movement['type'] === 'saida') {
+            $currentQty += (float) $movement['quantity'];
+        } elseif ($movement['type'] === 'ajuste') {
+            $currentQty = (float) $movement['quantity_before'];
+        }
+
+        // Aplicar novo efeito
+        $newType = $data['type'] ?? $movement['type'];
+        $newQuantity = (float) ($data['quantity'] ?? $movement['quantity']);
+
+        if ($newType === 'entrada') {
+            $newQtyAfter = $currentQty + $newQuantity;
+        } elseif ($newType === 'saida') {
+            $newQtyAfter = $currentQty - $newQuantity;
+            if ($newQtyAfter < 0) $newQtyAfter = 0;
+        } elseif ($newType === 'ajuste') {
+            $newQtyAfter = $newQuantity;
+            $newQuantity = abs($newQtyAfter - $currentQty);
+        } else {
+            $newQtyAfter = $currentQty - $newQuantity;
+            if ($newQtyAfter < 0) $newQtyAfter = 0;
+        }
+
+        // Atualizar saldo do item
+        $stmtUpd = $this->conn->prepare("UPDATE stock_items SET quantity = :qty WHERE id = :id");
+        $stmtUpd->bindParam(':qty', $newQtyAfter);
+        $stmtUpd->bindParam(':id', $stockItem['id']);
+        $stmtUpd->execute();
+
+        // Atualizar registro da movimentação
+        $reason = $data['reason'] ?? $movement['reason'];
+        $stmt = $this->conn->prepare("
+            UPDATE stock_movements 
+            SET type = :type, quantity = :qty, quantity_before = :qty_before, 
+                quantity_after = :qty_after, reason = :reason
+            WHERE id = :id
+        ");
+        $stmt->bindParam(':type', $newType);
+        $stmt->bindParam(':qty', $newQuantity);
+        $stmt->bindParam(':qty_before', $currentQty);
+        $stmt->bindParam(':qty_after', $newQtyAfter);
+        $stmt->bindParam(':reason', $reason);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    /**
+     * Excluir uma movimentação e reverter o saldo do stock_item
+     */
+    public function deleteMovement($id) {
+        $movement = $this->getMovement($id);
+        if (!$movement) return false;
+
+        // Reverter efeito no saldo
+        $stockItem = $this->getOrCreateStockItem(
+            $movement['warehouse_id'],
+            $movement['product_id'],
+            $movement['combination_id']
+        );
+        $currentQty = (float) $stockItem['quantity'];
+
+        if ($movement['type'] === 'entrada') {
+            $newQty = $currentQty - (float) $movement['quantity'];
+            if ($newQty < 0) $newQty = 0;
+        } elseif ($movement['type'] === 'saida') {
+            $newQty = $currentQty + (float) $movement['quantity'];
+        } elseif ($movement['type'] === 'ajuste') {
+            $newQty = (float) $movement['quantity_before'];
+        } else {
+            // transferência: reverter saída no armazém de origem
+            $newQty = $currentQty + (float) $movement['quantity'];
+        }
+
+        // Atualizar saldo
+        $stmtUpd = $this->conn->prepare("UPDATE stock_items SET quantity = :qty WHERE id = :id");
+        $stmtUpd->bindParam(':qty', $newQty);
+        $stmtUpd->bindParam(':id', $stockItem['id']);
+        $stmtUpd->execute();
+
+        // Se transferência, reverter também no destino
+        if ($movement['type'] === 'transferencia' && !empty($movement['destination_warehouse_id'])) {
+            $destItem = $this->getOrCreateStockItem(
+                $movement['destination_warehouse_id'],
+                $movement['product_id'],
+                $movement['combination_id']
+            );
+            $destQty = (float) $destItem['quantity'] - (float) $movement['quantity'];
+            if ($destQty < 0) $destQty = 0;
+
+            $stmtDest = $this->conn->prepare("UPDATE stock_items SET quantity = :qty WHERE id = :id");
+            $stmtDest->bindParam(':qty', $destQty);
+            $stmtDest->bindParam(':id', $destItem['id']);
+            $stmtDest->execute();
+
+            // Remover a movimentação de entrada no destino (reference_id = $id)
+            $stmtDelDest = $this->conn->prepare("DELETE FROM stock_movements WHERE reference_id = :rid AND reference_type = 'transfer'");
+            $stmtDelDest->bindParam(':rid', $id, PDO::PARAM_INT);
+            $stmtDelDest->execute();
+        }
+
+        // Remover a movimentação
+        $stmt = $this->conn->prepare("DELETE FROM stock_movements WHERE id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    /**
      * Listar movimentações com filtros
      */
     public function getMovements($filters = []) {

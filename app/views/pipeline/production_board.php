@@ -1,15 +1,80 @@
 <?php
 /**
- * Painel de Produção — Visão por Setor (Tabs)
+ * Painel de Produção — Visão por Setor (Sidebar + Content)
  * Mostra todos os produtos de todos os pedidos abertos, agrupados pelo setor
  * em que se encontram. Apenas setores que o usuário tem permissão são exibidos.
- * Itens ordenados do mais antigo para o mais novo.
- * Permite concluir e retroceder setores diretamente.
+ * Layout inspirado no painel de relatórios: sidebar com setores à esquerda,
+ * conteúdo do setor ativo à direita.
  */
 
 $sectorList = array_values($boardData);
 $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
+
+// Coletar todos os concluídos de todos os setores para o "setor" virtual
+$allConcluidos = [];
+$totalPendente = 0;
+foreach ($boardData as $sid => $sec) {
+    $totalPendente += $sec['counts']['pendente'];
+    foreach ($sec['items'] as $it) {
+        if ($it['status'] === 'concluido') {
+            // Adicionar nome/cor do setor ao item para exibição
+            $it['_sector_name']  = $sec['name'];
+            $it['_sector_color'] = $sec['color'];
+            $it['_sector_icon']  = $sec['icon'];
+            $it['_sector_id']    = $sid;
+            $allConcluidos[] = $it;
+        }
+    }
+}
+
+// Se a categoria ativa for "concluidos" marcar como válida
+$validSectorIds = array_merge(array_keys($boardData), ['concluidos']);
+if (!in_array($activeSectorId, $validSectorIds) && !empty($sectorList)) {
+    $activeSectorId = $sectorList[0]['id'];
+}
 ?>
+
+<style>
+/* ── Production Board Sidebar ── */
+.pb-sidebar .pb-nav-item{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;border-radius:10px;text-decoration:none;color:#555;font-size:.82rem;font-weight:500;transition:all .15s ease;margin-bottom:2px;border:1px solid transparent;cursor:pointer}
+.pb-sidebar .pb-nav-item:hover{background:#f1f5f9;color:#333}
+.pb-sidebar .pb-nav-item.active{background:var(--bs-primary,#3498db);color:#fff;box-shadow:0 2px 8px rgba(52,152,219,.3)}
+.pb-sidebar .pb-nav-item.active .pb-nav-icon{background:rgba(255,255,255,.2) !important;color:#fff !important}
+.pb-sidebar .pb-nav-item.active .pb-nav-count{background:rgba(255,255,255,.25) !important;color:#fff !important}
+.pb-nav-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:all .15s ease}
+.pb-nav-count{font-size:.65rem;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:auto}
+.pb-sidebar-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;padding:0 1rem;margin-bottom:.3rem;margin-top:.6rem}
+.pb-sidebar-divider{height:1px;background:#e9ecef;margin:.5rem 1rem}
+
+/* ── Section transition ── */
+.pb-section{display:none;animation:pbFadeIn .25s ease}
+.pb-section.active{display:block}
+@keyframes pbFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Board Cards ── */
+.board-item-card{transition:transform .18s ease,box-shadow .18s ease;border-radius:.5rem;overflow:hidden;border:1px solid #e2e8f0 !important}
+.board-item-card:hover{transform:translateY(-3px);box-shadow:0 8px 25px rgba(0,0,0,.12) !important;border-color:#cbd5e1 !important}
+.board-item-card .card-header{border-radius:0 !important}
+.board-item-card .card-footer{border-radius:0 0 .5rem .5rem !important}
+.board-item-done{opacity:.7}
+.board-item-done:hover{opacity:.9}
+.board-item-urgent{border:2px solid #dc3545 !important;animation:board-pulse-urgent 2.5s infinite ease-in-out}
+@keyframes board-pulse-urgent{0%,100%{box-shadow:0 1px 3px rgba(220,53,69,.15)}50%{box-shadow:0 4px 15px rgba(220,53,69,.3)}}
+.board-priority-badge{font-size:.6rem;animation:board-badge-pop .3s ease}
+@keyframes board-badge-pop{0%{transform:scale(.8)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+.board-item-thumb img{transition:transform .2s ease}
+.board-item-card:hover .board-item-thumb img{transform:scale(1.05)}
+.min-width-0{min-width:0}
+
+/* ── Mobile sidebar ── */
+@media(max-width:991.98px){
+    .pb-sidebar-col{margin-bottom:1rem}
+    .pb-sidebar{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:thin}
+    .pb-sidebar .pb-nav-item{white-space:nowrap;flex-shrink:0;padding:.5rem .85rem;font-size:.75rem}
+    .pb-sidebar-label{display:none}
+    .pb-sidebar-divider{display:none}
+}
+</style>
 
 <div class="container-fluid py-4 px-lg-4">
 
@@ -67,281 +132,271 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
     </div>
     <?php else: ?>
 
-    <!-- Resumo Geral (cards de estatísticas) -->
-    <?php
-        $totalPendente = 0;
-        $totalConcluido = 0;
-        $totalItens = 0;
-        foreach ($boardData as $sec) {
-            $totalPendente  += $sec['counts']['pendente'];
-            $totalConcluido += $sec['counts']['concluido'];
-            $totalItens += count($sec['items']);
-        }
-    ?>
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-md-4">
-            <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
-                <div class="card-body p-3 d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10" style="width:48px;height:48px;min-width:48px;">
-                        <i class="fas fa-clipboard-list text-primary fs-5"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small fw-bold mb-0">Total de Itens</div>
-                        <div class="fs-3 fw-bold text-primary mb-0"><?= $totalItens ?></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4">
-            <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
-                <div class="card-body p-3 d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning bg-opacity-10" style="width:48px;height:48px;min-width:48px;">
-                        <i class="fas fa-hourglass-half text-warning fs-5"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small fw-bold mb-0">Pendentes</div>
-                        <div class="fs-3 fw-bold text-warning mb-0"><?= $totalPendente ?></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4">
-            <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
-                <div class="card-body p-3 d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-success bg-opacity-10" style="width:48px;height:48px;min-width:48px;">
-                        <i class="fas fa-check-double text-success fs-5"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small fw-bold mb-0">Concluídos</div>
-                        <div class="fs-3 fw-bold text-success mb-0"><?= $totalConcluido ?></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div class="row" id="pbMainLayout">
 
-    <!-- Tabs por Setor -->
-    <ul class="nav nav-tabs flex-wrap pb-0 mb-0" id="sectorTabs" role="tablist">
-        <?php foreach ($boardData as $sid => $sector): 
-            $isActive = ($sid == $activeSectorId);
-            $badgeTotal = $sector['counts']['pendente'];
-        ?>
-        <li class="nav-item flex-shrink-0" role="presentation">
-            <button class="nav-link <?= $isActive ? 'active' : '' ?> d-flex align-items-center gap-2 py-2 px-3" 
-                    id="tab-sector-<?= $sid ?>" data-bs-toggle="tab" data-bs-target="#panel-sector-<?= $sid ?>" 
-                    type="button" role="tab" aria-selected="<?= $isActive ? 'true' : 'false' ?>">
-                <i class="<?= eAttr($sector['icon'] ?: 'fas fa-cog') ?>" style="color:<?= eAttr($sector['color'] ?: '#666') ?>;"></i>
-                <span class="fw-bold"><?= e($sector['name']) ?></span>
-                <?php if ($badgeTotal > 0): ?>
-                <span class="badge rounded-pill bg-secondary" style="font-size:0.7rem;">
-                    <?= $badgeTotal ?>
-                </span>
-                <?php endif; ?>
-            </button>
-        </li>
-        <?php endforeach; ?>
-    </ul>
+        <!-- ═══════════════════════════════════════ -->
+        <!-- SIDEBAR — Setores de Produção (3/12)    -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="col-lg-3 pb-sidebar-col">
+            <div class="card border-0 shadow-sm" style="border-radius:12px;">
+                <div class="card-body p-3">
+                    <nav class="pb-sidebar">
 
-    <!-- Painéis por Setor -->
-    <div class="tab-content border border-top-0 rounded-bottom bg-white shadow-sm" id="sectorTabContent">
-        <?php foreach ($boardData as $sid => $sector): 
-            $isActive = ($sid == $activeSectorId);
-            $items = $sector['items'];
+                        <div class="pb-sidebar-label">Setores de Produção</div>
 
-            // Separar por status (sem em_andamento)
-            $pendentes   = array_filter($items, fn($i) => $i['status'] === 'pendente');
-            $concluidos  = array_filter($items, fn($i) => $i['status'] === 'concluido');
-        ?>
-        <div class="tab-pane fade <?= $isActive ? 'show active' : '' ?> p-4" 
-             id="panel-sector-<?= $sid ?>" role="tabpanel" aria-labelledby="tab-sector-<?= $sid ?>">
-
-            <!-- Cabeçalho do painel do setor -->
-            <div class="d-flex align-items-center justify-content-between mb-3">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center" 
-                          style="width:40px;height:40px;background:<?= eAttr($sector['color'] ?: '#666') ?>;color:#fff;font-size:1rem;">
-                        <i class="<?= eAttr($sector['icon'] ?: 'fas fa-cog') ?>"></i>
-                    </span>
-                    <div>
-                        <h5 class="mb-0 fw-bold"><?= e($sector['name']) ?></h5>
-                        <small class="text-muted">
-                            <?= count($pendentes) ?> pendentes · 
-                            <?= count($concluidos) ?> concluídos
-                        </small>
-                    </div>
-                </div>
-                <div class="d-flex gap-2">
-                    <span class="badge bg-secondary"><i class="fas fa-hourglass-half me-1"></i><?= count($pendentes) ?></span>
-                    <span class="badge bg-success"><i class="fas fa-check me-1"></i><?= count($concluidos) ?></span>
-                </div>
-            </div>
-
-            <?php if (empty($items)): ?>
-            <!-- Setor vazio -->
-            <div class="text-center py-5">
-                <i class="fas fa-inbox d-block mb-2 text-muted" style="font-size:2.5rem;opacity:0.4;"></i>
-                <p class="text-muted mb-0">Nenhum produto neste setor no momento</p>
-            </div>
-            <?php else: ?>
-
-            <!-- ════ ITENS PENDENTES (Setor Atual) ════ -->
-            <?php if (!empty($pendentes)): ?>
-            <h6 class="text-secondary fw-bold mb-2">
-                <i class="fas fa-hourglass-half me-1"></i> Pendentes (<?= count($pendentes) ?>)
-            </h6>
-            <div class="row g-3 mb-4">
-                <?php foreach ($pendentes as $item): 
-                    // O model já calculou se há setor anterior concluído
-                    $hasCompletedPrevious = !empty($item['has_previous_concluded']);
-                    $sectorColor = eAttr($sector['color'] ?: '#e67e22');
-                    $productImg = !empty($item['product_image']) ? $item['product_image'] : '';
-                    $isUrgent = (!empty($item['priority']) && $item['priority'] === 'urgente');
-                    $isHighPriority = (!empty($item['priority']) && in_array($item['priority'], ['urgente', 'alta']));
-                ?>
-                <div class="col-12 col-md-6 col-xl-4">
-                    <div class="card h-100 board-item-card shadow-sm <?= $isUrgent ? 'board-item-urgent' : '' ?>">
-                        <!-- Card Header com cor do setor -->
-                        <div class="card-header border-0 py-2 px-3 d-flex align-items-center justify-content-between"
-                             style="background:<?= $sectorColor ?>10; border-left:4px solid <?= $sectorColor ?> !important;">
-                            <div class="d-flex align-items-center gap-2">
-                                <a href="?page=pipeline&action=detail&id=<?= $item['order_id'] ?>" 
-                                   class="badge text-decoration-none fw-bold" 
-                                   style="background:<?= $sectorColor ?>;color:#fff;font-size:0.72rem;" title="Abrir pedido">
-                                    <i class="fas fa-file-alt me-1"></i>#<?= str_pad($item['order_id'], 4, '0', STR_PAD_LEFT) ?>
-                                </a>
-                                <?php if ($isHighPriority): ?>
-                                <span class="badge <?= $isUrgent ? 'bg-danger' : 'bg-warning text-dark' ?> board-priority-badge">
-                                    <i class="fas fa-<?= $isUrgent ? 'exclamation-triangle' : 'arrow-up' ?> me-1"></i><?= ucfirst($item['priority']) ?>
-                                </span>
-                                <?php endif; ?>
-                            </div>
-                            <span class="badge bg-secondary bg-opacity-75" style="font-size:0.62rem;">
-                                <i class="fas fa-hourglass-half me-1"></i>Pendente
+                        <?php foreach ($boardData as $sid => $sector):
+                            $pendCount = $sector['counts']['pendente'];
+                            $sColor = $sector['color'] ?: '#666';
+                        ?>
+                        <a href="#" class="pb-nav-item <?= ($activeSectorId == $sid) ? 'active' : '' ?>" data-sector="<?= eAttr($sid) ?>">
+                            <span class="pb-nav-icon" style="background:<?= eAttr($sColor) ?>15;color:<?= eAttr($sColor) ?>;">
+                                <i class="<?= eAttr($sector['icon'] ?: 'fas fa-cog') ?>"></i>
                             </span>
+                            <span><?= e($sector['name']) ?></span>
+                            <span class="pb-nav-count" style="background:<?= eAttr($sColor) ?>15;color:<?= eAttr($sColor) ?>;"><?= $pendCount ?></span>
+                        </a>
+                        <?php endforeach; ?>
+
+                        <div class="pb-sidebar-divider"></div>
+
+                        <a href="#" class="pb-nav-item <?= ($activeSectorId === 'concluidos') ? 'active' : '' ?>" data-sector="concluidos">
+                            <span class="pb-nav-icon" style="background:rgba(39,174,96,.1);color:#27ae60;">
+                                <i class="fas fa-check-double"></i>
+                            </span>
+                            <span>Concluídos</span>
+                            <span class="pb-nav-count" style="background:rgba(39,174,96,.1);color:#27ae60;"><?= count($allConcluidos) ?></span>
+                        </a>
+
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Mini-dica -->
+            <div class="card border-0 shadow-sm mt-3 d-none d-lg-block" style="border-radius:12px;">
+                <div class="card-body p-3">
+                    <h6 class="mb-2 fw-bold" style="font-size:.78rem;color:#17a2b8;">
+                        <i class="fas fa-lightbulb me-1"></i>Dica
+                    </h6>
+                    <p class="mb-0 text-muted" style="font-size:.72rem;line-height:1.55;">
+                        Selecione um setor no menu para ver os itens pendentes.
+                        Use <span class="fw-bold text-success">Concluir</span> para avançar
+                        ou <span class="fw-bold text-warning">Retroceder</span> para voltar.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- CONTEÚDO PRINCIPAL — Itens do Setor Ativo (9/12) -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div class="col-lg-9">
+
+            <?php foreach ($boardData as $sid => $sector):
+                $isActive = ($activeSectorId == $sid);
+                $items = $sector['items'];
+                $pendentes  = array_filter($items, fn($i) => $i['status'] === 'pendente');
+                $sectorColor = eAttr($sector['color'] ?: '#666');
+            ?>
+            <div class="pb-section <?= $isActive ? 'active' : '' ?>" id="pb-sector-<?= $sid ?>">
+
+                <!-- Cabeçalho do setor -->
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="rounded-circle d-inline-flex align-items-center justify-content-center"
+                              style="width:40px;height:40px;background:<?= $sectorColor ?>;color:#fff;font-size:1rem;">
+                            <i class="<?= eAttr($sector['icon'] ?: 'fas fa-cog') ?>"></i>
+                        </span>
+                        <div>
+                            <h5 class="mb-0 fw-bold"><?= e($sector['name']) ?></h5>
+                            <small class="text-muted"><?= count($pendentes) ?> pendentes neste setor</small>
                         </div>
+                    </div>
+                    <span class="badge bg-secondary rounded-pill px-3 py-2" style="font-size:.8rem;">
+                        <i class="fas fa-hourglass-half me-1"></i><?= count($pendentes) ?>
+                    </span>
+                </div>
 
-                        <!-- Card Body -->
-                        <div class="card-body p-3 d-flex flex-column">
-                            <div class="d-flex gap-3 mb-2">
-                                <!-- Thumbnail do Produto -->
-                                <?php if ($productImg): ?>
-                                <div class="board-item-thumb flex-shrink-0">
-                                    <img src="<?= eAttr($productImg) ?>" 
-                                         alt="<?= eAttr($item['product_name']) ?>"
-                                         class="rounded border" 
-                                         style="width:56px;height:56px;object-fit:cover;">
-                                </div>
-                                <?php else: ?>
-                                <div class="board-item-thumb flex-shrink-0">
-                                    <div class="rounded border d-flex align-items-center justify-content-center bg-light" 
-                                         style="width:56px;height:56px;">
-                                        <i class="fas fa-box text-muted" style="font-size:1.2rem;opacity:0.4;"></i>
-                                    </div>
-                                </div>
-                                <?php endif; ?>
-
-                                <!-- Info do Produto -->
-                                <div class="flex-grow-1 min-width-0">
-                                    <h6 class="mb-1 fw-bold text-truncate" title="<?= eAttr($item['product_name']) ?>" style="font-size:0.88rem;">
-                                        <?= e($item['product_name']) ?>
-                                    </h6>
-                                    <?php if (!empty($item['grade_description'])): ?>
-                                    <span class="badge bg-info  text-info-emphasis mb-1" style="font-size:0.65rem;">
-                                        <i class="fas fa-layer-group me-1"></i><?= e($item['grade_description']) ?>
+                <?php if (empty($pendentes)): ?>
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox d-block mb-2 text-muted" style="font-size:2.5rem;opacity:0.4;"></i>
+                    <p class="text-muted mb-0">Nenhum produto pendente neste setor</p>
+                </div>
+                <?php else: ?>
+                <div class="row g-3 mb-4">
+                    <?php foreach ($pendentes as $item):
+                        $hasCompletedPrevious = !empty($item['has_previous_concluded']);
+                        $productImg = !empty($item['product_image']) ? $item['product_image'] : '';
+                        $isUrgent = (!empty($item['priority']) && $item['priority'] === 'urgente');
+                        $isHighPriority = (!empty($item['priority']) && in_array($item['priority'], ['urgente', 'alta']));
+                    ?>
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="card h-100 board-item-card shadow-sm <?= $isUrgent ? 'board-item-urgent' : '' ?>">
+                            <!-- Card Header -->
+                            <div class="card-header border-0 py-2 px-3 d-flex align-items-center justify-content-between"
+                                 style="background:<?= $sectorColor ?>10; border-left:4px solid <?= $sectorColor ?> !important;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <a href="?page=pipeline&action=detail&id=<?= $item['order_id'] ?>"
+                                       class="badge text-decoration-none fw-bold"
+                                       style="background:<?= $sectorColor ?>;color:#fff;font-size:0.72rem;" title="Abrir pedido">
+                                        <i class="fas fa-file-alt me-1"></i>#<?= str_pad($item['order_id'], 4, '0', STR_PAD_LEFT) ?>
+                                    </a>
+                                    <?php if ($isHighPriority): ?>
+                                    <span class="badge <?= $isUrgent ? 'bg-danger' : 'bg-warning text-dark' ?> board-priority-badge">
+                                        <i class="fas fa-<?= $isUrgent ? 'exclamation-triangle' : 'arrow-up' ?> me-1"></i><?= ucfirst($item['priority']) ?>
                                     </span>
                                     <?php endif; ?>
-                                    <div class="small text-muted" style="font-size:0.75rem;">
-                                        <span class="me-2"><i class="fas fa-cubes me-1"></i>Qtd: <strong><?= $item['quantity'] ?></strong></span>
-                                    </div>
                                 </div>
+                                <span class="badge bg-secondary bg-opacity-75" style="font-size:0.62rem;">
+                                    <i class="fas fa-hourglass-half me-1"></i>Pendente
+                                </span>
                             </div>
 
-                            <!-- Detalhes Secundários -->
-                            <div class="board-item-details small text-muted mb-2" style="font-size:0.72rem;">
-                                <?php if (!empty($item['customer_name'])): ?>
-                                <div class="text-truncate"><i class="fas fa-user me-1 text-primary opacity-50"></i><?= e($item['customer_name']) ?></div>
-                                <?php endif; ?>
-                                <div class="d-flex gap-3">
-                                    <span><i class="fas fa-calendar-plus me-1 text-primary opacity-50"></i><?= date('d/m H:i', strtotime($item['order_created_at'])) ?></span>
-                                    <?php if (!empty($item['deadline'])): ?>
-                                    <?php
-                                        $deadlineDate = strtotime($item['deadline']);
-                                        $isOverdue = ($deadlineDate < time());
-                                    ?>
-                                    <span class="<?= $isOverdue ? 'text-danger fw-bold' : '' ?>">
-                                        <i class="fas fa-calendar-alt me-1"></i><?= date('d/m/Y', $deadlineDate) ?>
-                                        <?php if ($isOverdue): ?>
-                                        <span class="badge bg-danger ms-1" style="font-size:0.55rem;">ATRASADO</span>
+                            <!-- Card Body -->
+                            <div class="card-body p-3 d-flex flex-column">
+                                <div class="d-flex gap-3 mb-2">
+                                    <?php if ($productImg): ?>
+                                    <div class="board-item-thumb flex-shrink-0">
+                                        <img src="<?= eAttr($productImg) ?>"
+                                             alt="<?= eAttr($item['product_name']) ?>"
+                                             class="rounded border"
+                                             style="width:56px;height:56px;object-fit:cover;">
+                                    </div>
+                                    <?php else: ?>
+                                    <div class="board-item-thumb flex-shrink-0">
+                                        <div class="rounded border d-flex align-items-center justify-content-center bg-light"
+                                             style="width:56px;height:56px;">
+                                            <i class="fas fa-box text-muted" style="font-size:1.2rem;opacity:0.4;"></i>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+                                    <div class="flex-grow-1 min-width-0">
+                                        <h6 class="mb-1 fw-bold text-truncate" title="<?= eAttr($item['product_name']) ?>" style="font-size:0.88rem;">
+                                            <?= e($item['product_name']) ?>
+                                        </h6>
+                                        <?php if (!empty($item['grade_description'])): ?>
+                                        <span class="badge bg-info text-info-emphasis mb-1" style="font-size:0.65rem;">
+                                            <i class="fas fa-layer-group me-1"></i><?= e($item['grade_description']) ?>
+                                        </span>
                                         <?php endif; ?>
-                                    </span>
+                                        <div class="small text-muted" style="font-size:0.75rem;">
+                                            <span class="me-2"><i class="fas fa-cubes me-1"></i>Qtd: <strong><?= $item['quantity'] ?></strong></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="board-item-details small text-muted mb-2" style="font-size:0.72rem;">
+                                    <?php if (!empty($item['customer_name'])): ?>
+                                    <div class="text-truncate"><i class="fas fa-user me-1 text-primary opacity-50"></i><?= e($item['customer_name']) ?></div>
                                     <?php endif; ?>
+                                    <div class="d-flex gap-3">
+                                        <span><i class="fas fa-calendar-plus me-1 text-primary opacity-50"></i><?= date('d/m H:i', strtotime($item['order_created_at'])) ?></span>
+                                        <?php if (!empty($item['deadline'])):
+                                            $deadlineDate = strtotime($item['deadline']);
+                                            $isOverdue = ($deadlineDate < time());
+                                        ?>
+                                        <span class="<?= $isOverdue ? 'text-danger fw-bold' : '' ?>">
+                                            <i class="fas fa-calendar-alt me-1"></i><?= date('d/m/Y', $deadlineDate) ?>
+                                            <?php if ($isOverdue): ?>
+                                            <span class="badge bg-danger ms-1" style="font-size:0.55rem;">ATRASADO</span>
+                                            <?php endif; ?>
+                                        </span>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Card Footer: Ações -->
-                        <div class="card-footer bg-transparent border-top px-3 py-2 d-flex justify-content-between align-items-center">
-                            <div class="d-flex gap-1">
-                                <?php if ($hasCompletedPrevious): ?>
-                                <button type="button" class="btn btn-sm btn-outline-warning btn-board-action"
+                            <!-- Card Footer -->
+                            <div class="card-footer bg-transparent border-top px-3 py-2 d-flex justify-content-between align-items-center">
+                                <div class="d-flex gap-1">
+                                    <?php if ($hasCompletedPrevious): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-warning btn-board-action"
+                                            data-order-id="<?= $item['order_id'] ?>"
+                                            data-item-id="<?= $item['order_item_id'] ?>"
+                                            data-sector-id="<?= $item['sector_id'] ?>"
+                                            data-action="revert"
+                                            data-sector-name="<?= eAttr($sector['name']) ?>">
+                                        <i class="fas fa-undo me-1"></i> Retroceder
+                                    </button>
+                                    <?php endif; ?>
+                                    <?php $logCount = $itemLogCounts[$item['order_item_id']] ?? 0; ?>
+                                    <button type="button" class="btn btn-sm btn-outline-info btn-open-log position-relative"
+                                            data-order-id="<?= $item['order_id'] ?>"
+                                            data-item-id="<?= $item['order_item_id'] ?>"
+                                            data-product-name="<?= eAttr($item['product_name']) ?>"
+                                            data-customer-name="<?= eAttr($item['customer_name'] ?? '') ?>"
+                                            data-quantity="<?= $item['quantity'] ?>"
+                                            title="Histórico do produto">
+                                        <i class="fas fa-history"></i>
+                                        <?php if ($logCount > 0): ?>
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info" style="font-size:0.55rem;">
+                                            <?= $logCount ?>
+                                        </span>
+                                        <?php endif; ?>
+                                    </button>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-success btn-board-action fw-bold"
                                         data-order-id="<?= $item['order_id'] ?>"
                                         data-item-id="<?= $item['order_item_id'] ?>"
                                         data-sector-id="<?= $item['sector_id'] ?>"
-                                        data-action="revert"
+                                        data-action="advance"
                                         data-sector-name="<?= eAttr($sector['name']) ?>">
-                                    <i class="fas fa-undo me-1"></i> Retroceder
-                                </button>
-                                <?php endif; ?>
-                                <?php $logCount = $itemLogCounts[$item['order_item_id']] ?? 0; ?>
-                                <button type="button" class="btn btn-sm btn-outline-info btn-open-log position-relative"
-                                        data-order-id="<?= $item['order_id'] ?>"
-                                        data-item-id="<?= $item['order_item_id'] ?>"
-                                        data-product-name="<?= eAttr($item['product_name']) ?>"
-                                        data-customer-name="<?= eAttr($item['customer_name'] ?? '') ?>"
-                                        data-quantity="<?= $item['quantity'] ?>"
-                                        title="Histórico do produto">
-                                    <i class="fas fa-history"></i>
-                                    <?php if ($logCount > 0): ?>
-                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info" style="font-size:0.55rem;">
-                                        <?= $logCount ?>
-                                    </span>
-                                    <?php endif; ?>
+                                    <i class="fas fa-check me-1"></i> Concluir
                                 </button>
                             </div>
-                            <button type="button" class="btn btn-sm btn-success btn-board-action fw-bold"
-                                    data-order-id="<?= $item['order_id'] ?>"
-                                    data-item-id="<?= $item['order_item_id'] ?>"
-                                    data-sector-id="<?= $item['sector_id'] ?>"
-                                    data-action="advance"
-                                    data-sector-name="<?= eAttr($sector['name']) ?>">
-                                <i class="fas fa-check me-1"></i> Concluir
-                            </button>
                         </div>
                     </div>
+                    <?php endforeach; ?>
                 </div>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
+                <?php endif; ?>
 
-            <!-- ════ ITENS CONCLUÍDOS ════ -->
-            <?php if (!empty($concluidos)): ?>
-            <details class="mb-3">
-                <summary class="text-success fw-bold mb-2 cursor-pointer" style="cursor:pointer;">
-                    <i class="fas fa-check-double me-1"></i> Concluídos neste setor (<?= count($concluidos) ?>)
-                </summary>
-                <div class="row g-3 mt-2">
-                    <?php foreach ($concluidos as $item): 
+            </div>
+            <?php endforeach; ?>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- SETOR VIRTUAL: Concluídos              -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="pb-section <?= ($activeSectorId === 'concluidos') ? 'active' : '' ?>" id="pb-sector-concluidos">
+
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="rounded-circle d-inline-flex align-items-center justify-content-center"
+                              style="width:40px;height:40px;background:#27ae60;color:#fff;font-size:1rem;">
+                            <i class="fas fa-check-double"></i>
+                        </span>
+                        <div>
+                            <h5 class="mb-0 fw-bold">Concluídos</h5>
+                            <small class="text-muted"><?= count($allConcluidos) ?> itens com todos os setores concluídos</small>
+                        </div>
+                    </div>
+                    <span class="badge bg-success rounded-pill px-3 py-2" style="font-size:.8rem;">
+                        <i class="fas fa-check-double me-1"></i><?= count($allConcluidos) ?>
+                    </span>
+                </div>
+
+                <?php if (empty($allConcluidos)): ?>
+                <div class="text-center py-5">
+                    <i class="fas fa-clipboard-check d-block mb-2 text-muted" style="font-size:2.5rem;opacity:0.4;"></i>
+                    <p class="text-muted mb-0">Nenhum item concluído no momento</p>
+                </div>
+                <?php else: ?>
+                <div class="row g-3 mb-4">
+                    <?php foreach ($allConcluidos as $item):
                         $productImg = !empty($item['product_image']) ? $item['product_image'] : '';
+                        $itemSectorColor = $item['_sector_color'] ?: '#27ae60';
                     ?>
                     <div class="col-12 col-md-6 col-xl-4">
                         <div class="card h-100 board-item-card board-item-done shadow-sm">
                             <!-- Card Header concluído -->
                             <div class="card-header border-0 py-2 px-3 d-flex align-items-center justify-content-between"
                                  style="background:rgba(39,174,96,0.08); border-left:4px solid #27ae60 !important;">
-                                <a href="?page=pipeline&action=detail&id=<?= $item['order_id'] ?>" 
-                                   class="badge bg-success text-decoration-none fw-bold" style="font-size:0.72rem;" title="Abrir pedido">
-                                    <i class="fas fa-file-alt me-1"></i>#<?= str_pad($item['order_id'], 4, '0', STR_PAD_LEFT) ?>
-                                </a>
+                                <div class="d-flex align-items-center gap-2">
+                                    <a href="?page=pipeline&action=detail&id=<?= $item['order_id'] ?>"
+                                       class="badge bg-success text-decoration-none fw-bold" style="font-size:0.72rem;" title="Abrir pedido">
+                                        <i class="fas fa-file-alt me-1"></i>#<?= str_pad($item['order_id'], 4, '0', STR_PAD_LEFT) ?>
+                                    </a>
+                                    <span class="badge rounded-pill" style="background:<?= eAttr($itemSectorColor) ?>;font-size:0.58rem;">
+                                        <i class="<?= eAttr($item['_sector_icon'] ?: 'fas fa-cog') ?> me-1"></i><?= e($item['_sector_name']) ?>
+                                    </span>
+                                </div>
                                 <span class="badge bg-success" style="font-size:0.62rem;">
                                     <i class="fas fa-check me-1"></i>Concluído
                                 </span>
@@ -350,35 +405,32 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                             <!-- Card Body -->
                             <div class="card-body p-3">
                                 <div class="d-flex gap-3 mb-2">
-                                    <!-- Thumbnail do Produto -->
                                     <?php if ($productImg): ?>
                                     <div class="board-item-thumb flex-shrink-0">
-                                        <img src="<?= eAttr($productImg) ?>" 
+                                        <img src="<?= eAttr($productImg) ?>"
                                              alt="<?= eAttr($item['product_name']) ?>"
-                                             class="rounded border" 
+                                             class="rounded border"
                                              style="width:48px;height:48px;object-fit:cover;opacity:0.7;">
                                     </div>
                                     <?php else: ?>
                                     <div class="board-item-thumb flex-shrink-0">
-                                        <div class="rounded border d-flex align-items-center justify-content-center bg-light" 
+                                        <div class="rounded border d-flex align-items-center justify-content-center bg-light"
                                              style="width:48px;height:48px;">
                                             <i class="fas fa-box text-muted" style="font-size:1rem;opacity:0.3;"></i>
                                         </div>
                                     </div>
                                     <?php endif; ?>
-
                                     <div class="flex-grow-1 min-width-0">
                                         <h6 class="mb-1 fw-bold text-truncate text-success" title="<?= eAttr($item['product_name']) ?>" style="font-size:0.85rem;">
                                             <?= e($item['product_name']) ?>
                                         </h6>
                                         <?php if (!empty($item['grade_description'])): ?>
-                                        <span class="badge bg-info  text-info-emphasis" style="font-size:0.6rem;">
+                                        <span class="badge bg-info text-info-emphasis" style="font-size:0.6rem;">
                                             <i class="fas fa-layer-group me-1"></i><?= e($item['grade_description']) ?>
                                         </span>
                                         <?php endif; ?>
                                     </div>
                                 </div>
-
                                 <div class="small text-muted" style="font-size:0.72rem;">
                                     <?php if (!empty($item['customer_name'])): ?>
                                     <span class="me-2"><i class="fas fa-user me-1"></i><?= e($item['customer_name']) ?></span>
@@ -401,17 +453,17 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                                 <button type="button" class="btn btn-sm btn-outline-warning btn-board-action"
                                         data-order-id="<?= $item['order_id'] ?>"
                                         data-item-id="<?= $item['order_item_id'] ?>"
-                                        data-sector-id="<?= $item['sector_id'] ?>"
+                                        data-sector-id="<?= $item['_sector_id'] ?>"
                                         data-action="revert"
-                                        data-sector-name="<?= e($sector['name']) ?>">
+                                        data-sector-name="<?= eAttr($item['_sector_name']) ?>">
                                     <i class="fas fa-undo me-1"></i> Retroceder
                                 </button>
                                 <?php $logCount = $itemLogCounts[$item['order_item_id']] ?? 0; ?>
                                 <button type="button" class="btn btn-sm btn-outline-info btn-open-log position-relative"
                                         data-order-id="<?= $item['order_id'] ?>"
                                         data-item-id="<?= $item['order_item_id'] ?>"
-                                        data-product-name="<?= e($item['product_name']) ?>"
-                                        data-customer-name="<?= e($item['customer_name'] ?? '') ?>"
+                                        data-product-name="<?= eAttr($item['product_name']) ?>"
+                                        data-customer-name="<?= eAttr($item['customer_name'] ?? '') ?>"
                                         data-quantity="<?= $item['quantity'] ?>"
                                         title="Histórico do produto">
                                     <i class="fas fa-history"></i>
@@ -426,13 +478,13 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
                     </div>
                     <?php endforeach; ?>
                 </div>
-            </details>
-            <?php endif; ?>
+                <?php endif; ?>
 
-            <?php endif; /* end if empty items */ ?>
-        </div>
-        <?php endforeach; ?>
-    </div>
+            </div>
+
+        </div><!-- /.col-lg-9 -->
+
+    </div><!-- /.row -->
 
     <?php endif; /* end if empty boardData */ ?>
 </div>
@@ -506,89 +558,7 @@ $activeSectorId = $_GET['sector'] ?? ($sectorList[0]['id'] ?? '');
 
 <!-- Estilos específicos do painel -->
 <style>
-/* ═══ Board Cards — Estrutura Base ═══ */
-.board-item-card {
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    border: 1px solid #e2e8f0 !important;
-}
-.board-item-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.12) !important;
-    border-color: #cbd5e1 !important;
-}
-.board-item-card .card-header {
-    border-radius: 0 !important;
-}
-.board-item-card .card-footer {
-    border-radius: 0 0 0.5rem 0.5rem !important;
-}
-
-/* ═══ Concluídos — Visual discreto ═══ */
-.board-item-done {
-    opacity: 0.7;
-}
-.board-item-done:hover {
-    opacity: 0.9;
-}
-
-/* ═══ Urgente — Destaque com pulsação ═══ */
-.board-item-urgent {
-    border: 2px solid #dc3545 !important;
-    animation: board-pulse-urgent 2.5s infinite ease-in-out;
-}
-@keyframes board-pulse-urgent {
-    0%, 100% { box-shadow: 0 1px 3px rgba(220,53,69,0.15); }
-    50%      { box-shadow: 0 4px 15px rgba(220,53,69,0.3); }
-}
-
-/* ═══ Priority Badge ═══ */
-.board-priority-badge {
-    font-size: 0.6rem;
-    animation: board-badge-pop 0.3s ease;
-}
-@keyframes board-badge-pop {
-    0% { transform: scale(0.8); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-/* ═══ Thumbnail ═══ */
-.board-item-thumb img {
-    transition: transform 0.2s ease;
-}
-.board-item-card:hover .board-item-thumb img {
-    transform: scale(1.05);
-}
-
-/* ═══ Min width helper ═══ */
-.min-width-0 {
-    min-width: 0;
-}
-
-/* ═══ Sector Tabs ═══ */
-#sectorTabs {
-    border-bottom: 2px solid #dee2e6;
-}
-#sectorTabs .nav-link {
-    border: none;
-    border-bottom: 3px solid transparent;
-    color: #6c757d;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-#sectorTabs .nav-link:hover {
-    color: #333;
-    border-bottom-color: #ccc;
-}
-#sectorTabs .nav-link.active {
-    color: #333;
-    font-weight: 700;
-    border-bottom-color: var(--accent-color, #3b82f6);
-    background: transparent;
-}
+/* ═══ Styles already in <style> tag above — keeping only modal-specific ones here ═══ */
 </style>
 
 <script>
@@ -640,13 +610,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Salvar tab ativa na URL para persistir ao recarregar
-    document.querySelectorAll('#sectorTabs button[data-bs-toggle="tab"]').forEach(function(tabBtn) {
-        tabBtn.addEventListener('shown.bs.tab', function(e) {
-            var sectorId = e.target.id.replace('tab-sector-', '');
-            var url = new URL(window.location.href);
-            url.searchParams.set('sector', sectorId);
-            window.history.replaceState({}, '', url.toString());
+    // ═══════════════════════════════════════════
+    // ═══ SIDEBAR NAVIGATION (SPA-like)       ═══
+    // ═══════════════════════════════════════════
+    document.querySelectorAll('.pb-nav-item').forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            var sector = this.dataset.sector;
+            if (!sector) return;
+
+            // Atualizar sidebar
+            document.querySelectorAll('.pb-nav-item').forEach(function(n) { n.classList.remove('active'); });
+            this.classList.add('active');
+
+            // Atualizar seções
+            document.querySelectorAll('.pb-section').forEach(function(s) { s.classList.remove('active'); });
+            var target = document.getElementById('pb-sector-' + sector);
+            if (target) target.classList.add('active');
+
+            // Atualizar URL sem reload (para bookmarks)
+            var url = new URL(window.location);
+            url.searchParams.set('sector', sector);
+            history.replaceState(null, '', url);
         });
     });
 
@@ -658,10 +643,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var searchCount = document.getElementById('boardSearchCount');
     var searchResults = document.getElementById('boardSearchResults');
     var searchContent = document.getElementById('boardSearchResultsContent');
-    var normalContent = document.querySelectorAll('#sectorTabs, #sectorTabContent, .row.g-3.mb-4');
-    var sectorTabs = document.getElementById('sectorTabs');
-    var sectorTabContent = document.getElementById('sectorTabContent');
-    var statsRow = document.querySelector('.row.g-3.mb-4');
+    var mainLayout = document.getElementById('pbMainLayout');
 
     var searchDebounce = null;
     if (searchInput) {
@@ -688,14 +670,11 @@ document.addEventListener('DOMContentLoaded', function() {
         var query = (searchInput.value || '').trim().toLowerCase();
         
         if (!query) {
-            // Mostrar conteúdo normal, esconder resultados de busca
             searchClear.classList.add('d-none');
             searchCount.textContent = '';
             searchResults.classList.add('d-none');
             searchContent.innerHTML = '';
-            if (sectorTabs) sectorTabs.style.display = '';
-            if (sectorTabContent) sectorTabContent.style.display = '';
-            if (statsRow) statsRow.style.display = '';
+            if (mainLayout) mainLayout.style.display = '';
             return;
         }
 
@@ -716,10 +695,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return searchable.indexOf(query) !== -1;
         });
 
-        // Esconder conteúdo normal, mostrar resultados
-        if (sectorTabs) sectorTabs.style.display = 'none';
-        if (sectorTabContent) sectorTabContent.style.display = 'none';
-        if (statsRow) statsRow.style.display = 'none';
+        // Esconder layout principal, mostrar resultados
+        if (mainLayout) mainLayout.style.display = 'none';
         searchResults.classList.remove('d-none');
 
         searchCount.innerHTML = '<i class="fas fa-search me-1"></i>' + matches.length + ' resultado(s) para "<strong>' + escapeHtml(searchInput.value.trim()) + '</strong>"';
@@ -731,7 +708,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Agrupar resultados por setor para exibição organizada
+        // Agrupar resultados por setor
         var bySector = {};
         matches.forEach(function(item) {
             if (!bySector[item.sector_id]) {
@@ -764,7 +741,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     : '<span class="badge bg-secondary bg-opacity-75" style="font-size:0.6rem;"><i class="fas fa-hourglass-half me-1"></i>Pendente</span>';
                 var isDone = item.status === 'concluido';
                 
-                // Thumbnail
                 var thumbHtml = '';
                 if (item.product_image) {
                     thumbHtml = '<img src="' + escapeHtml(item.product_image) + '" class="rounded border" style="width:44px;height:44px;object-fit:cover;' + (isDone ? 'opacity:0.6;' : '') + '" alt="">';
@@ -774,28 +750,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 html += '<div class="col-12 col-md-6 col-xl-4">';
                 html += '<div class="card shadow-sm h-100 board-item-card' + (isDone ? ' board-item-done' : '') + '">';
-                // Card Header
                 html += '<div class="card-header border-0 py-2 px-3 d-flex align-items-center justify-content-between" style="background:' + (isDone ? 'rgba(39,174,96,0.08)' : escapeHtml(sec.color) + '10') + ';border-left:4px solid ' + (isDone ? '#27ae60' : escapeHtml(sec.color)) + ' !important;">';
                 html += '<a href="?page=pipeline&action=detail&id=' + item.order_id + '" class="badge text-decoration-none fw-bold" style="background:' + (isDone ? '#27ae60' : escapeHtml(sec.color)) + ';color:#fff;font-size:0.7rem;">';
                 html += '<i class="fas fa-file-alt me-1"></i>' + escapeHtml(item.order_code) + '</a>';
                 html += statusBadge;
                 html += '</div>';
-                // Card Body
                 html += '<div class="card-body p-2">';
                 html += '<div class="d-flex gap-2 mb-1">';
                 html += '<div class="flex-shrink-0">' + thumbHtml + '</div>';
                 html += '<div class="flex-grow-1 min-width-0">';
                 html += '<h6 class="mb-1 fw-bold text-truncate' + (isDone ? ' text-success' : '') + '" style="font-size:0.82rem;" title="' + escapeHtml(item.product_name) + '">' + escapeHtml(item.product_name) + '</h6>';
                 if (item.grade_description) {
-                    html += '<span class="badge bg-info  text-info-emphasis" style="font-size:0.58rem;"><i class="fas fa-layer-group me-1"></i>' + escapeHtml(item.grade_description) + '</span>';
+                    html += '<span class="badge bg-info text-info-emphasis" style="font-size:0.58rem;"><i class="fas fa-layer-group me-1"></i>' + escapeHtml(item.grade_description) + '</span>';
                 }
                 html += '</div></div>';
-                // Details
                 html += '<div class="small text-muted" style="font-size:0.7rem;">';
                 if (item.customer_name) html += '<span class="me-2"><i class="fas fa-user me-1"></i>' + escapeHtml(item.customer_name) + '</span>';
                 html += '<span class="me-2"><i class="fas fa-cubes me-1"></i>Qtd: ' + item.quantity + '</span>';
                 html += '</div>';
-                // Badges
                 html += '<div class="mt-1 d-flex gap-1 flex-wrap">';
                 html += '<span class="badge rounded-pill" style="background:' + escapeHtml(sec.color) + ';font-size:0.58rem;">';
                 html += '<i class="' + escapeHtml(sec.icon) + ' me-1"></i>' + escapeHtml(sec.name) + '</span>';

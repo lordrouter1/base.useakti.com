@@ -111,3 +111,7 @@
 [2026-03-18 20:29:37] CSRF validation failed | IP: ::1 | Route: ?page=pipeline&action=syncInstallments | Method: POST | Token: a2635fe3... | User: 1
 [2026-03-18 20:29:38] CSRF validation failed | IP: ::1 | Route: ?page=pipeline&action=syncInstallments | Method: POST | Token: a2635fe3... | User: 1
 [2026-03-18 20:29:40] CSRF validation failed | IP: ::1 | Route: ?page=pipeline&action=syncInstallments | Method: POST | Token: a2635fe3... | User: 1
+[2026-03-20 19:30:19] CSRF validation failed | IP: ::1 | Route: ?page=financial&action=parseImportFile | Method: POST | Token: (empty) | User: 1
+[2026-03-20 19:39:37] CSRF validation failed | IP: ::1 | Route: ?page=financial&action=parseImportFile | Method: POST | Token: (empty) | User: 1
+[2026-03-20 19:39:48] CSRF validation failed | IP: ::1 | Route: ?page=financial&action=parseImportFile | Method: POST | Token: (empty) | User: 1
+[2026-03-20 19:44:17] CSRF validation failed | IP: ::1 | Route: ?page=financial&action=parseImportFile | Method: POST | Token: (empty) | User: 1

@@ -1,299 +1,1119 @@
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2"><i class="fas fa-box-open me-2"></i>Produtos</h1>
-    <div class="btn-toolbar mb-2 mb-md-0 gap-2">
-        <div class="btn-group">
-            <a href="?page=products&action=downloadImportTemplate" class="btn btn-sm btn-outline-success" title="Baixar modelo de planilha para importação">
-                <i class="fas fa-file-excel me-1"></i> Modelo Importação
-            </a>
-            <?php if (!empty($limitReached)): ?>
-                <button type="button" class="btn btn-sm btn-outline-info disabled" disabled title="Limite do plano atingido">
-                    <i class="fas fa-file-import me-1"></i> Importar Produtos
-                </button>
-            <?php else: ?>
-                <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#importModal" title="Importar produtos em massa via planilha">
-                    <i class="fas fa-file-import me-1"></i> Importar Produtos
-                </button>
-            <?php endif; ?>
+<?php
+/**
+ * Produtos — Página Unificada com Sidebar
+ * Layout inspirado na página de estoque/relatórios: sidebar com seções à esquerda,
+ * conteúdo da seção ativa à direita.
+ *
+ * Variáveis disponíveis (carregadas pelo ProductController::index):
+ *   $totalItems     — total de produtos
+ *   $categories     — lista de categorias para filtro
+ *   $limitReached   — se atingiu limite do tenant
+ *   $limitInfo      — info do limite
+ *   $importFields   — campos disponíveis para mapeamento de importação
+ */
+
+$activeSection = $_GET['section'] ?? 'overview';
+$validSections = ['overview', 'create', 'import'];
+if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
+?>
+
+<!-- ══════ Flash messages ══════ -->
+<?php if (!empty($_SESSION['flash_error'])): ?>
+<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'error',title:'Erro',html:'<?= addslashes($_SESSION['flash_error']) ?>',confirmButtonColor:'#3498db'}));</script>
+<?php unset($_SESSION['flash_error']); endif; ?>
+<?php if (!empty($_SESSION['flash_success'])): ?>
+<script>document.addEventListener('DOMContentLoaded',()=>Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2500,timerProgressBar:true}).fire({icon:'success',title:'<?= addslashes($_SESSION['flash_success']) ?>'}));</script>
+<?php unset($_SESSION['flash_success']); endif; ?>
+
+<style>
+    /* ── Sidebar nav ── */
+    .prd-sidebar .prd-nav-item{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;border-radius:10px;text-decoration:none;color:#555;font-size:.82rem;font-weight:500;transition:all .15s ease;margin-bottom:2px;border:1px solid transparent;cursor:pointer}
+    .prd-sidebar .prd-nav-item:hover{background:#f1f5f9;color:#333}
+    .prd-sidebar .prd-nav-item.active{background:var(--bs-primary,#3498db);color:#fff;box-shadow:0 2px 8px rgba(52,152,219,.3)}
+    .prd-sidebar .prd-nav-item.active .prd-nav-icon{background:rgba(255,255,255,.2) !important;color:#fff !important}
+    .prd-sidebar .prd-nav-item.active .prd-nav-count{background:rgba(255,255,255,.25) !important;color:#fff !important}
+    .prd-nav-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:all .15s ease}
+    .prd-nav-count{font-size:.65rem;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:auto}
+    .prd-sidebar-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;padding:0 1rem;margin-bottom:.3rem;margin-top:.6rem}
+    .prd-sidebar-divider{height:1px;background:#e9ecef;margin:.5rem 1rem}
+
+    /* ── Section transition ── */
+    .prd-section{display:none;animation:prdFadeIn .25s ease}
+    .prd-section.active{display:block}
+    @keyframes prdFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── Import styles ── */
+    .import-dropzone{border:2px dashed #ccc;border-radius:12px;padding:2rem;text-align:center;transition:all .2s ease;cursor:pointer;background:#fafbfc}
+    .import-dropzone:hover,.import-dropzone.dragover{border-color:#3498db;background:rgba(52,152,219,.05)}
+    .import-dropzone.has-file{border-color:#27ae60;background:rgba(39,174,96,.05)}
+
+    .mapping-select{font-size:.78rem;padding:.25rem .5rem}
+
+    .preview-table{font-size:.72rem;max-height:300px;overflow:auto}
+    .preview-table th{position:sticky;top:0;z-index:2;background:#e9ecef}
+    .preview-table td{white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+
+    .import-step{display:none}
+    .import-step.active{display:block}
+
+    /* ── Mobile sidebar ── */
+    @media(max-width:991.98px){
+        .prd-sidebar-col{margin-bottom:1rem}
+        .prd-sidebar{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:thin}
+        .prd-sidebar .prd-nav-item{white-space:nowrap;flex-shrink:0;padding:.5rem .85rem;font-size:.75rem}
+        .prd-sidebar-label{display:none}
+        .prd-sidebar-divider{display:none}
+    }
+</style>
+
+<div class="container-fluid py-3">
+
+    <!-- ══════ Header ══════ -->
+    <div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-2 mb-4 border-bottom">
+        <div>
+            <h1 class="h2 mb-1"><i class="fas fa-box-open me-2 text-primary"></i>Produtos</h1>
+            <p class="text-muted mb-0" style="font-size:.82rem;">Gerencie o catálogo de produtos, cadastre novos e importe em massa.</p>
         </div>
-        <?php if (!empty($limitReached)): ?>
-            <button class="btn btn-sm btn-primary disabled" disabled title="Limite do plano atingido">
-                <i class="fas fa-plus me-1"></i> Novo Produto
-            </button>
-        <?php else: ?>
-            <a href="?page=products&action=create" class="btn btn-sm btn-primary">
-                <i class="fas fa-plus me-1"></i> Novo Produto
+        <div class="btn-toolbar gap-2">
+            <a href="?page=dashboard" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
             </a>
-        <?php endif; ?>
+        </div>
     </div>
-</div>
 
-<?php if (!empty($limitReached)): ?>
-<div class="alert alert-warning border-warning d-flex align-items-center mb-3" role="alert">
-    <i class="fas fa-exclamation-triangle fs-5 me-3 text-warning"></i>
-    <div>
-        <strong>Limite do plano atingido!</strong> Você possui <strong><?= $limitInfo['current'] ?></strong> de <strong><?= $limitInfo['max'] ?></strong> produtos permitidos.
-        <span class="text-muted">Para cadastrar mais produtos, entre em contato com o suporte para fazer um upgrade do seu plano.</span>
+    <?php if (!empty($limitReached)): ?>
+    <div class="alert alert-warning border-warning d-flex align-items-center mb-3" role="alert">
+        <i class="fas fa-exclamation-triangle fs-5 me-3 text-warning"></i>
+        <div>
+            <strong>Limite do plano atingido!</strong> Você possui <strong><?= $limitInfo['current'] ?></strong> de <strong><?= $limitInfo['max'] ?></strong> produtos permitidos.
+            <span class="text-muted">Para cadastrar mais produtos, entre em contato com o suporte para fazer um upgrade do seu plano.</span>
+        </div>
     </div>
-</div>
-<?php endif; ?>
+    <?php endif; ?>
 
-<!-- ══════ Modal de Importação de Produtos ══════ -->
-<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title" id="importModalLabel"><i class="fas fa-file-import me-2"></i>Importar Produtos em Massa</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="row g-4">
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- SIDEBAR — Menu Lateral de Seções (3/12)         -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div class="col-lg-3 prd-sidebar-col">
+            <div class="card border-0 shadow-sm" style="border-radius:12px;">
+                <div class="card-body p-3">
+                    <nav class="prd-sidebar">
+
+                        <div class="prd-sidebar-label">Produtos</div>
+
+                        <a href="#" class="prd-nav-item <?= $activeSection === 'overview' ? 'active' : '' ?>" data-section="overview">
+                            <span class="prd-nav-icon" style="background:rgba(52,152,219,.1);color:#3498db;">
+                                <i class="fas fa-boxes-stacked"></i>
+                            </span>
+                            <span>Visão Geral</span>
+                            <span class="prd-nav-count" style="background:rgba(52,152,219,.1);color:#3498db;"><?= $totalItems ?></span>
+                        </a>
+
+                        <div class="prd-sidebar-divider"></div>
+
+                        <a href="#" class="prd-nav-item <?= $activeSection === 'create' ? 'active' : '' ?>" data-section="create">
+                            <span class="prd-nav-icon" style="background:rgba(39,174,96,.1);color:#27ae60;">
+                                <i class="fas fa-plus-circle"></i>
+                            </span>
+                            <span>Novo Produto</span>
+                        </a>
+
+                        <a href="#" class="prd-nav-item <?= $activeSection === 'import' ? 'active' : '' ?>" data-section="import">
+                            <span class="prd-nav-icon" style="background:rgba(243,156,18,.1);color:#f39c12;">
+                                <i class="fas fa-file-import"></i>
+                            </span>
+                            <span>Importar Produtos</span>
+                        </a>
+
+                    </nav>
+                </div>
             </div>
-            <div class="modal-body">
-                <!-- Instruções -->
-                <div class="alert alert-info py-2">
-                    <h6 class="mb-1 fw-bold"><i class="fas fa-info-circle me-1"></i>Como importar:</h6>
-                    <ol class="mb-0 small ps-3">
-                        <li>Baixe o <a href="?page=products&action=downloadImportTemplate" class="fw-bold">modelo de planilha</a> (CSV).</li>
-                        <li>Preencha uma linha para cada produto. Os campos <strong>Nome</strong> e <strong>Preço</strong> são obrigatórios.</li>
-                        <li>Salve o arquivo e faça o upload abaixo.</li>
-                    </ol>
+
+            <!-- Mini-dica -->
+            <div class="card border-0 shadow-sm mt-3 d-none d-lg-block" style="border-radius:12px;">
+                <div class="card-body p-3">
+                    <h6 class="mb-2 fw-bold" style="font-size:.78rem;color:#17a2b8;">
+                        <i class="fas fa-lightbulb me-1"></i>Dica
+                    </h6>
+                    <p class="mb-0 text-muted" style="font-size:.72rem;line-height:1.55;">
+                        Use a <span class="fw-bold text-primary">Visão Geral</span> para buscar e gerenciar seus produtos,
+                        <span class="fw-bold text-success">Novo Produto</span> para cadastrar rapidamente
+                        e <span class="fw-bold" style="color:#f39c12;">Importar</span> para adicionar produtos em massa via planilha.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- CONTEÚDO PRINCIPAL — Seção Ativa (9/12)         -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div class="col-lg-9">
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- SEÇÃO: Visão Geral dos Produtos         -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="prd-section <?= $activeSection === 'overview' ? 'active' : '' ?>" id="prd-overview">
+
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(52,152,219,.1);">
+                            <i class="fas fa-boxes-stacked" style="color:#3498db;font-size:.85rem;"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0" style="font-size:1rem;">Produtos Cadastrados</h5>
+                            <p class="text-muted mb-0" style="font-size:.72rem;">Lista completa de produtos com filtros e paginação.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <?php if (empty($limitReached)): ?>
+                        <a href="?page=products&action=create" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus me-1"></i> Novo Produto
+                        </a>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
-                <!-- Tabela de campos disponíveis -->
-                <div class="mb-3">
-                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFieldInfo">
-                        <i class="fas fa-columns me-1"></i>Ver colunas disponíveis
-                    </button>
-                    <div class="collapse mt-2" id="collapseFieldInfo">
-                        <div class="table-responsive" style="padding:0; border:none; box-shadow:none;">
-                            <table class="table table-sm table-bordered mb-0" style="font-size:0.8rem;">
-                                <thead class="table-light"><tr><th>Coluna</th><th>Obrigatória</th><th>Descrição</th></tr></thead>
-                                <tbody>
-                                    <tr><td><code>nome</code></td><td><span class="badge bg-danger">Sim</span></td><td>Nome do produto</td></tr>
-                                    <tr><td><code>preco</code></td><td><span class="badge bg-danger">Sim</span></td><td>Preço de venda (ex: 19.90)</td></tr>
-                                    <tr><td><code>preco_custo</code></td><td><span class="badge bg-secondary">Não</span></td><td>Preço de custo</td></tr>
-                                    <tr><td><code>estoque</code></td><td><span class="badge bg-secondary">Não</span></td><td>Ignorado (o estoque é gerenciado via armazéns)</td></tr>
-                                    <tr><td><code>categoria</code></td><td><span class="badge bg-secondary">Não</span></td><td>Nome da categoria (criada automaticamente se não existir)</td></tr>
-                                    <tr><td><code>subcategoria</code></td><td><span class="badge bg-secondary">Não</span></td><td>Nome da subcategoria</td></tr>
-                                    <tr><td><code>descricao</code></td><td><span class="badge bg-secondary">Não</span></td><td>Descrição detalhada</td></tr>
-                                    <tr><td><code>formato</code></td><td><span class="badge bg-secondary">Não</span></td><td>Formato/dimensões (ex: A4)</td></tr>
-                                    <tr><td><code>material</code></td><td><span class="badge bg-secondary">Não</span></td><td>Material/papel (ex: Couché 300g)</td></tr>
-                                    <tr><td><code>ncm</code></td><td><span class="badge bg-secondary">Não</span></td><td>NCM fiscal</td></tr>
-                                </tbody>
-                            </table>
+                <!-- Filtros -->
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body p-3">
+                        <div class="row g-2 align-items-end" id="productFilterForm">
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold mb-1">Buscar</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" id="prd_search" class="form-control prd-filter" placeholder="Buscar por nome, descrição..." autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold mb-1">Categoria</label>
+                                <select id="prd_category" class="form-select form-select-sm prd-filter">
+                                    <option value="">Todas as categorias</option>
+                                    <?php foreach ($categories as $cat): ?>
+                                        <option value="<?= (int)$cat['id'] ?>"><?= e($cat['name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <a href="#" class="text-muted small" id="btnClearProducts" style="font-size:.72rem;"><i class="fas fa-times me-1"></i>Limpar filtros</a>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Upload do arquivo -->
-                <form id="importForm" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label for="importFile" class="form-label fw-bold">Arquivo para importação</label>
-                        <input type="file" class="form-control" id="importFile" name="import_file" accept=".csv,.xls,.xlsx" required>
-                        <div class="form-text">Formatos aceitos: <strong>CSV</strong> (separado por <code>;</code> ou <code>,</code>), <strong>XLS</strong>, <strong>XLSX</strong>.</div>
-                    </div>
-                </form>
-
-                <!-- Resultado da importação -->
-                <div id="importResult" style="display:none;">
-                    <hr>
-                    <div id="importResultContent"></div>
+                <!-- Tabela de Produtos -->
+                <div class="table-responsive bg-white rounded shadow-sm">
+                    <table class="table table-hover align-middle mb-0" id="productsTable">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="py-3 ps-4" style="width:50px;">Imagem</th>
+                                <th class="py-3">Nome</th>
+                                <th class="py-3">Categoria</th>
+                                <th class="py-3">Preço</th>
+                                <th class="py-3">Controle de Estoque</th>
+                                <th class="py-3 text-end pe-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody">
+                            <tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i>Carregando...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                <button type="button" class="btn btn-info text-white" id="btnDoImport" disabled>
-                    <i class="fas fa-upload me-1"></i>Importar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+                <!-- Paginação -->
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="text-muted small" id="prdPaginationInfo"></span>
+                    <nav><ul class="pagination pagination-sm mb-0" id="prdPagination"></ul></nav>
+                </div>
 
-<!-- Busca rápida -->
-<div class="mb-3">
-    <div class="input-group">
-        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
-        <input type="text" class="form-control" id="searchTable" placeholder="Buscar por nome, categoria ou preço..." autocomplete="off">
-    </div>
-</div>
+            </div><!-- /.prd-section overview -->
 
-<div class="table-responsive bg-white rounded shadow-sm">
-    <table class="table table-hover align-middle mb-0">
-        <thead class="bg-light">
-            <tr>
-                <th class="py-3 ps-4">Imagem</th>
-                <th class="py-3">Nome</th>
-                <th class="py-3">Categoria</th>
-                <th class="py-3">Preço</th>
-                <th class="py-3">Controle de Estoque</th>
-                <th class="py-3 text-end pe-4">Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if(count($products) > 0): ?>
-            <?php foreach($products as $product): ?>
-            <tr>
-                <td class="ps-4">
-                    <div class="bg-light rounded d-flex align-items-center justify-content-center border" style="width: 50px; height: 50px; overflow: hidden;">
-                        <?php if(!empty($product['main_image_path'])): ?>
-                            <img src="<?= eAttr($product['main_image_path']) ?>" class="w-100 h-100 object-fit-cover">
-                        <?php else: ?>
-                            <i class="fas fa-image text-secondary"></i>
-                        <?php endif; ?>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- SEÇÃO: Novo Produto                     -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="prd-section <?= $activeSection === 'create' ? 'active' : '' ?>" id="prd-create">
+
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(39,174,96,.1);">
+                        <i class="fas fa-plus-circle" style="color:#27ae60;font-size:.85rem;"></i>
                     </div>
-                </td>
-                <td class="fw-bold"><?= e($product['name']) ?></td>
-                <td>
-                    <span class="badge bg-light text-dark border">
-                        <?= !empty($product['category_name']) ? e($product['category_name']) : 'Geral' ?>
-                    </span>
-                    <?php if(!empty($product['subcategory_name'])): ?>
-                    <small class="text-muted d-block mt-1"><?= e($product['subcategory_name']) ?></small>
-                    <?php endif; ?>
-                </td>
-                <td class="fw-bold">R$ <?= eNum($product['price']) ?></td>
-                <td>
-                    <?php if(!empty($product['use_stock_control'])): ?>
-                        <span class="badge bg-info px-3"><i class="fas fa-boxes me-1"></i>Controle ativo</span>
-                    <?php else: ?>
-                        <span class="badge bg-light text-muted border px-3">Sem controle</span>
-                    <?php endif; ?>
-                </td>
-                <td class="text-end pe-4">
-                    <div class="btn-group">
-                        <a href="?page=products&action=edit&id=<?= (int)$product['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
-                            <i class="fas fa-edit"></i>
+                    <div>
+                        <h5 class="mb-0" style="font-size:1rem;">Cadastrar Novo Produto</h5>
+                        <p class="text-muted mb-0" style="font-size:.72rem;">Preencha as informações para adicionar um novo produto ao catálogo.</p>
+                    </div>
+                </div>
+
+                <?php if (!empty($limitReached)): ?>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-lock fa-3x text-warning mb-3"></i>
+                        <h5 class="text-warning">Limite de Produtos Atingido</h5>
+                        <p class="text-muted">Você possui <strong><?= $limitInfo['current'] ?></strong> de <strong><?= $limitInfo['max'] ?></strong> produtos permitidos.<br>Entre em contato com o suporte para fazer um upgrade.</p>
+                    </div>
+                </div>
+                <?php else: ?>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto" style="width:80px;height:80px;background:rgba(39,174,96,.1);">
+                                <i class="fas fa-box-open fa-2x text-success"></i>
+                            </div>
+                        </div>
+                        <h5 class="mb-2">Novo Produto</h5>
+                        <p class="text-muted mb-4" style="font-size:.85rem;">Clique no botão abaixo para acessar o formulário completo de cadastro de produto, com categorias, grades, setores de produção e muito mais.</p>
+                        <a href="?page=products&action=create" class="btn btn-success btn-lg px-5">
+                            <i class="fas fa-plus me-2"></i>Cadastrar Novo Produto
                         </a>
-                        <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-product" data-id="<?= (int)$product['id'] ?>" data-name="<?= eAttr($product['name']) ?>" title="Excluir">
-                            <i class="fas fa-trash"></i>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+            </div><!-- /.prd-section create -->
+
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- SEÇÃO: Importar Produtos               -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="prd-section <?= $activeSection === 'import' ? 'active' : '' ?>" id="prd-import">
+
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(243,156,18,.1);">
+                            <i class="fas fa-file-import" style="color:#f39c12;font-size:.85rem;"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0" style="font-size:1rem;">Importar Produtos em Massa</h5>
+                            <p class="text-muted mb-0" style="font-size:.72rem;">Importe produtos de arquivos CSV, XLS ou XLSX com mapeamento dinâmico de colunas.</p>
+                        </div>
+                    </div>
+                    <a href="?page=products&action=downloadImportTemplate" class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-file-excel me-1"></i> Baixar Modelo
+                    </a>
+                </div>
+
+                <?php if (!empty($limitReached)): ?>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-lock fa-3x text-warning mb-3"></i>
+                        <h5 class="text-warning">Limite de Produtos Atingido</h5>
+                        <p class="text-muted">Não é possível importar novos produtos.</p>
+                    </div>
+                </div>
+                <?php else: ?>
+
+                <!-- ── Stepper visual ── -->
+                <div class="d-flex align-items-center mb-4 gap-2" id="importStepper">
+                    <div class="import-step-indicator active" data-step="1">
+                        <span class="badge bg-primary rounded-pill px-3 py-2"><i class="fas fa-upload me-1"></i>1. Upload</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-muted small"></i>
+                    <div class="import-step-indicator" data-step="2">
+                        <span class="badge bg-secondary rounded-pill px-3 py-2"><i class="fas fa-columns me-1"></i>2. Mapeamento</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-muted small"></i>
+                    <div class="import-step-indicator" data-step="3">
+                        <span class="badge bg-secondary rounded-pill px-3 py-2"><i class="fas fa-check-circle me-1"></i>3. Resultado</span>
+                    </div>
+                </div>
+
+                <!-- ══ Step 1: Upload do Arquivo ══ -->
+                <div class="import-step active" id="importStep1">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="import-dropzone" id="importDropzone">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                <h6 class="mb-1">Arraste o arquivo aqui</h6>
+                                <p class="text-muted small mb-2">ou clique para selecionar</p>
+                                <input type="file" id="importFileInput" accept=".csv,.xls,.xlsx" style="display:none;">
+                                <p class="text-muted mb-0" style="font-size:.7rem;">Formatos aceitos: <strong>CSV</strong>, <strong>XLS</strong>, <strong>XLSX</strong></p>
+                            </div>
+
+                            <div id="importFileInfo" style="display:none;" class="mt-3">
+                                <div class="alert alert-success d-flex align-items-center py-2 mb-0">
+                                    <i class="fas fa-file-circle-check fa-lg me-3 text-success"></i>
+                                    <div class="flex-grow-1">
+                                        <strong id="importFileName">arquivo.csv</strong>
+                                        <span class="text-muted small ms-2" id="importFileSize"></span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="btnRemoveFile">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="text-end mt-3">
+                                <button type="button" class="btn btn-primary" id="btnParseFile" disabled>
+                                    <i class="fas fa-cog me-1"></i>Analisar Arquivo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══ Step 2: Mapeamento de Colunas + Preview ══ -->
+                <div class="import-step" id="importStep2">
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold"><i class="fas fa-columns me-2 text-primary"></i>Mapeamento de Colunas</h6>
+                                <span class="badge bg-info" id="totalRowsBadge">0 linhas</span>
+                            </div>
+                            <p class="text-muted mb-0 mt-1" style="font-size:.72rem;">Selecione a qual campo do sistema cada coluna do arquivo corresponde. Colunas sem mapeamento serão ignoradas.</p>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm align-middle mb-0" id="mappingTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width:40px;" class="text-center">
+                                                <input type="checkbox" class="form-check-input" id="checkAllCols" checked title="Marcar/desmarcar todas">
+                                            </th>
+                                            <th>Coluna do Arquivo</th>
+                                            <th>Amostra de Dados</th>
+                                            <th style="width:220px;">Corresponde a</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="mappingTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Validação do mapeamento -->
+                            <div id="mappingValidation" class="mt-3" style="display:none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Preview dos dados -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-table me-2 text-info"></i>Preview dos Dados <small class="text-muted fw-normal">(primeiras 10 linhas)</small></h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="preview-table" id="previewTableWrap">
+                                <table class="table table-striped table-bordered table-sm mb-0" id="previewTable">
+                                    <thead id="previewTableHead"></thead>
+                                    <tbody id="previewTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" id="btnBackToStep1">
+                            <i class="fas fa-arrow-left me-1"></i>Voltar
+                        </button>
+                        <button type="button" class="btn btn-success btn-lg" id="btnDoImport" disabled>
+                            <i class="fas fa-upload me-1"></i>Importar <span id="importCountLabel">0</span> Produto(s)
                         </button>
                     </div>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-            <?php else: ?>
-            <tr>
-                <td colspan="6" class="text-center text-muted py-5">
-                    <i class="fas fa-box-open fa-3x mb-3 d-block text-secondary"></i>
-                    Nenhum produto cadastrado ainda.
-                </td>
-            </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
-</div>
-<?php require 'app/views/layout/pagination.php'; ?>
+                </div>
+
+                <!-- ══ Step 3: Resultado ══ -->
+                <div class="import-step" id="importStep3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4" id="importResultContent">
+                            <!-- Preenchido via JS -->
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button type="button" class="btn btn-outline-primary" id="btnNewImport">
+                            <i class="fas fa-redo me-1"></i>Nova Importação
+                        </button>
+                        <a href="#" class="btn btn-primary ms-2 prd-go-overview">
+                            <i class="fas fa-boxes-stacked me-1"></i>Ver Produtos
+                        </a>
+                    </div>
+                </div>
+
+                <?php endif; ?>
+
+            </div><!-- /.prd-section import -->
+
+        </div><!-- /.col-lg-9 -->
+    </div><!-- /.row -->
+</div><!-- /.container-fluid -->
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    <?php if(isset($_GET['status'])): ?>
-    if (window.history.replaceState) { const url = new URL(window.location); url.searchParams.delete('status'); url.searchParams.delete('imported'); url.searchParams.delete('errors'); window.history.replaceState({}, '', url); }
-    <?php endif; ?>
-    <?php if(isset($_GET['status']) && $_GET['status'] == 'success'): ?>
-    Swal.fire({ icon: 'success', title: 'Sucesso!', text: 'Produto salvo com sucesso!', timer: 2000, showConfirmButton: false });
-    <?php endif; ?>
-    <?php if(isset($_GET['status']) && $_GET['status'] == 'limit_products'): ?>
-    Swal.fire({ icon: 'warning', title: 'Limite atingido!', text: 'Você atingiu o limite de produtos do seu plano. Entre em contato com o suporte para fazer um upgrade.', confirmButtonColor: '#3498db' });
-    <?php endif; ?>
-    <?php if(isset($_GET['status']) && $_GET['status'] == 'imported'): ?>
-    Swal.fire({ 
-        icon: 'success', 
-        title: 'Importação Concluída!', 
-        html: '<?= isset($_GET['imported']) ? intval($_GET['imported']) : 0 ?> produto(s) importado(s) com sucesso.<?= isset($_GET['errors']) && intval($_GET['errors']) > 0 ? "<br><span class=\"text-danger\">" . intval($_GET["errors"]) . " linha(s) com erro.</span>" : "" ?>', 
-        timer: 4000, 
-        showConfirmButton: true 
+
+    // ═══════════════════════════════════════════
+    // ═══ SIDEBAR NAVIGATION (SPA-like)       ═══
+    // ═══════════════════════════════════════════
+    function navigateToSection(sectionId) {
+        document.querySelectorAll('.prd-nav-item').forEach(function(n) { n.classList.remove('active'); });
+        var navItem = document.querySelector('.prd-nav-item[data-section="' + sectionId + '"]');
+        if (navItem) navItem.classList.add('active');
+
+        document.querySelectorAll('.prd-section').forEach(function(s) { s.classList.remove('active'); });
+        var target = document.getElementById('prd-' + sectionId);
+        if (target) target.classList.add('active');
+
+        var url = new URL(window.location);
+        url.searchParams.set('section', sectionId);
+        history.replaceState(null, '', url);
+
+        if (sectionId === 'overview') loadProducts(1);
+    }
+
+    document.querySelectorAll('.prd-nav-item').forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            var section = this.dataset.section;
+            if (!section) return;
+            navigateToSection(section);
+        });
     });
+
+    // Links de atalho entre seções
+    document.querySelectorAll('.prd-go-overview').forEach(function(a) {
+        a.addEventListener('click', function(e) { e.preventDefault(); navigateToSection('overview'); });
+    });
+
+
+    // ═══════════════════════════════════════════
+    // ═══ STATUS ALERTS                        ═══
+    // ═══════════════════════════════════════════
+    <?php if (isset($_GET['status'])): ?>
+    var urlClean = new URL(window.location);
+    urlClean.searchParams.delete('status');
+    urlClean.searchParams.delete('imported');
+    urlClean.searchParams.delete('errors');
+    window.history.replaceState({}, '', urlClean);
+    <?php if ($_GET['status'] == 'success'): ?>
+    Swal.fire({ icon:'success', title:'Sucesso!', text:'Produto salvo com sucesso!', timer:2000, showConfirmButton:false });
+    <?php endif; ?>
+    <?php if ($_GET['status'] == 'limit_products'): ?>
+    Swal.fire({ icon:'warning', title:'Limite atingido!', text:'Você atingiu o limite de produtos do seu plano.', confirmButtonColor:'#3498db' });
+    <?php endif; ?>
     <?php endif; ?>
 
-    // ── Import Modal logic ──
-    const importFileInput = document.getElementById('importFile');
-    const btnDoImport = document.getElementById('btnDoImport');
-    const importResult = document.getElementById('importResult');
-    const importResultContent = document.getElementById('importResultContent');
 
-    if (importFileInput) {
-        importFileInput.addEventListener('change', function() {
-            btnDoImport.disabled = !this.files.length;
-            importResult.style.display = 'none';
+    // ═══════════════════════════════════════════
+    // ═══ CSRF TOKEN                           ═══
+    // ═══════════════════════════════════════════
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    var csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+    // ═══════════════════════════════════════════
+    // ═══ UTILITÁRIOS                          ═══
+    // ═══════════════════════════════════════════
+    function escHtml(str) {
+        if (!str) return '';
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function formatNumber(n) {
+        var num = parseFloat(n);
+        if (isNaN(num)) return '0';
+        return num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
+    function formatCurrency(n) {
+        var num = parseFloat(n);
+        if (isNaN(num)) return 'R$ 0,00';
+        return 'R$ ' + num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+
+    // ═══════════════════════════════════════════
+    // ═══ PAGINAÇÃO — Renderizador genérico   ═══
+    // ═══════════════════════════════════════════
+    function renderPagination(containerId, page, totalPages, total, perPage, callback) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        var liPrev = document.createElement('li');
+        liPrev.className = 'page-item' + (page <= 1 ? ' disabled' : '');
+        liPrev.innerHTML = '<a class="page-link" href="#">&laquo;</a>';
+        if (page > 1) liPrev.querySelector('a').addEventListener('click', function(e) { e.preventDefault(); callback(page - 1); });
+        container.appendChild(liPrev);
+
+        var startP = Math.max(1, page - 2);
+        var endP = Math.min(totalPages, page + 2);
+        if (startP > 1) {
+            var li1 = document.createElement('li');
+            li1.className = 'page-item';
+            li1.innerHTML = '<a class="page-link" href="#">1</a>';
+            li1.querySelector('a').addEventListener('click', function(e) { e.preventDefault(); callback(1); });
+            container.appendChild(li1);
+            if (startP > 2) {
+                var liDots = document.createElement('li');
+                liDots.className = 'page-item disabled';
+                liDots.innerHTML = '<span class="page-link">…</span>';
+                container.appendChild(liDots);
+            }
+        }
+        for (var i = startP; i <= endP; i++) {
+            (function(pg) {
+                var li = document.createElement('li');
+                li.className = 'page-item' + (pg === page ? ' active' : '');
+                li.innerHTML = '<a class="page-link" href="#">' + pg + '</a>';
+                if (pg !== page) li.querySelector('a').addEventListener('click', function(e) { e.preventDefault(); callback(pg); });
+                container.appendChild(li);
+            })(i);
+        }
+        if (endP < totalPages) {
+            if (endP < totalPages - 1) {
+                var liDots2 = document.createElement('li');
+                liDots2.className = 'page-item disabled';
+                liDots2.innerHTML = '<span class="page-link">…</span>';
+                container.appendChild(liDots2);
+            }
+            var liLast = document.createElement('li');
+            liLast.className = 'page-item';
+            liLast.innerHTML = '<a class="page-link" href="#">' + totalPages + '</a>';
+            liLast.querySelector('a').addEventListener('click', function(e) { e.preventDefault(); callback(totalPages); });
+            container.appendChild(liLast);
+        }
+
+        var liNext = document.createElement('li');
+        liNext.className = 'page-item' + (page >= totalPages ? ' disabled' : '');
+        liNext.innerHTML = '<a class="page-link" href="#">&raquo;</a>';
+        if (page < totalPages) liNext.querySelector('a').addEventListener('click', function(e) { e.preventDefault(); callback(page + 1); });
+        container.appendChild(liNext);
+    }
+
+
+    // ═══════════════════════════════════════════
+    // ═══ VISÃO GERAL — AJAX + Paginação      ═══
+    // ═══════════════════════════════════════════
+    var prdCurrentPage = 1;
+
+    function loadProducts(page) {
+        prdCurrentPage = page || 1;
+        var tbody = document.getElementById('productsTableBody');
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i>Carregando...</td></tr>';
+
+        var params = new URLSearchParams({
+            page: 'products',
+            action: 'getProductsList',
+            search: document.getElementById('prd_search').value,
+            category_id: document.getElementById('prd_category').value,
+            pg: prdCurrentPage,
+            per_page: 20
+        });
+
+        fetch('?' + params.toString())
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.success) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Erro ao carregar dados.</td></tr>';
+                    return;
+                }
+
+                if (data.items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-5">' +
+                        '<i class="fas fa-box-open fa-3x mb-3 d-block text-secondary"></i>' +
+                        'Nenhum produto encontrado com os filtros selecionados.' +
+                        '</td></tr>';
+                    document.getElementById('prdPagination').innerHTML = '';
+                    document.getElementById('prdPaginationInfo').textContent = '0 registros';
+                    return;
+                }
+
+                var html = '';
+                data.items.forEach(function(p) {
+                    var imgCell = p.main_image_path
+                        ? '<img src="' + escHtml(p.main_image_path) + '" class="w-100 h-100 object-fit-cover">'
+                        : '<i class="fas fa-image text-secondary"></i>';
+
+                    var catCell = '<span class="badge bg-light text-dark border">' + (p.category_name ? escHtml(p.category_name) : 'Geral') + '</span>';
+                    if (p.subcategory_name) {
+                        catCell += '<small class="text-muted d-block mt-1">' + escHtml(p.subcategory_name) + '</small>';
+                    }
+
+                    var stockBadge = p.use_stock_control
+                        ? '<span class="badge bg-info px-3"><i class="fas fa-boxes me-1"></i>Controle ativo</span>'
+                        : '<span class="badge bg-light text-muted border px-3">Sem controle</span>';
+
+                    html += '<tr>' +
+                        '<td class="ps-4"><div class="bg-light rounded d-flex align-items-center justify-content-center border" style="width:50px;height:50px;overflow:hidden;">' + imgCell + '</div></td>' +
+                        '<td class="fw-bold">' + escHtml(p.name) + '</td>' +
+                        '<td>' + catCell + '</td>' +
+                        '<td class="fw-bold">' + formatCurrency(p.price) + '</td>' +
+                        '<td>' + stockBadge + '</td>' +
+                        '<td class="text-end pe-4"><div class="btn-group">' +
+                            '<a href="?page=products&action=edit&id=' + p.id + '" class="btn btn-sm btn-outline-primary" title="Editar"><i class="fas fa-edit"></i></a>' +
+                            '<button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-product" data-id="' + p.id + '" data-name="' + escHtml(p.name) + '" title="Excluir"><i class="fas fa-trash"></i></button>' +
+                        '</div></td>' +
+                    '</tr>';
+                });
+                tbody.innerHTML = html;
+
+                // Rebind delete buttons
+                bindDeleteButtons();
+
+                // Paginação
+                renderPagination('prdPagination', data.page, data.total_pages, data.total, data.per_page, loadProducts);
+                var infoEl = document.getElementById('prdPaginationInfo');
+                if (infoEl) {
+                    var from = data.total > 0 ? ((data.page - 1) * data.per_page + 1) : 0;
+                    var to = Math.min(data.page * data.per_page, data.total);
+                    infoEl.textContent = 'Exibindo ' + from + '–' + to + ' de ' + data.total + ' produto(s)';
+                }
+            })
+            .catch(function() {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Erro de comunicação ao carregar produtos.</td></tr>';
+            });
+    }
+
+    // Delete buttons
+    function bindDeleteButtons() {
+        document.querySelectorAll('.btn-delete-product').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var id = this.dataset.id;
+                var name = this.dataset.name;
+                Swal.fire({
+                    title: 'Excluir produto?',
+                    html: 'Deseja realmente excluir <strong>' + name + '</strong>?<br>Esta ação não pode ser desfeita.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#c0392b',
+                    cancelButtonColor: '#95a5a6',
+                    confirmButtonText: '<i class="fas fa-trash me-1"></i> Sim, excluir',
+                    cancelButtonText: 'Cancelar'
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        window.location.href = '?page=products&action=delete&id=' + id;
+                    }
+                });
+            });
         });
     }
 
-    if (btnDoImport) {
-        btnDoImport.addEventListener('click', function() {
-            const file = importFileInput.files[0];
+    // Filtrar produtos — dinâmico ao alterar qualquer campo
+    var _prdDebounce = null;
+    document.querySelectorAll('.prd-filter').forEach(function(el) {
+        var evType = (el.tagName === 'INPUT' && el.type === 'text') ? 'input' : 'change';
+        el.addEventListener(evType, function() {
+            clearTimeout(_prdDebounce);
+            _prdDebounce = setTimeout(function() { loadProducts(1); }, evType === 'input' ? 350 : 0);
+        });
+    });
+
+    document.getElementById('btnClearProducts').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('prd_search').value = '';
+        document.getElementById('prd_category').value = '';
+        loadProducts(1);
+    });
+
+    // Carregar ao abrir se seção ativa for overview
+    <?php if ($activeSection === 'overview'): ?>
+    loadProducts(1);
+    <?php endif; ?>
+
+
+    // ═══════════════════════════════════════════
+    // ═══ IMPORTAÇÃO — Lógica completa         ═══
+    // ═══════════════════════════════════════════
+
+    // Campos disponíveis para mapeamento
+    var importFieldOptions = <?= json_encode($importFields ?? []) ?>;
+
+    var importDropzone = document.getElementById('importDropzone');
+    var importFileInput = document.getElementById('importFileInput');
+    var importFileInfo = document.getElementById('importFileInfo');
+    var btnParseFile = document.getElementById('btnParseFile');
+    var btnRemoveFile = document.getElementById('btnRemoveFile');
+    var btnDoImport = document.getElementById('btnDoImport');
+    var btnBackToStep1 = document.getElementById('btnBackToStep1');
+    var btnNewImport = document.getElementById('btnNewImport');
+
+    var importData = null; // dados do arquivo parseado
+
+    if (!importDropzone) return; // se limite atingido, não há dropzone
+
+    // Dropzone click
+    importDropzone.addEventListener('click', function() {
+        importFileInput.click();
+    });
+
+    // Drag & drop
+    importDropzone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('dragover');
+    });
+    importDropzone.addEventListener('dragleave', function() {
+        this.classList.remove('dragover');
+    });
+    importDropzone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            importFileInput.files = e.dataTransfer.files;
+            handleFileSelected();
+        }
+    });
+
+    // File input change
+    importFileInput.addEventListener('change', handleFileSelected);
+
+    function handleFileSelected() {
+        var file = importFileInput.files[0];
+        if (!file) return;
+
+        var validExts = ['.csv', '.xls', '.xlsx'];
+        var ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        if (!validExts.includes(ext)) {
+            Swal.fire({ icon:'error', title:'Formato inválido', text:'Use arquivos CSV, XLS ou XLSX.' });
+            return;
+        }
+
+        document.getElementById('importFileName').textContent = file.name;
+        document.getElementById('importFileSize').textContent = formatFileSize(file.size);
+        importFileInfo.style.display = '';
+        importDropzone.classList.add('has-file');
+        btnParseFile.disabled = false;
+    }
+
+    // Remover arquivo
+    if (btnRemoveFile) {
+        btnRemoveFile.addEventListener('click', function() {
+            importFileInput.value = '';
+            importFileInfo.style.display = 'none';
+            importDropzone.classList.remove('has-file');
+            btnParseFile.disabled = true;
+        });
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    // Step navigation
+    function goToStep(step) {
+        document.querySelectorAll('.import-step').forEach(function(s) { s.classList.remove('active'); });
+        var stepEl = document.getElementById('importStep' + step);
+        if (stepEl) stepEl.classList.add('active');
+
+        document.querySelectorAll('.import-step-indicator').forEach(function(ind) {
+            var badge = ind.querySelector('.badge');
+            if (parseInt(ind.dataset.step) <= step) {
+                badge.classList.remove('bg-secondary');
+                badge.classList.add('bg-primary');
+            } else {
+                badge.classList.remove('bg-primary');
+                badge.classList.add('bg-secondary');
+            }
+        });
+    }
+
+    // Parse file (Step 1 → Step 2)
+    if (btnParseFile) {
+        btnParseFile.addEventListener('click', function() {
+            var file = importFileInput.files[0];
             if (!file) return;
 
-            const formData = new FormData();
+            btnParseFile.disabled = true;
+            btnParseFile.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Analisando...';
+
+            var formData = new FormData();
             formData.append('import_file', file);
 
-            btnDoImport.disabled = true;
-            btnDoImport.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Importando...';
-            importResult.style.display = 'none';
+            fetch('?page=products&action=parseImportFile', { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken } })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    btnParseFile.disabled = false;
+                    btnParseFile.innerHTML = '<i class="fas fa-cog me-1"></i>Analisar Arquivo';
 
-            fetch('?page=products&action=importProducts', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                importResult.style.display = 'block';
-                if (data.success) {
-                    let html = `<div class="alert alert-success py-2"><i class="fas fa-check-circle me-1"></i><strong>${data.imported}</strong> produto(s) importado(s) com sucesso!</div>`;
-                    if (data.errors && data.errors.length > 0) {
-                        html += `<div class="alert alert-warning py-2"><i class="fas fa-exclamation-triangle me-1"></i><strong>${data.errors.length}</strong> linha(s) com erro:</div>`;
-                        html += '<div class="list-group" style="max-height:200px; overflow-y:auto;">';
-                        data.errors.forEach(err => {
-                            html += `<div class="list-group-item list-group-item-danger py-1 small"><strong>Linha ${err.line}:</strong> ${err.message}</div>`;
-                        });
-                        html += '</div>';
+                    if (!data.success) {
+                        Swal.fire({ icon:'error', title:'Erro', text: data.message });
+                        return;
                     }
-                    importResultContent.innerHTML = html;
-                    // Reload page after a short delay
-                    setTimeout(() => { window.location.reload(); }, 2500);
+
+                    importData = data;
+                    buildMappingTable(data.columns, data.preview, data.auto_mapping);
+                    buildPreviewTable(data.columns, data.preview);
+                    document.getElementById('totalRowsBadge').textContent = data.total_rows + ' linha(s)';
+                    document.getElementById('importCountLabel').textContent = data.total_rows;
+
+                    goToStep(2);
+                    validateMapping();
+                })
+                .catch(function() {
+                    btnParseFile.disabled = false;
+                    btnParseFile.innerHTML = '<i class="fas fa-cog me-1"></i>Analisar Arquivo';
+                    Swal.fire({ icon:'error', title:'Erro de comunicação' });
+                });
+        });
+    }
+
+    // Build mapping table
+    function buildMappingTable(columns, preview, autoMapping) {
+        var tbody = document.getElementById('mappingTableBody');
+        var html = '';
+
+        columns.forEach(function(col) {
+            // Sample: first 3 non-empty values
+            var samples = [];
+            for (var i = 0; i < Math.min(preview.length, 3); i++) {
+                var val = preview[i][col];
+                if (val && String(val).trim() !== '') {
+                    samples.push(String(val).trim());
+                }
+            }
+            var sampleHtml = samples.length > 0
+                ? samples.map(function(s) { return '<span class="badge bg-light text-dark border me-1" style="font-size:.7rem;">' + escHtml(s.substring(0, 40)) + '</span>'; }).join('')
+                : '<span class="text-muted" style="font-size:.7rem;">—</span>';
+
+            var autoVal = autoMapping[col] || '';
+
+            // Build select options
+            var optionsHtml = '<option value="_skip"' + (autoVal === '' ? ' selected' : '') + '>— Ignorar coluna —</option>';
+            for (var field in importFieldOptions) {
+                var info = importFieldOptions[field];
+                var isReq = info.required ? ' *' : '';
+                optionsHtml += '<option value="' + field + '"' + (autoVal === field ? ' selected' : '') + '>' +
+                    info.label + isReq + '</option>';
+            }
+
+            html += '<tr>' +
+                '<td class="text-center"><input type="checkbox" class="form-check-input col-check" data-col="' + escHtml(col) + '" checked></td>' +
+                '<td><strong style="font-size:.82rem;"><i class="fas fa-columns me-1 text-muted"></i>' + escHtml(col) + '</strong></td>' +
+                '<td>' + sampleHtml + '</td>' +
+                '<td><select class="form-select mapping-select" data-col="' + escHtml(col) + '">' + optionsHtml + '</select></td>' +
+            '</tr>';
+        });
+
+        tbody.innerHTML = html;
+
+        // Event listeners para validar mapeamento
+        tbody.querySelectorAll('.mapping-select').forEach(function(sel) {
+            sel.addEventListener('change', validateMapping);
+        });
+        tbody.querySelectorAll('.col-check').forEach(function(chk) {
+            chk.addEventListener('change', function() {
+                var row = this.closest('tr');
+                var sel = row.querySelector('.mapping-select');
+                if (!this.checked) {
+                    sel.value = '_skip';
+                    sel.disabled = true;
                 } else {
-                    importResultContent.innerHTML = `<div class="alert alert-danger py-2"><i class="fas fa-times-circle me-1"></i>${data.message || 'Erro ao importar.'}</div>`;
+                    sel.disabled = false;
                 }
-                btnDoImport.disabled = false;
-                btnDoImport.innerHTML = '<i class="fas fa-upload me-1"></i>Importar';
-            })
-            .catch(err => {
-                importResult.style.display = 'block';
-                importResultContent.innerHTML = `<div class="alert alert-danger py-2"><i class="fas fa-times-circle me-1"></i>Erro de comunicação com o servidor.</div>`;
-                btnDoImport.disabled = false;
-                btnDoImport.innerHTML = '<i class="fas fa-upload me-1"></i>Importar';
+                validateMapping();
             });
+        });
+
+        // Check all
+        var checkAll = document.getElementById('checkAllCols');
+        if (checkAll) {
+            checkAll.addEventListener('change', function() {
+                var checked = this.checked;
+                tbody.querySelectorAll('.col-check').forEach(function(chk) {
+                    chk.checked = checked;
+                    chk.dispatchEvent(new Event('change'));
+                });
+            });
+        }
+    }
+
+    // Validate mapping
+    function validateMapping() {
+        var validationEl = document.getElementById('mappingValidation');
+        if (!validationEl) return;
+        var mapping = getMapping();
+        var mappedFields = Object.values(mapping).filter(function(v) { return v !== '_skip'; });
+
+        var warnings = [];
+        var errors = [];
+
+        // Check required fields
+        if (!mappedFields.includes('name')) {
+            errors.push('<i class="fas fa-times-circle text-danger me-1"></i><strong>Nome do Produto</strong> é obrigatório. Mapeie uma coluna para este campo.');
+        }
+        if (!mappedFields.includes('price')) {
+            errors.push('<i class="fas fa-times-circle text-danger me-1"></i><strong>Preço de Venda</strong> é obrigatório. Mapeie uma coluna para este campo.');
+        }
+
+        // Check duplicate mappings
+        var fieldCount = {};
+        mappedFields.forEach(function(f) {
+            fieldCount[f] = (fieldCount[f] || 0) + 1;
+        });
+        for (var f in fieldCount) {
+            if (fieldCount[f] > 1) {
+                var label = importFieldOptions[f] ? importFieldOptions[f].label : f;
+                warnings.push('<i class="fas fa-exclamation-triangle text-warning me-1"></i>O campo <strong>' + label + '</strong> está mapeado para mais de uma coluna.');
+            }
+        }
+
+        if (errors.length > 0 || warnings.length > 0) {
+            var html = '';
+            errors.forEach(function(e) { html += '<div class="alert alert-danger py-1 mb-1 small">' + e + '</div>'; });
+            warnings.forEach(function(w) { html += '<div class="alert alert-warning py-1 mb-1 small">' + w + '</div>'; });
+            validationEl.innerHTML = html;
+            validationEl.style.display = '';
+        } else {
+            validationEl.innerHTML = '<div class="alert alert-success py-1 mb-1 small"><i class="fas fa-check-circle text-success me-1"></i>Mapeamento válido! Pronto para importar.</div>';
+            validationEl.style.display = '';
+        }
+
+        // Enable/disable import button
+        if (btnDoImport) btnDoImport.disabled = errors.length > 0;
+    }
+
+    function getMapping() {
+        var mapping = {};
+        document.querySelectorAll('#mappingTableBody .mapping-select').forEach(function(sel) {
+            var col = sel.dataset.col;
+            var val = sel.value;
+            if (val && val !== '_skip') {
+                mapping[col] = val;
+            }
+        });
+        return mapping;
+    }
+
+    // Build preview table
+    function buildPreviewTable(columns, preview) {
+        var thead = document.getElementById('previewTableHead');
+        var tbody = document.getElementById('previewTableBody');
+
+        var headHtml = '<tr><th class="text-muted" style="width:30px;">#</th>';
+        columns.forEach(function(col) {
+            headHtml += '<th>' + escHtml(col) + '</th>';
+        });
+        headHtml += '</tr>';
+        thead.innerHTML = headHtml;
+
+        var bodyHtml = '';
+        preview.forEach(function(row, idx) {
+            bodyHtml += '<tr><td class="text-muted">' + (idx + 1) + '</td>';
+            columns.forEach(function(col) {
+                var val = row[col] || '';
+                bodyHtml += '<td title="' + escHtml(String(val)) + '">' + escHtml(String(val).substring(0, 50)) + '</td>';
+            });
+            bodyHtml += '</tr>';
+        });
+        tbody.innerHTML = bodyHtml;
+    }
+
+    // Back to step 1
+    if (btnBackToStep1) {
+        btnBackToStep1.addEventListener('click', function() {
+            goToStep(1);
         });
     }
 
-    document.querySelectorAll('.btn-delete-product').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id = this.dataset.id;
-            const name = this.dataset.name;
+    // Do Import (Step 2 → Step 3)
+    if (btnDoImport) {
+        btnDoImport.addEventListener('click', function() {
+            var mapping = getMapping();
+            var mappedFields = Object.values(mapping);
+
+            if (!mappedFields.includes('name') || !mappedFields.includes('price')) {
+                Swal.fire({ icon:'error', title:'Mapeamento incompleto', text:'Os campos Nome e Preço são obrigatórios.' });
+                return;
+            }
+
             Swal.fire({
-                title: 'Excluir produto?',
-                html: `Deseja realmente excluir <strong>${name}</strong>?<br>Esta ação não pode ser desfeita.`,
-                icon: 'warning',
+                title: 'Confirmar importação?',
+                html: '<strong>' + (importData ? importData.total_rows : '?') + '</strong> produto(s) serão importados com o mapeamento definido.',
+                icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#c0392b',
-                cancelButtonColor: '#95a5a6',
-                confirmButtonText: '<i class="fas fa-trash me-1"></i> Sim, excluir',
+                confirmButtonText: '<i class="fas fa-upload me-1"></i>Importar',
                 cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = `?page=products&action=delete&id=${id}`;
-                }
-            });
-        });
-    });
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
 
-    // Busca rápida na tabela
-    const searchInput = document.getElementById('searchTable');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const q = this.value.toLowerCase().trim();
-            document.querySelectorAll('table tbody tr').forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = (!q || text.includes(q)) ? '' : 'none';
+                btnDoImport.disabled = true;
+                btnDoImport.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Importando...';
+
+                var formData = new FormData();
+                formData.append('mapping', JSON.stringify(mapping));
+
+                fetch('?page=products&action=importProductsMapped', { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        btnDoImport.disabled = false;
+                        btnDoImport.innerHTML = '<i class="fas fa-upload me-1"></i>Importar';
+
+                        showImportResult(data);
+                        goToStep(3);
+                    })
+                    .catch(function() {
+                        btnDoImport.disabled = false;
+                        btnDoImport.innerHTML = '<i class="fas fa-upload me-1"></i>Importar';
+                        Swal.fire({ icon:'error', title:'Erro de comunicação' });
+                    });
             });
         });
     }
+
+    // Show import result
+    function showImportResult(data) {
+        var container = document.getElementById('importResultContent');
+        if (!container) return;
+        var html = '';
+
+        if (data.success) {
+            // Success summary
+            html += '<div class="text-center mb-4">';
+            if (data.imported > 0) {
+                html += '<div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(39,174,96,.1);">' +
+                    '<i class="fas fa-check-circle fa-2x text-success"></i></div>';
+                html += '<h4 class="text-success">Importação Concluída!</h4>';
+                html += '<p class="text-muted"><strong>' + data.imported + '</strong> produto(s) importado(s) com sucesso.</p>';
+            } else {
+                html += '<div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(243,156,18,.1);">' +
+                    '<i class="fas fa-exclamation-triangle fa-2x text-warning"></i></div>';
+                html += '<h4 class="text-warning">Nenhum produto importado</h4>';
+                html += '<p class="text-muted">Verifique os erros abaixo.</p>';
+            }
+            html += '</div>';
+
+            // Errors list
+            if (data.errors && data.errors.length > 0) {
+                html += '<div class="alert alert-warning py-2 d-flex align-items-center">' +
+                    '<i class="fas fa-exclamation-triangle me-2"></i>' +
+                    '<strong>' + data.errors.length + '</strong>&nbsp;linha(s) com erro:</div>';
+                html += '<div class="list-group" style="max-height:250px;overflow-y:auto;">';
+                data.errors.forEach(function(err) {
+                    html += '<div class="list-group-item list-group-item-danger py-2 small">' +
+                        '<i class="fas fa-times-circle me-1"></i><strong>Linha ' + err.line + ':</strong> ' + escHtml(err.message) +
+                    '</div>';
+                });
+                html += '</div>';
+            }
+
+            // Update sidebar count
+            var countEl = document.querySelector('.prd-nav-item[data-section="overview"] .prd-nav-count');
+            if (countEl && data.imported > 0) {
+                var current = parseInt(countEl.textContent) || 0;
+                countEl.textContent = current + data.imported;
+            }
+        } else {
+            html += '<div class="text-center">' +
+                '<div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(192,57,43,.1);">' +
+                '<i class="fas fa-times-circle fa-2x text-danger"></i></div>' +
+                '<h4 class="text-danger">Erro na Importação</h4>' +
+                '<p class="text-muted">' + escHtml(data.message || 'Erro desconhecido.') + '</p></div>';
+        }
+
+        container.innerHTML = html;
+    }
+
+    // New Import
+    if (btnNewImport) {
+        btnNewImport.addEventListener('click', function() {
+            importFileInput.value = '';
+            importFileInfo.style.display = 'none';
+            importDropzone.classList.remove('has-file');
+            btnParseFile.disabled = true;
+            importData = null;
+            goToStep(1);
+        });
+    }
+
 });
 </script>

@@ -107,11 +107,15 @@ return [
             'delete'                 => 'delete',
             'deleteImage'            => 'deleteImage',
             'getSubcategories'       => 'getSubcategories',
+            'createCategoryAjax'     => 'createCategoryAjax',
             'createGradeType'        => 'createGradeTypeAjax',
             'getGradeTypes'          => 'getGradeTypes',
             'generateCombinations'   => 'generateCombinationsAjax',
             'downloadImportTemplate' => 'downloadImportTemplate',
             'importProducts'         => 'importProducts',
+            'getProductsList'        => 'getProductsList',
+            'parseImportFile'        => 'parseImportFile',
+            'importProductsMapped'   => 'importProductsMapped',
         ],
     ],
 
@@ -160,11 +164,15 @@ return [
         'controller'     => 'CustomerController',
         'default_action' => 'index',
         'actions'        => [
-            'store'  => 'store',
-            'create' => 'create',
-            'edit'   => 'edit',
-            'update' => 'update',
-            'delete' => 'delete',
+            'store'                   => 'store',
+            'create'                  => 'create',
+            'edit'                    => 'edit',
+            'update'                  => 'update',
+            'delete'                  => 'delete',
+            'getCustomersList'        => 'getCustomersList',
+            'parseImportFile'         => 'parseImportFile',
+            'importCustomersMapped'   => 'importCustomersMapped',
+            'downloadImportTemplate'  => 'downloadImportTemplate',
         ],
     ],
 
@@ -348,6 +356,11 @@ return [
             'entry'                => 'entry',
             'storeMovement'        => 'storeMovement',
             'movements'            => 'movements',
+            'getStockItems'        => 'getStockItems',
+            'getMovements'         => 'getMovements',
+            'getMovement'          => 'getMovement',
+            'updateMovement'       => 'updateMovement',
+            'deleteMovement'       => 'deleteMovement',
             'getProductCombinations' => 'getProductCombinations',
             'updateItemMeta'       => 'updateItemMeta',
             'getProductStock'      => 'getProductStock',
@@ -377,6 +390,19 @@ return [
     ],
 
     // ══════════════════════════════════════════════════════════════
+    // RELATÓRIOS FINANCEIROS
+    // ══════════════════════════════════════════════════════════════
+
+    'reports' => [
+        'controller'     => 'ReportController',
+        'default_action' => 'index',
+        'actions'        => [
+            'exportPdf'   => 'exportPdf',
+            'exportExcel' => 'exportExcel',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════════
     // FISCAL / FINANCEIRO
     // ══════════════════════════════════════════════════════════════
 
@@ -384,34 +410,39 @@ return [
         'controller'     => 'FinancialController',
         'default_action' => 'payments',
         'actions'        => [
-            'payments'            => 'payments',
-            'installments'        => 'installments',
-            'generateInstallments' => 'generateInstallments',
-            'payInstallment'      => 'payInstallment',
-            'confirmPayment'      => 'confirmPayment',
-            'cancelInstallment'   => 'cancelInstallment',
-            'uploadAttachment'    => 'uploadAttachment',
-            'removeAttachment'    => 'removeAttachment',
-            'mergeInstallments'   => 'mergeInstallments',
-            'splitInstallment'    => 'splitInstallment',
-            'transactions'        => 'transactions',
-            'addTransaction'      => 'addTransaction',
-            'deleteTransaction'   => 'deleteTransaction',
-            'importOfx'           => 'importOfx',
-            'getSummaryJson'      => 'getSummaryJson',
-            'getInstallmentsJson' => 'getInstallmentsJson',
+            'payments'              => 'payments',
+            'installments'          => 'installments',
+            'generateInstallments'  => 'generateInstallments',
+            'payInstallment'        => 'payInstallment',
+            'confirmPayment'        => 'confirmPayment',
+            'cancelInstallment'     => 'cancelInstallment',
+            'uploadAttachment'      => 'uploadAttachment',
+            'removeAttachment'      => 'removeAttachment',
+            'mergeInstallments'     => 'mergeInstallments',
+            'splitInstallment'      => 'splitInstallment',
+            'transactions'          => 'transactions',
+            'addTransaction'        => 'addTransaction',
+            'deleteTransaction'     => 'deleteTransaction',
+            'getTransaction'        => 'getTransaction',
+            'updateTransaction'     => 'updateTransaction',
+            'importOfx'             => 'importOfx',
+            'getSummaryJson'        => 'getSummaryJson',
+            'getInstallmentsJson'   => 'getInstallmentsJson',
+            'getInstallmentsPaginated'  => 'getInstallmentsPaginated',
+            'getTransactionsPaginated'  => 'getTransactionsPaginated',
+            'parseImportFile'       => 'parseImportFile',
+            'importCsv'             => 'importCsv',
+            'importOfxSelected'     => 'importOfxSelected',
         ],
     ],
 
-    // ── Atalhos de menu fiscal ──
+    // ── Atalhos de menu fiscal (redirecionam para página unificada) ──
     'financial_payments' => [
-        'controller'     => 'FinancialController',
-        'default_action' => 'payments',
+        'redirect' => '?page=financial&action=payments',
     ],
 
     'financial_transactions' => [
-        'controller'     => 'FinancialController',
-        'default_action' => 'transactions',
+        'redirect' => '?page=financial&action=payments&section=transactions',
     ],
 
     // ══════════════════════════════════════════════════════════════

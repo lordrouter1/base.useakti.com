@@ -1129,6 +1129,60 @@ class Financial {
     }
 
     /**
+     * Busca uma transação pelo ID
+     * @param int $id ID da transação
+     * @return array|false Dados da transação ou false
+     */
+    public function getTransactionById($id) {
+        $q = "SELECT ft.*, u.name as user_name
+              FROM financial_transactions ft
+              LEFT JOIN users u ON ft.user_id = u.id
+              WHERE ft.id = :id";
+        $s = $this->conn->prepare($q);
+        $s->execute([':id' => $id]);
+        return $s->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Atualiza uma transação existente
+     * @param int $id ID da transação
+     * @param array $data Dados atualizados
+     * @return bool Sucesso ou falha
+     * Evento disparado: 'model.financial_transaction.updated'
+     */
+    public function updateTransaction($id, $data) {
+        $q = "UPDATE financial_transactions SET
+                type = :type,
+                category = :cat,
+                description = :desc,
+                amount = :amt,
+                transaction_date = :date,
+                payment_method = :method,
+                notes = :notes
+              WHERE id = :id";
+        $s = $this->conn->prepare($q);
+        $result = $s->execute([
+            ':type'   => $data['type'],
+            ':cat'    => $data['category'],
+            ':desc'   => $data['description'],
+            ':amt'    => $data['amount'],
+            ':date'   => $data['transaction_date'],
+            ':method' => $data['payment_method'] ?? null,
+            ':notes'  => $data['notes'] ?? null,
+            ':id'     => $id,
+        ]);
+        if ($result) {
+            EventDispatcher::dispatch('model.financial_transaction.updated', new Event('model.financial_transaction.updated', [
+                'id' => $id,
+                'type' => $data['type'],
+                'category' => $data['category'],
+                'amount' => $data['amount'],
+            ]));
+        }
+        return $result;
+    }
+
+    /**
      * Lista transações com filtros
      * @param array $filters Filtros opcionais
      * @return array Lista de transações
@@ -1160,6 +1214,314 @@ class Financial {
         $s = $this->conn->prepare($q);
         $s->execute($params);
         return $s->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Lista transações com filtros e paginação
+     * @param array $filters Filtros opcionais
+     * @param int $page Página atual
+     * @param int $perPage Itens por página
+     * @return array ['data' => [...], 'total' => int, 'page' => int, 'perPage' => int, 'totalPages' => int, 'totalEntradas' => float, 'totalSaidas' => float]
+     */
+    public function getTransactionsPaginated($filters = [], $page = 1, $perPage = 25) {
+        $where = "WHERE 1=1";
+        $params = [];
+
+        if (!empty($filters['type'])) {
+            $where .= " AND ft.type = :type";
+            $params[':type'] = $filters['type'];
+        }
+        if (!empty($filters['month']) && !empty($filters['year'])) {
+            $where .= " AND MONTH(ft.transaction_date) = :m AND YEAR(ft.transaction_date) = :y";
+            $params[':m'] = $filters['month'];
+            $params[':y'] = $filters['year'];
+        } elseif (!empty($filters['month'])) {
+            $where .= " AND MONTH(ft.transaction_date) = :m";
+            $params[':m'] = $filters['month'];
+        } elseif (!empty($filters['year'])) {
+            $where .= " AND YEAR(ft.transaction_date) = :y";
+            $params[':y'] = $filters['year'];
+        }
+        if (!empty($filters['category'])) {
+            $where .= " AND ft.category = :cat";
+            $params[':cat'] = $filters['category'];
+        }
+        if (!empty($filters['search'])) {
+            $where .= " AND (ft.description LIKE :search OR ft.notes LIKE :search2)";
+            $params[':search'] = '%' . $filters['search'] . '%';
+            $params[':search2'] = '%' . $filters['search'] . '%';
+        }
+        if (!empty($filters['date_from'])) {
+            $where .= " AND ft.transaction_date >= :date_from";
+            $params[':date_from'] = $filters['date_from'];
+        }
+        if (!empty($filters['date_to'])) {
+            $where .= " AND ft.transaction_date <= :date_to";
+            $params[':date_to'] = $filters['date_to'];
+        }
+
+        // Count total
+        $qCount = "SELECT COUNT(*) FROM financial_transactions ft $where";
+        $sCount = $this->conn->prepare($qCount);
+        $sCount->execute($params);
+        $total = (int) $sCount->fetchColumn();
+
+        // Totals (entradas/saidas confirmadas, excluindo estornos e registros)
+        $qEntradas = "SELECT COALESCE(SUM(ft.amount), 0) FROM financial_transactions ft $where AND ft.type = 'entrada' AND ft.is_confirmed = 1 AND ft.category NOT IN ('estorno_pagamento', 'registro_ofx')";
+        $sEntradas = $this->conn->prepare($qEntradas);
+        $sEntradas->execute($params);
+        $totalEntradas = (float) $sEntradas->fetchColumn();
+
+        $qSaidas = "SELECT COALESCE(SUM(ft.amount), 0) FROM financial_transactions ft $where AND ft.type = 'saida' AND ft.is_confirmed = 1 AND ft.category NOT IN ('estorno_pagamento', 'registro_ofx')";
+        $sSaidas = $this->conn->prepare($qSaidas);
+        $sSaidas->execute($params);
+        $totalSaidas = (float) $sSaidas->fetchColumn();
+
+        // Paginated data
+        $offset = max(0, ($page - 1) * $perPage);
+        $q = "SELECT ft.*, u.name as user_name
+              FROM financial_transactions ft
+              LEFT JOIN users u ON ft.user_id = u.id
+              $where
+              ORDER BY ft.transaction_date DESC, ft.id DESC
+              LIMIT $perPage OFFSET $offset";
+        $s = $this->conn->prepare($q);
+        $s->execute($params);
+        $data = $s->fetchAll(PDO::FETCH_ASSOC);
+
+        return [
+            'data' => $data,
+            'total' => $total,
+            'page' => $page,
+            'perPage' => $perPage,
+            'totalPages' => (int) ceil($total / $perPage),
+            'totalEntradas' => $totalEntradas,
+            'totalSaidas' => $totalSaidas,
+        ];
+    }
+
+    /**
+     * Lista parcelas com filtros e paginação
+     * @param array $filters Filtros opcionais
+     * @param int $page Página atual
+     * @param int $perPage Itens por página
+     * @return array ['data' => [...], 'total' => int, 'page' => int, 'perPage' => int, 'totalPages' => int, 'summary' => [...]]
+     */
+    public function getAllInstallmentsPaginated($filters = [], $page = 1, $perPage = 25) {
+        $where = "WHERE o.status != 'cancelado' AND o.pipeline_stage IN ('financeiro', 'concluido')";
+        $params = [];
+
+        if (!empty($filters['status'])) {
+            if ($filters['status'] === 'pendente') {
+                $where .= " AND oi.status IN ('pendente', 'atrasado')";
+            } elseif ($filters['status'] === 'pago') {
+                $where .= " AND oi.status = 'pago'";
+            } elseif ($filters['status'] === 'atrasado') {
+                $where .= " AND oi.status = 'atrasado'";
+            } elseif ($filters['status'] === 'aguardando') {
+                $where .= " AND oi.status = 'pago' AND oi.is_confirmed = 0";
+            }
+        }
+        if (!empty($filters['month']) && !empty($filters['year'])) {
+            $where .= " AND MONTH(oi.due_date) = :fm AND YEAR(oi.due_date) = :fy";
+            $params[':fm'] = $filters['month'];
+            $params[':fy'] = $filters['year'];
+        } elseif (!empty($filters['month'])) {
+            $where .= " AND MONTH(oi.due_date) = :fm";
+            $params[':fm'] = $filters['month'];
+        } elseif (!empty($filters['year'])) {
+            $where .= " AND YEAR(oi.due_date) = :fy";
+            $params[':fy'] = $filters['year'];
+        }
+        if (!empty($filters['search'])) {
+            $where .= " AND (c.name LIKE :search OR o.id LIKE :search2)";
+            $params[':search'] = '%' . $filters['search'] . '%';
+            $params[':search2'] = '%' . $filters['search'] . '%';
+        }
+
+        // Count
+        $qCount = "SELECT COUNT(*) FROM order_installments oi JOIN orders o ON oi.order_id = o.id LEFT JOIN customers c ON o.customer_id = c.id $where";
+        $sCount = $this->conn->prepare($qCount);
+        $sCount->execute($params);
+        $total = (int) $sCount->fetchColumn();
+
+        // Summary totals
+        $qSummary = "SELECT 
+                        COUNT(*) as total_parcelas,
+                        SUM(CASE WHEN oi.status = 'pendente' THEN 1 ELSE 0 END) as pendentes,
+                        SUM(CASE WHEN oi.status = 'atrasado' THEN 1 ELSE 0 END) as atrasadas,
+                        SUM(CASE WHEN oi.status = 'pago' THEN 1 ELSE 0 END) as pagas,
+                        SUM(CASE WHEN oi.status = 'pago' AND oi.is_confirmed = 0 THEN 1 ELSE 0 END) as aguardando,
+                        COALESCE(SUM(CASE WHEN oi.status IN ('pendente','atrasado') THEN oi.amount ELSE 0 END), 0) as valor_pendente,
+                        COALESCE(SUM(CASE WHEN oi.status = 'pago' THEN COALESCE(oi.paid_amount, oi.amount) ELSE 0 END), 0) as valor_pago
+                     FROM order_installments oi 
+                     JOIN orders o ON oi.order_id = o.id 
+                     LEFT JOIN customers c ON o.customer_id = c.id 
+                     $where";
+        $sSummary = $this->conn->prepare($qSummary);
+        $sSummary->execute($params);
+        $summary = $sSummary->fetch(PDO::FETCH_ASSOC);
+
+        // Paginated data
+        $offset = max(0, ($page - 1) * $perPage);
+        $q = "SELECT oi.*, 
+                     o.total_amount as order_total, o.discount as order_discount,
+                     o.payment_method as order_payment_method, o.pipeline_stage,
+                     c.name as customer_name,
+                     c.document as customer_document,
+                     c.address as customer_address,
+                     u.name as confirmed_by_name
+              FROM order_installments oi
+              JOIN orders o ON oi.order_id = o.id
+              LEFT JOIN customers c ON o.customer_id = c.id
+              LEFT JOIN users u ON oi.confirmed_by = u.id
+              $where
+              ORDER BY 
+                CASE oi.status 
+                    WHEN 'atrasado' THEN 1 
+                    WHEN 'pendente' THEN 2 
+                    WHEN 'pago' THEN 3 
+                    WHEN 'cancelado' THEN 4 
+                END,
+                oi.due_date ASC, oi.order_id ASC, oi.installment_number ASC
+              LIMIT $perPage OFFSET $offset";
+        $s = $this->conn->prepare($q);
+        $s->execute($params);
+        $data = $s->fetchAll(PDO::FETCH_ASSOC);
+
+        return [
+            'data' => $data,
+            'total' => $total,
+            'page' => $page,
+            'perPage' => $perPage,
+            'totalPages' => (int) ceil($total / $perPage),
+            'summary' => $summary,
+        ];
+    }
+
+    /**
+     * Importa transações de um arquivo CSV/Excel (mapeamento de colunas)
+     * @param array $rows Linhas já parseadas
+     * @param array $mapping Mapeamento de colunas [field => column_index]
+     * @param array $selectedRows Índices de linhas selecionadas para importar
+     * @param string $mode 'registro' ou 'contabilizar'
+     * @param int|null $userId ID do usuário
+     * @return array Resultado da importação
+     */
+    public function importCsvMapped($rows, $mapping, $selectedRows, $mode = 'registro', $userId = null) {
+        $result = ['imported' => 0, 'skipped' => 0, 'errors' => []];
+
+        $dateCol = $mapping['date'] ?? null;
+        $descCol = $mapping['description'] ?? null;
+        $amountCol = $mapping['amount'] ?? null;
+        $typeCol = $mapping['type'] ?? null;
+        $categoryCol = $mapping['category'] ?? null;
+        $paymentMethodCol = $mapping['payment_method'] ?? null;
+        $notesCol = $mapping['notes'] ?? null;
+
+        foreach ($selectedRows as $idx) {
+            if (!isset($rows[$idx])) continue;
+            $row = $rows[$idx];
+
+            try {
+                $amount = 0;
+                if ($amountCol !== null && isset($row[$amountCol])) {
+                    $rawAmount = str_replace(['.', ',', 'R$', ' '], ['', '.', '', ''], $row[$amountCol]);
+                    $amount = abs((float) $rawAmount);
+                }
+                if ($amount <= 0) { $result['skipped']++; continue; }
+
+                $description = ($descCol !== null && isset($row[$descCol])) ? trim($row[$descCol]) : 'Importação CSV';
+                $date = ($dateCol !== null && isset($row[$dateCol])) ? $this->parseCsvDate(trim($row[$dateCol])) : date('d/m/Y');
+
+                // Determinar tipo
+                $isCredit = true;
+                if ($typeCol !== null && isset($row[$typeCol])) {
+                    $typeVal = strtolower(trim($row[$typeCol]));
+                    $isCredit = !in_array($typeVal, ['saida', 'saída', 'debito', 'débito', 'despesa', 'D', '-']);
+                } else {
+                    // Se não tem coluna de tipo, verificar se amount original era negativo
+                    if ($amountCol !== null && isset($row[$amountCol])) {
+                        $rawVal = str_replace(['.', ',', 'R$', ' '], ['', '.', '', ''], $row[$amountCol]);
+                        $isCredit = ((float)$rawVal >= 0);
+                    }
+                }
+
+                // Campos opcionais do mapeamento
+                $categoryVal = ($categoryCol !== null && isset($row[$categoryCol])) ? trim($row[$categoryCol]) : null;
+                $paymentMethodVal = ($paymentMethodCol !== null && isset($row[$paymentMethodCol])) ? trim($row[$paymentMethodCol]) : 'transferencia';
+                $notesVal = ($notesCol !== null && isset($row[$notesCol])) ? trim($row[$notesCol]) : '';
+
+                // Converter date dd/mm/yyyy → Y-m-d para armazenamento
+                $dateDb = $date;
+                if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $date, $dm)) {
+                    $dateDb = $dm[3] . '-' . $dm[2] . '-' . $dm[1];
+                }
+
+                if ($mode === 'registro') {
+                    $data = [
+                        'type' => 'registro',
+                        'category' => $categoryVal ?: 'registro_ofx',
+                        'description' => $description,
+                        'amount' => $amount,
+                        'transaction_date' => $dateDb,
+                        'reference_type' => 'csv',
+                        'payment_method' => $paymentMethodVal,
+                        'is_confirmed' => 1,
+                        'user_id' => $userId,
+                        'notes' => $notesVal ?: 'Importado via CSV/Excel (registro)',
+                    ];
+                } else {
+                    $data = [
+                        'type' => $isCredit ? 'entrada' : 'saida',
+                        'category' => $categoryVal ?: ($isCredit ? 'outra_entrada' : 'outra_saida'),
+                        'description' => $description,
+                        'amount' => $amount,
+                        'transaction_date' => $dateDb,
+                        'reference_type' => 'csv',
+                        'payment_method' => $paymentMethodVal,
+                        'is_confirmed' => 1,
+                        'user_id' => $userId,
+                        'notes' => $notesVal ?: 'Importado via CSV/Excel (contabilizado)',
+                    ];
+                }
+
+                $this->addTransaction($data);
+                $result['imported']++;
+            } catch (\Exception $e) {
+                $result['errors'][] = "Linha $idx: " . $e->getMessage();
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Parse de data CSV em vários formatos.
+     * Retorna sempre no formato dd/mm/yyyy para exibição, mantendo compatibilidade.
+     * @param string $dateStr Data do CSV
+     * @return string Data no formato dd/mm/yyyy
+     */
+    private function parseCsvDate($dateStr) {
+        // Tentar dd/mm/yyyy — já no formato correto
+        if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateStr, $m)) {
+            return $m[1] . '/' . $m[2] . '/' . $m[3];
+        }
+        // Tentar dd-mm-yyyy
+        if (preg_match('/^(\d{2})-(\d{2})-(\d{4})$/', $dateStr, $m)) {
+            return $m[1] . '/' . $m[2] . '/' . $m[3];
+        }
+        // Tentar yyyy-mm-dd
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $dateStr, $m)) {
+            return $m[3] . '/' . $m[2] . '/' . $m[1];
+        }
+        // Tentar yyyymmdd (OFX format)
+        if (preg_match('/^(\d{4})(\d{2})(\d{2})/', $dateStr, $m)) {
+            return $m[3] . '/' . $m[2] . '/' . $m[1];
+        }
+        // Fallback: strtotime
+        $ts = strtotime($dateStr);
+        return $ts ? date('d/m/Y', $ts) : date('d/m/Y');
     }
 
     /**

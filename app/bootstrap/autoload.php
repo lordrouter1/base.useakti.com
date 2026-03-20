@@ -25,6 +25,12 @@
 // Raiz do projeto (um nível acima de /app/bootstrap/)
 define('AKTI_BASE_PATH', realpath(__DIR__ . '/../../') . DIRECTORY_SEPARATOR);
 
+// ── Composer autoload (carrega dependências como TCPDF, PhpSpreadsheet etc.) ──
+$composerAutoload = AKTI_BASE_PATH . 'vendor/autoload.php';
+if (file_exists($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 spl_autoload_register(function (string $class): void {
 
     // Namespace base do projeto
