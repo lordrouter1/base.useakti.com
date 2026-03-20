@@ -255,11 +255,6 @@
                 <fieldset class="p-4 mb-4" style="border: 2px solid #9b59b6; border-radius: 8px;">
                     <legend class="float-none w-auto px-2 fs-5" style="color: #9b59b6;">
                         <i class="fas fa-file-invoice-dollar me-2"></i>Produtos do Orçamento
-                        <?php if (!$isReadOnly): ?>
-                        <a href="?page=orders&action=printQuote&id=<?= $order['id'] ?>" target="_blank" class="btn btn-sm btn-outline-success ms-3">
-                            <i class="fas fa-print me-1"></i> Imprimir Orçamento
-                        </a>
-                        <?php endif; ?>
                     </legend>
 
                     <!-- ═══ Link de Catálogo para o Cliente ═══ -->
@@ -626,6 +621,49 @@
                         <textarea class="form-control" name="quote_notes" rows="3" placeholder="Notas visíveis ao cliente no orçamento impresso..." <?= $isReadOnly ? 'disabled' : '' ?>><?= $order['quote_notes'] ?? '' ?></textarea>
                     </div>
                 </fieldset>
+
+                <!-- ═══ ORÇAMENTO — Card para impressão ═══ -->
+                <?php if (!$isReadOnly): ?>
+                <div class="card border-0 shadow-sm mb-4" id="quoteOrderSection">
+                    <div class="card-header py-2" style="background: linear-gradient(135deg, #9b59b610 0%, #8e44ad15 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0" style="font-size:0.85rem; color:#9b59b6;">
+                                <i class="fas fa-file-invoice-dollar me-2"></i>Orçamento
+                            </h6>
+                            <span class="badge" style="font-size:0.6rem; background:#9b59b620; color:#9b59b6;">
+                                <i class="fas fa-print me-1"></i>Impressão
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="text-center py-3" style="background: linear-gradient(135deg, #f3e8ff 0%, #faf5ff 100%); border-radius: 10px; border: 2px dashed #9b59b640;">
+                            <i class="fas fa-file-invoice-dollar d-block mb-2" style="font-size: 2.2rem; color: #9b59b6; opacity: 0.6;"></i>
+                            <p class="mb-1 small text-muted" style="font-size: 0.78rem;">
+                                Imprima o orçamento completo com todos os produtos, valores e condições para enviar ao cliente.
+                            </p>
+                            <p class="mb-3 small text-muted" style="font-size: 0.68rem;">
+                                <i class="fas fa-info-circle me-1"></i>Documento formatado para apresentação profissional ao cliente.
+                            </p>
+                            <div class="d-flex justify-content-center gap-2">
+                                <a href="?page=orders&action=printQuote&id=<?= $order['id'] ?>" 
+                                   target="_blank" class="btn px-4 shadow-sm" style="background:#9b59b6; color:#fff; font-size: 0.95rem; border-radius: 10px;">
+                                    <i class="fas fa-print me-2"></i> Imprimir Orçamento
+                                </a>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted" style="font-size: 0.65rem;">
+                                    <i class="fas fa-box me-1"></i><?= count($orderItems ?? []) ?> produto(s)
+                                    &nbsp;·&nbsp; Pedido #<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?>
+                                    <?php if (!empty($order['total_amount']) && (float)$order['total_amount'] > 0): ?>
+                                    &nbsp;·&nbsp; <i class="fas fa-coins me-1"></i>R$ <?= number_format((float)$order['total_amount'], 2, ',', '.') ?>
+                                    <?php endif; ?>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <?php else: ?>
                 <!-- Manter valores atuais nos campos ocultos quando a seção de produtos não aparece -->
                 <input type="hidden" name="quote_notes" value="<?= e($order['quote_notes'] ?? '') ?>">
@@ -1125,44 +1163,6 @@
                     <?php endif; ?>
                 </fieldset>
                 <?php endif; ?>
-
-                <!-- Gerenciamento do Pedido -->
-                <fieldset class="p-4 mb-4" style="border: 2px solid #3498db; border-radius: 8px;">
-                    <legend class="float-none w-auto px-2 fs-5" style="color: #3498db;"><i class="fas fa-sliders-h me-2"></i>Gerenciamento</legend>
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold text-muted">Prioridade</label>
-                            <select class="form-select" name="priority" <?= $isReadOnly ? 'disabled' : '' ?>>
-                                <option value="baixa" <?= ($order['priority'] ?? '') == 'baixa' ? 'selected' : '' ?>>🟢 Baixa</option>
-                                <option value="normal" <?= ($order['priority'] ?? 'normal') == 'normal' ? 'selected' : '' ?>>🔵 Normal</option>
-                                <option value="alta" <?= ($order['priority'] ?? '') == 'alta' ? 'selected' : '' ?>>🟡 Alta</option>
-                                <option value="urgente" <?= ($order['priority'] ?? '') == 'urgente' ? 'selected' : '' ?>>🔴 Urgente</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold text-muted">Prazo (Deadline)</label>
-                            <input type="date" class="form-control" name="deadline" value="<?= $order['deadline'] ?? '' ?>" <?= $isReadOnly ? 'disabled' : '' ?>>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">Responsável</label>
-                            <select class="form-select" name="assigned_to" <?= $isReadOnly ? 'disabled' : '' ?>>
-                                <option value="">Sem responsável</option>
-                                <?php foreach ($users as $u): ?>
-                                <option value="<?= $u['id'] ?>" <?= ($order['assigned_to'] ?? '') == $u['id'] ? 'selected' : '' ?>>
-                                    <?= $u['name'] ?> (<?= $u['role'] ?>)
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold text-muted">
-                                <i class="fas fa-lock me-1"></i>Observações Internas 
-                                <small class="text-danger">(NÃO aparece no orçamento impresso)</small>
-                            </label>
-                            <textarea class="form-control" name="internal_notes" rows="3" placeholder="Notas internas sobre este pedido..." <?= $isReadOnly ? 'disabled' : '' ?>><?= $order['internal_notes'] ?? '' ?></textarea>
-                        </div>
-                    </div>
-                </fieldset>
 
                 <?php
                 // Campos de Envio/Entrega: só aparecem nas etapas de envio ou concluído (NÃO em preparação)
@@ -2170,6 +2170,44 @@
                 <input type="hidden" name="shipping_address" value="<?= e($order['shipping_address'] ?? '') ?>">
                 <input type="hidden" name="tracking_code" value="<?= $order['tracking_code'] ?? '' ?>">
                 <?php endif; ?>
+
+                <!-- Gerenciamento do Pedido (sempre no final) -->
+                <fieldset class="p-4 mb-4" style="border: 2px solid #3498db; border-radius: 8px;">
+                    <legend class="float-none w-auto px-2 fs-5" style="color: #3498db;"><i class="fas fa-sliders-h me-2"></i>Gerenciamento</legend>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold text-muted">Prioridade</label>
+                            <select class="form-select" name="priority" <?= $isReadOnly ? 'disabled' : '' ?>>
+                                <option value="baixa" <?= ($order['priority'] ?? '') == 'baixa' ? 'selected' : '' ?>>🟢 Baixa</option>
+                                <option value="normal" <?= ($order['priority'] ?? 'normal') == 'normal' ? 'selected' : '' ?>>🔵 Normal</option>
+                                <option value="alta" <?= ($order['priority'] ?? '') == 'alta' ? 'selected' : '' ?>>🟡 Alta</option>
+                                <option value="urgente" <?= ($order['priority'] ?? '') == 'urgente' ? 'selected' : '' ?>>🔴 Urgente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold text-muted">Prazo (Deadline)</label>
+                            <input type="date" class="form-control" name="deadline" value="<?= $order['deadline'] ?? '' ?>" <?= $isReadOnly ? 'disabled' : '' ?>>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Responsável</label>
+                            <select class="form-select" name="assigned_to" <?= $isReadOnly ? 'disabled' : '' ?>>
+                                <option value="">Sem responsável</option>
+                                <?php foreach ($users as $u): ?>
+                                <option value="<?= $u['id'] ?>" <?= ($order['assigned_to'] ?? '') == $u['id'] ? 'selected' : '' ?>>
+                                    <?= $u['name'] ?> (<?= $u['role'] ?>)
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">
+                                <i class="fas fa-lock me-1"></i>Observações Internas 
+                                <small class="text-danger">(NÃO aparece no orçamento impresso)</small>
+                            </label>
+                            <textarea class="form-control" name="internal_notes" rows="3" placeholder="Notas internas sobre este pedido..." <?= $isReadOnly ? 'disabled' : '' ?>><?= $order['internal_notes'] ?? '' ?></textarea>
+                        </div>
+                    </div>
+                </fieldset>
 
             </form>
         </div>
