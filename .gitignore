@@ -3,6 +3,7 @@ assets/uploads/
 !assests/uploads/.gitkeep
 
 vendor/
+storage/logs/
 
 # Node.js (API microservice)
 api/node_modules/
