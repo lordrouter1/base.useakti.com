@@ -27,7 +27,7 @@ set_exception_handler(function($e) {
               || (stripos($contentType, 'application/json') !== false);
     // Também detecta AJAX por actions conhecidas
     $action = $_GET['action'] ?? '';
-    $ajaxActions = ['getSubcategories','getInheritedGrades','getInheritedSectors','getProductsForExport','exportToProducts','createCategoryAjax','deleteImage','createGradeType','getGradeTypes','generateCombinations','importProducts','toggleCategoryCombination','toggleSubcategoryCombination','importOfx','getSummaryJson','getInstallmentsJson','moveAjax','checkOrderStock','addExtraCost','deleteExtraCost','moveSector','getItemLogs','addItemLog','deleteItemLog','togglePreparation','countInstallments','deleteInstallments','updateItemDiscount','updateItemQty','getProductsList','parseImportFile','importProductsMapped'];
+    $ajaxActions = ['getSubcategories','getInheritedGrades','getInheritedSectors','getProductsForExport','exportToProducts','createCategoryAjax','deleteImage','createGradeType','getGradeTypes','generateCombinations','importProducts','toggleCategoryCombination','toggleSubcategoryCombination','importOfx','getSummaryJson','getInstallmentsJson','moveAjax','checkOrderStock','addExtraCost','deleteExtraCost','moveSector','getItemLogs','addItemLog','deleteItemLog','togglePreparation','countInstallments','getStockItems','getMovements','getMovement','updateMovement','deleteMovement','storeMovement','getProductCombinations','updateItemMeta','getProductStock','setDefault','getDefaultWarehouse','deleteInstallments','updateItemDiscount','updateItemQty','getProductsList','parseImportFile','importProductsMapped'];
     if (in_array($action, $ajaxActions)) {
         $isAjax = true;
     }

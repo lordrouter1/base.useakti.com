@@ -902,6 +902,9 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
+    // CSRF token para requisições AJAX POST
+    var csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
     // ═══════════════════════════════════════════
     // ═══ UTILITÁRIOS                         ═══
     // ═══════════════════════════════════════════
@@ -1396,6 +1399,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Salvando...';
 
         var fd = new FormData();
+        fd.append('csrf_token', csrfToken);
         fd.append('id', id);
         fd.append('type', type);
         fd.append('quantity', quantity);
@@ -1444,6 +1448,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!result.isConfirmed) return;
 
             var fd = new FormData();
+            fd.append('csrf_token', csrfToken);
             fd.append('id', id);
 
             fetch('?page=stock&action=deleteMovement', { method: 'POST', body: fd })
@@ -1493,6 +1498,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var locCode = document.getElementById('metaLocCode').value;
 
             var fd = new FormData();
+            fd.append('csrf_token', csrfToken);
             fd.append('id', id);
             fd.append('min_quantity', minQty);
             fd.append('location_code', locCode);
@@ -1661,6 +1667,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 btnProcess.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processando...';
 
                 var fd = new FormData();
+                fd.append('csrf_token', csrfToken);
                 fd.append('warehouse_id', warehouseId);
                 fd.append('destination_warehouse_id', destWarehouseId);
                 fd.append('type', type);
@@ -1796,6 +1803,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then(function(result) {
                 if (result.isConfirmed) {
                     var fd = new FormData();
+                    fd.append('csrf_token', csrfToken);
                     fd.append('id', id);
                     fetch('?page=stock&action=setDefault', { method: 'POST', body: fd })
                         .then(function(r) { return r.json(); })

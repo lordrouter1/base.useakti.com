@@ -179,6 +179,9 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // CSRF token para requisições AJAX POST
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
     const items = [];
     const selProduct = document.getElementById('selProduct');
     const selCombination = document.getElementById('selCombination');
@@ -325,6 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btnProcess.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processando...';
 
             const fd = new FormData();
+            fd.append('csrf_token', csrfToken);
             fd.append('warehouse_id', warehouseId);
             fd.append('destination_warehouse_id', destWarehouseId);
             fd.append('type', type);
