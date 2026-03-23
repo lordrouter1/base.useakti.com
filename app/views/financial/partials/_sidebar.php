@@ -47,6 +47,13 @@
                 <span>Nova Transação</span>
             </a>
 
+            <a href="#" class="fin-nav-item <?= $activeSection === 'recurring' ? 'active' : '' ?>" data-section="recurring">
+                <span class="fin-nav-icon" style="background:rgba(241,196,15,.1);color:#f1c40f;">
+                    <i class="fas fa-redo-alt"></i>
+                </span>
+                <span>Recorrências</span>
+            </a>
+
             <div class="fin-sidebar-divider"></div>
             <div class="fin-sidebar-label">Relatórios</div>
 
@@ -64,13 +71,6 @@
                 <span>Fluxo de Caixa</span>
             </a>
 
-            <a href="#" class="fin-nav-item <?= $activeSection === 'recurring' ? 'active' : '' ?>" data-section="recurring">
-                <span class="fin-nav-icon" style="background:rgba(241,196,15,.1);color:#f1c40f;">
-                    <i class="fas fa-redo-alt"></i>
-                </span>
-                <span>Recorrências</span>
-            </a>
-
         </nav>
     </div>
 </div>
@@ -84,7 +84,7 @@
         <p class="mb-0 text-muted" style="font-size:.72rem;line-height:1.55;">
             Use <span class="fw-bold text-primary">Pagamentos</span> para gerenciar parcelas de pedidos,
             <span class="fw-bold text-success">Visão Geral</span> para entradas e saídas,
-            <span class="fw-bold" style="color:#e67e22;">DRE</span> para ver demonstrativo de resultados
+            <span class="fw-bold" style="color:#f1c40f;">Recorrências</span> para despesas/receitas fixas
             e <span class="fw-bold" style="color:#2ecc71;">Fluxo de Caixa</span> para projeção futura.
         </p>
     </div>
