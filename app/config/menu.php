@@ -155,6 +155,35 @@ return [
         ],
     ],
 
+    // ─── Grupo: Comissões ───
+    'comissoes' => [
+        'label'    => 'Comissões',
+        'icon'     => 'fas fa-hand-holding-usd',
+        'menu'     => true,
+        'children' => [
+            'commissions' => [
+                'label'      => 'Dashboard',
+                'icon'       => 'fas fa-tachometer-alt',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'commissions_formas' => [
+                'label'           => 'Formas de Comissão',
+                'icon'            => 'fas fa-file-alt',
+                'menu'            => true,
+                'permission'      => true,
+                'permission_alias'=> 'commissions',
+            ],
+            'commissions_historico' => [
+                'label'           => 'Histórico',
+                'icon'            => 'fas fa-history',
+                'menu'            => true,
+                'permission'      => true,
+                'permission_alias'=> 'commissions',
+            ],
+        ],
+    ],
+
     // ─── Relatórios (item direto no menu principal) ───
     'reports' => [
         'label'      => 'Relatórios',

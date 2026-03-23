@@ -17,6 +17,12 @@ class Financial {
     private $conn;
 
     /**
+     * Flag para evitar execução múltipla de updateOverdueInstallments no mesmo request (P11).
+     * @var bool
+     */
+    private $overdueUpdatedThisRequest = false;
+
+    /**
      * Construtor do model
      * @param PDO $db Conexão PDO
      */
@@ -38,83 +44,53 @@ class Financial {
         if (!$month) $month = date('m');
         if (!$year) $year = date('Y');
 
-        $summary = [];
+        // ── Query consolidada: receita do mês + pedidos pendentes (tabela orders) ──
+        $qOrders = "SELECT 
+            COALESCE(SUM(CASE WHEN pipeline_stage = 'concluido' AND MONTH(created_at) = :m1 AND YEAR(created_at) = :y1 
+                              THEN total_amount - COALESCE(discount, 0) ELSE 0 END), 0) AS receita_mes,
+            SUM(CASE WHEN pipeline_stage IN ('financeiro','concluido') AND payment_status != 'pago' 
+                     THEN 1 ELSE 0 END) AS pedidos_pendentes_pgto
+            FROM orders WHERE status != 'cancelado'";
+        $sO = $this->conn->prepare($qOrders);
+        $sO->execute([':m1' => $month, ':y1' => $year]);
+        $rowOrders = $sO->fetch(PDO::FETCH_ASSOC);
 
-        // Total de receita do mês (pedidos concluídos)
-        $q = "SELECT COALESCE(SUM(total_amount - COALESCE(discount, 0)), 0)
-              FROM orders 
-              WHERE pipeline_stage = 'concluido' 
-              AND status != 'cancelado'
-              AND MONTH(created_at) = :m AND YEAR(created_at) = :y";
-        $s = $this->conn->prepare($q);
-        $s->execute([':m' => $month, ':y' => $year]);
-        $summary['receita_mes'] = (float) $s->fetchColumn();
+        // ── Query consolidada: parcelas (order_installments) ──
+        $qInst = "SELECT 
+            COALESCE(SUM(CASE WHEN status = 'pago' AND MONTH(paid_date) = :m2 AND YEAR(paid_date) = :y2 
+                              THEN paid_amount ELSE 0 END), 0) AS recebido_mes,
+            COALESCE(SUM(CASE WHEN status IN ('pendente','atrasado') THEN amount ELSE 0 END), 0) AS a_receber_total,
+            COALESCE(SUM(CASE WHEN status IN ('pendente','atrasado') AND due_date < CURDATE() 
+                              THEN amount ELSE 0 END), 0) AS atrasados_total,
+            SUM(CASE WHEN is_confirmed = 0 AND status = 'pago' THEN 1 ELSE 0 END) AS pendentes_confirmacao
+            FROM order_installments";
+        $sI = $this->conn->prepare($qInst);
+        $sI->execute([':m2' => $month, ':y2' => $year]);
+        $rowInst = $sI->fetch(PDO::FETCH_ASSOC);
 
-        // Total recebido no mês (parcelas pagas)
-        $q = "SELECT COALESCE(SUM(paid_amount), 0)
-              FROM order_installments
-              WHERE status = 'pago'
-              AND MONTH(paid_date) = :m AND YEAR(paid_date) = :y";
-        $s = $this->conn->prepare($q);
-        $s->execute([':m' => $month, ':y' => $year]);
-        $summary['recebido_mes'] = (float) $s->fetchColumn();
-
-        // Entradas manuais do mês (exclui estornos e registros — são apenas registros, não contam no cálculo)
-        $q = "SELECT COALESCE(SUM(amount), 0)
-              FROM financial_transactions
-              WHERE type = 'entrada' AND is_confirmed = 1
+        // ── Query consolidada: transações financeiras (entradas + saídas do mês) ──
+        $softDeleteTx = $this->hasSoftDeleteColumn() ? ' AND deleted_at IS NULL' : '';
+        $qTx = "SELECT 
+            COALESCE(SUM(CASE WHEN type = 'entrada' THEN amount ELSE 0 END), 0) AS entradas_mes,
+            COALESCE(SUM(CASE WHEN type = 'saida'   THEN amount ELSE 0 END), 0) AS saidas_mes
+            FROM financial_transactions
+            WHERE is_confirmed = 1
               AND category NOT IN ('estorno_pagamento', 'registro_ofx')
-              AND MONTH(transaction_date) = :m AND YEAR(transaction_date) = :y";
-        $s = $this->conn->prepare($q);
-        $s->execute([':m' => $month, ':y' => $year]);
-        $summary['entradas_mes'] = (float) $s->fetchColumn();
+              AND MONTH(transaction_date) = :m3 AND YEAR(transaction_date) = :y3" . $softDeleteTx;
+        $sT = $this->conn->prepare($qTx);
+        $sT->execute([':m3' => $month, ':y3' => $year]);
+        $rowTx = $sT->fetch(PDO::FETCH_ASSOC);
 
-        // Saídas do mês (exclui estornos e registros — são apenas registros, não contam no cálculo)
-        $q = "SELECT COALESCE(SUM(amount), 0)
-              FROM financial_transactions
-              WHERE type = 'saida' AND is_confirmed = 1
-              AND category NOT IN ('estorno_pagamento', 'registro_ofx')
-              AND MONTH(transaction_date) = :m AND YEAR(transaction_date) = :y";
-        $s = $this->conn->prepare($q);
-        $s->execute([':m' => $month, ':y' => $year]);
-        $summary['saidas_mes'] = (float) $s->fetchColumn();
-
-        // A receber (parcelas pendentes/atrasadas)
-        $q = "SELECT COALESCE(SUM(amount), 0)
-              FROM order_installments
-              WHERE status IN ('pendente', 'atrasado')";
-        $s = $this->conn->prepare($q);
-        $s->execute();
-        $summary['a_receber_total'] = (float) $s->fetchColumn();
-
-        // Atrasados
-        $q = "SELECT COALESCE(SUM(amount), 0)
-              FROM order_installments
-              WHERE (status = 'pendente' OR status = 'atrasado')
-              AND due_date < CURDATE()";
-        $s = $this->conn->prepare($q);
-        $s->execute();
-        $summary['atrasados_total'] = (float) $s->fetchColumn();
-
-        // Pendentes de confirmação
-        $q = "SELECT COUNT(*)
-              FROM order_installments
-              WHERE is_confirmed = 0 AND status = 'pago'";
-        $s = $this->conn->prepare($q);
-        $s->execute();
-        $summary['pendentes_confirmacao'] = (int) $s->fetchColumn();
-
-        // Total de pedidos concluídos sem pagamento total
-        $q = "SELECT COUNT(*)
-              FROM orders 
-              WHERE pipeline_stage IN ('financeiro', 'concluido')
-              AND status != 'cancelado'
-              AND payment_status != 'pago'";
-        $s = $this->conn->prepare($q);
-        $s->execute();
-        $summary['pedidos_pendentes_pgto'] = (int) $s->fetchColumn();
-
-        return $summary;
+        return [
+            'receita_mes'          => (float) ($rowOrders['receita_mes'] ?? 0),
+            'recebido_mes'         => (float) ($rowInst['recebido_mes'] ?? 0),
+            'entradas_mes'         => (float) ($rowTx['entradas_mes'] ?? 0),
+            'saidas_mes'           => (float) ($rowTx['saidas_mes'] ?? 0),
+            'a_receber_total'      => (float) ($rowInst['a_receber_total'] ?? 0),
+            'atrasados_total'      => (float) ($rowInst['atrasados_total'] ?? 0),
+            'pendentes_confirmacao'=> (int)   ($rowInst['pendentes_confirmacao'] ?? 0),
+            'pedidos_pendentes_pgto' => (int) ($rowOrders['pedidos_pendentes_pgto'] ?? 0),
+        ];
     }
 
     /**
@@ -123,44 +99,51 @@ class Financial {
      * @return array Dados para gráfico
      */
     public function getChartData($months = 6) {
+        // ── Calcular intervalo de datas ──
+        $startDate = date('Y-m-01', strtotime("-" . ($months - 1) . " months"));
+        $endDate   = date('Y-m-t'); // último dia do mês corrente
+
+        // ── Recebido por mês (parcelas pagas) ──
+        $qInst = "SELECT DATE_FORMAT(paid_date, '%Y-%m') AS label,
+                         COALESCE(SUM(paid_amount), 0) AS total
+                  FROM order_installments
+                  WHERE status = 'pago' AND paid_date >= :start AND paid_date <= :end
+                  GROUP BY DATE_FORMAT(paid_date, '%Y-%m')";
+        $sI = $this->conn->prepare($qInst);
+        $sI->execute([':start' => $startDate, ':end' => $endDate]);
+        $instByMonth = [];
+        foreach ($sI->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $instByMonth[$row['label']] = (float) $row['total'];
+        }
+
+        // ── Entradas e saídas manuais por mês (excluindo estornos e registros) ──
+        $softDeleteChart = $this->hasSoftDeleteColumn() ? ' AND deleted_at IS NULL' : '';
+        $qTx = "SELECT DATE_FORMAT(transaction_date, '%Y-%m') AS label,
+                       COALESCE(SUM(CASE WHEN type = 'entrada' THEN amount ELSE 0 END), 0) AS entradas,
+                       COALESCE(SUM(CASE WHEN type = 'saida'   THEN amount ELSE 0 END), 0) AS saidas
+                FROM financial_transactions
+                WHERE is_confirmed = 1
+                  AND category NOT IN ('estorno_pagamento', 'registro_ofx')
+                  AND transaction_date >= :start AND transaction_date <= :end" . $softDeleteChart . "
+                GROUP BY DATE_FORMAT(transaction_date, '%Y-%m')";
+        $sT = $this->conn->prepare($qTx);
+        $sT->execute([':start' => $startDate, ':end' => $endDate]);
+        $txByMonth = [];
+        foreach ($sT->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $txByMonth[$row['label']] = $row;
+        }
+
+        // ── Montar array de resultado ──
         $data = [];
         for ($i = $months - 1; $i >= 0; $i--) {
-            $date = date('Y-m', strtotime("-{$i} months"));
-            $m = date('m', strtotime("-{$i} months"));
-            $y = date('Y', strtotime("-{$i} months"));
-
-            // Recebido
-            $q = "SELECT COALESCE(SUM(paid_amount), 0)
-                  FROM order_installments
-                  WHERE status = 'pago' AND MONTH(paid_date) = :m AND YEAR(paid_date) = :y";
-            $s = $this->conn->prepare($q);
-            $s->execute([':m' => $m, ':y' => $y]);
-            $recebido = (float) $s->fetchColumn();
-
-            // + entradas manuais (exclui estornos e registros)
-            $q = "SELECT COALESCE(SUM(amount), 0)
-                  FROM financial_transactions
-                  WHERE type = 'entrada' AND is_confirmed = 1
-                  AND category NOT IN ('estorno_pagamento', 'registro_ofx')
-                  AND MONTH(transaction_date) = :m AND YEAR(transaction_date) = :y";
-            $s = $this->conn->prepare($q);
-            $s->execute([':m' => $m, ':y' => $y]);
-            $recebido += (float) $s->fetchColumn();
-
-            // Saídas (exclui estornos e registros)
-            $q = "SELECT COALESCE(SUM(amount), 0)
-                  FROM financial_transactions
-                  WHERE type = 'saida' AND is_confirmed = 1
-                  AND category NOT IN ('estorno_pagamento', 'registro_ofx')
-                  AND MONTH(transaction_date) = :m AND YEAR(transaction_date) = :y";
-            $s = $this->conn->prepare($q);
-            $s->execute([':m' => $m, ':y' => $y]);
-            $saidas = (float) $s->fetchColumn();
+            $label = date('Y-m', strtotime("-{$i} months"));
+            $entradas = ($instByMonth[$label] ?? 0) + (float)($txByMonth[$label]['entradas'] ?? 0);
+            $saidas   = (float)($txByMonth[$label]['saidas'] ?? 0);
 
             $data[] = [
-                'label' => $date,
-                'entradas' => $recebido,
-                'saidas' => $saidas,
+                'label'    => $label,
+                'entradas' => $entradas,
+                'saidas'   => $saidas,
             ];
         }
         return $data;
@@ -662,15 +645,23 @@ class Financial {
     }
 
     /**
-     * Atualiza parcelas vencidas para status 'atrasado'
+     * Atualiza parcelas vencidas para status 'atrasado'.
+     * Executa no máximo 1x por request para evitar UPDATEs desnecessários (P11).
      * @return bool Sucesso ou falha
      */
     public function updateOverdueInstallments() {
+        if ($this->overdueUpdatedThisRequest) {
+            return true;
+        }
+
         $q = "UPDATE order_installments 
               SET status = 'atrasado'
               WHERE status = 'pendente' AND due_date < CURDATE()";
         $s = $this->conn->prepare($q);
-        return $s->execute();
+        $result = $s->execute();
+
+        $this->overdueUpdatedThisRequest = true;
+        return $result;
     }
 
     /**
@@ -687,6 +678,31 @@ class Financial {
         $s = $this->conn->prepare($q);
         $s->execute([':id' => $id]);
         return $s->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Atualiza o valor (amount) de uma parcela
+     * @param int $installmentId ID da parcela
+     * @param float $amount Novo valor
+     * @return bool Sucesso ou falha
+     */
+    public function updateInstallmentAmount($installmentId, $amount) {
+        $q = "UPDATE order_installments SET amount = :amt, updated_at = NOW() WHERE id = :id";
+        $s = $this->conn->prepare($q);
+        return $s->execute([':amt' => $amount, ':id' => $installmentId]);
+    }
+
+    /**
+     * Retorna dados básicos de uma parcela (id, order_id, amount, installment_number)
+     * @param int $installmentId ID da parcela
+     * @return array|null Dados básicos ou null
+     */
+    public function getInstallmentBasic($installmentId) {
+        $q = "SELECT id, order_id, amount, installment_number FROM order_installments WHERE id = :id";
+        $s = $this->conn->prepare($q);
+        $s->execute([':id' => $installmentId]);
+        $row = $s->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
     }
 
     /**
@@ -1033,6 +1049,32 @@ class Financial {
     }
 
     /**
+     * Retorna o pipeline_stage de um pedido
+     * @param int $orderId ID do pedido
+     * @return string|null Pipeline stage ou null se não encontrado
+     */
+    public function getOrderPipelineStage($orderId) {
+        $q = "SELECT pipeline_stage FROM orders WHERE id = :id";
+        $s = $this->conn->prepare($q);
+        $s->execute([':id' => $orderId]);
+        $row = $s->fetch(PDO::FETCH_ASSOC);
+        return $row ? $row['pipeline_stage'] : null;
+    }
+
+    /**
+     * Retorna total_amount e discount de um pedido (para cálculo de parcelas)
+     * @param int $orderId ID do pedido
+     * @return array|null ['total_amount' => float, 'discount' => float] ou null
+     */
+    public function getOrderFinancialTotals($orderId) {
+        $q = "SELECT total_amount, COALESCE(discount, 0) as discount FROM orders WHERE id = :id";
+        $s = $this->conn->prepare($q);
+        $s->execute([':id' => $orderId]);
+        $row = $s->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
      * Retorna parcelas pendentes de confirmação (pagamentos manuais)
      * @return array Lista de parcelas
      */
@@ -1134,10 +1176,11 @@ class Financial {
      * @return array|false Dados da transação ou false
      */
     public function getTransactionById($id) {
+        $softDeleteFilter = $this->hasSoftDeleteColumn() ? ' AND ft.deleted_at IS NULL' : '';
         $q = "SELECT ft.*, u.name as user_name
               FROM financial_transactions ft
               LEFT JOIN users u ON ft.user_id = u.id
-              WHERE ft.id = :id";
+              WHERE ft.id = :id" . $softDeleteFilter;
         $s = $this->conn->prepare($q);
         $s->execute([':id' => $id]);
         return $s->fetch(PDO::FETCH_ASSOC);
@@ -1188,7 +1231,8 @@ class Financial {
      * @return array Lista de transações
      */
     public function getTransactions($filters = []) {
-        $where = "WHERE 1=1";
+        $softDeleteFilter = $this->hasSoftDeleteColumn() ? ' AND ft.deleted_at IS NULL' : '';
+        $where = "WHERE 1=1" . $softDeleteFilter;
         $params = [];
 
         if (!empty($filters['type'])) {
@@ -1224,7 +1268,8 @@ class Financial {
      * @return array ['data' => [...], 'total' => int, 'page' => int, 'perPage' => int, 'totalPages' => int, 'totalEntradas' => float, 'totalSaidas' => float]
      */
     public function getTransactionsPaginated($filters = [], $page = 1, $perPage = 25) {
-        $where = "WHERE 1=1";
+        $softDeleteFilter = $this->hasSoftDeleteColumn() ? ' AND ft.deleted_at IS NULL' : '';
+        $where = "WHERE 1=1" . $softDeleteFilter;
         $params = [];
 
         if (!empty($filters['type'])) {
@@ -1525,15 +1570,21 @@ class Financial {
     }
 
     /**
-     * Deleta transação
+     * Deleta transação (soft-delete se a coluna deleted_at existir, hard delete caso contrário).
      * @param int $id ID da transação
      * @return bool Sucesso ou falha
      * Evento disparado: 'model.financial_transaction.deleted' com ['id']
      */
     public function deleteTransaction($id) {
-        $q = "DELETE FROM financial_transactions WHERE id = :id";
+        if ($this->hasSoftDeleteColumn()) {
+            $q = "UPDATE financial_transactions SET deleted_at = NOW() WHERE id = :id AND deleted_at IS NULL";
+        } else {
+            $q = "DELETE FROM financial_transactions WHERE id = :id";
+        }
+
         $s = $this->conn->prepare($q);
         $result = $s->execute([':id' => $id]);
+
         if ($result) {
             EventDispatcher::dispatch('model.financial_transaction.deleted', new Event('model.financial_transaction.deleted', ['id' => $id]));
         }
@@ -1541,11 +1592,98 @@ class Financial {
     }
 
     /**
-     * Retorna categorias de transação disponíveis
-     * @return array Categorias
+     * Restaura transação soft-deleted.
+     * @param int $id ID da transação
+     * @return bool
      */
-    public static function getCategories() {
-        return [
+    public function restoreTransaction(int $id): bool {
+        if (!$this->hasSoftDeleteColumn()) {
+            return false;
+        }
+
+        $q = "UPDATE financial_transactions SET deleted_at = NULL WHERE id = :id AND deleted_at IS NOT NULL";
+        $s = $this->conn->prepare($q);
+        return $s->execute([':id' => $id]);
+    }
+
+    /**
+     * Verifica se a coluna deleted_at existe em financial_transactions.
+     * @var bool|null Cache estático
+     */
+    private static ?bool $hasSoftDelete = null;
+
+    public function hasSoftDeleteColumn(): bool {
+        if (self::$hasSoftDelete !== null) {
+            return self::$hasSoftDelete;
+        }
+
+        try {
+            $dbname = $this->conn->query("SELECT DATABASE()")->fetchColumn();
+            $stmt = $this->conn->prepare(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'financial_transactions' AND COLUMN_NAME = 'deleted_at'"
+            );
+            $stmt->execute([':db' => $dbname]);
+            self::$hasSoftDelete = (int) $stmt->fetchColumn() > 0;
+        } catch (\PDOException $e) {
+            self::$hasSoftDelete = false;
+        }
+
+        return self::$hasSoftDelete;
+    }
+
+    /**
+     * Cache estático para categorias carregadas do banco.
+     * @var array|null
+     */
+    private static ?array $categoriesCache = null;
+
+    /**
+     * Retorna categorias de transação disponíveis.
+     * Tenta carregar da tabela financial_categories (dinâmicas).
+     * Fallback para array estático se a tabela não existir.
+     *
+     * @return array ['entrada' => [...], 'saida' => [...]]
+     */
+    public static function getCategories(): array {
+        if (self::$categoriesCache !== null) {
+            return self::$categoriesCache;
+        }
+
+        // Tentar carregar categorias dinâmicas do banco
+        try {
+            if (class_exists('Database')) {
+                $db = (new \Database())->getConnection();
+                $stmt = $db->query("SHOW TABLES LIKE 'financial_categories'");
+                if ($stmt->rowCount() > 0) {
+                    $q = "SELECT slug, name, type FROM financial_categories WHERE is_active = 1 ORDER BY sort_order ASC, name ASC";
+                    $rows = $db->query($q)->fetchAll(PDO::FETCH_ASSOC);
+
+                    if (!empty($rows)) {
+                        $cats = ['entrada' => [], 'saida' => []];
+                        foreach ($rows as $row) {
+                            // Ignorar categorias internas no retorno principal
+                            if (in_array($row['slug'], ['estorno_pagamento', 'registro_ofx'])) {
+                                continue;
+                            }
+                            if ($row['type'] === 'entrada' || $row['type'] === 'ambos') {
+                                $cats['entrada'][$row['slug']] = $row['name'];
+                            }
+                            if ($row['type'] === 'saida' || $row['type'] === 'ambos') {
+                                $cats['saida'][$row['slug']] = $row['name'];
+                            }
+                        }
+                        self::$categoriesCache = $cats;
+                        return $cats;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silencioso: fallback para array estático
+        }
+
+        // Fallback: categorias estáticas (compatibilidade)
+        self::$categoriesCache = [
             'entrada' => [
                 'pagamento_pedido' => 'Pagamento de Pedido',
                 'servico_avulso' => 'Serviço Avulso',
@@ -1562,17 +1700,66 @@ class Financial {
                 'outra_saida' => 'Outra Saída',
             ]
         ];
+        return self::$categoriesCache;
     }
 
     /**
-     * Retorna categorias internas (usadas pelo sistema)
-     * @return array Categorias internas
+     * Retorna categorias internas (usadas pelo sistema).
+     * Tenta carregar da tabela financial_categories.
+     * @return array slug => name
      */
-    public static function getInternalCategories() {
+    public static function getInternalCategories(): array {
+        try {
+            if (class_exists('Database')) {
+                $db = (new \Database())->getConnection();
+                $stmt = $db->query("SHOW TABLES LIKE 'financial_categories'");
+                if ($stmt->rowCount() > 0) {
+                    $q = "SELECT slug, name FROM financial_categories WHERE slug IN ('estorno_pagamento','registro_ofx') AND is_active = 1";
+                    $rows = $db->query($q)->fetchAll(PDO::FETCH_ASSOC);
+                    if (!empty($rows)) {
+                        $result = [];
+                        foreach ($rows as $row) {
+                            $result[$row['slug']] = $row['name'];
+                        }
+                        return $result;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fallback
+        }
+
         return [
             'estorno_pagamento' => 'Estorno de Pagamento',
             'registro_ofx' => 'Registro OFX',
         ];
+    }
+
+    /**
+     * Retorna todas as categorias com metadados (para telas de administração).
+     * @return array Lista de categorias com id, slug, name, type, icon, color, is_system
+     */
+    public static function getAllCategoriesDetailed(): array {
+        try {
+            if (class_exists('Database')) {
+                $db = (new \Database())->getConnection();
+                $stmt = $db->query("SHOW TABLES LIKE 'financial_categories'");
+                if ($stmt->rowCount() > 0) {
+                    $q = "SELECT * FROM financial_categories ORDER BY sort_order ASC, name ASC";
+                    return $db->query($q)->fetchAll(PDO::FETCH_ASSOC);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fallback
+        }
+        return [];
+    }
+
+    /**
+     * Invalida o cache de categorias (chamar após criar/editar/excluir categorias).
+     */
+    public static function clearCategoriesCache(): void {
+        self::$categoriesCache = null;
     }
 
     /**
@@ -1662,7 +1849,7 @@ class Financial {
      * @param string $content Conteúdo OFX
      * @return array Lista de transações
      */
-    private function parseOfxTransactions($content) {
+    public function parseOfxTransactions($content) {
         $transactions = [];
 
         // Extrair bloco de transações

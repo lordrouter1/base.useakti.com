@@ -114,6 +114,7 @@ return [
             'downloadImportTemplate' => 'downloadImportTemplate',
             'importProducts'         => 'importProducts',
             'getProductsList'        => 'getProductsList',
+            'searchSelect2'          => 'searchSelect2',
             'parseImportFile'        => 'parseImportFile',
             'importProductsMapped'   => 'importProductsMapped',
         ],
@@ -404,35 +405,63 @@ return [
 
     // ══════════════════════════════════════════════════════════════
     // FISCAL / FINANCEIRO
+    //
+    // Fase 2: Controller principal mantém dashboard + payments (views).
+    // Ações de parcelas delegam para InstallmentController.
+    // Ações de transações delegam para TransactionController.
+    // Ações de importação delegam para FinancialImportController.
     // ══════════════════════════════════════════════════════════════
 
     'financial' => [
         'controller'     => 'FinancialController',
         'default_action' => 'payments',
         'actions'        => [
+            // ── Dashboard e Pagamentos (FinancialController) ──
             'payments'              => 'payments',
-            'installments'          => 'installments',
-            'generateInstallments'  => 'generateInstallments',
-            'payInstallment'        => 'payInstallment',
-            'confirmPayment'        => 'confirmPayment',
-            'cancelInstallment'     => 'cancelInstallment',
-            'uploadAttachment'      => 'uploadAttachment',
-            'removeAttachment'      => 'removeAttachment',
-            'mergeInstallments'     => 'mergeInstallments',
-            'splitInstallment'      => 'splitInstallment',
-            'transactions'          => 'transactions',
-            'addTransaction'        => 'addTransaction',
-            'deleteTransaction'     => 'deleteTransaction',
-            'getTransaction'        => 'getTransaction',
-            'updateTransaction'     => 'updateTransaction',
-            'importOfx'             => 'importOfx',
             'getSummaryJson'        => 'getSummaryJson',
-            'getInstallmentsJson'   => 'getInstallmentsJson',
-            'getInstallmentsPaginated'  => 'getInstallmentsPaginated',
-            'getTransactionsPaginated'  => 'getTransactionsPaginated',
-            'parseImportFile'       => 'parseImportFile',
-            'importCsv'             => 'importCsv',
-            'importOfxSelected'     => 'importOfxSelected',
+
+            // ── Relatórios e Exportação (FinancialController) ──
+            'getDre'                => 'getDre',
+            'getCashflow'           => 'getCashflow',
+            'exportTransactionsCsv' => 'exportTransactionsCsv',
+            'exportDreCsv'          => 'exportDreCsv',
+            'exportCashflowCsv'     => 'exportCashflowCsv',
+
+            // ── Parcelas → InstallmentController ──
+            'installments'              => ['controller' => 'InstallmentController', 'method' => 'installments'],
+            'generateInstallments'      => ['controller' => 'InstallmentController', 'method' => 'generate'],
+            'payInstallment'            => ['controller' => 'InstallmentController', 'method' => 'pay'],
+            'confirmPayment'            => ['controller' => 'InstallmentController', 'method' => 'confirm'],
+            'cancelInstallment'         => ['controller' => 'InstallmentController', 'method' => 'cancel'],
+            'uploadAttachment'          => ['controller' => 'InstallmentController', 'method' => 'uploadAttachment'],
+            'removeAttachment'          => ['controller' => 'InstallmentController', 'method' => 'removeAttachment'],
+            'mergeInstallments'         => ['controller' => 'InstallmentController', 'method' => 'merge'],
+            'splitInstallment'          => ['controller' => 'InstallmentController', 'method' => 'split'],
+            'getInstallmentsPaginated'  => ['controller' => 'InstallmentController', 'method' => 'getPaginated'],
+            'getInstallmentsJson'       => ['controller' => 'InstallmentController', 'method' => 'getJson'],
+
+            // ── Transações → TransactionController ──
+            'transactions'              => ['controller' => 'TransactionController', 'method' => 'index'],
+            'addTransaction'            => ['controller' => 'TransactionController', 'method' => 'add'],
+            'deleteTransaction'         => ['controller' => 'TransactionController', 'method' => 'delete'],
+            'getTransaction'            => ['controller' => 'TransactionController', 'method' => 'get'],
+            'updateTransaction'         => ['controller' => 'TransactionController', 'method' => 'update'],
+            'getTransactionsPaginated'  => ['controller' => 'TransactionController', 'method' => 'getPaginated'],
+
+            // ── Importação → FinancialImportController ──
+            'parseImportFile'           => ['controller' => 'FinancialImportController', 'method' => 'parseFile'],
+            'importCsv'                 => ['controller' => 'FinancialImportController', 'method' => 'importCsv'],
+            'importOfxSelected'         => ['controller' => 'FinancialImportController', 'method' => 'importOfxSelected'],
+            'importOfx'                 => ['controller' => 'FinancialImportController', 'method' => 'importOfx'],
+
+            // ── Recorrências → RecurringTransactionController ──
+            'recurringList'         => ['controller' => 'RecurringTransactionController', 'method' => 'list'],
+            'recurringStore'        => ['controller' => 'RecurringTransactionController', 'method' => 'store'],
+            'recurringUpdate'       => ['controller' => 'RecurringTransactionController', 'method' => 'update'],
+            'recurringDelete'       => ['controller' => 'RecurringTransactionController', 'method' => 'delete'],
+            'recurringToggle'       => ['controller' => 'RecurringTransactionController', 'method' => 'toggle'],
+            'recurringProcess'      => ['controller' => 'RecurringTransactionController', 'method' => 'process'],
+            'recurringGet'          => ['controller' => 'RecurringTransactionController', 'method' => 'get'],
         ],
     ],
 
@@ -482,6 +511,63 @@ return [
         'actions'        => [
             'token' => 'token',
         ],
+    ],
+
+    // ══════════════════════════════════════════════════════════════
+    // MÓDULO DE COMISSÕES
+    // ══════════════════════════════════════════════════════════════
+
+    'commissions' => [
+        'controller'     => 'CommissionController',
+        'default_action' => 'index',
+        'actions'        => [
+            // Dashboard
+            'index'              => 'index',
+            // Cadastros
+            'formas'             => 'formas',
+            'storeForma'         => 'storeForma',
+            'updateForma'        => 'updateForma',
+            'deleteForma'        => 'deleteForma',
+            'getFaixas'          => 'getFaixas',
+            // Grupos
+            'grupos'             => 'grupos',
+            'linkGrupo'          => 'linkGrupo',
+            'unlinkGrupo'        => 'unlinkGrupo',
+            // Usuários
+            'usuarios'           => 'usuarios',
+            'linkUsuario'        => 'linkUsuario',
+            'unlinkUsuario'      => 'unlinkUsuario',
+            // Produtos
+            'produtos'           => 'produtos',
+            'saveProdutoRegra'   => 'saveProdutoRegra',
+            'deleteProdutoRegra' => 'deleteProdutoRegra',
+            // Simulador
+            'simulador'          => 'simulador',
+            'simularCalculo'     => 'simularCalculo',
+            // Cálculo real
+            'calcular'           => 'calcular',
+            // Histórico
+            'historico'          => 'historico',
+            'getHistoricoPaginated' => 'getHistoricoPaginated',
+            // Ações de status
+            'aprovar'            => 'aprovar',
+            'pagar'              => 'pagar',
+            'cancelar'           => 'cancelar',
+            'aprovarLote'        => 'aprovarLote',
+            'pagarLote'          => 'pagarLote',
+            // Configurações
+            'configuracoes'      => 'configuracoes',
+            'saveConfig'         => 'saveConfig',
+        ],
+    ],
+
+    // ── Atalhos de menu comissões (redirecionam para página unificada) ──
+    'commissions_formas' => [
+        'redirect' => '?page=commissions&action=formas',
+    ],
+
+    'commissions_historico' => [
+        'redirect' => '?page=commissions&action=historico',
     ],
 
 ];

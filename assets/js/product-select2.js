@@ -1,80 +1,17 @@
 /**
- * product-select2.js — Integração Select2 + API Node.js para busca de produtos.
+ * product-select2.js — Integração Select2 + endpoint PHP para busca de produtos.
  *
  * Funciona em:
  *   - Cadastro de Pedidos   (create.php)  → selects com classe .product-select
  *   - Pipeline Detail       (detail.php)  → select #pipProductSelect
  *
- * O token JWT é obtido automaticamente via endpoint PHP (?page=api&action=token)
- * e cacheado em memória por 90% do seu TTL (evita chamadas repetidas).
- *
- * A URL base da API é lida da meta-tag <meta name="api-base-url"> injetada pelo header/footer.
- * Fallback: http://localhost:3000
+ * A busca é feita diretamente pelo endpoint PHP (sem necessidade de token JWT ou API Node.js).
  */
 (function () {
   'use strict';
 
   // ── Configuração ─────────────────────────────────────────────
-  var API_BASE_URL = (function () {
-    var meta = document.querySelector('meta[name="api-base-url"]');
-    return meta ? meta.getAttribute('content').replace(/\/+$/, '') : 'http://localhost:3000';
-  })();
-
-  var SEARCH_ENDPOINT = API_BASE_URL + '/api/products/search';
-  var TOKEN_ENDPOINT = '?page=api&action=token';
-
-  // Cache do token JWT
-  var _jwtToken = null;
-  var _jwtExpires = 0; // timestamp em ms
-  var _tokenPromise = null; // evita chamadas paralelas
-
-  /**
-   * Obtém (ou renova) o token JWT para a API.
-   * Retorna uma Promise<string>.
-   */
-  function getToken() {
-    var now = Date.now();
-    // Token ainda válido (com 10% de margem)
-    if (_jwtToken && now < _jwtExpires) {
-      return Promise.resolve(_jwtToken);
-    }
-    // Já existe uma requisição em andamento — retorna a mesma promise
-    if (_tokenPromise) return _tokenPromise;
-
-    _tokenPromise = new Promise(function (resolve, reject) {
-      $.ajax({
-        url: TOKEN_ENDPOINT,
-        method: 'GET',
-        dataType: 'json',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      }).done(function (resp) {
-        _tokenPromise = null;
-        if (resp && resp.success && resp.token) {
-          _jwtToken = resp.token;
-          var ttl = (resp.expires_in || 7200) * 1000;
-          _jwtExpires = Date.now() + ttl * 0.9;
-          return resolve(_jwtToken);
-        }
-        _jwtToken = null;
-        _jwtExpires = 0;
-        reject(new Error('Resposta de token inválida.'));
-      }).fail(function (jqXHR) {
-        _tokenPromise = null;
-        _jwtToken = null;
-        _jwtExpires = 0;
-        var msg = 'Erro ao obter token de autenticação.';
-        if (jqXHR.status === 401) {
-          msg = 'Sessão expirada. Faça login novamente.';
-        } else if (jqXHR.status === 0) {
-          msg = 'Sem conexão com o servidor.';
-        }
-        console.error('[product-select2] Token fetch failed:', jqXHR.status, jqXHR.statusText);
-        reject(new Error(msg));
-      });
-    });
-
-    return _tokenPromise;
-  }
+  var SEARCH_ENDPOINT = '?page=products&action=searchSelect2';
 
   // ── Helpers ───────────────────────────────────────────────────
 
@@ -139,24 +76,9 @@
         errorLoading: function () { return 'Erro ao buscar produtos.'; },
       },
       ajax: {
+        url: SEARCH_ENDPOINT,
         delay: 300,
-        transport: function (params, success, failure) {
-          // Obtém o token e faz a chamada AJAX
-          getToken().then(function (token) {
-            return $.ajax({
-              url: SEARCH_ENDPOINT,
-              dataType: 'json',
-              data: { q: params.data.q || '', limit: params.data.limit || 10 },
-              headers: {
-                'Authorization': 'Bearer ' + token,
-                'X-Requested-With': 'XMLHttpRequest'
-              }
-            });
-          }).then(success).catch(function (err) {
-            console.error('[product-select2] Search failed:', err);
-            failure(err);
-          });
-        },
+        dataType: 'json',
         data: function (params) {
           return { q: params.term || '', limit: 10 };
         },
@@ -272,23 +194,9 @@
         errorLoading: function () { return 'Erro ao buscar.'; },
       },
       ajax: {
+        url: SEARCH_ENDPOINT,
         delay: 300,
-        transport: function (params, success, failure) {
-          getToken().then(function (token) {
-            return $.ajax({
-              url: SEARCH_ENDPOINT,
-              dataType: 'json',
-              data: { q: params.data.q || '', limit: 10 },
-              headers: {
-                'Authorization': 'Bearer ' + token,
-                'X-Requested-With': 'XMLHttpRequest'
-              }
-            });
-          }).then(success).catch(function (err) {
-            console.error('[product-select2] Pipeline search failed:', err);
-            failure(err);
-          });
-        },
+        dataType: 'json',
         data: function (params) {
           return { q: params.term || '', limit: 10 };
         },
@@ -377,9 +285,6 @@
 
   $(function () {
     if (typeof $.fn.select2 !== 'function') return;
-
-    // Pré-carregar token JWT (em background)
-    getToken();
 
     // Pipeline (inicializar ANTES do seletor genérico para registrar handlers específicos)
     initPipelineSelect();

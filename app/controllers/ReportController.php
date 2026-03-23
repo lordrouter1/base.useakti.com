@@ -78,6 +78,9 @@ class ReportController
         $productsList    = $this->report->getProductsForSelect();
         $warehousesList  = $this->report->getWarehousesForSelect();
 
+        // Dados para o select de filtro (categoria Comissões)
+        $usersList = $this->report->getUsersForSelect();
+
         require 'app/views/layout/header.php';
         require 'app/views/reports/index.php';
         require 'app/views/layout/footer.php';
@@ -137,6 +140,10 @@ class ReportController
                 break;
             case 'stock_movements':
                 $this->exportPdfStockMovements($start, $end);
+                break;
+            case 'commissions_report':
+                $userId = Input::get('user_id', 'int', null);
+                $this->exportPdfCommissionsReport($start, $end, $userId ?: null);
                 break;
             default:
                 $_SESSION['flash_error'] = 'Tipo de relatório inválido.';
@@ -199,6 +206,10 @@ class ReportController
                 break;
             case 'stock_movements':
                 $this->exportExcelStockMovements($start, $end);
+                break;
+            case 'commissions_report':
+                $userId = Input::get('user_id', 'int', null);
+                $this->exportExcelCommissionsReport($start, $end, $userId ?: null);
                 break;
             default:
                 $_SESSION['flash_error'] = 'Tipo de relatório inválido.';
@@ -1453,6 +1464,226 @@ class ReportController
 
         $this->autoSizeColumns($sheet, $cols);
         $this->sendExcel($spreadsheet, 'movimentacoes_estoque_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PDF — COMISSÕES POR PERÍODO
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportPdfCommissionsReport(string $start, string $end, ?int $userId = null): void
+    {
+        $data = $this->report->getCommissionsByPeriod($start, $end, $userId);
+
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+        $totals = $data['totals'];
+
+        $pdf = $this->createPdf('Relatório de Comissões');
+
+        // ── Resumo executivo ──
+        $summaryItems = [
+            'Período'           => $period,
+            'Total Registros'   => $totals['total_registros'],
+            'Funcionários'      => $totals['total_funcionarios'],
+            'Total Comissão'    => 'R$ ' . number_format($totals['total_comissao'], 2, ',', '.'),
+        ];
+        if ($userId) {
+            $userName = !empty($data['by_user']) ? $data['by_user'][0]['user_name'] : 'Funcionário #' . $userId;
+            $summaryItems = ['Funcionário' => $userName] + $summaryItems;
+        }
+        $this->pdfSummaryBox($pdf, $summaryItems);
+
+        // ── Resumo por status ──
+        $pdf->Ln(2);
+        $pdf->SetFont('helvetica', 'B', 8);
+        $pdf->SetTextColor(100, 100, 100);
+        $statusLine = 'Calculada: R$ ' . number_format($totals['total_calculada'], 2, ',', '.')
+                    . '   |   Aprovada: R$ ' . number_format($totals['total_aprovada'], 2, ',', '.')
+                    . '   |   Paga: R$ ' . number_format($totals['total_paga'], 2, ',', '.');
+        $pdf->Cell(0, 5, $statusLine, 0, 1, 'C');
+        $pdf->SetTextColor(51, 51, 51);
+        $pdf->Ln(2);
+
+        // ── Para cada funcionário ──
+        foreach ($data['by_user'] as $uIdx => $userGroup) {
+            if ($uIdx > 0) {
+                $pdf->Ln(4);
+            }
+
+            // Verificar se precisa de nova página
+            if ($pdf->GetY() > 240) {
+                $pdf->AddPage();
+            }
+
+            // ── Nome do funcionário com destaque ──
+            $pdf->SetFont('helvetica', 'B', 10);
+            $pdf->SetTextColor(44, 62, 80);
+            $pdf->SetFillColor(241, 245, 249);
+            $pdf->Cell(0, 7, chr(226) . chr(150) . chr(186) . '  ' . $userGroup['user_name'] . ' (' . $userGroup['count'] . ' registros)', 0, 1, 'L', true);
+            $pdf->SetTextColor(51, 51, 51);
+
+            // ── Tabela do funcionário ──
+            $headers = ['Pedido', 'Cliente', 'Forma', 'Tipo', 'Base (R$)', 'Comissão (R$)', 'Status', 'Data'];
+            $widths  = [16, 36, 28, 20, 24, 24, 20, 22];
+            $aligns  = ['C', 'L', 'L', 'C', 'R', 'R', 'C', 'C'];
+            $this->pdfTableHeader($pdf, $headers, $widths);
+
+            $fill = false;
+            foreach ($userGroup['items'] as $row) {
+                $this->pdfTableRow($pdf, $widths, [
+                    '#' . $row['order_id'],
+                    mb_substr($row['customer_name'] ?? 'N/A', 0, 22),
+                    mb_substr($row['forma_nome'] ?? '-', 0, 18),
+                    ucfirst($row['tipo_calculo'] ?? '-'),
+                    number_format((float)$row['valor_base'], 2, ',', '.'),
+                    number_format((float)$row['valor_comissao'], 2, ',', '.'),
+                    ReportModel::getCommissionStatusLabel($row['status'] ?? ''),
+                    $row['created_at_fmt'],
+                ], $aligns, $fill);
+                $fill = !$fill;
+            }
+
+            // ── Subtotal do funcionário ──
+            $this->pdfTotalRow($pdf, [
+                ['w' => $widths[0] + $widths[1] + $widths[2] + $widths[3], 'text' => 'Subtotal ' . $userGroup['user_name'], 'align' => 'R'],
+                ['w' => $widths[4], 'text' => 'R$ ' . number_format($userGroup['total_valor_base'], 2, ',', '.'), 'align' => 'R'],
+                ['w' => $widths[5], 'text' => 'R$ ' . number_format($userGroup['total_comissao'], 2, ',', '.'), 'align' => 'R'],
+                ['w' => $widths[6] + $widths[7], 'text' => '', 'align' => 'C'],
+            ]);
+        }
+
+        // ── Total geral (quando há múltiplos funcionários) ──
+        if (count($data['by_user']) > 1) {
+            $pdf->Ln(4);
+            $pdf->SetFont('helvetica', 'B', 11);
+            $pdf->SetFillColor(241, 245, 249);
+            $pdf->SetDrawColor(52, 73, 94);
+            $totalW = array_sum($widths);
+            $splitA = $widths[0] + $widths[1] + $widths[2] + $widths[3];
+            $splitB = $widths[4];
+            $splitC = $widths[5];
+            $splitD = $widths[6] + $widths[7];
+
+            $y = $pdf->GetY();
+            $pdf->SetLineWidth(0.5);
+            $pdf->Line(12, $y, 12 + $totalW, $y);
+            $pdf->SetLineWidth(0.2);
+
+            $pdf->Cell($splitA, 9, 'TOTAL GERAL (' . $totals['total_funcionarios'] . ' funcionários)', 0, 0, 'R', true);
+            $pdf->Cell($splitB, 9, 'R$ ' . number_format($totals['total_valor_base'], 2, ',', '.'), 0, 0, 'R', true);
+            $pdf->SetTextColor(39, 174, 96);
+            $pdf->Cell($splitC, 9, 'R$ ' . number_format($totals['total_comissao'], 2, ',', '.'), 0, 0, 'R', true);
+            $pdf->SetTextColor(51, 51, 51);
+            $pdf->Cell($splitD, 9, '', 0, 1, 'C', true);
+
+            $pdf->SetDrawColor(222, 226, 230);
+        }
+
+        $this->pdfFooter($pdf);
+        $this->sendPdf($pdf, 'comissoes_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // EXCEL — COMISSÕES POR PERÍODO
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportExcelCommissionsReport(string $start, string $end, ?int $userId = null): void
+    {
+        $data = $this->report->getCommissionsByPeriod($start, $end, $userId);
+
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+        $totals = $data['totals'];
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Comissões');
+
+        $cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        $lastCol = 'H';
+
+        // ── Cabeçalho da empresa ──
+        $row = $this->excelCompanyHeader($sheet, 'Relatório de Comissões', $lastCol);
+
+        // ── Resumo executivo ──
+        $summaryItems = [
+            'Período'        => $period,
+            'Registros'      => $totals['total_registros'],
+            'Funcionários'   => $totals['total_funcionarios'],
+            'Total Comissão' => 'R$ ' . number_format($totals['total_comissao'], 2, ',', '.'),
+        ];
+        $row = $this->excelSummaryBlock($sheet, $row, $lastCol, $summaryItems);
+
+        // ── Para cada funcionário ──
+        foreach ($data['by_user'] as $uIdx => $userGroup) {
+            // Cabeçalho do funcionário
+            $sheet->setCellValue('A' . $row, chr(0xE2) . chr(0x96) . chr(0xBA) . '  ' . $userGroup['user_name'] . ' (' . $userGroup['count'] . ' registros)');
+            $sheet->mergeCells("A{$row}:{$lastCol}{$row}");
+            $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(11)->getColor()->setARGB(self::CLR_PRIMARY);
+            $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getFill()
+                ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::CLR_SUMMARY_BG);
+            $sheet->getRowDimension($row)->setRowHeight(22);
+            $row++;
+
+            // Cabeçalhos da tabela
+            $headers = ['Pedido', 'Cliente', 'Forma', 'Tipo', 'Base (R$)', 'Comissão (R$)', 'Status', 'Data'];
+            foreach ($headers as $i => $h) {
+                $sheet->setCellValue($cols[$i] . $row, $h);
+            }
+            $this->styleExcelHeader($sheet, "A{$row}:{$lastCol}{$row}");
+            $row++;
+
+            // Dados
+            $dataStartRow = $row;
+            foreach ($userGroup['items'] as $i => $item) {
+                $sheet->setCellValue('A' . $row, '#' . $item['order_id']);
+                $sheet->setCellValue('B' . $row, $item['customer_name'] ?? 'N/A');
+                $sheet->setCellValue('C' . $row, $item['forma_nome'] ?? '-');
+                $sheet->setCellValue('D' . $row, ucfirst($item['tipo_calculo'] ?? '-'));
+                $sheet->setCellValue('E' . $row, (float)$item['valor_base']);
+                $sheet->setCellValue('F' . $row, (float)$item['valor_comissao']);
+                $sheet->setCellValue('G' . $row, ReportModel::getCommissionStatusLabel($item['status'] ?? ''));
+                $sheet->setCellValue('H' . $row, $item['created_at_fmt']);
+                $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                $sheet->getStyle('F' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                $this->styleExcelDataRow($sheet, "A{$row}:{$lastCol}{$row}", $i % 2 === 1);
+                $row++;
+            }
+
+            // Subtotal do funcionário
+            $sheet->setCellValue('A' . $row, 'Subtotal');
+            $sheet->setCellValue('B' . $row, $userGroup['user_name']);
+            $sheet->setCellValue('E' . $row, '=SUM(E' . $dataStartRow . ':E' . ($row - 1) . ')');
+            $sheet->setCellValue('F' . $row, '=SUM(F' . $dataStartRow . ':F' . ($row - 1) . ')');
+            $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('F' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $this->styleExcelTotalRow($sheet, "A{$row}:{$lastCol}{$row}");
+            $row += 2;
+        }
+
+        // ── Total Geral ──
+        if (count($data['by_user']) > 1) {
+            $sheet->setCellValue('A' . $row, 'TOTAL GERAL');
+            $sheet->setCellValue('B' . $row, $totals['total_funcionarios'] . ' funcionários  |  ' . $totals['total_registros'] . ' registros');
+            $sheet->setCellValue('E' . $row, (float)$totals['total_valor_base']);
+            $sheet->setCellValue('F' . $row, (float)$totals['total_comissao']);
+            $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('F' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getFont()->setBold(true)->setSize(11)
+                ->getColor()->setARGB(self::CLR_PRIMARY);
+            $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getFill()
+                ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::CLR_SUMMARY_BG);
+            $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getBorders()->getTop()
+                ->setBorderStyle(Border::BORDER_DOUBLE)->getColor()->setARGB(self::CLR_PRIMARY);
+            $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getBorders()->getBottom()
+                ->setBorderStyle(Border::BORDER_DOUBLE)->getColor()->setARGB(self::CLR_PRIMARY);
+            $sheet->getRowDimension($row)->setRowHeight(24);
+            $row += 2;
+        }
+
+        // ── Rodapé ──
+        $this->excelFooter($sheet, $row, $lastCol);
+
+        $this->autoSizeColumns($sheet, $cols);
+        $this->sendExcel($spreadsheet, 'comissoes_' . $start . '_' . $end);
     }
 
     // ═══════════════════════════════════════════════════════════════

@@ -34,3 +34,16 @@
 [2026-03-20 14:42:00] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
 [2026-03-20 14:56:01] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
 [2026-03-20 18:55:41] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 17:47:40] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 17:50:19] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 17:50:40] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 17:51:15] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 18:11:29] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 18:40:51] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 18:43:17] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 18:46:09] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 18:51:04] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 18:56:32] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 18:58:38] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 19:04:15] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous
+[2026-03-23 19:05:32] Event listener error | Event: test.exception | Error: Erro intencional no listener | File: D:\xampp\htdocs\teste.akti.com\tests\Unit\EventDispatcherTest.php:105 | User: anonymous

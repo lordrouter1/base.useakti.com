@@ -306,6 +306,10 @@ class EventDispatcherTest extends TestCase
                 $basePath . 'OrderPreparation.php',
                 ['model.preparation_checklist.toggled'],
             ],
+            'RecurringTransaction' => [
+                $basePath . 'RecurringTransaction.php',
+                ['model.recurring_transaction.created', 'model.recurring_transaction.updated', 'model.recurring_transaction.deleted', 'model.recurring_transaction.processed'],
+            ],
             'Walkthrough' => [
                 $basePath . 'Walkthrough.php',
                 ['model.walkthrough.completed', 'model.walkthrough.skipped'],

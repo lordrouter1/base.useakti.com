@@ -462,6 +462,23 @@ class ProductController {
     }
 
     /**
+     * AJAX: Busca produtos para Select2 (substitui a API Node.js).
+     * GET ?page=products&action=searchSelect2&q=termo&limit=10
+     * Retorna JSON no mesmo formato: { data: [{ id, name, sku, description, price, category_id, combinations: [...] }] }
+     */
+    public function searchSelect2() {
+        header('Content-Type: application/json');
+
+        $q     = isset($_GET['q']) ? trim($_GET['q']) : '';
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
+
+        $results = $this->productModel->searchForSelect2($q, $limit);
+
+        echo json_encode(['data' => $results]);
+        exit;
+    }
+
+    /**
      * AJAX: Lista produtos com filtros e paginação (para a seção de visão geral)
      */
     public function getProductsList() {

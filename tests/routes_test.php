@@ -268,6 +268,14 @@ return [
         'contains' => ['<html'],
     ],
 
+    // ── Fase 3/4 — Rotas AJAX (retornam JSON, testadas via Unit tests) ──
+    // ?page=financial&action=getDre — DRE (JSON)
+    // ?page=financial&action=getCashflow — Fluxo de Caixa (JSON)
+    // ?page=financial&action=recurringList — Recorrências (JSON)
+    // ?page=financial&action=exportTransactionsCsv — Export CSV
+    // ?page=financial&action=exportDreCsv — Export DRE CSV
+    // ?page=financial&action=exportCashflowCsv — Export Cashflow CSV
+
     // ══════════════════════════════════════════════════════════════
     // USUÁRIOS / ADMIN
     // ══════════════════════════════════════════════════════════════

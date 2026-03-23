@@ -551,6 +551,141 @@ class ReportModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    // ═══════════════════════════════════════════
+    // USUÁRIOS PARA SELECT (FILTROS)
+    // ═══════════════════════════════════════════
+
+    /**
+     * Retorna lista de usuários ativos para uso em selects de filtro.
+     *
+     * @return array Lista simples [id, name]
+     */
+    public function getUsersForSelect(): array
+    {
+        $sql = "SELECT id, name FROM users ORDER BY name ASC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // ═══════════════════════════════════════════
+    // COMISSÕES POR PERÍODO (RELATÓRIO)
+    // ═══════════════════════════════════════════
+
+    /**
+     * Retorna comissões registradas num período, opcionalmente filtradas por usuário.
+     * Agrupa por funcionário para o relatório, com subtotais por usuário.
+     *
+     * @param string   $start  Data inicial (Y-m-d)
+     * @param string   $end    Data final (Y-m-d)
+     * @param int|null $userId Filtro por usuário específico (null = todos)
+     * @return array ['items' => [...], 'totals' => [...], 'by_user' => [...]]
+     */
+    public function getCommissionsByPeriod(string $start, string $end, ?int $userId = null): array
+    {
+        $where = "DATE(cr.created_at) BETWEEN :start AND :end";
+        $params = [':start' => $start, ':end' => $end];
+
+        if ($userId) {
+            $where .= " AND cr.user_id = :uid";
+            $params[':uid'] = $userId;
+        }
+
+        // Dados detalhados
+        $sql = "SELECT cr.id, cr.order_id, cr.user_id, cr.origem_regra,
+                       cr.tipo_calculo, cr.base_calculo,
+                       cr.valor_base, cr.valor_comissao, cr.percentual_aplicado,
+                       cr.status,
+                       DATE_FORMAT(cr.created_at, '%d/%m/%Y') AS created_at_fmt,
+                       cr.created_at,
+                       u.name AS user_name,
+                       c.name AS customer_name,
+                       fc.nome AS forma_nome
+                FROM comissoes_registradas cr
+                JOIN users u ON cr.user_id = u.id
+                JOIN orders o ON cr.order_id = o.id
+                LEFT JOIN customers c ON o.customer_id = c.id
+                LEFT JOIN formas_comissao fc ON cr.forma_comissao_id = fc.id
+                WHERE {$where}
+                ORDER BY u.name ASC, cr.created_at DESC";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Agrupar por usuário
+        $byUser = [];
+        foreach ($items as $item) {
+            $uid = $item['user_id'];
+            if (!isset($byUser[$uid])) {
+                $byUser[$uid] = [
+                    'user_id'   => $uid,
+                    'user_name' => $item['user_name'],
+                    'items'     => [],
+                    'total_valor_base'    => 0,
+                    'total_comissao'      => 0,
+                    'count'               => 0,
+                    'total_paga'          => 0,
+                    'total_aprovada'      => 0,
+                    'total_calculada'     => 0,
+                    'total_cancelada'     => 0,
+                ];
+            }
+            $byUser[$uid]['items'][] = $item;
+            $byUser[$uid]['total_valor_base'] += (float) $item['valor_base'];
+            $byUser[$uid]['total_comissao']   += (float) $item['valor_comissao'];
+            $byUser[$uid]['count']++;
+            $byUser[$uid]['total_' . $item['status']] += (float) $item['valor_comissao'];
+        }
+
+        // Totais gerais
+        $totalValorBase = array_sum(array_column($items, 'valor_base'));
+        $totalComissao  = array_sum(array_column($items, 'valor_comissao'));
+        $totalPaga      = array_sum(array_map(fn($i) => $i['status'] === 'paga' ? (float)$i['valor_comissao'] : 0, $items));
+        $totalAprovada  = array_sum(array_map(fn($i) => $i['status'] === 'aprovada' ? (float)$i['valor_comissao'] : 0, $items));
+        $totalCalculada = array_sum(array_map(fn($i) => $i['status'] === 'calculada' ? (float)$i['valor_comissao'] : 0, $items));
+
+        return [
+            'items'   => $items,
+            'by_user' => array_values($byUser),
+            'totals'  => [
+                'total_registros'   => count($items),
+                'total_valor_base'  => $totalValorBase,
+                'total_comissao'    => $totalComissao,
+                'total_paga'        => $totalPaga,
+                'total_aprovada'    => $totalAprovada,
+                'total_calculada'   => $totalCalculada,
+                'total_funcionarios'=> count($byUser),
+            ],
+        ];
+    }
+
+    // ═══════════════════════════════════════════
+    // LABELS — COMISSÕES
+    // ═══════════════════════════════════════════
+
+    /**
+     * Mapa de status de comissão para labels legíveis (pt-BR).
+     */
+    public static function getCommissionStatusLabels(): array
+    {
+        return [
+            'calculada' => 'Calculada',
+            'aprovada'  => 'Aprovada',
+            'paga'      => 'Paga',
+            'cancelada' => 'Cancelada',
+        ];
+    }
+
+    /**
+     * Retorna label legível de um status de comissão.
+     */
+    public static function getCommissionStatusLabel(string $status): string
+    {
+        $labels = self::getCommissionStatusLabels();
+        return $labels[$status] ?? ucfirst($status);
+    }
+
     /**
      * Mapa de tipos de movimentação para labels legíveis (pt-BR).
      */

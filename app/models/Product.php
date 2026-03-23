@@ -328,6 +328,87 @@ class Product {
     }
 
     /**
+     * Busca produtos para Select2 (por nome ou SKU), retorna dados
+     * no mesmo formato da API Node.js, incluindo combinações de grade ativas.
+     *
+     * @param string $q Termo de busca
+     * @param int $limit Limite de resultados
+     * @return array Lista de produtos com combinações
+     */
+    public function searchForSelect2(string $q = '', int $limit = 10): array
+    {
+        $limit = min(max($limit, 1), 50);
+
+        $where = '';
+        $params = [];
+
+        if ($q !== '') {
+            $where = "WHERE (p.name LIKE :q1 OR p.sku LIKE :q2)";
+            $params[':q1'] = '%' . $q . '%';
+            $params[':q2'] = '%' . $q . '%';
+        }
+
+        $query = "SELECT p.id, p.name, p.sku, p.description, p.price, p.category_id
+                  FROM {$this->table_name} p
+                  {$where}
+                  ORDER BY p.name ASC
+                  LIMIT :lim";
+
+        $stmt = $this->conn->prepare($query);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($products)) {
+            return [];
+        }
+
+        // Buscar combinações ativas de todos os produtos retornados de uma só vez
+        $ids = array_column($products, 'id');
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        $combQuery = "SELECT id, product_id, combination_label, sku, price_override, stock_quantity
+                      FROM product_grade_combinations
+                      WHERE product_id IN ({$placeholders}) AND is_active = 1
+                      ORDER BY combination_label ASC";
+
+        $combStmt = $this->conn->prepare($combQuery);
+        foreach ($ids as $i => $pid) {
+            $combStmt->bindValue($i + 1, $pid, PDO::PARAM_INT);
+        }
+        $combStmt->execute();
+        $allCombinations = $combStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Agrupar combinações por product_id
+        $comboMap = [];
+        foreach ($allCombinations as $combo) {
+            $comboMap[(int)$combo['product_id']][] = [
+                'id'                => (int)$combo['id'],
+                'combination_label' => $combo['combination_label'],
+                'sku'               => $combo['sku'],
+                'price_override'    => $combo['price_override'],
+                'stock_quantity'    => $combo['stock_quantity'],
+            ];
+        }
+
+        // Montar resultado final
+        foreach ($products as &$p) {
+            $pid = (int)$p['id'];
+            $p['id'] = $pid;
+            $p['price'] = $p['price'] !== null ? (float)$p['price'] : null;
+            $p['category_id'] = $p['category_id'] !== null ? (int)$p['category_id'] : null;
+            $p['combinations'] = $comboMap[$pid] ?? [];
+        }
+        unset($p);
+
+        return $products;
+    }
+
+    /**
      * Get products by category ID (with main image)
      */
     function getByCategory($categoryId) {

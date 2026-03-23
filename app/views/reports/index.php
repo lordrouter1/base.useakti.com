@@ -8,7 +8,7 @@
  */
 
 $activeCategory = $_GET['cat'] ?? 'vendas';
-$validCategories = ['vendas', 'financeiro', 'cobranca', 'agendamentos', 'produtos'];
+$validCategories = ['vendas', 'financeiro', 'cobranca', 'agendamentos', 'produtos', 'comissoes'];
 if (!in_array($activeCategory, $validCategories)) $activeCategory = 'vendas';
 ?>
 
@@ -62,7 +62,7 @@ if (!in_array($activeCategory, $validCategories)) $activeCategory = 'vendas';
     <div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-2 mb-4 border-bottom">
         <div>
             <h1 class="h2 mb-1"><i class="fas fa-chart-bar me-2 text-primary"></i>Relatórios</h1>
-            <p class="text-muted mb-0" style="font-size:.82rem;">Central de relatórios do sistema — vendas, financeiro, cobrança, agendamentos e produtos.</p>
+            <p class="text-muted mb-0" style="font-size:.82rem;">Central de relatórios do sistema — vendas, financeiro, cobrança, agendamentos, produtos e comissões.</p>
         </div>
         <div class="btn-toolbar gap-2">
             <a href="?page=dashboard" class="btn btn-sm btn-outline-secondary">
@@ -121,6 +121,14 @@ if (!in_array($activeCategory, $validCategories)) $activeCategory = 'vendas';
                             </span>
                             <span>Produtos & Estoque</span>
                             <span class="rpt-nav-count" style="background:rgba(22,160,133,.1);color:#16a085;">3</span>
+                        </a>
+
+                        <a href="#" class="rpt-nav-item <?= $activeCategory === 'comissoes' ? 'active' : '' ?>" data-cat="comissoes">
+                            <span class="rpt-nav-icon" style="background:rgba(142,68,173,.1);color:#8e44ad;">
+                                <i class="fas fa-hand-holding-usd"></i>
+                            </span>
+                            <span>Comissões</span>
+                            <span class="rpt-nav-count" style="background:rgba(142,68,173,.1);color:#8e44ad;">1</span>
                         </a>
 
                     </nav>
@@ -551,6 +559,70 @@ if (!in_array($activeCategory, $validCategories)) $activeCategory = 'vendas';
                 </div>
             </div>
 
+            <!-- ══════════════════════════════════════ -->
+            <!-- CATEGORIA: Comissões                    -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="rpt-section <?= $activeCategory === 'comissoes' ? 'active' : '' ?>" id="cat-comissoes">
+
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rpt-icon-circle me-2" style="background:rgba(142,68,173,.1);width:34px;height:34px;">
+                        <i class="fas fa-hand-holding-usd" style="color:#8e44ad;font-size:.85rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0" style="font-size:1rem;">Comissões</h5>
+                        <p class="text-muted mb-0" style="font-size:.72rem;">Relatório de comissões por período e funcionário.</p>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+
+                    <!-- Comissões por Período -->
+                    <div class="col-xl-6">
+                        <div class="card border-0 shadow-sm h-100 rpt-card">
+                            <div class="card-header py-2" style="background:linear-gradient(135deg,#8e44ad 0%,#9b59b6 100%);">
+                                <h6 class="mb-0 text-white" style="font-size:.85rem;">
+                                    <i class="fas fa-hand-holding-usd me-2"></i>Comissões por Período
+                                </h6>
+                            </div>
+                            <div class="card-body p-3 d-flex flex-column">
+                                <p class="rpt-desc mb-3">Lista comissões por funcionário com valores base, comissão calculada e status. Filtre por período e/ou funcionário específico. Quando nenhum funcionário é selecionado, exibe todos agrupados com subtotais.</p>
+                                <form class="rpt-form-custom mt-auto" data-type="commissions_report">
+                                    <?= csrf_field() ?>
+                                    <div class="row g-2 mb-2 rpt-period-row">
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">De</label>
+                                            <input type="date" class="form-control form-control-sm" name="start" required value="<?= eAttr(date('Y-m-01')) ?>">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">Até</label>
+                                            <input type="date" class="form-control form-control-sm" name="end" required value="<?= eAttr(date('Y-m-d')) ?>">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:#999;">Funcionário (opcional)</label>
+                                        <select name="user_id" class="form-select form-select-sm" style="border-radius:8px;font-size:.8rem;">
+                                            <option value="">— Todos os funcionários —</option>
+                                            <?php foreach ($usersList as $uItem): ?>
+                                                <option value="<?= eAttr($uItem['id']) ?>"><?= e($uItem['name']) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-danger rpt-export-btn flex-fill rpt-custom-btn" data-action="exportPdf">
+                                            <i class="fas fa-file-pdf me-1"></i> PDF
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success rpt-export-btn flex-fill rpt-custom-btn" data-action="exportExcel">
+                                            <i class="fas fa-file-excel me-1"></i> Excel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
         </div><!-- /.col-lg-9 -->
 
     </div><!-- /.row -->
@@ -661,13 +733,27 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ── Custom form buttons (catálogo de produtos, estoque — sem período obrigatório) ──
+    // ── Custom form buttons (catálogo de produtos, estoque, comissões — campos customizados) ──
     document.querySelectorAll('.rpt-form-custom .rpt-custom-btn').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             var form   = this.closest('.rpt-form-custom');
             var type   = form.dataset.type;
             var action = this.dataset.action;
+
+            // Validar período se existir
+            var start = form.querySelector('[name=start]');
+            var end   = form.querySelector('[name=end]');
+            if (start && end) {
+                if (!start.value || !end.value) {
+                    Swal.fire({icon:'warning', title:'Período obrigatório', text:'Preencha as datas de início e fim.', confirmButtonColor:'#3498db'});
+                    return;
+                }
+                if (start.value > end.value) {
+                    Swal.fire({icon:'warning', title:'Período inválido', text:'A data inicial não pode ser maior que a final.', confirmButtonColor:'#3498db'});
+                    return;
+                }
+            }
 
             // Loading
             var origHtml = this.innerHTML;
@@ -677,6 +763,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Build URL with all form fields
             var url = '?page=reports&action=' + encodeURIComponent(action)
                     + '&type=' + encodeURIComponent(type);
+
+            // Date inputs
+            if (start && end) {
+                url += '&start=' + encodeURIComponent(start.value)
+                     + '&end='   + encodeURIComponent(end.value);
+            }
 
             // Selects
             form.querySelectorAll('select').forEach(function(sel) {

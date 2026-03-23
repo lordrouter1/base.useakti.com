@@ -2,20 +2,49 @@
 namespace Akti\Controllers;
 
 use Akti\Models\Financial;
-use Akti\Models\Order;
+use Akti\Models\Installment;
+use Akti\Models\PaymentGateway;
 use Akti\Models\CompanySettings;
 use Akti\Core\ModuleBootloader;
+use Akti\Services\InstallmentService;
+use Akti\Services\TransactionService;
+use Akti\Services\FinancialImportService;
+use Akti\Services\FinancialReportService;
 use Akti\Utils\Input;
 use Database;
 use PDO;
-use TenantManager;
 
-class FinancialController {
+/**
+ * FinancialController — Controller principal do módulo financeiro (SLIM).
+ *
+ * Após a refatoração Fase 2, este controller cuida APENAS de:
+ *   - index()          → Dashboard financeiro
+ *   - payments()       → Página unificada com sidebar
+ *   - getSummaryJson() → AJAX: resumo do mês
+ *
+ * Responsabilidades delegadas via rotas para:
+ *   - InstallmentController      → Parcelas
+ *   - TransactionController      → Transações (entradas/saídas)
+ *   - FinancialImportController  → Importação OFX/CSV/Excel
+ *
+ * Método estático getFinancialImportFields() mantido por compatibilidade
+ * com views que o referenciam via FinancialController::getFinancialImportFields().
+ *
+ * @package Akti\Controllers
+ * @see     InstallmentController
+ * @see     TransactionController
+ * @see     FinancialImportController
+ */
+class FinancialController
+{
+    private PDO $db;
+    private Financial $financial;
+    private Installment $installmentModel;
+    private InstallmentService $installmentService;
+    private FinancialReportService $reportService;
 
-    private $financial;
-    private $db;
-
-    public function __construct() {
+    public function __construct()
+    {
         if (!ModuleBootloader::isModuleEnabled('financial')) {
             http_response_code(403);
             require 'app/views/layout/header.php';
@@ -26,26 +55,37 @@ class FinancialController {
 
         $database = new Database();
         $this->db = $database->getConnection();
+
+        // Models
         $this->financial = new Financial($this->db);
+        $this->installmentModel = new Installment($this->db);
+
+        // Services
+        $transactionService = new TransactionService($this->db, $this->financial);
+        $this->installmentService = new InstallmentService($this->db, $this->installmentModel, $transactionService);
+        $this->reportService = new FinancialReportService($this->db, $this->financial, $this->installmentModel);
     }
 
     // ═══════════════════════════════════════════
     // DASHBOARD FINANCEIRO
     // ═══════════════════════════════════════════
 
-    public function index() {
-        $month = Input::get('month', 'int', (int)date('m'));
-        $year  = Input::get('year', 'int', (int)date('Y'));
+    /**
+     * Dashboard com cards de resumo, gráficos e alertas.
+     */
+    public function index()
+    {
+        $month = Input::get('month', 'int', (int) date('m'));
+        $year  = Input::get('year', 'int', (int) date('Y'));
 
-        // Atualizar parcelas vencidas
-        $this->financial->updateOverdueInstallments();
+        $this->installmentService->updateOverdue();
 
-        $summary   = $this->financial->getSummary($month, $year);
-        $chartData = $this->financial->getChartData(6);
+        $summary   = $this->reportService->getSummary($month, $year);
+        $chartData = $this->reportService->getChartData(6);
 
-        $pendingConfirmations = $this->financial->getPendingConfirmations();
-        $overdueInstallments  = $this->financial->getOverdueInstallments();
-        $upcomingInstallments = $this->financial->getUpcomingInstallments(7);
+        $pendingConfirmations = $this->reportService->getPendingConfirmations();
+        $overdueInstallments  = $this->reportService->getOverdueInstallments();
+        $upcomingInstallments = $this->reportService->getUpcomingInstallments(7);
 
         $categories = Financial::getCategories();
 
@@ -58,1245 +98,171 @@ class FinancialController {
     // PAGAMENTOS — Página Unificada com Sidebar
     // ═══════════════════════════════════════════
 
-    public function payments() {
-        $this->financial->updateOverdueInstallments();
+    /**
+     * Página unificada com sidebar: parcelas, transações, importação, nova transação.
+     * As tabelas internas são carregadas via AJAX (InstallmentController, TransactionController).
+     */
+    public function payments()
+    {
+        $this->installmentService->updateOverdue();
 
-        // Resumo rápido para sidebar badges
-        $month = (int)date('m');
-        $year  = (int)date('Y');
-        $summary = $this->financial->getSummary($month, $year);
+        $month   = (int) date('m');
+        $year    = (int) date('Y');
+        $summary = $this->reportService->getSummary($month, $year);
 
-        // Categorias para formulário de nova transação
         $categories = Financial::getCategories();
 
-        // Dados bancários para boletos FEBRABAN
         $companySettings = new CompanySettings($this->db);
         $company = $companySettings->getAll();
         $companyAddress = $companySettings->getFormattedAddress();
 
-        // Contagem de pendentes/atrasadas para badge sidebar
-        $overdueCount = count($this->financial->getOverdueInstallments());
-        $pendingConfirmCount = count($this->financial->getPendingConfirmations());
+        $overdueCount        = count($this->reportService->getOverdueInstallments());
+        $pendingConfirmCount = count($this->reportService->getPendingConfirmations());
+
+        // Gateways de pagamento ativos (para integração com parcelas)
+        $gatewayModel = new PaymentGateway($this->db);
+        $activeGateways = $gatewayModel->getActive();
 
         require 'app/views/layout/header.php';
-        require 'app/views/financial/payments.php';
+        require 'app/views/financial/payments_new.php';
         require 'app/views/layout/footer.php';
     }
 
     // ═══════════════════════════════════════════
-    // AJAX: Parcelas (paginado + filtros dinâmicos)
-    // ═══════════════════════════════════════════
-
-    public function getInstallmentsPaginated() {
-        header('Content-Type: application/json');
-        $this->financial->updateOverdueInstallments();
-
-        $filters = [];
-        if (!empty(Input::get('status')))       $filters['status'] = Input::get('status');
-        if (!empty(Input::get('month')))         $filters['month']  = Input::get('month', 'int');
-        if (!empty(Input::get('year')))          $filters['year']   = Input::get('year', 'int');
-        if (!empty(Input::get('search')))        $filters['search'] = Input::get('search');
-
-        $page    = max(1, Input::get('pg', 'int', 1));
-        $perPage = Input::get('per_page', 'int', 25);
-
-        $result = $this->financial->getAllInstallmentsPaginated($filters, $page, $perPage);
-
-        echo json_encode([
-            'success'    => true,
-            'items'      => $result['data'],
-            'total'      => $result['total'],
-            'page'       => $result['page'],
-            'per_page'   => $result['perPage'],
-            'total_pages'=> $result['totalPages'],
-            'summary'    => $result['summary'],
-        ]);
-        exit;
-    }
-
-    // ═══════════════════════════════════════════
-    // AJAX: Transações (paginado + filtros dinâmicos)
-    // ═══════════════════════════════════════════
-
-    public function getTransactionsPaginated() {
-        header('Content-Type: application/json');
-
-        $filters = [];
-        if (!empty(Input::get('type')))       $filters['type']      = Input::get('type');
-        if (!empty(Input::get('month')))      $filters['month']     = Input::get('month', 'int');
-        if (!empty(Input::get('year')))       $filters['year']      = Input::get('year', 'int');
-        if (!empty(Input::get('category')))   $filters['category']  = Input::get('category');
-        if (!empty(Input::get('search')))     $filters['search']    = Input::get('search');
-        if (!empty(Input::get('date_from')))  $filters['date_from'] = Input::get('date_from', 'date');
-        if (!empty(Input::get('date_to')))    $filters['date_to']   = Input::get('date_to', 'date');
-
-        $page    = max(1, Input::get('pg', 'int', 1));
-        $perPage = Input::get('per_page', 'int', 25);
-
-        $result = $this->financial->getTransactionsPaginated($filters, $page, $perPage);
-
-        echo json_encode([
-            'success'       => true,
-            'items'         => $result['data'],
-            'total'         => $result['total'],
-            'page'          => $result['page'],
-            'per_page'      => $result['perPage'],
-            'total_pages'   => $result['totalPages'],
-            'totalEntradas' => $result['totalEntradas'],
-            'totalSaidas'   => $result['totalSaidas'],
-        ]);
-        exit;
-    }
-
-    // ═══════════════════════════════════════════
-    // AJAX: Preview de arquivo de importação (OFX/CSV/Excel)
-    // ═══════════════════════════════════════════
-
-    public function parseImportFile() {
-        header('Content-Type: application/json');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
-
-        if (empty($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo enviado.']);
-            exit;
-        }
-
-        $file = $_FILES['import_file'];
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-
-        if ($ext === 'ofx' || $ext === 'ofc') {
-            // ── Parse OFX ──
-            $content = file_get_contents($file['tmp_name']);
-            $method = new \ReflectionMethod($this->financial, 'parseOfxTransactions');
-            $method->setAccessible(true);
-            $transactions = $method->invoke($this->financial, $content);
-
-            if (empty($transactions)) {
-                echo json_encode(['success' => false, 'message' => 'Nenhuma transação encontrada no arquivo OFX. Verifique o formato.']);
-                exit;
-            }
-
-            // Salvar arquivo temporário para reimportar sem novo upload
-            $this->saveImportTmpFile($file['tmp_name'], $ext);
-
-            $rows = [];
-            foreach ($transactions as $i => $tx) {
-                // Convert date from Y-m-d to dd/mm/yyyy for display
-                $displayDate = $tx['date'] ?? '';
-                if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $displayDate, $dm)) {
-                    $displayDate = $dm[3] . '/' . $dm[2] . '/' . $dm[1];
-                }
-                $rows[] = [
-                    'index' => $i,
-                    'date' => $displayDate,
-                    'description' => $tx['memo'] ?? '',
-                    'amount' => (float)($tx['amount'] ?? 0),
-                    'type' => ((float)($tx['amount'] ?? 0) >= 0) ? 'Crédito' : 'Débito',
-                    'fitid' => $tx['fitid'] ?? '',
-                ];
-            }
-
-            echo json_encode([
-                'success' => true,
-                'file_type' => 'ofx',
-                'rows' => $rows,
-                'total_rows' => count($rows),
-                'columns' => ['date', 'description', 'amount', 'type', 'fitid'],
-            ]);
-
-        } elseif (in_array($ext, ['csv', 'txt'])) {
-            // ── Parse CSV/TXT ──
-            $rows = [];
-            $headers = [];
-            $handle = fopen($file['tmp_name'], 'r');
-            if ($handle) {
-                // Detect BOM and skip it
-                $bom = fread($handle, 3);
-                if ($bom !== chr(0xEF) . chr(0xBB) . chr(0xBF)) {
-                    rewind($handle);
-                }
-
-                $separator = ',';
-                $firstLine = fgets($handle);
-                rewind($handle);
-                // Skip BOM again
-                $bom2 = fread($handle, 3);
-                if ($bom2 !== chr(0xEF) . chr(0xBB) . chr(0xBF)) {
-                    rewind($handle);
-                }
-
-                // Auto-detect separator
-                if (substr_count($firstLine, ';') > substr_count($firstLine, ',')) {
-                    $separator = ';';
-                } elseif (substr_count($firstLine, "\t") > substr_count($firstLine, ',')) {
-                    $separator = "\t";
-                }
-
-                $lineNum = 0;
-                while (($data = fgetcsv($handle, 0, $separator)) !== false) {
-                    if ($lineNum === 0) {
-                        $headers = array_map(function($h) { return trim($h); }, $data);
-                    }
-                    $rows[] = $data;
-                    $lineNum++;
-                    if ($lineNum > 500) break; // Limite para preview
-                }
-                fclose($handle);
-            }
-
-            if (empty($rows)) {
-                echo json_encode(['success' => false, 'message' => 'Arquivo vazio ou não foi possível ler os dados.']);
-                exit;
-            }
-
-            // Salvar arquivo temporário
-            $this->saveImportTmpFile($file['tmp_name'], $ext);
-
-            // Build structured response like products import (columns, preview, auto_mapping)
-            echo json_encode($this->buildCsvParseResponse($headers, $rows));
-
-        } elseif (in_array($ext, ['xls', 'xlsx'])) {
-            // ── Parse Excel via PhpSpreadsheet ──
-            if (!class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
-                echo json_encode(['success' => false, 'message' => 'Biblioteca PhpSpreadsheet não está disponível para ler arquivos Excel.']);
-                exit;
-            }
-
-            try {
-                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file['tmp_name']);
-                $worksheet = $spreadsheet->getActiveSheet();
-                $rows = [];
-                $headers = [];
-
-                foreach ($worksheet->getRowIterator() as $rowIndex => $row) {
-                    $cells = [];
-                    foreach ($row->getCellIterator() as $cell) {
-                        $cells[] = (string) $cell->getValue();
-                    }
-
-                    if ($rowIndex === 1) {
-                        $headers = array_map(function($h) { return trim((string) $h); }, $cells);
-                    }
-
-                    // Skip completely empty rows
-                    if (count(array_filter($cells, function($v) { return trim((string)$v) !== ''; })) === 0) continue;
-
-                    $rows[] = $cells;
-
-                    if (count($rows) > 500) break; // Limite para preview
-                }
-            } catch (\Exception $e) {
-                echo json_encode(['success' => false, 'message' => 'Erro ao ler arquivo Excel: ' . $e->getMessage()]);
-                exit;
-            }
-
-            if (empty($rows)) {
-                echo json_encode(['success' => false, 'message' => 'Arquivo Excel vazio ou não foi possível ler os dados.']);
-                exit;
-            }
-
-            // Salvar arquivo temporário
-            $this->saveImportTmpFile($file['tmp_name'], $ext);
-
-            // Build structured response like products import (columns, preview, auto_mapping)
-            echo json_encode($this->buildCsvParseResponse($headers, $rows));
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Formato não suportado. Envie OFX, CSV, TXT, XLS ou XLSX.']);
-        }
-        exit;
-    }
-
-    /**
-     * Salva o arquivo de importação em diretório temporário para reutilizar no passo de confirmação.
-     */
-    private function saveImportTmpFile($tmpName, $ext) {
-        $tmpDir = sys_get_temp_dir() . '/akti_imports/';
-        if (!is_dir($tmpDir)) {
-            mkdir($tmpDir, 0755, true);
-        }
-        $tmpFileName = 'fin_import_' . session_id() . '_' . time() . '.' . $ext;
-        $tmpPath = $tmpDir . $tmpFileName;
-        copy($tmpName, $tmpPath);
-        $_SESSION['fin_import_tmp_file'] = $tmpPath;
-        $_SESSION['fin_import_tmp_ext'] = $ext;
-    }
-
-    /**
-     * Monta a resposta estruturada do parse CSV/Excel no formato da tabela de mapeamento.
-     * Retorna columns, preview (primeiras 10 linhas como objetos), auto_mapping, total_rows (sem header).
-     */
-    private function buildCsvParseResponse(array $headers, array $rows): array {
-        // Se a primeira linha é o cabeçalho, as linhas de dados começam no índice 1
-        $columns = !empty($headers) ? $headers : array_map(function ($i) { return 'Coluna ' . ($i + 1); }, array_keys($rows[0] ?? []));
-
-        // Linhas de dados (excluir a primeira = cabeçalho)
-        $dataRows = array_slice($rows, 1);
-        $totalRows = count($dataRows);
-
-        // Preview: primeiras 10 linhas de dados como objetos indexados pelo nome da coluna
-        $preview = [];
-        for ($i = 0; $i < min(10, count($dataRows)); $i++) {
-            $obj = [];
-            foreach ($columns as $idx => $col) {
-                $obj[$col] = isset($dataRows[$i][$idx]) ? $dataRows[$i][$idx] : '';
-            }
-            $preview[] = $obj;
-        }
-
-        // Auto-mapping por nome de coluna (heurística)
-        $autoMapping = [];
-        $financialFields = self::getFinancialImportFields();
-        foreach ($columns as $col) {
-            $lower = mb_strtolower(trim($col));
-            $matched = '';
-            foreach ($financialFields as $fieldKey => $fieldInfo) {
-                $keywords = $fieldInfo['keywords'] ?? [];
-                foreach ($keywords as $kw) {
-                    if (mb_strpos($lower, $kw) !== false) {
-                        $matched = $fieldKey;
-                        break 2;
-                    }
-                }
-            }
-            if ($matched) {
-                $autoMapping[$col] = $matched;
-            }
-        }
-
-        return [
-            'success'      => true,
-            'file_type'    => 'csv',
-            'columns'      => $columns,
-            'headers'      => $headers,
-            'rows'         => $rows,
-            'preview'      => $preview,
-            'auto_mapping' => $autoMapping,
-            'total_rows'   => $totalRows,
-        ];
-    }
-
-    /**
-     * Campos disponíveis para mapeamento de importação financeira.
-     * Retorna array com key => ['label', 'required', 'keywords'].
-     */
-    public static function getFinancialImportFields(): array {
-        return [
-            'date' => [
-                'label'    => 'Data',
-                'required' => true,
-                'keywords' => ['data', 'date', 'vencimento', 'dt_lanc', 'dt_mov', 'dt_pag'],
-            ],
-            'description' => [
-                'label'    => 'Descrição',
-                'required' => true,
-                'keywords' => ['descri', 'memo', 'histor', 'lanc', 'observ', 'detail'],
-            ],
-            'amount' => [
-                'label'    => 'Valor',
-                'required' => true,
-                'keywords' => ['valor', 'amount', 'quantia', 'total', 'vlr', 'montante'],
-            ],
-            'type' => [
-                'label'    => 'Tipo (Entrada/Saída)',
-                'required' => false,
-                'keywords' => ['tipo', 'type', 'natureza', 'd/c', 'dc', 'deb_cred'],
-            ],
-            'category' => [
-                'label'    => 'Categoria',
-                'required' => false,
-                'keywords' => ['categoria', 'category', 'classificacao', 'grupo'],
-            ],
-            'payment_method' => [
-                'label'    => 'Método de Pagamento',
-                'required' => false,
-                'keywords' => ['metodo', 'method', 'forma', 'pagamento', 'meio'],
-            ],
-            'notes' => [
-                'label'    => 'Observações',
-                'required' => false,
-                'keywords' => ['obs', 'nota', 'notes', 'complemento', 'info'],
-            ],
-        ];
-    }
-
-    // ═══════════════════════════════════════════
-    // AJAX: Importar CSV/Excel mapeado
-    // ═══════════════════════════════════════════
-
-    public function importCsv() {
-        header('Content-Type: application/json');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
-
-        // Determinar origem do arquivo: upload direto OU arquivo temporário da sessão
-        $filePath = null;
-        $ext = 'csv';
-
-        if (!empty($_FILES['import_file']) && $_FILES['import_file']['error'] === UPLOAD_ERR_OK) {
-            $filePath = $_FILES['import_file']['tmp_name'];
-            $ext = strtolower(pathinfo($_FILES['import_file']['name'], PATHINFO_EXTENSION));
-        } elseif (!empty($_SESSION['fin_import_tmp_file']) && file_exists($_SESSION['fin_import_tmp_file'])) {
-            $filePath = $_SESSION['fin_import_tmp_file'];
-            $ext = $_SESSION['fin_import_tmp_ext'] ?? 'csv';
-        }
-
-        if (!$filePath) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo enviado ou arquivo temporário expirado.']);
-            exit;
-        }
-
-        $mode = Input::post('import_mode', 'enum', 'registro', ['registro', 'contabilizar']);
-        $userId = $_SESSION['user_id'] ?? null;
-
-        // Parse mapping
-        $mapping = [];
-        if (!empty($_POST['mapping'])) {
-            $mapping = is_string($_POST['mapping']) ? json_decode($_POST['mapping'], true) : $_POST['mapping'];
-        }
-
-        // Parse selected rows
-        $selectedRows = [];
-        if (!empty($_POST['selected_rows'])) {
-            $selectedRows = is_string($_POST['selected_rows']) ? json_decode($_POST['selected_rows'], true) : $_POST['selected_rows'];
-        }
-        $selectedRows = array_map('intval', $selectedRows);
-
-        // Parse the file based on extension
-        $rows = [];
-        if (in_array($ext, ['xls', 'xlsx']) && class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
-            // ── Excel via PhpSpreadsheet ──
-            try {
-                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
-                $worksheet = $spreadsheet->getActiveSheet();
-                foreach ($worksheet->getRowIterator() as $row) {
-                    $cells = [];
-                    foreach ($row->getCellIterator() as $cell) {
-                        $cells[] = (string) $cell->getValue();
-                    }
-                    $rows[] = $cells;
-                }
-            } catch (\Exception $e) {
-                echo json_encode(['success' => false, 'message' => 'Erro ao ler arquivo Excel: ' . $e->getMessage()]);
-                exit;
-            }
-        } else {
-            // ── CSV/TXT ──
-            $handle = fopen($filePath, 'r');
-            if ($handle) {
-                // Detect BOM
-                $bom = fread($handle, 3);
-                if ($bom !== chr(0xEF) . chr(0xBB) . chr(0xBF)) {
-                    rewind($handle);
-                }
-
-                $separator = ',';
-                $firstLine = fgets($handle);
-                rewind($handle);
-                $bom2 = fread($handle, 3);
-                if ($bom2 !== chr(0xEF) . chr(0xBB) . chr(0xBF)) {
-                    rewind($handle);
-                }
-                if (substr_count($firstLine, ';') > substr_count($firstLine, ',')) $separator = ';';
-                elseif (substr_count($firstLine, "\t") > substr_count($firstLine, ',')) $separator = "\t";
-
-                while (($data = fgetcsv($handle, 0, $separator)) !== false) {
-                    $rows[] = $data;
-                }
-                fclose($handle);
-            }
-        }
-
-        if (empty($rows) || empty($selectedRows)) {
-            echo json_encode(['success' => false, 'message' => 'Nenhuma linha selecionada para importação.']);
-            exit;
-        }
-
-        // Resolve column-name→field mapping to column-index→field mapping
-        // The new mapping table UI sends { "Column Name": "field_key" }
-        // The model expects { "date": colIndex, "description": colIndex, ... }
-        $headers = array_map(function($h) { return trim($h); }, $rows[0] ?? []);
-        $resolvedMapping = [];
-
-        // Check if mapping uses column names (string keys) or old index format (numeric keys)
-        $isNameBased = false;
-        foreach ($mapping as $key => $val) {
-            if (!is_numeric($key)) {
-                $isNameBased = true;
-                break;
-            }
-        }
-
-        if ($isNameBased) {
-            // New format: { "Column Name": "field_key" } → { "field_key": colIndex }
-            foreach ($mapping as $colName => $fieldKey) {
-                $colIdx = array_search($colName, $headers);
-                if ($colIdx !== false && $fieldKey !== '_skip') {
-                    $resolvedMapping[$fieldKey] = $colIdx;
-                }
-            }
-        } else {
-            // Old format: { "date": colIndex, ... } — already resolved
-            $resolvedMapping = $mapping;
-        }
-
-        try {
-            $result = $this->financial->importCsvMapped($rows, $resolvedMapping, $selectedRows, $mode, $userId);
-            $modeLabel = $mode === 'registro' ? 'apenas registro' : 'contabilizado';
-            echo json_encode([
-                'success' => true,
-                'imported' => $result['imported'],
-                'skipped' => $result['skipped'],
-                'errors' => $result['errors'],
-                'message' => sprintf('%d transação(ões) importada(s) como %s.', $result['imported'], $modeLabel),
-            ]);
-        } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
-        }
-        exit;
-    }
-
-    // ═══════════════════════════════════════════
-    // AJAX: Importar OFX com seleção de linhas
-    // ═══════════════════════════════════════════
-
-    public function importOfxSelected() {
-        header('Content-Type: application/json');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
-
-        // Determinar origem do arquivo: upload direto OU arquivo temporário da sessão
-        $filePath = null;
-        if (!empty($_FILES['import_file']) && $_FILES['import_file']['error'] === UPLOAD_ERR_OK) {
-            $filePath = $_FILES['import_file']['tmp_name'];
-        } elseif (!empty($_SESSION['fin_import_tmp_file']) && file_exists($_SESSION['fin_import_tmp_file'])) {
-            $filePath = $_SESSION['fin_import_tmp_file'];
-        }
-
-        if (!$filePath) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo enviado ou arquivo temporário expirado.']);
-            exit;
-        }
-
-        $mode = Input::post('import_mode', 'enum', 'registro', ['registro', 'contabilizar']);
-        $userId = $_SESSION['user_id'] ?? null;
-
-        $selectedRows = [];
-        if (!empty($_POST['selected_rows'])) {
-            $selectedRows = is_string($_POST['selected_rows']) ? json_decode($_POST['selected_rows'], true) : $_POST['selected_rows'];
-        }
-        $selectedRows = array_map('intval', $selectedRows);
-
-        $content = file_get_contents($filePath);
-        $method = new \ReflectionMethod($this->financial, 'parseOfxTransactions');
-        $method->setAccessible(true);
-        $transactions = $method->invoke($this->financial, $content);
-
-        if (empty($transactions)) {
-            echo json_encode(['success' => false, 'message' => 'Nenhuma transação encontrada no arquivo OFX.']);
-            exit;
-        }
-
-        $result = ['imported' => 0, 'skipped' => 0, 'errors' => []];
-
-        foreach ($selectedRows as $idx) {
-            if (!isset($transactions[$idx])) continue;
-            $tx = $transactions[$idx];
-
-            try {
-                $amount = abs((float)$tx['amount']);
-                if ($amount <= 0) { $result['skipped']++; continue; }
-                $isCredit = (float)$tx['amount'] > 0;
-
-                if ($mode === 'registro') {
-                    $data = [
-                        'type' => 'registro',
-                        'category' => 'registro_ofx',
-                        'description' => $tx['memo'] ?: ($isCredit ? 'Crédito OFX' : 'Débito OFX'),
-                        'amount' => $amount,
-                        'transaction_date' => $tx['date'],
-                        'reference_type' => 'ofx',
-                        'payment_method' => 'transferencia',
-                        'is_confirmed' => 1,
-                        'user_id' => $userId,
-                        'notes' => 'Importado via OFX (registro) — FITID: ' . ($tx['fitid'] ?? ''),
-                    ];
-                } else {
-                    $data = [
-                        'type' => $isCredit ? 'entrada' : 'saida',
-                        'category' => $isCredit ? 'outra_entrada' : 'outra_saida',
-                        'description' => $tx['memo'] ?: ($isCredit ? 'Crédito OFX' : 'Débito OFX'),
-                        'amount' => $amount,
-                        'transaction_date' => $tx['date'],
-                        'reference_type' => 'ofx',
-                        'payment_method' => 'transferencia',
-                        'is_confirmed' => 1,
-                        'user_id' => $userId,
-                        'notes' => 'Importado via OFX (contabilizado) — FITID: ' . ($tx['fitid'] ?? ''),
-                    ];
-                }
-
-                $this->financial->addTransaction($data);
-                $result['imported']++;
-            } catch (\Exception $e) {
-                $result['errors'][] = $e->getMessage();
-            }
-        }
-
-        $modeLabel = $mode === 'registro' ? 'apenas registro' : 'contabilizado';
-        echo json_encode([
-            'success' => true,
-            'imported' => $result['imported'],
-            'skipped' => $result['skipped'],
-            'errors' => $result['errors'],
-            'message' => sprintf('%d transação(ões) importada(s) como %s.', $result['imported'], $modeLabel),
-        ]);
-        exit;
-    }
-
-    public function installments() {
-        $orderId = Input::get('order_id', 'int', 0);
-        if (!$orderId) {
-            header('Location: ?page=financial&action=payments');
-            exit;
-        }
-
-        // Verificar se o pedido está em etapa financeiro/concluido
-        $stmtStage = $this->db->prepare("SELECT pipeline_stage FROM orders WHERE id = :id");
-        $stmtStage->execute([':id' => $orderId]);
-        $orderStage = $stmtStage->fetch(\PDO::FETCH_ASSOC);
-        if (!$orderStage || !in_array($orderStage['pipeline_stage'], ['financeiro', 'concluido'])) {
-            $_SESSION['flash_error'] = 'As parcelas de pagamento só estão disponíveis para pedidos nas etapas Financeiro ou Concluído.';
-            header('Location: ?page=financial&action=payments');
-            exit;
-        }
-
-        $installments = $this->financial->getInstallments($orderId);
-
-        // Buscar dados do pedido
-        $orderModel = new Order($this->db);
-        $orderData = $orderModel->readOne($orderId);
-        $order = [
-            'id' => $orderId,
-            'total_amount' => $orderData['total_amount'] ?? 0,
-            'discount' => $orderData['discount'] ?? 0,
-            'payment_status' => $orderData['payment_status'] ?? 'pendente',
-            'payment_method' => $orderData['payment_method'] ?? '',
-            'installments' => $orderData['installments'] ?? 1,
-            'installment_value' => $orderData['installment_value'] ?? 0,
-            'created_at' => $orderData['created_at'] ?? '',
-            'customer_name' => $orderData['customer_name'] ?? '',
-        ];
-
-        require 'app/views/layout/header.php';
-        require 'app/views/financial/installments.php';
-        require 'app/views/layout/footer.php';
-    }
-
-    /**
-     * Gera parcelas para um pedido (AJAX ou POST)
-     */
-    public function generateInstallments() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ?page=financial&action=payments');
-            exit;
-        }
-
-        $orderId = Input::post('order_id', 'int', 0);
-        $numInstallments = Input::post('num_installments', 'int', 1);
-        $downPayment = Input::post('down_payment', 'float', 0);
-        $startDate = Input::post('start_date', 'date', date('Y-m-d'));
-
-        // Buscar total do pedido
-        $q = "SELECT total_amount, COALESCE(discount, 0) as discount FROM orders WHERE id = :id";
-        $s = $this->db->prepare($q);
-        $s->execute([':id' => $orderId]);
-        $order = $s->fetch(PDO::FETCH_ASSOC);
-
-        if (!$order) {
-            $_SESSION['flash_error'] = 'Pedido não encontrado.';
-            header('Location: ?page=financial&action=payments');
-            exit;
-        }
-
-        $totalAmount = $order['total_amount'] - $order['discount'];
-
-        $this->financial->generateInstallments($orderId, $totalAmount, $numInstallments, $downPayment, $startDate);
-
-        // Atualizar dados do pedido
-        $q2 = "UPDATE orders SET installments = :inst, installment_value = :val, down_payment = :dp WHERE id = :id";
-        $s2 = $this->db->prepare($q2);
-        $installValue = ($numInstallments > 0) ? round(($totalAmount - $downPayment) / $numInstallments, 2) : $totalAmount;
-        $s2->execute([
-            ':inst' => $numInstallments,
-            ':val' => $installValue,
-            ':dp' => $downPayment,
-            ':id' => $orderId,
-        ]);
-
-        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
-            echo json_encode(['success' => true]);
-            exit;
-        }
-
-        $_SESSION['flash_success'] = 'Parcelas geradas com sucesso!';
-        header("Location: ?page=financial&action=installments&order_id=$orderId");
-        exit;
-    }
-
-    /**
-     * Registra pagamento de uma parcela (AJAX ou POST).
-     * Novo fluxo:
-     *  - Se paid_amount >= amount da parcela → marca como pago+confirmado automaticamente
-     *  - Se paid_amount < amount → paga o valor informado e, se solicitado (create_remaining=1),
-     *    cria nova parcela com o valor restante
-     */
-    public function payInstallment() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ?page=financial&action=payments');
-            exit;
-        }
-
-        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
-
-        $installmentId = Input::post('installment_id', 'int', 0);
-        $paidAmount = Input::post('paid_amount', 'float', 0);
-        $createRemaining = Input::post('create_remaining', 'int', 0);
-
-        // Buscar dados da parcela original
-        $q = "SELECT id, order_id, amount, installment_number FROM order_installments WHERE id = :id";
-        $s = $this->db->prepare($q);
-        $s->execute([':id' => $installmentId]);
-        $installment = $s->fetch(PDO::FETCH_ASSOC);
-
-        if (!$installment) {
-            if ($isAjax) {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'message' => 'Parcela não encontrada.']);
-                exit;
-            }
-            $_SESSION['flash_error'] = 'Parcela não encontrada.';
-            header('Location: ?page=financial&action=payments');
-            exit;
-        }
-
-        $originalAmount = (float) $installment['amount'];
-        $orderId = $installment['order_id'];
-
-        $data = [
-            'paid_date' => Input::post('paid_date', 'date') ?: date('Y-m-d'),
-            'paid_amount' => $paidAmount,
-            'payment_method' => Input::post('payment_method', 'string', 'dinheiro'),
-            'notes' => Input::post('notes'),
-            'user_id' => $_SESSION['user_id'] ?? null,
-            'attachment_path' => null,
-        ];
-
-        // Handle file upload (comprovante)
-        if (!empty($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = TenantManager::getTenantUploadBase() . 'comprovantes/';
-            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
-
-            $ext = strtolower(pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION));
-            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
-            if (in_array($ext, $allowed)) {
-                $filename = 'comprovante_' . $installmentId . '_' . time() . '.' . $ext;
-                $filepath = $uploadDir . $filename;
-                if (move_uploaded_file($_FILES['attachment']['tmp_name'], $filepath)) {
-                    $data['attachment_path'] = $filepath;
-                }
-            }
-        }
-
-        // Determinar se auto-confirma
-        // Se pagou o valor total (ou mais), confirma automaticamente
-        $autoConfirm = ($paidAmount >= $originalAmount);
-
-        // Se pagou menos e NÃO quer criar parcela restante, também confirma (aceita como quitado)
-        if ($paidAmount < $originalAmount && !$createRemaining) {
-            $autoConfirm = true;
-        }
-
-        // Registrar o pagamento
-        $this->financial->payInstallment($installmentId, $data, $autoConfirm);
-
-        $newInstallmentId = null;
-        $remainingAmount = 0;
-
-        // Se pagou menos e quer criar parcela restante
-        if ($paidAmount < $originalAmount && $createRemaining) {
-            $remainingAmount = round($originalAmount - $paidAmount, 2);
-            $remainingDueDate = Input::post('remaining_due_date', 'date');
-
-            // Atualizar o valor da parcela original para o valor efetivamente pago
-            $qUpd = "UPDATE order_installments SET amount = :amt WHERE id = :id";
-            $sUpd = $this->db->prepare($qUpd);
-            $sUpd->execute([':amt' => $paidAmount, ':id' => $installmentId]);
-
-            // Confirmar a parcela original (já foi paga integralmente pelo novo valor)
-            $this->financial->confirmInstallment($installmentId, $_SESSION['user_id'] ?? null);
-
-            // Criar nova parcela com o restante
-            $newInstallmentId = $this->financial->createRemainingInstallment($installmentId, $remainingAmount, $remainingDueDate);
-        }
-
-        if ($isAjax) {
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'auto_confirmed' => $autoConfirm,
-                'remaining_created' => $newInstallmentId ? true : false,
-                'new_installment_id' => $newInstallmentId,
-                'remaining_amount' => $remainingAmount,
-            ]);
-            exit;
-        }
-
-        $_SESSION['flash_success'] = 'Pagamento registrado com sucesso!';
-        $redirect = Input::post('redirect', 'string', '?page=financial&action=payments');
-        header("Location: $redirect");
-        exit;
-    }
-
-    /**
-     * Confirma pagamento manual
-     */
-    public function confirmPayment() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ?page=financial');
-            exit;
-        }
-
-        $installmentId = Input::post('installment_id', 'int', 0);
-        $userId = $_SESSION['user_id'] ?? null;
-
-        $this->financial->confirmInstallment($installmentId, $userId);
-
-        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
-            echo json_encode(['success' => true]);
-            exit;
-        }
-
-        $_SESSION['flash_success'] = 'Pagamento confirmado com sucesso!';
-        $redirect = Input::post('redirect', 'string', '?page=financial');
-        header("Location: $redirect");
-        exit;
-    }
-
-    /**
-     * Cancela/estorna pagamento de parcela
-     */
-    public function cancelInstallment() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ?page=financial');
-            exit;
-        }
-
-        $installmentId = Input::post('installment_id', 'int', 0);
-        $userId = $_SESSION['user_id'] ?? null;
-        $this->financial->cancelInstallment($installmentId, $userId);
-
-        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
-            echo json_encode(['success' => true]);
-            exit;
-        }
-
-        $_SESSION['flash_success'] = 'Parcela estornada com sucesso!';
-        $redirect = Input::post('redirect', 'string', '?page=financial&action=payments');
-        header("Location: $redirect");
-        exit;
-    }
-
-    /**
-     * Upload de comprovante para uma parcela existente (POST + arquivo)
-     */
-    public function uploadAttachment() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ?page=financial&action=payments');
-            exit;
-        }
-
-        $installmentId = Input::post('installment_id', 'int', 0);
-        if (!$installmentId) {
-            $_SESSION['flash_error'] = 'Parcela não informada.';
-            header('Location: ?page=financial&action=payments');
-            exit;
-        }
-
-        if (!empty($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = TenantManager::getTenantUploadBase() . 'comprovantes/';
-            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
-
-            $ext = strtolower(pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION));
-            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
-            if (!in_array($ext, $allowed)) {
-                $_SESSION['flash_error'] = 'Tipo de arquivo não permitido. Envie JPG, PNG, WEBP, GIF ou PDF.';
-                header('Location: ' . (Input::post('redirect', 'string', '?page=financial&action=payments')));
-                exit;
-            }
-
-            $filename = 'comprovante_' . $installmentId . '_' . time() . '.' . $ext;
-            $filepath = $uploadDir . $filename;
-
-            // Remover anterior se existir
-            $this->financial->removeAttachment($installmentId);
-
-            if (move_uploaded_file($_FILES['attachment']['tmp_name'], $filepath)) {
-                $this->financial->saveAttachment($installmentId, $filepath);
-                $_SESSION['flash_success'] = 'Comprovante anexado com sucesso!';
-            } else {
-                $_SESSION['flash_error'] = 'Erro ao fazer upload do comprovante.';
-            }
-        } else {
-            $_SESSION['flash_error'] = 'Nenhum arquivo enviado.';
-        }
-
-        $redirect = Input::post('redirect', 'string', '?page=financial&action=payments');
-        header("Location: $redirect");
-        exit;
-    }
-
-    /**
-     * Remove o comprovante de uma parcela
-     */
-    public function removeAttachment() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ?page=financial&action=payments');
-            exit;
-        }
-
-        $installmentId = Input::post('installment_id', 'int', 0);
-        if ($installmentId) {
-            $this->financial->removeAttachment($installmentId);
-            $_SESSION['flash_success'] = 'Comprovante removido.';
-        }
-
-        $redirect = Input::post('redirect', 'string', '?page=financial&action=payments');
-        header("Location: $redirect");
-        exit;
-    }
-
-    // ═══════════════════════════════════════════
-    // TRANSAÇÕES (ENTRADAS E SAÍDAS)
-    // ═══════════════════════════════════════════
-
-    public function transactions() {
-        // Redireciona para a página unificada na seção de transações
-        header('Location: ?page=financial&action=payments&section=transactions');
-        exit;
-    }
-
-    /**
-     * Adiciona transação (entrada/saída)
-     */
-    public function addTransaction() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ?page=financial&action=transactions');
-            exit;
-        }
-
-        $type = Input::post('type', 'enum', 'entrada', ['entrada', 'saida']);
-        $data = [
-            'type' => $type,
-            'category' => Input::post('category', 'string', $type === 'entrada' ? 'outra_entrada' : 'outra_saida'),
-            'description' => Input::post('description'),
-            'amount' => Input::post('amount', 'float', 0),
-            'transaction_date' => Input::post('transaction_date', 'date') ?: date('Y-m-d'),
-            'payment_method' => Input::post('payment_method'),
-            'is_confirmed' => 1,
-            'user_id' => $_SESSION['user_id'] ?? null,
-            'notes' => Input::post('notes'),
-        ];
-
-        $this->financial->addTransaction($data);
-
-        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
-            echo json_encode(['success' => true]);
-            exit;
-        }
-
-        $_SESSION['flash_success'] = 'Transação registrada com sucesso!';
-        header('Location: ?page=financial&action=transactions');
-        exit;
-    }
-
-    /**
-     * Deleta transação
-     */
-    public function deleteTransaction() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ?page=financial&action=transactions');
-            exit;
-        }
-
-        $id = Input::post('transaction_id', 'int', 0);
-        $this->financial->deleteTransaction($id);
-
-        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
-            echo json_encode(['success' => true]);
-            exit;
-        }
-
-        $_SESSION['flash_success'] = 'Transação removida.';
-        header('Location: ?page=financial&action=transactions');
-        exit;
-    }
-
-    /**
-     * AJAX: Buscar uma transação para edição
-     */
-    public function getTransaction() {
-        header('Content-Type: application/json');
-
-        $id = Input::get('id', 'int', 0);
-        if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
-        }
-
-        $tx = $this->financial->getTransactionById($id);
-        if (!$tx) {
-            echo json_encode(['success' => false, 'message' => 'Transação não encontrada.']);
-            exit;
-        }
-
-        echo json_encode(['success' => true, 'transaction' => $tx]);
-        exit;
-    }
-
-    /**
-     * AJAX: Atualizar transação existente
-     */
-    public function updateTransaction() {
-        header('Content-Type: application/json');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
-
-        $id = Input::post('transaction_id', 'int', 0);
-        if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID da transação inválido.']);
-            exit;
-        }
-
-        $tx = $this->financial->getTransactionById($id);
-        if (!$tx) {
-            echo json_encode(['success' => false, 'message' => 'Transação não encontrada.']);
-            exit;
-        }
-
-        $type = Input::post('type', 'enum', 'entrada', ['entrada', 'saida', 'registro']);
-        $data = [
-            'type'             => $type,
-            'category'         => Input::post('category', 'string', $type === 'entrada' ? 'outra_entrada' : 'outra_saida'),
-            'description'      => Input::post('description'),
-            'amount'           => Input::post('amount', 'float', 0),
-            'transaction_date' => Input::post('transaction_date', 'date') ?: date('Y-m-d'),
-            'payment_method'   => Input::post('payment_method'),
-            'notes'            => Input::post('notes'),
-        ];
-
-        if ($data['amount'] <= 0) {
-            echo json_encode(['success' => false, 'message' => 'O valor deve ser maior que zero.']);
-            exit;
-        }
-
-        if (empty($data['description'])) {
-            echo json_encode(['success' => false, 'message' => 'A descrição é obrigatória.']);
-            exit;
-        }
-
-        $this->financial->updateTransaction($id, $data);
-
-        echo json_encode(['success' => true, 'message' => 'Transação atualizada com sucesso!']);
-        exit;
-    }
-
-    /**
-     * Importar arquivo OFX
-     */
-    public function importOfx() {
-        header('Content-Type: application/json');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
-
-        if (empty($_FILES['ofx_file']) || $_FILES['ofx_file']['error'] !== UPLOAD_ERR_OK) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo OFX enviado.']);
-            exit;
-        }
-
-        $file = $_FILES['ofx_file'];
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-
-        if (!in_array($ext, ['ofx', 'ofc'])) {
-            echo json_encode(['success' => false, 'message' => 'Formato não suportado. Envie um arquivo .OFX']);
-            exit;
-        }
-
-        $mode = Input::post('import_mode', 'enum', 'registro', ['registro', 'contabilizar']);
-
-        $userId = $_SESSION['user_id'] ?? null;
-
-        try {
-            $result = $this->financial->importOfx($file['tmp_name'], $mode, $userId);
-
-            $modeLabel = $mode === 'registro' ? 'apenas registro (não contabilizado)' : 'contabilizado no caixa';
-            echo json_encode([
-                'success' => true,
-                'imported' => $result['imported'],
-                'skipped' => $result['skipped'],
-                'errors' => $result['errors'],
-                'message' => sprintf(
-                    'Importação concluída! %d transação(ões) importada(s) como %s.%s',
-                    $result['imported'],
-                    $modeLabel,
-                    !empty($result['errors']) ? ' Erros: ' . count($result['errors']) : ''
-                )
-            ]);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro na importação: ' . $e->getMessage()]);
-        }
-        exit;
-    }
-
-    // ═══════════════════════════════════════════
-    // UNIFICAÇÃO E DIVISÃO DE PARCELAS
+    // AJAX: Resumo financeiro em JSON
     // ═══════════════════════════════════════════
 
     /**
-     * Unifica (merge) parcelas pendentes em uma só (AJAX POST)
+     * Retorna resumo financeiro do mês/ano em JSON.
      */
-    public function mergeInstallments() {
-        header('Content-Type: application/json');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
-
-        $ids = $_POST['installment_ids'] ?? [];
-        if (!is_array($ids)) {
-            $ids = explode(',', (string)$ids);
-        }
-        $ids = array_map('intval', array_filter($ids));
-
-        $dueDate = Input::post('due_date', 'date') ?: date('Y-m-d');
-
-        if (count($ids) < 2) {
-            echo json_encode(['success' => false, 'message' => 'Selecione ao menos 2 parcelas em aberto para unificar.']);
-            exit;
-        }
-
-        try {
-            $newId = $this->financial->mergeInstallments($ids, $dueDate);
-        } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao unificar parcelas. Tente novamente.']);
-            exit;
-        }
-
-        if ($newId) {
-            $logger = new \Akti\Models\Logger($this->db);
-            $logger->log('INSTALLMENTS_MERGED', 'Merged installments [' . implode(',', $ids) . '] into #' . $newId);
-
-            echo json_encode([
-                'success' => true,
-                'message' => count($ids) . ' parcelas unificadas com sucesso.',
-                'new_id' => $newId,
-            ]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Não foi possível unificar. Verifique se todas as parcelas estão em aberto e pertencem ao mesmo pedido.']);
-        }
-        exit;
-    }
-
-    /**
-     * Divide uma parcela pendente em N partes (AJAX POST)
-     */
-    public function splitInstallment() {
-        header('Content-Type: application/json');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
-
-        $installmentId = Input::post('installment_id', 'int', 0);
-        $parts = Input::post('parts', 'int', 2);
-        $firstDueDate = Input::post('first_due_date', 'date');
-
-        if (!$installmentId) {
-            echo json_encode(['success' => false, 'message' => 'Parcela não informada.']);
-            exit;
-        }
-        if ($parts < 2 || $parts > 24) {
-            echo json_encode(['success' => false, 'message' => 'Informe entre 2 e 24 partes.']);
-            exit;
-        }
-
-        try {
-            $newIds = $this->financial->splitInstallment($installmentId, $parts, $firstDueDate);
-        } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao dividir parcela. Tente novamente.']);
-            exit;
-        }
-
-        if (!empty($newIds)) {
-            $logger = new \Akti\Models\Logger($this->db);
-            $logger->log('INSTALLMENT_SPLIT', "Split installment #$installmentId into $parts parts [" . implode(',', $newIds) . "]");
-
-            echo json_encode([
-                'success' => true,
-                'message' => "Parcela dividida em $parts partes com sucesso.",
-                'new_ids' => $newIds,
-            ]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Não foi possível dividir. A parcela deve estar em aberto (pendente/atrasada).']);
-        }
-        exit;
-    }
-
-    // ═══════════════════════════════════════════
-    // API (AJAX)
-    // ═══════════════════════════════════════════
-
-    /**
-     * Retorna dados de resumo em JSON (para widgets externos)
-     */
-    public function getSummaryJson() {
-        $month = Input::get('month', 'int') ?: (int)date('m');
-        $year  = Input::get('year', 'int') ?: (int)date('Y');
-        $summary = $this->financial->getSummary($month, $year);
+    public function getSummaryJson()
+    {
+        $month = Input::get('month', 'int') ?: (int) date('m');
+        $year  = Input::get('year', 'int') ?: (int) date('Y');
+        $summary = $this->reportService->getSummary($month, $year);
         header('Content-Type: application/json');
         echo json_encode($summary);
         exit;
     }
 
+    // ═══════════════════════════════════════════
+    // AJAX: DRE (Demonstrativo de Resultado)
+    // ═══════════════════════════════════════════
+
     /**
-     * Retorna parcelas de um pedido em JSON
+     * Retorna DRE em JSON para o período informado.
      */
-    public function getInstallmentsJson() {
-        $orderId = Input::get('order_id', 'int', 0);
-        $installments = $this->financial->getInstallments($orderId);
+    public function getDre()
+    {
+        $fromMonth = Input::get('from', 'string', date('Y') . '-01');
+        $toMonth   = Input::get('to', 'string', date('Y-m'));
+
+        // Validar formato YYYY-MM
+        if (!preg_match('/^\d{4}-\d{2}$/', $fromMonth)) $fromMonth = date('Y') . '-01';
+        if (!preg_match('/^\d{4}-\d{2}$/', $toMonth)) $toMonth = date('Y-m');
+
+        $dre = $this->reportService->getDre($fromMonth, $toMonth);
+
         header('Content-Type: application/json');
-        echo json_encode([
-            'success' => true,
-            'installments' => $installments,
-            'count' => count($installments),
-        ]);
+        echo json_encode(['success' => true, 'data' => $dre]);
         exit;
+    }
+
+    // ═══════════════════════════════════════════
+    // AJAX: Fluxo de Caixa Projetado
+    // ═══════════════════════════════════════════
+
+    /**
+     * Retorna projeção de fluxo de caixa em JSON.
+     */
+    public function getCashflow()
+    {
+        $months           = Input::get('months', 'int', 6);
+        $includeRecurring = Input::get('recurring', 'int', 1);
+
+        if ($months < 1 || $months > 24) $months = 6;
+
+        $projection = $this->reportService->getCashflowProjection($months, (bool) $includeRecurring);
+
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'data' => $projection]);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════
+    // EXPORTAÇÃO CSV
+    // ═══════════════════════════════════════════
+
+    /**
+     * Exporta transações em CSV (download direto).
+     */
+    public function exportTransactionsCsv()
+    {
+        $filters = [
+            'type'     => Input::get('type', 'string', ''),
+            'category' => Input::get('category', 'string', ''),
+            'month'    => Input::get('month', 'int', 0),
+            'year'     => Input::get('year', 'int', 0),
+            'search'   => Input::get('search', 'string', ''),
+        ];
+
+        $csv = $this->reportService->exportTransactionsCsv($filters);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="transacoes_' . date('Ymd_His') . '.csv"');
+        echo $csv;
+        exit;
+    }
+
+    /**
+     * Exporta DRE em CSV (download direto).
+     */
+    public function exportDreCsv()
+    {
+        $fromMonth = Input::get('from', 'string', date('Y') . '-01');
+        $toMonth   = Input::get('to', 'string', date('Y-m'));
+
+        if (!preg_match('/^\d{4}-\d{2}$/', $fromMonth)) $fromMonth = date('Y') . '-01';
+        if (!preg_match('/^\d{4}-\d{2}$/', $toMonth)) $toMonth = date('Y-m');
+
+        $csv = $this->reportService->exportDreCsv($fromMonth, $toMonth);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="dre_' . $fromMonth . '_' . $toMonth . '.csv"');
+        echo $csv;
+        exit;
+    }
+
+    /**
+     * Exporta fluxo de caixa projetado em CSV (download direto).
+     */
+    public function exportCashflowCsv()
+    {
+        $months           = Input::get('months', 'int', 6);
+        $includeRecurring = Input::get('recurring', 'int', 1);
+
+        if ($months < 1 || $months > 24) $months = 6;
+
+        $csv = $this->reportService->exportCashflowCsv($months, (bool) $includeRecurring);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="fluxo_caixa_' . date('Ymd') . '.csv"');
+        echo $csv;
+        exit;
+    }
+
+    // ═══════════════════════════════════════════
+    // COMPATIBILIDADE: Métodos estáticos usados por views
+    // ═══════════════════════════════════════════
+
+    /**
+     * Campos disponíveis para mapeamento de importação financeira.
+     * Mantido por compatibilidade com views que referenciam FinancialController::getFinancialImportFields().
+     *
+     * @deprecated Use FinancialImportController::getFinancialImportFields() ou FinancialImportService::getFinancialImportFields()
+     */
+    public static function getFinancialImportFields(): array
+    {
+        return FinancialImportService::getFinancialImportFields();
     }
 }
