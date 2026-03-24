@@ -22,7 +22,7 @@
  */
 
 $activeSection = $_GET['section'] ?? 'payments';
-$validSections = ['payments', 'transactions', 'import', 'new', 'reports', 'cashflow', 'recurring'];
+$validSections = ['payments', 'transactions', 'import', 'new', 'reports', 'cashflow', 'recurring', 'audit'];
 if (!in_array($activeSection, $validSections)) $activeSection = 'payments';
 
 $canUseBoletoModule = \Akti\Core\ModuleBootloader::isModuleEnabled('boleto');
@@ -141,6 +141,7 @@ $allCats = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? [],
             <?php require __DIR__ . '/partials/_section_dre.php'; ?>
             <?php require __DIR__ . '/partials/_section_cashflow.php'; ?>
             <?php require __DIR__ . '/partials/_section_recurring.php'; ?>
+            <?php require __DIR__ . '/partials/_section_audit.php'; ?>
 
         </div><!-- /col-lg-9 -->
     </div><!-- /row -->

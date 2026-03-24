@@ -469,15 +469,50 @@ class CommissionController
         header('Content-Type: application/json');
 
         $configs = [
-            'comissao_padrao_percentual'  => Input::post('comissao_padrao_percentual', 'float', 5),
-            'base_calculo_padrao'         => Input::post('base_calculo_padrao', 'enum', 'valor_venda', ['valor_venda', 'margem_lucro', 'valor_produto']),
-            'aprovacao_automatica'        => Input::post('aprovacao_automatica', 'int', 0),
-            'permite_comissao_cancelado'  => Input::post('permite_comissao_cancelado', 'int', 0),
-            'pipeline_stage_comissao'     => Input::post('pipeline_stage_comissao'),
+            'comissao_padrao_percentual'    => Input::post('comissao_padrao_percentual', 'float', 5),
+            'base_calculo_padrao'           => Input::post('base_calculo_padrao', 'enum', 'valor_venda', ['valor_venda', 'margem_lucro', 'valor_produto']),
+            'aprovacao_automatica'          => Input::post('aprovacao_automatica', 'int', 0),
+            'permite_comissao_cancelado'    => Input::post('permite_comissao_cancelado', 'int', 0),
+            'pipeline_stage_comissao'       => Input::post('pipeline_stage_comissao'),
+            'criterio_liberacao_comissao'   => Input::post('criterio_liberacao_comissao', 'enum', 'pagamento_total', ['sem_confirmacao', 'primeira_parcela', 'pagamento_total']),
         ];
 
         $result = $this->service->saveConfig($configs);
         echo json_encode($result);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════════
+    // APROVAÇÃO / PAGAMENTO POR VENDEDOR (Modal)
+    // ═══════════════════════════════════════════════════
+
+    /**
+     * Retorna lista de vendedores com comissões pendentes (JSON).
+     */
+    public function getVendedoresPendentes()
+    {
+        header('Content-Type: application/json');
+        $data = $this->service->getVendedoresComPendentes();
+        echo json_encode(['success' => true, 'data' => $data]);
+        exit;
+    }
+
+    /**
+     * Retorna comissões pendentes de um vendedor (JSON).
+     */
+    public function getComissoesVendedor()
+    {
+        header('Content-Type: application/json');
+        $userId = Input::get('user_id', 'int');
+        $statusFilter = Input::get('status_filter'); // 'aprovacao' | 'pagamento' | null
+
+        if (!$userId) {
+            echo json_encode(['success' => false, 'message' => 'Vendedor não informado.']);
+            exit;
+        }
+
+        $data = $this->service->getComissoesPorVendedor($userId, $statusFilter);
+        echo json_encode(['success' => true, 'data' => $data]);
         exit;
     }
 

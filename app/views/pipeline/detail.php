@@ -2199,6 +2199,22 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">
+                                <i class="fas fa-hand-holding-usd me-1"></i>Vendedor / Comissionado
+                            </label>
+                            <select class="form-select" name="seller_id" <?= $isReadOnly ? 'disabled' : '' ?>>
+                                <option value="">Sem vendedor vinculado</option>
+                                <?php foreach ($users as $u): ?>
+                                <option value="<?= $u['id'] ?>" <?= ($order['seller_id'] ?? '') == $u['id'] ? 'selected' : '' ?>>
+                                    <?= $u['name'] ?> (<?= $u['role'] ?>)
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text text-muted">
+                                <small>A comissão será calculada automaticamente ao concluir o pedido com pagamento confirmado.</small>
+                            </div>
+                        </div>
                         <div class="col-12">
                             <label class="form-label small fw-bold text-muted">
                                 <i class="fas fa-lock me-1"></i>Observações Internas 

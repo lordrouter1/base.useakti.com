@@ -56,6 +56,63 @@ return [
     ],
 
     // ══════════════════════════════════════════════════════════════
+    // PORTAL DO CLIENTE (público, autenticação própria)
+    // ══════════════════════════════════════════════════════════════
+
+    'portal' => [
+        'controller'     => 'PortalController',
+        'default_action' => 'index',
+        'public'         => true,
+        'before_auth'    => true,
+        'actions'        => [
+            // Auth
+            'login'             => 'login',
+            'loginMagic'        => 'loginMagic',
+            'logout'            => 'logout',
+            'register'          => 'register',
+            'forgotPassword'    => 'forgotPassword',
+            'resetPassword'     => 'resetPassword',
+
+            // Dashboard
+            'dashboard'         => 'dashboard',
+
+            // Pedidos
+            'orders'            => 'orders',
+            'orderDetail'       => 'orderDetail',
+            'approveOrder'      => 'approveOrder',
+            'rejectOrder'       => 'rejectOrder',
+
+            // Novo Pedido (orçamento)
+            'newOrder'          => 'newOrder',
+            'getProducts'       => 'getProducts',
+            'addToCart'         => 'addToCart',
+            'removeFromCart'    => 'removeFromCart',
+            'updateCartItem'    => 'updateCartItem',
+            'getCart'           => 'getCart',
+            'submitOrder'       => 'submitOrder',
+
+            // Financeiro
+            'installments'      => 'installments',
+            'installmentDetail' => 'installmentDetail',
+
+            // Tracking
+            'tracking'          => 'tracking',
+
+            // Mensagens
+            'messages'          => 'messages',
+            'sendMessage'       => 'sendMessage',
+
+            // Documentos
+            'documents'         => 'documents',
+            'downloadDocument'  => 'downloadDocument',
+
+            // Perfil
+            'profile'           => 'profile',
+            'updateProfile'     => 'updateProfile',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════════
     // AUTENTICAÇÃO (before_auth — processado antes do auth check)
     // ══════════════════════════════════════════════════════════════
 
@@ -426,6 +483,8 @@ return [
             'exportTransactionsCsv' => 'exportTransactionsCsv',
             'exportDreCsv'          => 'exportDreCsv',
             'exportCashflowCsv'     => 'exportCashflowCsv',
+            'getAuditLog'           => 'getAuditLog',
+            'exportAuditCsv'        => 'exportAuditCsv',
 
             // ── Parcelas → InstallmentController ──
             'installments'              => ['controller' => 'InstallmentController', 'method' => 'installments'],
@@ -555,6 +614,9 @@ return [
             'cancelar'           => 'cancelar',
             'aprovarLote'        => 'aprovarLote',
             'pagarLote'          => 'pagarLote',
+            // Aprovação/Pagamento por Vendedor (modal)
+            'getVendedoresPendentes' => 'getVendedoresPendentes',
+            'getComissoesVendedor'   => 'getComissoesVendedor',
             // Configurações
             'configuracoes'      => 'configuracoes',
             'saveConfig'         => 'saveConfig',

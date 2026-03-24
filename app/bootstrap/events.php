@@ -94,6 +94,113 @@ EventDispatcher::listen('model.nfe_document.error', function (Event $event) {
 // require_once AKTI_BASE_PATH . 'app/modules/webhooks/listeners.php';
 
 // ══════════════════════════════════════════════════════════════
+// Listeners do Módulo de Comissão Automática
+// ══════════════════════════════════════════════════════════════
+
+$commissionLogFile = (defined('AKTI_BASE_PATH') ? AKTI_BASE_PATH : '') . 'storage/logs/commission.log';
+
+/**
+ * Helper: inicializa o CommissionAutoService (lazy, singleton por request).
+ */
+$getCommissionAutoService = function () {
+    static $service = null;
+    if ($service !== null) return $service;
+    try {
+        if (class_exists('Database')) {
+            $db = (new \Database())->getConnection();
+            $service = new \Akti\Services\CommissionAutoService($db);
+        }
+    } catch (\Throwable $e) {
+        // Silencioso — não quebrar o fluxo
+    }
+    return $service;
+};
+
+/**
+ * model.order.stage_changed — Quando pedido muda de etapa no pipeline.
+ * Lê da configuração (pipeline_stage_comissao) em qual etapa o cálculo
+ * de comissão é disparado, e verifica o critério de liberação (criterio_liberacao_comissao).
+ */
+EventDispatcher::listen('model.order.stage_changed', function (Event $event) use ($commissionLogFile, $getCommissionAutoService) {
+    $data = $event->data;
+    $toStage = $data['to_stage'] ?? '';
+    $orderId = (int) ($data['id'] ?? 0);
+
+    if ($orderId <= 0) return;
+
+    $service = $getCommissionAutoService();
+    if (!$service) return;
+
+    // Verificar se a etapa destino é a etapa configurada para gatilho
+    $stageGatilho = $service->getStageGatilho();
+    if ($toStage !== $stageGatilho) return;
+
+    $result = $service->tryAutoCommission($orderId);
+
+    $logMessage = sprintf(
+        '[Comissão Auto - Stage Changed] Pedido: #%d | Etapa: %s | Triggered: %s | %s',
+        $orderId,
+        $toStage,
+        $result['triggered'] ? 'Sim' : 'Não',
+        $result['message'] ?? ''
+    );
+    @file_put_contents($commissionLogFile, date('[Y-m-d H:i:s] ') . $logMessage . PHP_EOL, FILE_APPEND);
+});
+
+/**
+ * model.installment.confirmed — Quando uma parcela é confirmada.
+ * Verifica se o critério de liberação de pagamento foi atendido
+ * e se o pedido está na etapa configurada. Se sim, dispara comissão automática.
+ */
+EventDispatcher::listen('model.installment.confirmed', function (Event $event) use ($commissionLogFile, $getCommissionAutoService) {
+    $data = $event->data;
+    $orderId = (int) ($data['order_id'] ?? 0);
+
+    if ($orderId <= 0) return;
+
+    $service = $getCommissionAutoService();
+    if (!$service) return;
+
+    $result = $service->tryAutoCommission($orderId);
+
+    if ($result['triggered']) {
+        $logMessage = sprintf(
+            '[Comissão Auto - Payment Confirmed] Pedido: #%d | %s',
+            $orderId,
+            $result['message'] ?? ''
+        );
+        @file_put_contents($commissionLogFile, date('[Y-m-d H:i:s] ') . $logMessage . PHP_EOL, FILE_APPEND);
+    }
+});
+
+/**
+ * model.installment.paid — Quando um pagamento é registrado e auto-confirmado.
+ * Verifica as mesmas condições para comissão automática.
+ * Também cobre o critério 'primeira_parcela'.
+ */
+EventDispatcher::listen('model.installment.paid', function (Event $event) use ($commissionLogFile, $getCommissionAutoService) {
+    $data = $event->data;
+    $orderId = (int) ($data['order_id'] ?? 0);
+
+    if ($orderId <= 0) return;
+
+    $service = $getCommissionAutoService();
+    if (!$service) return;
+
+    // Tentar comissão automática (o serviço já verifica o critério de liberação)
+    $result = $service->tryAutoCommission($orderId);
+
+    if ($result['triggered']) {
+        $logMessage = sprintf(
+            '[Comissão Auto - Payment Registered] Pedido: #%d | %s',
+            $orderId,
+            $result['message'] ?? ''
+        );
+        @file_put_contents($commissionLogFile, date('[Y-m-d H:i:s] ') . $logMessage . PHP_EOL, FILE_APPEND);
+    }
+});
+
+// ══════════════════════════════════════════════════════════════
 // Listeners do Módulo Financeiro
 // ══════════════════════════════════════════════════════════════
 
@@ -347,16 +454,25 @@ EventDispatcher::listen('model.financial_transaction.updated', function (Event $
 
 /**
  * model.financial_transaction.deleted — Transação financeira removida.
- * Payload: id
+ * Payload: id, reason, old_data
  */
 EventDispatcher::listen('model.financial_transaction.deleted', function (Event $event) use ($financialLogFile, $getAuditService) {
     $data = $event->getData();
-    $logMessage = sprintf('[Transação Removida] ID: %d', $data['id'] ?? 0);
+    $reason = $data['reason'] ?? '';
+    $logMessage = sprintf('[Transação Removida] ID: %d | Motivo: %s', $data['id'] ?? 0, $reason ?: '(não informado)');
     @file_put_contents($financialLogFile, date('[Y-m-d H:i:s] ') . $logMessage . PHP_EOL, FILE_APPEND);
 
-    // Audit log
+    // Audit log — gravar dados anteriores e motivo
     if ($audit = $getAuditService()) {
-        $audit->logTransaction((int)($data['id'] ?? 0), 'deleted', $data);
+        $oldData = $data['old_data'] ?? [];
+        $audit->logTransaction(
+            (int)($data['id'] ?? 0),
+            'deleted',
+            $data,
+            $oldData,
+            null,
+            $reason ?: null
+        );
     }
 });
 

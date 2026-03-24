@@ -515,6 +515,7 @@ class PipelineController {
                 'id' => Input::post('id', 'int'),
                 'priority' => Input::post('priority', 'enum', 'normal', ['baixa', 'normal', 'alta', 'urgente']),
                 'assigned_to' => Input::post('assigned_to', 'int') ?: null,
+                'seller_id' => Input::post('seller_id', 'int') ?: null,
                 'internal_notes' => Input::post('internal_notes'),
                 'quote_notes' => Input::post('quote_notes'),
                 'deadline' => Input::post('deadline', 'date') ?: null,

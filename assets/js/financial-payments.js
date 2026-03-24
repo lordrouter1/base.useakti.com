@@ -71,6 +71,7 @@
             if (sectionId === 'payments') loadPayments(1);
             if (sectionId === 'transactions') loadTransactions(1);
             if (sectionId === 'recurring') loadRecurring();
+            if (sectionId === 'audit') loadAuditLog(1);
         }
 
         document.querySelectorAll('.fin-nav-item').forEach(function(item) {
@@ -444,13 +445,14 @@
                     var valPrefix = isRegistro ? '—' : (t.type === 'entrada' ? '+' : '-');
                     html += '<td class="fw-bold ' + valClass + '">' + valPrefix + ' R$ ' + formatCurrency(t.amount) + '</td>';
                     html += '<td class="small">' + (methodLabels[t.payment_method] || (t.payment_method ? t.payment_method : '—')) + '</td>';
-                    // Actions
+                    // Actions — delete disponível para TODAS as transações (com motivo obrigatório)
                     html += '<td class="text-end pe-3">';
-                    if (!t.reference_type || t.reference_type === 'manual') {
-                        html += '<button class="btn btn-sm btn-outline-danger btn-delete-tx" data-id="' + t.id + '" title="Excluir"><i class="fas fa-trash"></i></button>';
-                    } else {
-                        html += '<span class="badge bg-light text-muted border" style="font-size:0.65rem;">' + (isRegistro ? 'Registro' : 'Automática') + '</span>';
+                    var txOrigin = '';
+                    if (t.reference_type && t.reference_type !== 'manual') {
+                        txOrigin = isRegistro ? 'Registro' : 'Auto';
+                        html += '<span class="badge bg-light text-muted border me-1" style="font-size:0.6rem;">' + txOrigin + '</span>';
                     }
+                    html += '<button class="btn btn-sm btn-outline-danger btn-delete-tx" data-id="' + t.id + '" data-desc="' + escHtml(t.description) + '" data-amount="' + formatCurrency(t.amount) + '" data-type="' + escHtml(t.type) + '" title="Excluir transação"><i class="fas fa-trash"></i></button>';
                     html += '</td></tr>';
                 });
                 tbody.innerHTML = html;
@@ -465,22 +467,53 @@
             document.querySelectorAll('#txTableBody .btn-delete-tx').forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     var id = this.dataset.id;
+                    var desc = this.dataset.desc || '';
+                    var amount = this.dataset.amount || '';
+                    var tipo = this.dataset.type || '';
+
+                    var infoHtml = '<div class="text-start mb-3" style="font-size:.85rem;">';
+                    infoHtml += '<p class="mb-1"><strong>Descrição:</strong> ' + escHtml(desc) + '</p>';
+                    infoHtml += '<p class="mb-1"><strong>Valor:</strong> R$ ' + amount + '</p>';
+                    infoHtml += '<p class="mb-0"><strong>Tipo:</strong> ' + (tipo === 'entrada' ? '✅ Entrada' : tipo === 'saida' ? '🔴 Saída' : '📋 Registro') + '</p>';
+                    infoHtml += '</div>';
+                    infoHtml += '<p class="text-muted small mb-2">Esta ação será registrada na <strong>auditoria financeira</strong>.</p>';
+
                     Swal.fire({
-                        title: 'Excluir transação?', text: 'Essa ação não pode ser desfeita.', icon: 'warning',
-                        showCancelButton: true, confirmButtonColor: '#e74c3c', cancelButtonColor: '#6c757d',
-                        confirmButtonText: '<i class="fas fa-trash me-1"></i>Excluir', cancelButtonText: 'Manter'
+                        title: 'Excluir transação?',
+                        html: infoHtml,
+                        icon: 'warning',
+                        input: 'textarea',
+                        inputLabel: 'Motivo da exclusão (obrigatório)',
+                        inputPlaceholder: 'Ex: Lançamento duplicado, valor incorreto...',
+                        inputAttributes: { 'aria-label': 'Motivo da exclusão', maxlength: 500 },
+                        inputValidator: function(value) {
+                            if (!value || value.trim().length < 3) {
+                                return 'Informe o motivo da exclusão (mínimo 3 caracteres).';
+                            }
+                        },
+                        showCancelButton: true,
+                        confirmButtonColor: '#e74c3c',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '<i class="fas fa-trash me-1"></i>Excluir',
+                        cancelButtonText: 'Cancelar',
+                        focusCancel: true
                     }).then(function(result) {
                         if (result.isConfirmed) {
                             var fd = new FormData();
                             fd.append('transaction_id', id);
+                            fd.append('reason', result.value.trim());
                             fd.append('csrf_token', csrfToken);
                             fetch('?page=financial&action=deleteTransaction', {
                                 method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd
                             }).then(function(r) { return r.json(); }).then(function(data) {
                                 if (data.success) {
-                                    Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2000,timerProgressBar:true}).fire({icon:'success',title:'Transação removida!'});
+                                    Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2500,timerProgressBar:true}).fire({icon:'success',title:'Transação removida!'});
                                     loadTransactions(txPage);
+                                } else {
+                                    Swal.fire({icon:'error',title:'Erro',text: data.message || 'Não foi possível excluir.'});
                                 }
+                            }).catch(function() {
+                                Swal.fire({icon:'error',title:'Erro',text:'Falha na comunicação com o servidor.'});
                             });
                         }
                     });
@@ -1799,6 +1832,160 @@
                 window.location.href = '?' + params.toString();
             });
         }
+
+
+        // ═══════════════════════════════════════════
+        // AUDITORIA FINANCEIRA — AJAX + Paginação
+        // ═══════════════════════════════════════════
+        var auditPage = 1;
+
+        var auditActionBadges = {
+            'created':   { bg: 'bg-success',            icon: 'fas fa-plus-circle',        label: 'Criado' },
+            'updated':   { bg: 'bg-primary',            icon: 'fas fa-edit',               label: 'Atualizado' },
+            'deleted':   { bg: 'bg-danger',             icon: 'fas fa-trash-alt',          label: 'Excluído' },
+            'paid':      { bg: 'bg-warning text-dark',  icon: 'fas fa-hand-holding-usd',   label: 'Pago' },
+            'confirmed': { bg: 'bg-info text-dark',     icon: 'fas fa-check-double',       label: 'Confirmado' },
+            'cancelled': { bg: 'bg-secondary',          icon: 'fas fa-ban',                label: 'Cancelado' },
+            'reversed':  { bg: 'bg-dark',               icon: 'fas fa-undo',               label: 'Estornado' },
+        };
+
+        var auditEntityLabels = {
+            'transaction': '💰 Transação',
+            'installment': '📋 Parcela',
+            'order':       '📦 Pedido',
+            'recurring':   '🔄 Recorrência',
+        };
+
+        function loadAuditLog(page) {
+            auditPage = page || 1;
+            var params = new URLSearchParams({
+                page: 'financial', action: 'getAuditLog',
+                pg: auditPage, per_page: 25,
+                entity_type: document.getElementById('fAuditEntity')?.value || '',
+                action_filter: document.getElementById('fAuditAction')?.value || '',
+                date_from: document.getElementById('fAuditFrom')?.value || '',
+                date_to: document.getElementById('fAuditTo')?.value || '',
+                search: document.getElementById('fAuditSearch')?.value || '',
+            });
+
+            document.getElementById('auditTableBody').innerHTML =
+                '<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x mb-2 d-block opacity-50"></i>Carregando...</td></tr>';
+
+            fetch('?' + params.toString())
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.success) return;
+
+                document.getElementById('auditTotalBadge').textContent = data.total + ' registro(s)';
+
+                var tbody = document.getElementById('auditTableBody');
+                if (!data.items || data.items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-shield-alt fa-3x mb-2 d-block opacity-25"></i><div class="fw-bold">Nenhum registro de auditoria encontrado</div><p class="small mt-1">Os registros aparecerão conforme movimentações financeiras forem realizadas.</p></td></tr>';
+                    document.getElementById('auditPagination').innerHTML = '';
+                    return;
+                }
+
+                var html = '';
+                data.items.forEach(function(row) {
+                    var badge = auditActionBadges[row.action] || { bg: 'bg-light text-dark', icon: 'fas fa-circle', label: row.action };
+                    var isDeleted = row.action === 'deleted';
+
+                    html += '<tr' + (isDeleted ? ' class="table-danger"' : '') + '>';
+                    // Data/Hora
+                    html += '<td class="ps-3 small">' + formatDateTimeBR(row.created_at) + '</td>';
+                    // Entidade
+                    html += '<td class="small">' + (auditEntityLabels[row.entity_type] || row.entity_type) + '</td>';
+                    // ID
+                    html += '<td class="small fw-bold">#' + row.entity_id + '</td>';
+                    // Ação (badge)
+                    html += '<td><span class="badge ' + badge.bg + '"><i class="' + badge.icon + ' me-1"></i>' + badge.label + '</span></td>';
+                    // Motivo / Detalhes
+                    html += '<td class="small">';
+                    if (row.reason) {
+                        html += '<div class="text-danger fw-bold mb-1"><i class="fas fa-comment-alt me-1"></i>' + escHtml(row.reason) + '</div>';
+                    }
+                    // Mostrar resumo dos dados alterados
+                    var details = buildAuditDetails(row);
+                    if (details) {
+                        html += '<div class="text-muted" style="font-size:.72rem;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(details) + '">' + escHtml(details) + '</div>';
+                    }
+                    html += '</td>';
+                    // Usuário
+                    html += '<td class="small">' + escHtml(row.user_name || ('User #' + (row.user_id || '?'))) + '</td>';
+                    // IP
+                    html += '<td class="text-end pe-3 small text-muted">' + escHtml(row.ip_address || '—') + '</td>';
+                    html += '</tr>';
+                });
+                tbody.innerHTML = html;
+
+                renderPagination('auditPagination', data.page, data.total_pages, data.total, function(p) { loadAuditLog(p); });
+            })
+            .catch(function(err) { console.error('Erro ao carregar auditoria:', err); });
+        }
+
+        function buildAuditDetails(row) {
+            try {
+                var newVals = row.new_values ? JSON.parse(row.new_values) : null;
+                var oldVals = row.old_values ? JSON.parse(row.old_values) : null;
+
+                if (row.action === 'deleted' && oldVals) {
+                    var parts = [];
+                    if (oldVals.description) parts.push('Desc: ' + oldVals.description);
+                    if (oldVals.amount) parts.push('Valor: R$ ' + formatCurrency(oldVals.amount));
+                    if (oldVals.type) parts.push('Tipo: ' + oldVals.type);
+                    return parts.join(' · ') || null;
+                }
+                if (newVals) {
+                    var parts = [];
+                    if (newVals.description) parts.push('Desc: ' + newVals.description);
+                    if (newVals.amount) parts.push('Valor: R$ ' + formatCurrency(newVals.amount));
+                    if (newVals.type) parts.push('Tipo: ' + newVals.type);
+                    if (newVals.paid_amount) parts.push('Pago: R$ ' + formatCurrency(newVals.paid_amount));
+                    return parts.join(' · ') || null;
+                }
+            } catch(e) {}
+            return null;
+        }
+
+        function formatDateTimeBR(dateStr) {
+            if (!dateStr) return '—';
+            // format: YYYY-MM-DD HH:MM:SS → DD/MM/YYYY HH:MM
+            var parts = dateStr.split(' ');
+            var dateParts = (parts[0] || '').split('-');
+            var timeParts = (parts[1] || '').substring(0, 5);
+            if (dateParts.length === 3) return dateParts[2] + '/' + dateParts[1] + '/' + dateParts[0] + ' ' + timeParts;
+            return dateStr;
+        }
+
+        // Dynamic filters for audit
+        ['fAuditEntity', 'fAuditAction'].forEach(function(id) {
+            document.getElementById(id)?.addEventListener('change', function() { loadAuditLog(1); });
+        });
+        ['fAuditFrom', 'fAuditTo'].forEach(function(id) {
+            document.getElementById(id)?.addEventListener('change', function() { loadAuditLog(1); });
+        });
+        document.getElementById('fAuditSearch')?.addEventListener('input', function() {
+            debounce('auditSearch', function() { loadAuditLog(1); }, 400);
+        });
+
+        // Export audit CSV
+        var btnExportAudit = document.getElementById('btnExportAudit');
+        if (btnExportAudit) {
+            btnExportAudit.addEventListener('click', function() {
+                var params = new URLSearchParams({
+                    page: 'financial', action: 'exportAuditCsv',
+                    entity_type: document.getElementById('fAuditEntity')?.value || '',
+                    action_filter: document.getElementById('fAuditAction')?.value || '',
+                    date_from: document.getElementById('fAuditFrom')?.value || '',
+                    date_to: document.getElementById('fAuditTo')?.value || '',
+                    search: document.getElementById('fAuditSearch')?.value || ''
+                });
+                window.location.href = '?' + params.toString();
+            });
+        }
+
+        // Auto-load audit if initial section
+        if (initialSection === 'audit') loadAuditLog(1);
 
     });
 })();

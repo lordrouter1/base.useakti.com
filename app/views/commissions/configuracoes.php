@@ -117,6 +117,21 @@ $pipelineStages = [
                                     </select>
                                     <small class="text-muted">Etapa na qual a comissão pode ser calculada automaticamente.</small>
                                 </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">Critério de Liberação da Comissão</label>
+                                    <select name="criterio_liberacao_comissao" class="form-select form-select-sm" id="selCriterioLiberacao">
+                                        <option value="sem_confirmacao" <?= ($config['criterio_liberacao_comissao'] ?? 'pagamento_total') === 'sem_confirmacao' ? 'selected' : '' ?>>
+                                            Sem confirmação de pagamento (Liberação imediata)
+                                        </option>
+                                        <option value="primeira_parcela" <?= ($config['criterio_liberacao_comissao'] ?? 'pagamento_total') === 'primeira_parcela' ? 'selected' : '' ?>>
+                                            Pagamento da primeira parcela
+                                        </option>
+                                        <option value="pagamento_total" <?= ($config['criterio_liberacao_comissao'] ?? 'pagamento_total') === 'pagamento_total' ? 'selected' : '' ?>>
+                                            Pagamento total da venda
+                                        </option>
+                                    </select>
+                                    <small class="text-muted">Define quando a comissão é liberada/gerada automaticamente.</small>
+                                </div>
                             </div>
                         </div>
 
@@ -144,7 +159,17 @@ $pipelineStages = [
                                 <li><strong>Regra por Produto/Categoria</strong> — Regras específicas por item vendido.</li>
                                 <li><strong>Regra Padrão</strong> — Percentual padrão definido acima.</li>
                             </ol>
-                            <p class="small text-muted mb-0">O sistema suporta três tipos de cálculo: <strong>Percentual</strong>, <strong>Valor Fixo</strong> e <strong>Faixa Progressiva</strong>.</p>
+                            <p class="small text-muted mb-2">O sistema suporta três tipos de cálculo: <strong>Percentual</strong>, <strong>Valor Fixo</strong> e <strong>Faixa Progressiva</strong>.</p>
+                            <hr class="my-2">
+                            <h6 class="fw-bold mb-1" style="font-size:.82rem;">Fluxo de Status da Comissão</h6>
+                            <p class="small text-muted mb-0">
+                                <span class="badge bg-warning text-dark">Calculada</span>
+                                <i class="fas fa-arrow-right mx-1 text-muted" style="font-size:.6rem;"></i>
+                                <span class="badge bg-info">Aprovada / Ag. Pagamento</span>
+                                <i class="fas fa-arrow-right mx-1 text-muted" style="font-size:.6rem;"></i>
+                                <span class="badge bg-success">Paga</span>
+                                <br><small>Se "Aprovação Automática" estiver ativa, a comissão pula de "Calculada" direto para "Aguardando Pagamento".</small>
+                            </p>
                         </div>
                     </div>
                 </div>

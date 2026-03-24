@@ -2,6 +2,7 @@
 namespace Akti\Services;
 
 use Akti\Models\Commission;
+use Akti\Models\Financial;
 use Akti\Models\Order;
 use Akti\Models\User;
 use Akti\Models\UserGroup;
@@ -207,13 +208,17 @@ class CommissionService
 
     public function aprovarComissao(int $id, int $approvedBy): array
     {
-        $ok = $this->model->updateComissaoStatus($id, 'aprovada', $approvedBy);
-        return ['success' => $ok, 'message' => $ok ? 'Comissão aprovada.' : 'Erro ao aprovar.'];
+        // Ao aprovar, muda para 'aguardando_pagamento' (novo fluxo)
+        $ok = $this->model->updateComissaoStatus($id, 'aguardando_pagamento', $approvedBy);
+        return ['success' => $ok, 'message' => $ok ? 'Comissão aprovada — aguardando confirmação de pagamento.' : 'Erro ao aprovar.'];
     }
 
     public function pagarComissao(int $id): array
     {
         $ok = $this->model->updateComissaoStatus($id, 'paga');
+        if ($ok) {
+            $this->registrarTransacaoFinanceira($id);
+        }
         return ['success' => $ok, 'message' => $ok ? 'Comissão marcada como paga.' : 'Erro ao atualizar.'];
     }
 
@@ -224,31 +229,91 @@ class CommissionService
     }
 
     /**
-     * Aprovar múltiplas comissões.
+     * Aprovar múltiplas comissões (muda para aguardando_pagamento).
      */
     public function aprovarEmLote(array $ids, int $approvedBy): array
     {
         $count = 0;
         foreach ($ids as $id) {
-            if ($this->model->updateComissaoStatus((int) $id, 'aprovada', $approvedBy)) {
+            if ($this->model->updateComissaoStatus((int) $id, 'aguardando_pagamento', $approvedBy)) {
                 $count++;
             }
         }
-        return ['success' => true, 'message' => "{$count} comissões aprovadas.", 'count' => $count];
+        return ['success' => true, 'message' => "{$count} comissões aprovadas — aguardando pagamento.", 'count' => $count];
     }
 
     /**
      * Pagar múltiplas comissões.
+     * Gera transação financeira para cada comissão paga.
      */
     public function pagarEmLote(array $ids): array
     {
         $count = 0;
         foreach ($ids as $id) {
-            if ($this->model->updateComissaoStatus((int) $id, 'paga')) {
+            $intId = (int) $id;
+            if ($this->model->updateComissaoStatus($intId, 'paga')) {
+                $this->registrarTransacaoFinanceira($intId);
                 $count++;
             }
         }
         return ['success' => true, 'message' => "{$count} comissões pagas.", 'count' => $count];
+    }
+
+    /**
+     * Registra transação financeira de saída (despesa de comissão) no caixa.
+     * Chamada SOMENTE quando a comissão é efetivamente PAGA.
+     *
+     * @param int $comissaoId
+     * @return bool
+     */
+    private function registrarTransacaoFinanceira(int $comissaoId): bool
+    {
+        $comissao = $this->model->getComissaoRegistrada($comissaoId);
+        if (!$comissao) return false;
+
+        $financialModel = new Financial($this->db);
+
+        return $financialModel->addTransaction([
+            'type'             => 'saida',
+            'category'         => 'comissao_vendedor',
+            'description'      => sprintf(
+                'Comissão paga — Pedido #%d — Vendedor: %s',
+                $comissao['order_id'] ?? 0,
+                $comissao['user_name'] ?? "ID {$comissao['user_id']}"
+            ),
+            'amount'           => (float) ($comissao['valor_comissao'] ?? 0),
+            'transaction_date' => date('Y-m-d'),
+            'reference_type'   => 'commission',
+            'reference_id'     => $comissaoId,
+            'payment_method'   => null,
+            'is_confirmed'     => 1,
+            'user_id'          => (int) ($comissao['user_id'] ?? 0),
+            'notes'            => sprintf(
+                'Pagamento de comissão #%d — Pedido #%d.',
+                $comissaoId,
+                $comissao['order_id'] ?? 0
+            ),
+        ]);
+    }
+
+    // ═══════════════════════════════════════════════════
+    // OPERAÇÕES POR VENDEDOR (para modal de lote)
+    // ═══════════════════════════════════════════════════
+
+    /**
+     * Lista vendedores com comissões pendentes.
+     */
+    public function getVendedoresComPendentes(): array
+    {
+        return $this->model->getVendedoresComPendentes();
+    }
+
+    /**
+     * Lista comissões pendentes de um vendedor.
+     */
+    public function getComissoesPorVendedor(int $userId, ?string $statusFilter = null): array
+    {
+        return $this->model->getComissoesPendentesPorVendedor($userId, $statusFilter);
     }
 
     // ═══════════════════════════════════════════════════

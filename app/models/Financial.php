@@ -601,11 +601,16 @@ class Financial {
                 ]);
             }
 
-            // Remover a transação de entrada original (ou marcar como cancelada)
-            $qDel = "DELETE FROM financial_transactions 
-                     WHERE reference_type = 'installment' AND reference_id = :rid AND type = 'entrada'";
-            $sDel = $this->conn->prepare($qDel);
-            $sDel->execute([':rid' => $installmentId]);
+            // Remover a transação de entrada original (dispara evento de auditoria para cada)
+            $qFind = "SELECT * FROM financial_transactions
+                      WHERE reference_type = 'installment' AND reference_id = :rid AND type = 'entrada'";
+            $sFind = $this->conn->prepare($qFind);
+            $sFind->execute([':rid' => $installmentId]);
+            $txToDelete = $sFind->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($txToDelete as $txOld) {
+                $this->deleteTransaction((int) $txOld['id'], 'Estorno automático — cancelamento de parcela #' . $installmentId);
+            }
         }
 
         return true;
@@ -1572,10 +1577,14 @@ class Financial {
     /**
      * Deleta transação (soft-delete se a coluna deleted_at existir, hard delete caso contrário).
      * @param int $id ID da transação
+     * @param string|null $reason Motivo da exclusão
      * @return bool Sucesso ou falha
-     * Evento disparado: 'model.financial_transaction.deleted' com ['id']
+     * Evento disparado: 'model.financial_transaction.deleted' com ['id', 'reason', 'old_data']
      */
-    public function deleteTransaction($id) {
+    public function deleteTransaction($id, ?string $reason = null) {
+        // Captura dados antes da exclusão para o evento
+        $oldData = $this->getTransactionById($id);
+
         if ($this->hasSoftDeleteColumn()) {
             $q = "UPDATE financial_transactions SET deleted_at = NOW() WHERE id = :id AND deleted_at IS NULL";
         } else {
@@ -1586,7 +1595,11 @@ class Financial {
         $result = $s->execute([':id' => $id]);
 
         if ($result) {
-            EventDispatcher::dispatch('model.financial_transaction.deleted', new Event('model.financial_transaction.deleted', ['id' => $id]));
+            EventDispatcher::dispatch('model.financial_transaction.deleted', new Event('model.financial_transaction.deleted', [
+                'id'       => $id,
+                'reason'   => $reason,
+                'old_data' => $oldData ?: [],
+            ]));
         }
         return $result;
     }

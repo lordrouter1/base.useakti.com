@@ -10,6 +10,7 @@ use Akti\Services\InstallmentService;
 use Akti\Services\TransactionService;
 use Akti\Services\FinancialImportService;
 use Akti\Services\FinancialReportService;
+use Akti\Services\FinancialAuditService;
 use Akti\Utils\Input;
 use Database;
 use PDO;
@@ -247,6 +248,76 @@ class FinancialController
 
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="fluxo_caixa_' . date('Ymd') . '.csv"');
+        echo $csv;
+        exit;
+    }
+
+    // ═══════════════════════════════════════════
+    // AJAX: Relatório de Auditoria Financeira
+    // ═══════════════════════════════════════════
+
+    /**
+     * Retorna log de auditoria financeira em JSON (paginado com filtros).
+     */
+    public function getAuditLog()
+    {
+        header('Content-Type: application/json');
+
+        $auditService = new FinancialAuditService($this->db);
+
+        $filters = [];
+        $entityType = Input::get('entity_type', 'string', '');
+        $action     = Input::get('action_filter', 'string', '');
+        $dateFrom   = Input::get('date_from', 'string', '');
+        $dateTo     = Input::get('date_to', 'string', '');
+        $search     = Input::get('search', 'string', '');
+
+        if ($entityType) $filters['entity_type'] = $entityType;
+        if ($action)     $filters['action'] = $action;
+        if ($dateFrom)   $filters['date_from'] = $dateFrom;
+        if ($dateTo)     $filters['date_to'] = $dateTo;
+        if ($search)     $filters['search'] = $search;
+
+        $page    = max(1, Input::get('pg', 'int', 1));
+        $perPage = Input::get('per_page', 'int', 25);
+
+        $result = $auditService->getPaginated($filters, $page, $perPage);
+
+        echo json_encode([
+            'success'     => true,
+            'items'       => $result['data'],
+            'total'       => $result['total'],
+            'page'        => $result['page'],
+            'per_page'    => $result['perPage'],
+            'total_pages' => $result['totalPages'],
+        ]);
+        exit;
+    }
+
+    /**
+     * Exporta auditoria financeira em CSV.
+     */
+    public function exportAuditCsv()
+    {
+        $auditService = new FinancialAuditService($this->db);
+
+        $filters = [];
+        $entityType = Input::get('entity_type', 'string', '');
+        $action     = Input::get('action_filter', 'string', '');
+        $dateFrom   = Input::get('date_from', 'string', '');
+        $dateTo     = Input::get('date_to', 'string', '');
+        $search     = Input::get('search', 'string', '');
+
+        if ($entityType) $filters['entity_type'] = $entityType;
+        if ($action)     $filters['action'] = $action;
+        if ($dateFrom)   $filters['date_from'] = $dateFrom;
+        if ($dateTo)     $filters['date_to'] = $dateTo;
+        if ($search)     $filters['search'] = $search;
+
+        $csv = $auditService->exportCsv($filters);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="auditoria_financeira_' . date('Ymd_His') . '.csv"');
         echo $csv;
         exit;
     }

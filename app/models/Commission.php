@@ -400,7 +400,8 @@ class Commission
         $sumSql = "SELECT 
                        COALESCE(SUM(cr.valor_comissao), 0) as total_comissao,
                        COALESCE(SUM(CASE WHEN cr.status = 'paga' THEN cr.valor_comissao ELSE 0 END), 0) as total_paga,
-                       COALESCE(SUM(CASE WHEN cr.status = 'aprovada' THEN cr.valor_comissao ELSE 0 END), 0) as total_aprovada,
+                       COALESCE(SUM(CASE WHEN cr.status IN ('aprovada','aguardando_pagamento') THEN cr.valor_comissao ELSE 0 END), 0) as total_aprovada,
+                       COALESCE(SUM(CASE WHEN cr.status = 'aguardando_pagamento' THEN cr.valor_comissao ELSE 0 END), 0) as total_aguardando,
                        COALESCE(SUM(CASE WHEN cr.status = 'calculada' THEN cr.valor_comissao ELSE 0 END), 0) as total_calculada
                    FROM comissoes_registradas cr
                    JOIN users u ON cr.user_id = u.id
@@ -460,6 +461,10 @@ class Commission
 
     /**
      * Atualiza status de uma comissão registrada.
+     *
+     * Fluxo de status:
+     *   calculada → aprovada → aguardando_pagamento → paga
+     *   (qualquer status pode ir para 'cancelada')
      */
     public function updateComissaoStatus(int $id, string $status, ?int $approvedBy = null): bool
     {
@@ -467,6 +472,11 @@ class Commission
         $params = [':id' => $id, ':status' => $status];
         if ($status === 'aprovada' && $approvedBy) {
             $extra = ", approved_by = :ab, approved_at = NOW()";
+            $params[':ab'] = $approvedBy;
+        }
+        if ($status === 'aguardando_pagamento' && $approvedBy) {
+            // Quando muda para aguardando_pagamento, registrar quem aprovou (se ainda não tinha)
+            $extra = ", approved_by = COALESCE(approved_by, :ab), approved_at = COALESCE(approved_at, NOW())";
             $params[':ab'] = $approvedBy;
         }
         if ($status === 'paga') {
@@ -478,6 +488,62 @@ class Commission
         $sql = "UPDATE comissoes_registradas SET status = :status $extra WHERE id = :id";
         $stmt = $this->conn->prepare($sql);
         return $stmt->execute($params);
+    }
+
+    /**
+     * Retorna lista de vendedores com comissões pendentes (para o modal de lote).
+     *
+     * @return array [['user_id' => int, 'user_name' => string, 'pendentes_aprovacao' => int,
+     *                  'pendentes_pagamento' => int, 'total_valor' => float]]
+     */
+    public function getVendedoresComPendentes(): array
+    {
+        $sql = "SELECT cr.user_id, u.name as user_name,
+                       SUM(CASE WHEN cr.status IN ('calculada') THEN 1 ELSE 0 END) as pendentes_aprovacao,
+                       SUM(CASE WHEN cr.status IN ('aprovada','aguardando_pagamento') THEN 1 ELSE 0 END) as pendentes_pagamento,
+                       COALESCE(SUM(CASE WHEN cr.status != 'cancelada' AND cr.status != 'paga' THEN cr.valor_comissao ELSE 0 END), 0) as total_valor
+                FROM comissoes_registradas cr
+                JOIN users u ON cr.user_id = u.id
+                WHERE cr.status IN ('calculada','aprovada','aguardando_pagamento')
+                GROUP BY cr.user_id
+                ORDER BY u.name ASC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Retorna comissões pendentes de um vendedor específico.
+     *
+     * @param int $userId
+     * @param string|null $statusFilter  'aprovacao' | 'pagamento' | null (todos pendentes)
+     * @return array
+     */
+    public function getComissoesPendentesPorVendedor(int $userId, ?string $statusFilter = null): array
+    {
+        $where = "cr.user_id = :uid";
+        $params = [':uid' => $userId];
+
+        if ($statusFilter === 'aprovacao') {
+            $where .= " AND cr.status = 'calculada'";
+        } elseif ($statusFilter === 'pagamento') {
+            $where .= " AND cr.status IN ('aprovada','aguardando_pagamento')";
+        } else {
+            $where .= " AND cr.status IN ('calculada','aprovada','aguardando_pagamento')";
+        }
+
+        $sql = "SELECT cr.*, u.name as user_name, o.total_amount as order_total,
+                       c.name as customer_name, fc.nome as forma_nome
+                FROM comissoes_registradas cr
+                JOIN users u ON cr.user_id = u.id
+                JOIN orders o ON cr.order_id = o.id
+                LEFT JOIN customers c ON o.customer_id = c.id
+                LEFT JOIN formas_comissao fc ON cr.forma_comissao_id = fc.id
+                WHERE {$where}
+                ORDER BY cr.created_at DESC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
@@ -570,12 +636,20 @@ class Commission
         $summary['pendentes_valor'] = (float) $row[1];
 
         // Aprovadas (aguardando pagamento)
-        $q = "SELECT COUNT(*), COALESCE(SUM(valor_comissao), 0) FROM comissoes_registradas WHERE status = 'aprovada'";
+        $q = "SELECT COUNT(*), COALESCE(SUM(valor_comissao), 0) FROM comissoes_registradas WHERE status IN ('aprovada','aguardando_pagamento')";
         $s = $this->conn->prepare($q);
         $s->execute();
         $row = $s->fetch(PDO::FETCH_NUM);
         $summary['aprovadas_count'] = (int) $row[0];
         $summary['aprovadas_valor'] = (float) $row[1];
+
+        // Aguardando pagamento (sub-status)
+        $q = "SELECT COUNT(*), COALESCE(SUM(valor_comissao), 0) FROM comissoes_registradas WHERE status = 'aguardando_pagamento'";
+        $s = $this->conn->prepare($q);
+        $s->execute();
+        $row = $s->fetch(PDO::FETCH_NUM);
+        $summary['aguardando_count'] = (int) $row[0];
+        $summary['aguardando_valor'] = (float) $row[1];
 
         // Top 5 comissionados do mês
         $q = "SELECT u.name, u.id as user_id, 

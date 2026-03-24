@@ -236,8 +236,10 @@ class CommissionEngine
         }
 
         // Determinar status
+        // Se aprovação automática: 'aguardando_pagamento' (novo fluxo)
+        // Caso contrário: 'calculada' (requer aprovação manual)
         $autoApprove = (bool) $this->model->getConfigValue('aprovacao_automatica', 0);
-        $status = $autoApprove ? 'aprovada' : 'calculada';
+        $status = $autoApprove ? 'aguardando_pagamento' : 'calculada';
 
         $id = $this->model->registrarComissao([
             'order_id'            => $context['order_id'],

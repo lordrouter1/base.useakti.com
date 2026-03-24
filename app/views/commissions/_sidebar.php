@@ -17,7 +17,7 @@ $commissionSections = [
     ['action' => 'produtos',       'icon' => 'fas fa-box',             'label' => 'Regras por Produto',   'color' => '#16a085', 'bg' => 'rgba(22,160,133,.1)'],
     ['divider' => true],
     ['action' => 'simulador',      'icon' => 'fas fa-calculator',      'label' => 'Simulador',            'color' => '#2980b9', 'bg' => 'rgba(41,128,185,.1)'],
-    ['action' => 'historico',      'icon' => 'fas fa-history',         'label' => 'Histórico',            'color' => '#c0392b', 'bg' => 'rgba(192,57,43,.1)'],
+    ['action' => 'historico',      'icon' => 'fas fa-check-double',   'label' => 'Aprovação',            'color' => '#c0392b', 'bg' => 'rgba(192,57,43,.1)'],
     ['divider' => true],
     ['action' => 'configuracoes',  'icon' => 'fas fa-cog',             'label' => 'Configurações',        'color' => '#7f8c8d', 'bg' => 'rgba(127,140,141,.1)'],
 ];
@@ -30,7 +30,7 @@ $_tips = [
     'usuarios'      => 'Atribua regras individuais a cada vendedor. <strong>Prioridade 1</strong> — sobrepõe a regra do grupo.',
     'produtos'      => 'Defina comissões específicas por <strong>produto</strong> ou <strong>categoria</strong>. Prioridade 3 no motor de cálculo.',
     'simulador'     => 'Simule o cálculo de comissão <strong>sem registrar</strong>, usando a mesma lógica do motor de regras.',
-    'historico'     => 'Consulte todas as comissões calculadas. Aprove, pague ou cancele individualmente ou em lote.',
+    'historico'     => 'Gerencie aprovações e pagamentos de comissões. Aprove, pague ou cancele individualmente ou em lote, inclusive por vendedor.',
     'configuracoes' => 'Defina o <strong>percentual padrão</strong>, base de cálculo e comportamento de aprovação automática.',
 ];
 $_currentTip = $_tips[$currentAction] ?? $_tips['index'];

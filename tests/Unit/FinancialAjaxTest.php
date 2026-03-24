@@ -176,10 +176,62 @@ class FinancialAjaxTest extends TestCase
             'exportTransactionsCsv', 'exportDreCsv', 'exportCashflowCsv',
             'recurringList', 'recurringStore', 'recurringUpdate',
             'recurringDelete', 'recurringToggle', 'recurringProcess', 'recurringGet',
+            'getAuditLog', 'exportAuditCsv',
         ];
 
         foreach ($expected as $action) {
             $this->assertArrayHasKey($action, $financial, "Rota financial.{$action} deve existir no mapa de rotas");
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Auditoria Financeira
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * @test
+     * Verifica que o endpoint de auditoria retorna JSON válido com paginação.
+     */
+    public function audit_log_retorna_json_valido(): void
+    {
+        $response = $this->httpGet('?page=financial&action=getAuditLog&pg=1&per_page=10', true);
+        $this->assertStatusOk($response['status'], 'Audit Log AJAX');
+        $this->assertNoPhpErrors($response['body'], 'Audit Log AJAX');
+
+        $json = json_decode($response['body'], true);
+        $this->assertIsArray($json, 'Audit Log response deve ser JSON válido');
+        $this->assertTrue($json['success'] ?? false, 'Audit Log response deve ter success=true');
+        $this->assertArrayHasKey('items', $json, 'Audit Log response deve conter key "items"');
+        $this->assertArrayHasKey('total', $json, 'Audit Log response deve conter key "total"');
+        $this->assertArrayHasKey('page', $json, 'Audit Log response deve conter key "page"');
+        $this->assertArrayHasKey('total_pages', $json, 'Audit Log response deve conter key "total_pages"');
+        $this->assertIsArray($json['items']);
+    }
+
+    /**
+     * @test
+     * Verifica que o endpoint de auditoria aceita filtros.
+     */
+    public function audit_log_aceita_filtros(): void
+    {
+        $response = $this->httpGet('?page=financial&action=getAuditLog&entity_type=transaction&action_filter=deleted&date_from=2026-01-01&date_to=2026-12-31', true);
+        $this->assertStatusOk($response['status'], 'Audit Log Filtrado');
+        $this->assertNoPhpErrors($response['body'], 'Audit Log Filtrado');
+
+        $json = json_decode($response['body'], true);
+        $this->assertIsArray($json, 'Audit Log filtrado deve ser JSON válido');
+        $this->assertTrue($json['success'] ?? false, 'Audit Log filtrado deve ter success=true');
+    }
+
+    /**
+     * @test
+     * Verifica que a exportação de auditoria em CSV retorna conteúdo.
+     */
+    public function export_audit_csv_retorna_conteudo(): void
+    {
+        $response = $this->httpGet('?page=financial&action=exportAuditCsv', true);
+        $this->assertStatusOk($response['status'], 'Export Audit CSV');
+        $this->assertNoPhpErrors($response['body'], 'Export Audit CSV');
+        $this->assertNotEmpty($response['body'], 'Export Audit CSV deve retornar conteúdo');
     }
 }

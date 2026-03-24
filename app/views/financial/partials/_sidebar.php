@@ -71,6 +71,13 @@
                 <span>Fluxo de Caixa</span>
             </a>
 
+            <a href="#" class="fin-nav-item <?= $activeSection === 'audit' ? 'active' : '' ?>" data-section="audit">
+                <span class="fin-nav-icon" style="background:rgba(142,68,173,.1);color:#8e44ad;">
+                    <i class="fas fa-shield-alt"></i>
+                </span>
+                <span>Auditoria</span>
+            </a>
+
         </nav>
     </div>
 </div>
@@ -84,8 +91,9 @@
         <p class="mb-0 text-muted" style="font-size:.72rem;line-height:1.55;">
             Use <span class="fw-bold text-primary">Pagamentos</span> para gerenciar parcelas de pedidos,
             <span class="fw-bold text-success">Visão Geral</span> para entradas e saídas,
-            <span class="fw-bold" style="color:#f1c40f;">Recorrências</span> para despesas/receitas fixas
-            e <span class="fw-bold" style="color:#2ecc71;">Fluxo de Caixa</span> para projeção futura.
+            <span class="fw-bold" style="color:#f1c40f;">Recorrências</span> para despesas/receitas fixas,
+            <span class="fw-bold" style="color:#2ecc71;">Fluxo de Caixa</span> para projeção futura
+            e <span class="fw-bold" style="color:#8e44ad;">Auditoria</span> para rastrear todas as movimentações.
         </p>
     </div>
 </div>

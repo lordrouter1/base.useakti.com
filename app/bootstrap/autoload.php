@@ -99,3 +99,7 @@ require_once AKTI_BASE_PATH . 'app/utils/escape_helper.php';
 // ── Carregar bootstrap de eventos (registro de listeners) ──
 // events.php registra listeners globais e futuramente inclui listeners de módulos
 require_once AKTI_BASE_PATH . 'app/bootstrap/events.php';
+
+// ── Carregar helpers do Portal do Cliente ──
+// portal_helper.php define __p(), portal_money(), portal_date() etc.
+require_once AKTI_BASE_PATH . 'app/utils/portal_helper.php';

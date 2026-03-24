@@ -1,16 +1,18 @@
 <?php
 /**
- * Comissões — Histórico / Relatórios
- * Lista paginada de comissões registradas com filtros dinâmicos e ações em lote.
+ * Comissões — Aprovação / Pagamento
+ * Lista paginada de comissões registradas com filtros dinâmicos, ações em lote
+ * e modal de aprovação/pagamento por vendedor.
  * Padrão visual: Financeiro (sidebar em card, filtros auto-apply sem botão Filtrar).
  * Variáveis: $aux (users, formas)
  */
 $users = $aux['users'] ?? [];
 $statusMap = [
-    'calculada' => ['badge' => 'bg-warning text-dark', 'icon' => 'fas fa-clock',                'label' => 'Calculada'],
-    'aprovada'  => ['badge' => 'bg-info',              'icon' => 'fas fa-thumbs-up',             'label' => 'Aprovada'],
-    'paga'      => ['badge' => 'bg-success',           'icon' => 'fas fa-check-circle',          'label' => 'Paga'],
-    'cancelada' => ['badge' => 'bg-secondary',         'icon' => 'fas fa-ban',                   'label' => 'Cancelada'],
+    'calculada'              => ['badge' => 'bg-warning text-dark', 'icon' => 'fas fa-clock',           'label' => 'Calculada'],
+    'aprovada'               => ['badge' => 'bg-info',              'icon' => 'fas fa-thumbs-up',        'label' => 'Aprovada'],
+    'aguardando_pagamento'   => ['badge' => 'bg-primary',           'icon' => 'fas fa-hourglass-half',   'label' => 'Ag. Pagamento'],
+    'paga'                   => ['badge' => 'bg-success',           'icon' => 'fas fa-check-circle',     'label' => 'Paga'],
+    'cancelada'              => ['badge' => 'bg-secondary',         'icon' => 'fas fa-ban',              'label' => 'Cancelada'],
 ];
 ?>
 
@@ -31,14 +33,19 @@ $statusMap = [
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center">
                     <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(192,57,43,.1);">
-                        <i class="fas fa-history" style="color:#c0392b;font-size:.85rem;"></i>
+                        <i class="fas fa-check-double" style="color:#c0392b;font-size:.85rem;"></i>
                     </div>
                     <div>
-                        <h5 class="mb-0" style="font-size:1rem;">Histórico de Comissões</h5>
-                        <p class="text-muted mb-0" style="font-size:.72rem;">Consulte, aprove, pague ou cancele comissões calculadas.</p>
+                        <h5 class="mb-0" style="font-size:1rem;">Aprovação de Comissões</h5>
+                        <p class="text-muted mb-0" style="font-size:.72rem;">Aprove, pague ou cancele comissões. Use o botão abaixo para ações em lote por vendedor.</p>
                     </div>
                 </div>
-                <div id="summaryBadges" class="d-flex gap-1 flex-wrap"></div>
+                <div class="d-flex align-items-center gap-2">
+                    <div id="summaryBadges" class="d-flex gap-1 flex-wrap"></div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="openVendedorModal()" title="Aprovação/Pagamento por Vendedor">
+                        <i class="fas fa-user-check me-1"></i>Por Vendedor
+                    </button>
+                </div>
             </div>
 
             <!-- Filtro dinâmico (auto-apply) -->
@@ -60,6 +67,7 @@ $statusMap = [
                                 <option value="">Todos</option>
                                 <option value="calculada">Calculada</option>
                                 <option value="aprovada">Aprovada</option>
+                                <option value="aguardando_pagamento">Ag. Pagamento</option>
                                 <option value="paga">Paga</option>
                                 <option value="cancelada">Cancelada</option>
                             </select>
@@ -117,6 +125,82 @@ $statusMap = [
                     </table>
                 </div>
                 <div class="card-footer bg-white d-flex justify-content-between align-items-center" id="paginationArea"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- MODAL: Aprovação/Pagamento por Vendedor                      -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="modalVendedor" tabindex="-1" aria-labelledby="modalVendedorLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-0 pb-2">
+                <h5 class="modal-title" id="modalVendedorLabel">
+                    <i class="fas fa-user-check me-2 text-primary"></i>Aprovação / Pagamento por Vendedor
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body pt-0">
+                <!-- Lista de Vendedores -->
+                <div id="vendedorListSection">
+                    <p class="text-muted small mb-2">Selecione um vendedor para visualizar e gerenciar suas comissões pendentes.</p>
+                    <div class="list-group" id="vendedorList">
+                        <div class="text-center py-3 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Carregando...</div>
+                    </div>
+                </div>
+
+                <!-- Comissões do Vendedor Selecionado -->
+                <div id="vendedorComissoes" style="display:none">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="voltarListaVendedores()" title="Voltar">
+                                <i class="fas fa-arrow-left"></i>
+                            </button>
+                            <h6 class="mb-0">
+                                <i class="fas fa-user me-1 text-primary"></i>
+                                <span id="vendedorSelectedName"></span>
+                            </h6>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <select class="form-select form-select-sm" style="width:auto" onchange="loadComissoesVendedor(selectedVendedorId, this.value)">
+                                <option value="">Todas pendentes</option>
+                                <option value="aprovacao">Pendentes de aprovação</option>
+                                <option value="pagamento">Pendentes de pagamento</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Ações em lote do vendedor -->
+                    <div class="d-flex gap-2 mb-2">
+                        <button class="btn btn-sm btn-outline-info" onclick="vendedorAprovarLote()" id="btnVendedorAprovar" style="display:none">
+                            <i class="fas fa-thumbs-up me-1"></i>Aprovar Selecionados
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="vendedorPagarLote()" id="btnVendedorPagar" style="display:none">
+                            <i class="fas fa-money-bill me-1"></i>Pagar Selecionados
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:32px"><input type="checkbox" id="vendedorCheckAll" onchange="toggleAllVendedor()"></th>
+                                    <th>Pedido</th>
+                                    <th>Cliente</th>
+                                    <th class="text-end">Valor Base</th>
+                                    <th class="text-end">Comissão</th>
+                                    <th class="text-center">Status</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vendedorComissoesBody">
+                                <tr><td colspan="7" class="text-center py-3 text-muted">Selecione um vendedor.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -185,7 +269,7 @@ function renderTable(items) {
         if (i.status === 'calculada') {
             actions += `<button class="btn btn-sm btn-outline-info" onclick="actionStatus(${i.id}, 'aprovar')" title="Aprovar"><i class="fas fa-thumbs-up"></i></button> `;
         }
-        if (i.status === 'aprovada') {
+        if (i.status === 'aprovada' || i.status === 'aguardando_pagamento') {
             actions += `<button class="btn btn-sm btn-outline-success" onclick="actionStatus(${i.id}, 'pagar')" title="Pagar"><i class="fas fa-money-bill"></i></button> `;
         }
         if (i.status !== 'cancelada' && i.status !== 'paga') {
@@ -225,6 +309,7 @@ function renderSummary(summary) {
     area.innerHTML = `
         <span class="badge bg-light text-dark border" style="font-size:.65rem;">Total: R$ ${parseFloat(summary.total_comissao||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
         <span class="badge bg-success" style="font-size:.65rem;">Pagas: R$ ${parseFloat(summary.total_paga||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+        <span class="badge bg-primary" style="font-size:.65rem;">Ag. Pgto: R$ ${parseFloat(summary.total_aguardando||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
         <span class="badge bg-info" style="font-size:.65rem;">Aprovadas: R$ ${parseFloat(summary.total_aprovada||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
         <span class="badge bg-warning text-dark" style="font-size:.65rem;">Calculadas: R$ ${parseFloat(summary.total_calculada||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
     `;
@@ -309,6 +394,162 @@ function pagarSelecionados() {
 }
 
 function escHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+// ═══════════════════════════════════════════════════
+// MODAL: Aprovação/Pagamento por Vendedor
+// ═══════════════════════════════════════════════════
+
+let vendedorModalInstance = null;
+let selectedVendedorId = null;
+
+function openVendedorModal() {
+    if (!vendedorModalInstance) {
+        vendedorModalInstance = new bootstrap.Modal(document.getElementById('modalVendedor'));
+    }
+    // Resetar e carregar lista de vendedores
+    document.getElementById('vendedorList').innerHTML = '<div class="text-center py-3 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Carregando...</div>';
+    document.getElementById('vendedorComissoes').style.display = 'none';
+    document.getElementById('vendedorListSection').style.display = '';
+    selectedVendedorId = null;
+
+    fetch('?page=commissions&action=getVendedoresPendentes')
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success || !res.data.length) {
+                document.getElementById('vendedorList').innerHTML = '<div class="text-center py-3 text-muted"><i class="fas fa-check-circle me-2"></i>Nenhum vendedor com comissões pendentes.</div>';
+                return;
+            }
+            renderVendedorList(res.data);
+        });
+
+    vendedorModalInstance.show();
+}
+
+function renderVendedorList(vendedores) {
+    const container = document.getElementById('vendedorList');
+    container.innerHTML = vendedores.map(v => `
+        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="selectVendedor(${v.user_id}, '${escHtml(v.user_name)}'); return false;">
+            <div>
+                <i class="fas fa-user me-2 text-primary"></i>
+                <strong>${escHtml(v.user_name)}</strong>
+            </div>
+            <div class="d-flex gap-2">
+                ${v.pendentes_aprovacao > 0 ? `<span class="badge bg-warning text-dark" title="Pendentes de aprovação"><i class="fas fa-clock me-1"></i>${v.pendentes_aprovacao}</span>` : ''}
+                ${v.pendentes_pagamento > 0 ? `<span class="badge bg-primary" title="Pendentes de pagamento"><i class="fas fa-hourglass-half me-1"></i>${v.pendentes_pagamento}</span>` : ''}
+                <span class="badge bg-light text-dark border">R$ ${parseFloat(v.total_valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+            </div>
+        </a>
+    `).join('');
+}
+
+function selectVendedor(userId, userName) {
+    selectedVendedorId = userId;
+    document.getElementById('vendedorListSection').style.display = 'none';
+    document.getElementById('vendedorComissoes').style.display = '';
+    document.getElementById('vendedorSelectedName').textContent = userName;
+    loadComissoesVendedor(userId);
+}
+
+function voltarListaVendedores() {
+    document.getElementById('vendedorComissoes').style.display = 'none';
+    document.getElementById('vendedorListSection').style.display = '';
+    selectedVendedorId = null;
+}
+
+function loadComissoesVendedor(userId, statusFilter = '') {
+    const tbody = document.getElementById('vendedorComissoesBody');
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Carregando...</td></tr>';
+
+    let url = `?page=commissions&action=getComissoesVendedor&user_id=${userId}`;
+    if (statusFilter) url += `&status_filter=${statusFilter}`;
+
+    fetch(url)
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success || !res.data.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted"><i class="fas fa-inbox me-2"></i>Nenhuma comissão pendente.</td></tr>';
+                toggleVendedorLoteBtns();
+                return;
+            }
+            renderVendedorComissoes(res.data);
+        });
+}
+
+function renderVendedorComissoes(items) {
+    const tbody = document.getElementById('vendedorComissoesBody');
+    tbody.innerHTML = items.map(i => {
+        const s = statusMap[i.status] || statusMap['calculada'];
+        const dt = new Date(i.created_at);
+        const dtStr = dt.toLocaleDateString('pt-BR');
+
+        return `<tr>
+            <td><input type="checkbox" class="vendedor-check" value="${i.id}" data-status="${i.status}" onchange="toggleVendedorLoteBtns()"></td>
+            <td><a href="?page=pipeline&action=detail&id=${i.order_id}" class="text-decoration-none fw-semibold" target="_blank">#${i.order_id}</a></td>
+            <td>${escHtml(i.customer_name || '—')}</td>
+            <td class="text-end">R$ ${parseFloat(i.valor_base).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+            <td class="text-end fw-bold text-success">R$ ${parseFloat(i.valor_comissao).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+            <td class="text-center"><span class="badge ${s.badge}"><i class="${s.icon} me-1"></i>${s.label}</span></td>
+            <td class="small">${dtStr}</td>
+        </tr>`;
+    }).join('');
+    toggleVendedorLoteBtns();
+}
+
+function toggleVendedorLoteBtns() {
+    const checked = document.querySelectorAll('.vendedor-check:checked');
+    let hasAprovacao = false;
+    let hasPagamento = false;
+    checked.forEach(c => {
+        if (c.dataset.status === 'calculada') hasAprovacao = true;
+        if (c.dataset.status === 'aprovada' || c.dataset.status === 'aguardando_pagamento') hasPagamento = true;
+    });
+    document.getElementById('btnVendedorAprovar').style.display = hasAprovacao ? '' : 'none';
+    document.getElementById('btnVendedorPagar').style.display = hasPagamento ? '' : 'none';
+}
+
+function toggleAllVendedor() {
+    const checked = document.getElementById('vendedorCheckAll').checked;
+    document.querySelectorAll('.vendedor-check').forEach(c => c.checked = checked);
+    toggleVendedorLoteBtns();
+}
+
+function vendedorAprovarLote() {
+    const ids = Array.from(document.querySelectorAll('.vendedor-check:checked'))
+        .filter(c => c.dataset.status === 'calculada')
+        .map(c => c.value);
+    if (!ids.length) { Swal.fire({icon:'info', title:'Selecione itens com status "Calculada"', timer:1500, showConfirmButton:false}); return; }
+
+    const fd = new FormData();
+    ids.forEach(id => fd.append('ids[]', id));
+    fd.set('csrf_token', csrfToken);
+    fetch('?page=commissions&action=aprovarLote', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+            Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:1500,timerProgressBar:true})
+                .fire({icon: res.success?'success':'error', title: res.message});
+            if (selectedVendedorId) loadComissoesVendedor(selectedVendedorId);
+            loadHistorico(currentPage);
+        });
+}
+
+function vendedorPagarLote() {
+    const ids = Array.from(document.querySelectorAll('.vendedor-check:checked'))
+        .filter(c => c.dataset.status === 'aprovada' || c.dataset.status === 'aguardando_pagamento')
+        .map(c => c.value);
+    if (!ids.length) { Swal.fire({icon:'info', title:'Selecione itens aprovados/aguardando pagamento', timer:1500, showConfirmButton:false}); return; }
+
+    const fd = new FormData();
+    ids.forEach(id => fd.append('ids[]', id));
+    fd.set('csrf_token', csrfToken);
+    fetch('?page=commissions&action=pagarLote', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+            Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:1500,timerProgressBar:true})
+                .fire({icon: res.success?'success':'error', title: res.message});
+            if (selectedVendedorId) loadComissoesVendedor(selectedVendedorId);
+            loadHistorico(currentPage);
+        });
+}
 
 // ── Auto-apply: filtros disparam reload sem botão ──
 document.addEventListener('DOMContentLoaded', function() {

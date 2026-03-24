@@ -103,11 +103,24 @@ class TransactionController
             exit;
         }
 
-        $id = Input::post('transaction_id', 'int', 0);
-        $this->transactionService->delete($id);
+        $id     = Input::post('transaction_id', 'int', 0);
+        $reason = Input::post('reason', 'string', '');
+
+        if (!$id) {
+            if ($this->isAjax()) {
+                $this->jsonResponse(['success' => false, 'message' => 'ID da transação inválido.']);
+            }
+            header('Location: ?page=financial&action=payments&section=transactions');
+            exit;
+        }
+
+        $result = $this->transactionService->delete($id, $reason ?: null);
 
         if ($this->isAjax()) {
-            $this->jsonResponse(['success' => true]);
+            $this->jsonResponse([
+                'success' => $result['success'],
+                'message' => $result['success'] ? 'Transação removida com sucesso.' : 'Transação não encontrada.',
+            ]);
         }
 
         $_SESSION['flash_success'] = 'Transação removida.';

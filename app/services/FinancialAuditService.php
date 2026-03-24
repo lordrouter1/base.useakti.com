@@ -45,6 +45,7 @@ class FinancialAuditService
      * @param array    $newValues   Valores novos / dados do evento
      * @param array    $oldValues   Valores anteriores (opcional)
      * @param int|null $userId      ID do usuário (usa session se null)
+     * @param string|null $reason   Motivo informado pelo usuário (obrigatório em exclusões)
      * @return bool
      */
     public function log(
@@ -53,7 +54,8 @@ class FinancialAuditService
         string $action,
         array $newValues = [],
         array $oldValues = [],
-        ?int $userId = null
+        ?int $userId = null,
+        ?string $reason = null
     ): bool {
         if (!$this->ensureTableExists()) {
             return false;
@@ -62,12 +64,20 @@ class FinancialAuditService
         $userId = $userId ?? ($_SESSION['user_id'] ?? null);
         $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
 
+        // Verifica se a coluna reason existe (adicionada na migração 202506151200)
+        $hasReasonCol = $this->hasReasonColumn();
+
         try {
-            $sql = "INSERT INTO financial_audit_log (entity_type, entity_id, action, old_values, new_values, user_id, ip_address)
-                    VALUES (:entity_type, :entity_id, :action, :old_values, :new_values, :user_id, :ip_address)";
+            if ($hasReasonCol) {
+                $sql = "INSERT INTO financial_audit_log (entity_type, entity_id, action, old_values, new_values, reason, user_id, ip_address)
+                        VALUES (:entity_type, :entity_id, :action, :old_values, :new_values, :reason, :user_id, :ip_address)";
+            } else {
+                $sql = "INSERT INTO financial_audit_log (entity_type, entity_id, action, old_values, new_values, user_id, ip_address)
+                        VALUES (:entity_type, :entity_id, :action, :old_values, :new_values, :user_id, :ip_address)";
+            }
 
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([
+            $params = [
                 ':entity_type' => $entityType,
                 ':entity_id'   => $entityId,
                 ':action'      => $action,
@@ -75,7 +85,11 @@ class FinancialAuditService
                 ':new_values'  => !empty($newValues) ? json_encode($newValues, JSON_UNESCAPED_UNICODE) : null,
                 ':user_id'     => $userId,
                 ':ip_address'  => $ipAddress,
-            ]);
+            ];
+            if ($hasReasonCol) {
+                $params[':reason'] = $reason;
+            }
+            return $stmt->execute($params);
         } catch (\PDOException $e) {
             // Auditoria não deve quebrar o fluxo principal
             error_log('[FinancialAudit] Erro ao gravar log: ' . $e->getMessage());
@@ -90,25 +104,25 @@ class FinancialAuditService
     /**
      * Log de ação em parcela (installment).
      */
-    public function logInstallment(int $id, string $action, array $data = [], array $oldData = [], ?int $userId = null): bool
+    public function logInstallment(int $id, string $action, array $data = [], array $oldData = [], ?int $userId = null, ?string $reason = null): bool
     {
-        return $this->log('installment', $id, $action, $data, $oldData, $userId);
+        return $this->log('installment', $id, $action, $data, $oldData, $userId, $reason);
     }
 
     /**
      * Log de ação em transação financeira.
      */
-    public function logTransaction(int $id, string $action, array $data = [], array $oldData = [], ?int $userId = null): bool
+    public function logTransaction(int $id, string $action, array $data = [], array $oldData = [], ?int $userId = null, ?string $reason = null): bool
     {
-        return $this->log('transaction', $id, $action, $data, $oldData, $userId);
+        return $this->log('transaction', $id, $action, $data, $oldData, $userId, $reason);
     }
 
     /**
      * Log de ação em pedido (financial context).
      */
-    public function logOrder(int $id, string $action, array $data = [], array $oldData = [], ?int $userId = null): bool
+    public function logOrder(int $id, string $action, array $data = [], array $oldData = [], ?int $userId = null, ?string $reason = null): bool
     {
-        return $this->log('order', $id, $action, $data, $oldData, $userId);
+        return $this->log('order', $id, $action, $data, $oldData, $userId, $reason);
     }
 
     // ═══════════════════════════════════════════
@@ -191,8 +205,186 @@ class FinancialAuditService
     }
 
     // ═══════════════════════════════════════════
+    // Consulta paginada para relatório de auditoria
+    // ═══════════════════════════════════════════
+
+    /**
+     * Retorna registros de auditoria com paginação e filtros para o relatório.
+     *
+     * @param array $filters  Filtros: entity_type, action, user_id, date_from, date_to, search
+     * @param int   $page
+     * @param int   $perPage
+     * @return array ['data' => [...], 'total' => int, 'page' => int, 'perPage' => int, 'totalPages' => int]
+     */
+    public function getPaginated(array $filters = [], int $page = 1, int $perPage = 25): array
+    {
+        $empty = ['data' => [], 'total' => 0, 'page' => $page, 'perPage' => $perPage, 'totalPages' => 0];
+
+        if (!$this->ensureTableExists()) {
+            return $empty;
+        }
+
+        try {
+            $where = "WHERE 1=1";
+            $params = [];
+
+            if (!empty($filters['entity_type'])) {
+                $where .= " AND fal.entity_type = :etype";
+                $params[':etype'] = $filters['entity_type'];
+            }
+            if (!empty($filters['action'])) {
+                $where .= " AND fal.action = :action";
+                $params[':action'] = $filters['action'];
+            }
+            if (!empty($filters['user_id'])) {
+                $where .= " AND fal.user_id = :uid";
+                $params[':uid'] = (int) $filters['user_id'];
+            }
+            if (!empty($filters['date_from'])) {
+                $where .= " AND DATE(fal.created_at) >= :dfrom";
+                $params[':dfrom'] = $filters['date_from'];
+            }
+            if (!empty($filters['date_to'])) {
+                $where .= " AND DATE(fal.created_at) <= :dto";
+                $params[':dto'] = $filters['date_to'];
+            }
+            if (!empty($filters['search'])) {
+                $where .= " AND (fal.old_values LIKE :search OR fal.new_values LIKE :search2 OR fal.action LIKE :search3)";
+                $params[':search']  = '%' . $filters['search'] . '%';
+                $params[':search2'] = '%' . $filters['search'] . '%';
+                $params[':search3'] = '%' . $filters['search'] . '%';
+            }
+
+            // Count
+            $countSql = "SELECT COUNT(*) FROM financial_audit_log fal $where";
+            $countStmt = $this->db->prepare($countSql);
+            foreach ($params as $k => $v) {
+                $countStmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+            $countStmt->execute();
+            $total = (int) $countStmt->fetchColumn();
+
+            $totalPages = $perPage > 0 ? (int) ceil($total / $perPage) : 1;
+            $offset = ($page - 1) * $perPage;
+
+            $hasReason = $this->hasReasonColumn();
+            $reasonCol = $hasReason ? ', fal.reason' : '';
+
+            // Data
+            $dataSql = "SELECT fal.id, fal.entity_type, fal.entity_id, fal.action,
+                               fal.old_values, fal.new_values{$reasonCol},
+                               fal.user_id, fal.ip_address, fal.created_at,
+                               u.name as user_name
+                        FROM financial_audit_log fal
+                        LEFT JOIN users u ON fal.user_id = u.id
+                        $where
+                        ORDER BY fal.created_at DESC
+                        LIMIT :lim OFFSET :off";
+
+            $dataStmt = $this->db->prepare($dataSql);
+            foreach ($params as $k => $v) {
+                $dataStmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+            $dataStmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
+            $dataStmt->bindValue(':off', $offset, PDO::PARAM_INT);
+            $dataStmt->execute();
+
+            return [
+                'data'       => $dataStmt->fetchAll(PDO::FETCH_ASSOC),
+                'total'      => $total,
+                'page'       => $page,
+                'perPage'    => $perPage,
+                'totalPages' => $totalPages,
+            ];
+        } catch (\PDOException $e) {
+            error_log('[FinancialAudit] Erro ao consultar paginado: ' . $e->getMessage());
+            return $empty;
+        }
+    }
+
+    /**
+     * Exporta log de auditoria em CSV.
+     *
+     * @param array $filters
+     * @return string CSV content
+     */
+    public function exportCsv(array $filters = []): string
+    {
+        // Buscar todos os registros (sem paginação)
+        $result = $this->getPaginated($filters, 1, 10000);
+
+        $actionLabels = [
+            'created'   => 'Criado',
+            'updated'   => 'Atualizado',
+            'deleted'   => 'Excluído',
+            'paid'      => 'Pago',
+            'confirmed' => 'Confirmado',
+            'cancelled' => 'Cancelado',
+            'reversed'  => 'Estornado',
+        ];
+
+        $entityLabels = [
+            'transaction' => 'Transação',
+            'installment' => 'Parcela',
+            'order'       => 'Pedido',
+            'recurring'   => 'Recorrência',
+        ];
+
+        $output = fopen('php://temp', 'r+');
+        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM UTF-8
+        fputcsv($output, ['Data/Hora', 'Entidade', 'ID', 'Ação', 'Motivo', 'Usuário', 'IP', 'Valores Anteriores', 'Valores Novos'], ';');
+
+        foreach ($result['data'] as $row) {
+            fputcsv($output, [
+                $row['created_at'] ?? '',
+                $entityLabels[$row['entity_type']] ?? $row['entity_type'],
+                $row['entity_id'],
+                $actionLabels[$row['action']] ?? $row['action'],
+                $row['reason'] ?? '',
+                $row['user_name'] ?? ('User #' . ($row['user_id'] ?? '?')),
+                $row['ip_address'] ?? '',
+                $row['old_values'] ?? '',
+                $row['new_values'] ?? '',
+            ], ';');
+        }
+
+        rewind($output);
+        $csv = stream_get_contents($output);
+        fclose($output);
+
+        return $csv;
+    }
+
+    // ═══════════════════════════════════════════
     // Helpers
     // ═══════════════════════════════════════════
+
+    /** @var bool|null Cache estático para coluna reason */
+    private static ?bool $hasReason = null;
+
+    /**
+     * Verifica se a coluna reason existe em financial_audit_log.
+     */
+    public function hasReasonColumn(): bool
+    {
+        if (self::$hasReason !== null) {
+            return self::$hasReason;
+        }
+
+        try {
+            $dbname = $this->db->query("SELECT DATABASE()")->fetchColumn();
+            $stmt = $this->db->prepare(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'financial_audit_log' AND COLUMN_NAME = 'reason'"
+            );
+            $stmt->execute([':db' => $dbname]);
+            self::$hasReason = (int) $stmt->fetchColumn() > 0;
+        } catch (\PDOException $e) {
+            self::$hasReason = false;
+        }
+
+        return self::$hasReason;
+    }
 
     /**
      * Verifica se a tabela financial_audit_log existe (cache estático).

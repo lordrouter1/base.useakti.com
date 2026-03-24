@@ -535,11 +535,19 @@ class Installment
         if ($parcelaAntes) {
             $this->updateOrderPaymentStatus((int)$parcelaAntes['order_id']);
 
-            // Remover a transação de entrada original
-            $qDel = "DELETE FROM financial_transactions
-                     WHERE reference_type = 'installment' AND reference_id = :rid AND type = 'entrada'";
-            $sDel = $this->conn->prepare($qDel);
-            $sDel->execute([':rid' => $installmentId]);
+            // Remover a transação de entrada original (dispara evento de auditoria para cada)
+            $qFind = "SELECT * FROM financial_transactions
+                      WHERE reference_type = 'installment' AND reference_id = :rid AND type = 'entrada'";
+            $sFind = $this->conn->prepare($qFind);
+            $sFind->execute([':rid' => $installmentId]);
+            $txToDelete = $sFind->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($txToDelete)) {
+                $financialModel = new Financial($this->conn);
+                foreach ($txToDelete as $txOld) {
+                    $financialModel->deleteTransaction((int) $txOld['id'], 'Estorno automático — cancelamento de parcela #' . $installmentId);
+                }
+            }
 
             EventDispatcher::dispatch('model.installment.cancelled', new Event('model.installment.cancelled', [
                 'installment_id' => $installmentId,

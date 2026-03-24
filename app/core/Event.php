@@ -46,4 +46,14 @@ class Event
         $this->userId    = $_SESSION['user_id'] ?? null;
         $this->tenantDb  = $_SESSION['db_name'] ?? null;
     }
+
+    /**
+     * Retorna os dados do evento.
+     *
+     * @return array
+     */
+    public function getData(): array
+    {
+        return $this->data;
+    }
 }

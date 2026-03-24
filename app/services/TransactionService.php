@@ -56,13 +56,26 @@ class TransactionService
     }
 
     /**
-     * Deleta transação.
+     * Deleta transação (soft-delete). Captura dados anteriores para auditoria.
      * @param int $id
-     * @return bool
+     * @param string|null $reason Motivo da exclusão (informado pelo usuário)
+     * @return array ['success' => bool, 'old_data' => array|null]
      */
-    public function delete(int $id): bool
+    public function delete(int $id, ?string $reason = null): array
     {
-        return $this->financial->deleteTransaction($id);
+        // Capturar dados da transação ANTES da exclusão para auditoria
+        $oldData = $this->financial->getTransactionById($id);
+
+        if (!$oldData) {
+            return ['success' => false, 'old_data' => null];
+        }
+
+        $result = $this->financial->deleteTransaction($id, $reason);
+
+        return [
+            'success'  => $result,
+            'old_data' => $oldData,
+        ];
     }
 
     /**

@@ -215,6 +215,7 @@ class Pipeline {
                          c.phone as customer_phone, c.document as customer_document,
                          c.address as customer_address,
                          u.name as assigned_name,
+                         us.name as seller_name,
                          CASE 
                             WHEN o.pipeline_stage = 'contato' AND o.scheduled_date IS NOT NULL AND o.scheduled_date > CURDATE()
                                 THEN 0
@@ -225,6 +226,7 @@ class Pipeline {
                   FROM orders o
                   LEFT JOIN customers c ON o.customer_id = c.id
                   LEFT JOIN users u ON o.assigned_to = u.id
+                  LEFT JOIN users us ON o.seller_id = us.id
                   WHERE o.id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $orderId);
@@ -239,6 +241,7 @@ class Pipeline {
         $query = "UPDATE orders SET 
                     priority = :priority,
                     assigned_to = :assigned_to,
+                    seller_id = :seller_id,
                     internal_notes = :internal_notes,
                     quote_notes = :quote_notes,
                     deadline = :deadline,
@@ -261,6 +264,7 @@ class Pipeline {
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':priority', $data['priority']);
         $stmt->bindParam(':assigned_to', $data['assigned_to']);
+        $stmt->bindParam(':seller_id', $data['seller_id']);
         $stmt->bindParam(':internal_notes', $data['internal_notes']);
         $stmt->bindParam(':quote_notes', $data['quote_notes']);
         $stmt->bindParam(':deadline', $data['deadline']);
