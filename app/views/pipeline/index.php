@@ -243,11 +243,6 @@
                                         <i class="fas fa-coins"></i> R$ <?= number_format((float)$order['total_amount'], 2, ',', '.') ?>
                                     </span>
                                     <?php endif; ?>
-                                    <?php if (!empty($order['quote_confirmed_at'])): ?>
-                                    <span class="pipeline-card-chip chip-approved">
-                                        <i class="fas fa-clipboard-check"></i> Aprovado
-                                    </span>
-                                    <?php endif; ?>
                                     <?php if (!empty($order['assigned_name'])): ?>
                                     <span class="pipeline-card-chip chip-assigned">
                                         <i class="fas fa-user-check"></i> <?= e($order['assigned_name']) ?>
@@ -256,6 +251,22 @@
                                     <?php if (!empty($order['deadline'])): ?>
                                     <span class="pipeline-card-chip chip-date">
                                         <i class="fas fa-calendar"></i> <?= date('d/m', strtotime($order['deadline'])) ?>
+                                    </span>
+                                    <?php endif; ?>
+                                    <?php
+                                        $cardApproval = $order['customer_approval_status'] ?? null;
+                                        if ($cardApproval === 'aprovado'):
+                                    ?>
+                                    <span class="pipeline-card-chip chip-approved" style="background:#d4edda;color:#155724;">
+                                        <i class="fas fa-user-check"></i> Aprovado
+                                    </span>
+                                    <?php elseif ($cardApproval === 'pendente'): ?>
+                                    <span class="pipeline-card-chip" style="background:#fff3cd;color:#856404;">
+                                        <i class="fas fa-hourglass-half"></i> Aguard. Aprov.
+                                    </span>
+                                    <?php elseif ($cardApproval === 'recusado'): ?>
+                                    <span class="pipeline-card-chip" style="background:#f8d7da;color:#721c24;">
+                                        <i class="fas fa-user-times"></i> Recusado
                                     </span>
                                     <?php endif; ?>
                                 </div>

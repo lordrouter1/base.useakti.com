@@ -7,6 +7,9 @@ use Akti\Models\User;
 use Akti\Models\UserGroup;
 use Akti\Models\LoginAttempt;
 use Akti\Models\Logger;
+use Akti\Models\PortalAccess;
+use Akti\Models\Customer;
+use Akti\Middleware\PortalAuthMiddleware;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
 use Database;
@@ -428,6 +431,54 @@ class UserController {
                      'email' => $email,
                      'ip' => $ip,
                  ]));
+
+                 // ── Login Unificado: tentar como cliente do portal ──
+                 try {
+                     $db = (new Database())->getConnection();
+                     $portalAccess = new PortalAccess($db);
+                     $portalAccount = $portalAccess->findByEmail($email);
+
+                     if (
+                         $portalAccount
+                         && $portalAccount['is_active']
+                         && !$portalAccess->isLocked($portalAccount)
+                         && !empty($portalAccount['password_hash'])
+                         && $portalAccess->verifyPassword($password, $portalAccount['password_hash'])
+                     ) {
+                         // Login como cliente do portal bem-sucedido
+                         $portalAccess->registerSuccessfulLogin($portalAccount['id'], $ip);
+                         $this->loginAttempt->clearFailures($ip, $email);
+
+                         session_regenerate_id(true);
+
+                         $customerModel = new Customer($db);
+                         $customer = $customerModel->readOne($portalAccount['customer_id']);
+                         $customerName = $customer ? $customer['name'] : 'Cliente';
+
+                         PortalAuthMiddleware::login(
+                             $portalAccount['customer_id'],
+                             $portalAccount['id'],
+                             $customerName,
+                             $portalAccount['email'],
+                             $portalAccount['lang'] ?? 'pt-br'
+                         );
+
+                         EventDispatcher::dispatch('portal.customer.logged_in', new Event('portal.customer.logged_in', [
+                             'customer_id' => $portalAccount['customer_id'],
+                             'email'       => $portalAccount['email'],
+                             'ip'          => $ip,
+                             'method'      => 'unified_login',
+                         ]));
+
+                         header('Location: ?page=portal&action=dashboard');
+                         exit;
+                     } elseif ($portalAccount && !empty($portalAccount['password_hash'])) {
+                         // Senha errada no portal — registrar tentativa falha
+                         $portalAccess->registerFailedAttempt($portalAccount['id']);
+                     }
+                 } catch (\Exception $e) {
+                     // Silenciar erros do portal para não interferir no fluxo admin
+                 }
 
                  // Recalcular estado após registrar a falha
                  $lockout = $this->loginAttempt->checkLockout($ip, $email);

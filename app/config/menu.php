@@ -188,6 +188,12 @@ return [
         'menu'       => false,
         'permission' => true,
     ],
+    'portal_admin' => [
+        'label'      => 'Admin do Portal',
+        'icon'       => 'fas fa-globe',
+        'menu'       => false,
+        'permission' => true,
+    ],
     'profile' => [
         'label'      => 'Meu Perfil',
         'icon'       => 'fas fa-user-circle',

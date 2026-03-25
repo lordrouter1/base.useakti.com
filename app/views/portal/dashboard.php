@@ -3,8 +3,11 @@
  * Portal do Cliente — Dashboard (Home)
  *
  * Variáveis: $customerName, $stats, $recentOrders, $notifications,
- *            $unreadMessages, $company
+ *            $unreadMessages, $trackingCount, $documentsCount, $company
  */
+$unreadMessages = $unreadMessages ?? 0;
+$trackingCount  = $trackingCount ?? 0;
+$documentsCount = $documentsCount ?? 0;
 ?>
 
 <div class="portal-page">
@@ -39,6 +42,34 @@
             <div class="portal-stat-label"><?= __p('dashboard_open_amount') ?></div>
             <i class="portal-stat-icon fas fa-dollar-sign"></i>
         </div>
+    </div>
+
+    <!-- ═══ Atalhos Rápidos ═══ -->
+    <div class="portal-quick-links">
+        <a href="?page=portal&action=newOrder" class="portal-quick-link portal-quick-primary">
+            <div class="portal-quick-icon"><i class="fas fa-circle-plus"></i></div>
+            <span><?= __p('new_order_title') ?></span>
+        </a>
+        <a href="?page=portal&action=messages" class="portal-quick-link portal-quick-info">
+            <div class="portal-quick-icon">
+                <i class="fas fa-comments"></i>
+                <?php if ($unreadMessages > 0): ?>
+                    <span class="portal-quick-badge"><?= (int) $unreadMessages ?></span>
+                <?php endif; ?>
+            </div>
+            <span><?= __p('messages_title') ?></span>
+        </a>
+        <a href="?page=portal&action=tracking" class="portal-quick-link portal-quick-success">
+            <div class="portal-quick-icon"><i class="fas fa-truck"></i></div>
+            <span><?= __p('tracking_title') ?></span>
+            <?php if ($trackingCount > 0): ?>
+                <small class="text-muted"><?= $trackingCount ?></small>
+            <?php endif; ?>
+        </a>
+        <a href="?page=portal&action=documents" class="portal-quick-link portal-quick-secondary">
+            <div class="portal-quick-icon"><i class="fas fa-file-alt"></i></div>
+            <span><?= __p('documents_title') ?></span>
+        </a>
     </div>
 
     <!-- ═══ Notificações Recentes ═══ -->

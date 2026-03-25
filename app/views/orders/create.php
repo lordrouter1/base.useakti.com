@@ -83,13 +83,8 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                     <div class="row g-3">
                         <div class="col-md-8">
                             <label for="customer_id" class="form-label fw-bold">Cliente <span class="text-danger">*</span></label>
-                            <select class="form-select" id="customer_id" name="customer_id" required>
+                            <select class="form-select customer-select" id="customer_id" name="customer_id" required data-placeholder="Digite para buscar um cliente...">
                                 <option value="">Selecione um cliente...</option>
-                                <?php if(isset($customers)): ?>
-                                    <?php foreach($customers as $customer): ?>
-                                        <option value="<?= $customer['id'] ?>"><?= $customer['name'] ?> (<?= $customer['document'] ?? 'N/A' ?>)</option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
                             </select>
                             <div class="form-text"><a href="?page=customers&action=create" target="_blank"><i class="fas fa-plus-circle"></i> Cadastrar novo cliente</a></div>
                         </div>
@@ -285,7 +280,7 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                                     $hasContacts = isset($contactsByDay[$dayCounter]);
                                     $contactCount = $hasContacts ? count($contactsByDay[$dayCounter]) : 0;
                                 ?>
-                                    <td class="position-relative <?= $isToday ? 'bg-primary  border-primary' : '' ?>" 
+                                    <td class="position-relative <?= $isToday ? 'bg-primary  border-primary bg-opacity-10' : '' ?>" 
                                         style="height:55px; cursor:<?= $hasContacts ? 'pointer' : 'default' ?>; vertical-align:top; padding:4px;"
                                         <?php if($hasContacts): ?>
                                         data-bs-toggle="popover" 

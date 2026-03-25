@@ -106,6 +106,22 @@
                     <span class="badge <?= $badgeClass ?> px-2 py-1" style="font-size:0.72rem;">
                         <i class="<?= $statusIcon ?> me-1"></i><?= ucfirst(str_replace('_', ' ', $order['status'])) ?>
                     </span>
+                    <?php
+                        $orderApproval = $order['customer_approval_status'] ?? null;
+                        if ($orderApproval === 'aprovado'):
+                    ?>
+                    <span class="badge bg-success px-2 py-1 ms-1" style="font-size:0.65rem;" title="Cliente aprovou pelo Portal">
+                        <i class="fas fa-user-check me-1"></i>Aprovado
+                    </span>
+                    <?php elseif ($orderApproval === 'pendente'): ?>
+                    <span class="badge bg-warning text-dark px-2 py-1 ms-1" style="font-size:0.65rem;" title="Aguardando aprovação do cliente">
+                        <i class="fas fa-hourglass-half me-1"></i>Aguard.
+                    </span>
+                    <?php elseif ($orderApproval === 'recusado'): ?>
+                    <span class="badge bg-danger px-2 py-1 ms-1" style="font-size:0.65rem;" title="Cliente recusou pelo Portal">
+                        <i class="fas fa-user-times me-1"></i>Recusado
+                    </span>
+                    <?php endif; ?>
                 </td>
                 <td>
                     <span class="badge <?= $prioData['badge'] ?> rounded-pill px-2 py-1" style="font-size:0.7rem;">

@@ -263,6 +263,17 @@ class PipelineController {
             $logger = new Logger($this->db);
             $logger->log('QUOTE_CONFIRMATION_CLEARED', "Confirmação de orçamento do pedido #{$orderId} removida devido a alteração no pipeline");
         }
+
+        // Sincronizar: voltar customer_approval_status para 'pendente' se estava aprovado
+        $orderModel = new Order($this->db);
+        $order = $orderModel->readOne($orderId);
+        $approvalStatus = $order['customer_approval_status'] ?? null;
+        if ($approvalStatus === 'aprovado' || $approvalStatus === 'recusado') {
+            $orderModel->setCustomerApprovalStatus($orderId, 'pendente');
+            $this->db->prepare(
+                "UPDATE orders SET customer_approval_at = NULL, customer_approval_ip = NULL, customer_approval_notes = NULL WHERE id = :id"
+            )->execute([':id' => $orderId]);
+        }
     }
 
     public function move() {
@@ -718,6 +729,23 @@ class PipelineController {
         if (!$gatewayRow || !$gatewayRow['is_active']) {
             // Fallback: tentar credenciais antigas do company_settings (compatibilidade)
             $result = $this->legacyMercadoPagoLink($order, $orderId);
+
+            // Se o link foi gerado com sucesso no fallback, salvar e marcar para aprovação
+            if (!empty($result['success']) && !empty($result['payment_url'])) {
+                $orderModel->updatePaymentLink($orderId, [
+                    'payment_link_url'        => $result['payment_url'],
+                    'payment_link_gateway'    => 'mercadopago',
+                    'payment_link_method'     => 'auto',
+                    'payment_link_created_at' => date('Y-m-d H:i:s'),
+                ]);
+
+                // Marcar pedido como pendente de aprovação no Portal do Cliente
+                $currentApproval = $order['customer_approval_status'] ?? null;
+                if (empty($currentApproval) || $currentApproval === null) {
+                    $orderModel->setCustomerApprovalStatus($orderId, 'pendente');
+                }
+            }
+
             echo json_encode($result);
             exit;
         }
@@ -808,6 +836,13 @@ class PipelineController {
                 'payment_link_method'     => $method,
                 'payment_link_created_at' => date('Y-m-d H:i:s'),
             ]);
+
+            // Marcar pedido como pendente de aprovação no Portal do Cliente
+            // Apenas se ainda não tiver sido aprovado/recusado
+            $currentApproval = $order['customer_approval_status'] ?? null;
+            if (empty($currentApproval) || $currentApproval === null) {
+                $orderModel->setCustomerApprovalStatus($orderId, 'pendente');
+            }
         }
 
         echo json_encode([

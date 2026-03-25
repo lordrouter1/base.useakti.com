@@ -110,6 +110,10 @@ $companyLogo = $company['company_logo'] ?? '';
 
         <!-- Links -->
         <div class="portal-auth-links">
+            <a href="?page=portal&action=forgotPassword" class="portal-auth-link">
+                <i class="fas fa-key me-1"></i>
+                <?= __p('login_forgot') ?>
+            </a>
             <?php if ($allowSelfRegister): ?>
                 <a href="?page=portal&action=register" class="portal-auth-link">
                     <i class="fas fa-user-plus me-1"></i>

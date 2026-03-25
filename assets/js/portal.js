@@ -103,7 +103,7 @@
                 success: '#198754',
                 error: '#dc3545',
                 warning: '#ffc107',
-                info: '#667eea',
+                info: '#3b82f6',
             };
 
             const toast = document.createElement('div');

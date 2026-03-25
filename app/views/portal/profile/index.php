@@ -23,6 +23,13 @@ $access   = $access ?? [];
         </div>
     <?php endif; ?>
 
+    <?php if (!empty($_GET['password_error'])): ?>
+        <div class="alert alert-danger alert-sm">
+            <i class="fas fa-exclamation-circle me-1"></i>
+            <?= e($_GET['password_error']) ?>
+        </div>
+    <?php endif; ?>
+
     <form method="POST" action="?page=portal&action=updateProfile" class="portal-form">
         <?= csrf_field() ?>
 
@@ -82,14 +89,21 @@ $access   = $access ?? [];
             </div>
             <div class="portal-card-body">
                 <div class="mb-3">
+                    <label class="form-label portal-label"><?= __p('profile_password_current') ?></label>
+                    <input type="password" name="current_password" class="form-control portal-input"
+                           autocomplete="current-password">
+                    <small class="text-muted"><?= __p('profile_password_current_hint') ?></small>
+                </div>
+                <div class="mb-3">
                     <label class="form-label portal-label"><?= __p('profile_password_new') ?></label>
                     <input type="password" name="new_password" class="form-control portal-input"
-                           autocomplete="new-password" minlength="6">
+                           autocomplete="new-password" minlength="8">
+                    <small class="text-muted"><?= __p('profile_password_hint') ?></small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label portal-label"><?= __p('profile_password_confirm') ?></label>
                     <input type="password" name="new_password_confirm" class="form-control portal-input"
-                           autocomplete="new-password" minlength="6">
+                           autocomplete="new-password" minlength="8">
                 </div>
             </div>
         </div>

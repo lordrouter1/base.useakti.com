@@ -6,7 +6,7 @@
  * Cache estático para assets (CSS, JS, fontes, ícones).
  */
 
-const CACHE_NAME = 'portal-v1';
+const CACHE_NAME = 'portal-v3';
 const STATIC_ASSETS = [
     'assets/css/portal.css',
     'assets/js/portal.js',
@@ -47,7 +47,7 @@ self.addEventListener('activate', function (event) {
     self.clients.claim();
 });
 
-// ── Fetch: Network first, fallback to cache ──
+// ── Fetch: Network first, fallback to cache (portal pages only) ──
 self.addEventListener('fetch', function (event) {
     const url = new URL(event.request.url);
 
@@ -56,29 +56,34 @@ self.addEventListener('fetch', function (event) {
         return;
     }
 
-    // Para assets estáticos: cache first
+    // Para assets estáticos: stale-while-revalidate
+    // Serve do cache imediatamente (se existir) mas TAMBÉM busca do network
+    // e atualiza o cache em background para a próxima vez.
     if (isStaticAsset(url)) {
         event.respondWith(
-            caches.match(event.request).then(function (cached) {
-                if (cached) {
-                    return cached;
-                }
-                return fetch(event.request).then(function (response) {
-                    if (response && response.status === 200) {
-                        const responseClone = response.clone();
-                        caches.open(CACHE_NAME).then(function (cache) {
-                            cache.put(event.request, responseClone);
-                        });
-                    }
-                    return response;
+            caches.open(CACHE_NAME).then(function (cache) {
+                return cache.match(event.request).then(function (cached) {
+                    var fetchPromise = fetch(event.request).then(function (response) {
+                        if (response && response.status === 200) {
+                            cache.put(event.request, response.clone());
+                        }
+                        return response;
+                    }).catch(function () {
+                        return cached;
+                    });
+                    return cached || fetchPromise;
                 });
             })
         );
         return;
     }
 
-    // Para páginas HTML: network first
+    // Para páginas HTML: só interceptar se for rota do portal
     if (event.request.headers.get('Accept') && event.request.headers.get('Accept').includes('text/html')) {
+        // Apenas cachear páginas do portal (page=portal)
+        if (!isPortalPage(url)) {
+            return;
+        }
         event.respondWith(
             fetch(event.request)
                 .then(function (response) {
@@ -96,8 +101,15 @@ self.addEventListener('fetch', function (event) {
  * Verifica se a URL é um asset estático.
  */
 function isStaticAsset(url) {
-    const staticExtensions = ['.css', '.js', '.svg', '.png', '.jpg', '.ico', '.woff', '.woff2', '.ttf'];
+    var staticExtensions = ['.css', '.js', '.svg', '.png', '.jpg', '.ico', '.woff', '.woff2', '.ttf'];
     return staticExtensions.some(function (ext) {
         return url.pathname.endsWith(ext);
     });
+}
+
+/**
+ * Verifica se a URL é uma página do portal.
+ */
+function isPortalPage(url) {
+    return url.searchParams.get('page') === 'portal';
 }

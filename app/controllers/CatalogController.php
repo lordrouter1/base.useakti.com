@@ -146,6 +146,16 @@ class CatalogController {
             $logger = new Logger($this->db);
             $logger->log('CATALOG_LINK', "Link de catálogo gerado para pedido #{$orderId}" . ($requireConfirmation ? ' (com confirmação)' : ''));
 
+            // Se requer confirmação, marcar pedido como pendente de aprovação no Portal do Cliente
+            if ($requireConfirmation) {
+                $orderModel = new Order($this->db);
+                $order = $orderModel->readOne($orderId);
+                $currentApproval = $order['customer_approval_status'] ?? null;
+                if (empty($currentApproval)) {
+                    $orderModel->setCustomerApprovalStatus($orderId, 'pendente');
+                }
+            }
+
             echo json_encode([
                 'success' => true,
                 'url' => $url,
@@ -469,6 +479,17 @@ class CatalogController {
         $stmt->bindParam(':id', $orderId, PDO::PARAM_INT);
         $stmt->execute();
 
+        // Sincronizar: marcar customer_approval_status como 'aprovado' também
+        $orderModel = new Order($this->db);
+        $orderModel->setCustomerApprovalStatus($orderId, 'aprovado');
+        // Gravar IP e timestamp da aprovação
+        $stmtApproval = $this->db->prepare(
+            "UPDATE orders SET customer_approval_at = NOW(), customer_approval_ip = :ip,
+                    customer_approval_notes = 'Aprovado via link de catálogo'
+             WHERE id = :id"
+        );
+        $stmtApproval->execute([':ip' => $clientIp, ':id' => $orderId]);
+
         // Log
         $logger = new Logger($this->db);
         $logger->log('QUOTE_CONFIRMED', "Orçamento do pedido #{$orderId} confirmado pelo cliente via catálogo (IP: {$clientIp})");
@@ -519,6 +540,16 @@ class CatalogController {
         $stmt = $this->db->prepare("UPDATE orders SET quote_confirmed_at = NULL, quote_confirmed_ip = NULL WHERE id = :id");
         $stmt->bindParam(':id', $orderId, PDO::PARAM_INT);
         $stmt->execute();
+
+        // Sincronizar: voltar customer_approval_status para 'pendente'
+        $orderModel = new Order($this->db);
+        $orderModel->setCustomerApprovalStatus($orderId, 'pendente');
+        $stmtApproval = $this->db->prepare(
+            "UPDATE orders SET customer_approval_at = NULL, customer_approval_ip = NULL,
+                    customer_approval_notes = NULL
+             WHERE id = :id"
+        );
+        $stmtApproval->execute([':id' => $orderId]);
 
         // Log
         $clientIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['HTTP_X_REAL_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? 'desconhecido';

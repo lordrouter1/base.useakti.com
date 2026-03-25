@@ -68,6 +68,7 @@ return [
             // Auth
             'login'             => 'login',
             'loginMagic'        => 'loginMagic',
+            'requestMagicLink'  => 'requestMagicLink',
             'logout'            => 'logout',
             'register'          => 'register',
             'forgotPassword'    => 'forgotPassword',
@@ -81,6 +82,7 @@ return [
             'orderDetail'       => 'orderDetail',
             'approveOrder'      => 'approveOrder',
             'rejectOrder'       => 'rejectOrder',
+            'cancelApproval'    => 'cancelApproval',
 
             // Novo Pedido (orçamento)
             'newOrder'          => 'newOrder',
@@ -109,6 +111,29 @@ return [
             // Perfil
             'profile'           => 'profile',
             'updateProfile'     => 'updateProfile',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════════
+    // ADMIN DO PORTAL (painel admin — gerência de acessos e configs)
+    // ══════════════════════════════════════════════════════════════
+
+    'portal_admin' => [
+        'controller'     => 'PortalAdminController',
+        'default_action' => 'index',
+        'actions'        => [
+            'create'        => 'create',
+            'store'         => 'store',
+            'edit'          => 'edit',
+            'update'        => 'update',
+            'delete'        => 'delete',
+            'toggleAccess'  => 'toggleAccess',
+            'resetPassword' => 'resetPassword',
+            'sendMagicLink' => 'sendMagicLink',
+            'forceLogout'   => 'forceLogout',
+            'config'        => 'config',
+            'saveConfig'    => 'saveConfig',
+            'metrics'       => 'metrics',
         ],
     ],
 
@@ -228,6 +253,7 @@ return [
             'update'                  => 'update',
             'delete'                  => 'delete',
             'getCustomersList'        => 'getCustomersList',
+            'searchSelect2'           => 'searchSelect2',
             'parseImportFile'         => 'parseImportFile',
             'importCustomersMapped'   => 'importCustomersMapped',
             'downloadImportTemplate'  => 'downloadImportTemplate',

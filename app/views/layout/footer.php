@@ -143,6 +143,8 @@ if (isset($_SESSION['user_id'])) {
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <!-- Product Select2 integration -->
 <script src="assets/js/product-select2.js"></script>
+<!-- Customer Select2 integration -->
+<script src="assets/js/customer-select2.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Botão de tutorial no rodapé

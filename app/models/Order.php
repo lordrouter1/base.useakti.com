@@ -100,7 +100,8 @@ class Order {
 
     public function readAll() {
         $query = "SELECT o.id, o.total_amount, o.status, o.pipeline_stage, o.priority, 
-                         o.deadline, o.payment_status, o.created_at, c.name as customer_name 
+                         o.deadline, o.payment_status, o.created_at, o.customer_approval_status,
+                         c.name as customer_name 
                   FROM " . $this->table_name . " o
                   LEFT JOIN customers c ON o.customer_id = c.id
                   ORDER BY o.created_at DESC";
@@ -119,7 +120,8 @@ class Order {
     {
         $offset = ($page - 1) * $perPage;
         $query = "SELECT o.id, o.total_amount, o.status, o.pipeline_stage, o.priority, 
-                         o.deadline, o.payment_status, o.created_at, c.name as customer_name 
+                         o.deadline, o.payment_status, o.created_at, o.customer_approval_status,
+                         c.name as customer_name 
                   FROM {$this->table_name} o
                   LEFT JOIN customers c ON o.customer_id = c.id
                   ORDER BY o.created_at DESC
@@ -203,6 +205,41 @@ class Order {
         $q = "UPDATE {$this->table_name} SET " . implode(', ', $fields) . " WHERE id = :id";
         $s = $this->conn->prepare($q);
         return $s->execute($params);
+    }
+
+    /**
+     * Define o status de aprovação do cliente no pedido.
+     * Utilizado por catálogo, portal e pipeline para manter ambos os mecanismos
+     * de aprovação sincronizados (customer_approval_status).
+     *
+     * @param int    $orderId
+     * @param string $status  'pendente', 'aprovado' ou 'recusado'
+     * @return bool
+     */
+    public function setCustomerApprovalStatus(int $orderId, string $status): bool
+    {
+        // Verificar se a coluna existe antes de tentar atualizar
+        $check = $this->conn->prepare(
+            "SELECT COUNT(*) FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+               AND table_name = 'orders'
+               AND column_name = 'customer_approval_status'"
+        );
+        $check->execute();
+        if ((int) $check->fetchColumn() === 0) {
+            return false;
+        }
+
+        $allowed = ['pendente', 'aprovado', 'recusado'];
+        if (!in_array($status, $allowed)) {
+            return false;
+        }
+
+        $q = "UPDATE {$this->table_name}
+              SET customer_approval_status = :status
+              WHERE id = :id";
+        $s = $this->conn->prepare($q);
+        return $s->execute([':status' => $status, ':id' => $orderId]);
     }
 
     /**

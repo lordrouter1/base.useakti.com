@@ -6,6 +6,7 @@ use Akti\Core\Router;
 use Akti\Core\Security;
 use Akti\Core\ModuleBootloader;
 use Akti\Middleware\CsrfMiddleware;
+use Akti\Middleware\PortalAuthMiddleware;
 use Akti\Models\User;
 use Akti\Models\IpGuard;
 
@@ -27,7 +28,7 @@ set_exception_handler(function($e) {
               || (stripos($contentType, 'application/json') !== false);
     // Também detecta AJAX por actions conhecidas
     $action = $_GET['action'] ?? '';
-    $ajaxActions = ['getSubcategories','getInheritedGrades','getInheritedSectors','getProductsForExport','exportToProducts','createCategoryAjax','deleteImage','createGradeType','getGradeTypes','generateCombinations','importProducts','toggleCategoryCombination','toggleSubcategoryCombination','importOfx','getSummaryJson','getInstallmentsJson','moveAjax','checkOrderStock','addExtraCost','deleteExtraCost','moveSector','getItemLogs','addItemLog','deleteItemLog','togglePreparation','countInstallments','getStockItems','getMovements','getMovement','updateMovement','deleteMovement','storeMovement','getProductCombinations','updateItemMeta','getProductStock','setDefault','getDefaultWarehouse','deleteInstallments','updateItemDiscount','updateItemQty','getProductsList','parseImportFile','importProductsMapped','storeForma','updateForma','deleteForma','getFaixas','linkGrupo','unlinkGrupo','linkUsuario','unlinkUsuario','saveProdutoRegra','deleteProdutoRegra','simularCalculo','calcular','getHistoricoPaginated','aprovar','pagar','cancelar','aprovarLote','pagarLote','saveConfig'];
+    $ajaxActions = ['getSubcategories','getInheritedGrades','getInheritedSectors','getProductsForExport','exportToProducts','createCategoryAjax','deleteImage','createGradeType','getGradeTypes','generateCombinations','importProducts','toggleCategoryCombination','toggleSubcategoryCombination','importOfx','getSummaryJson','getInstallmentsJson','moveAjax','checkOrderStock','addExtraCost','deleteExtraCost','moveSector','getItemLogs','addItemLog','deleteItemLog','togglePreparation','countInstallments','getStockItems','getMovements','getMovement','updateMovement','deleteMovement','storeMovement','getProductCombinations','updateItemMeta','getProductStock','setDefault','getDefaultWarehouse','deleteInstallments','updateItemDiscount','updateItemQty','getProductsList','getCustomersList','searchSelect2','parseImportFile','importProductsMapped','storeForma','updateForma','deleteForma','getFaixas','linkGrupo','unlinkGrupo','linkUsuario','unlinkUsuario','saveProdutoRegra','deleteProdutoRegra','simularCalculo','calcular','getHistoricoPaginated','aprovar','pagar','cancelar','aprovarLote','pagarLote','saveConfig'];
     if (in_array($action, $ajaxActions)) {
         $isAjax = true;
     }
@@ -64,6 +65,11 @@ if (isset($_SESSION['user_id'])) {
     SessionGuard::touch();
 } else {
     $__sessionDb = null;
+}
+
+// ── Verificação de inatividade de sessão do PORTAL do cliente ──
+if (isset($_SESSION['portal_customer_id'])) {
+    PortalAuthMiddleware::checkInactivity(60);
 }
 
 // ══════════════════════════════════════════════════════════════════

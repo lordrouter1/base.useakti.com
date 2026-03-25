@@ -49,10 +49,10 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Cliente</label>
-                            <select class="form-select" name="customer_id" required>
+                            <select class="form-select customer-select" name="customer_id" required data-placeholder="Digite para buscar um cliente...">
                                 <option value="">Selecione um cliente...</option>
                                 <?php foreach($customers as $customer): ?>
-                                    <option value="<?= $customer['id'] ?>" <?= $order['customer_id'] == $customer['id'] ? 'selected' : '' ?>><?= $customer['name'] ?></option>
+                                    <option value="<?= $customer['id'] ?>" <?= $order['customer_id'] == $customer['id'] ? 'selected' : '' ?>><?= e($customer['name']) ?><?= !empty($customer['document']) ? ' (' . e($customer['document']) . ')' : '' ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>

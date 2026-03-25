@@ -432,6 +432,13 @@
               </a>
             </li>
             <?php endif; ?>
+            <?php if($isAdmin || in_array('portal_admin', $userPermissions)): ?>
+            <li>
+              <a href="?page=portal_admin" class="dropdown-item" title="Admin do Portal">
+                <i class="fas fa-globe me-2"></i>Portal do Cliente
+              </a>
+            </li>
+            <?php endif; ?>
             <li><hr class="dropdown-divider"></li>
             <li>
                 <a class="dropdown-item wt-help-trigger" href="javascript:void(0);" onclick="window.aktiWalkthrough.start(0);">

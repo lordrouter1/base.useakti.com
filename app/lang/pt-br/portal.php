@@ -41,6 +41,27 @@ return [
     'login_inactive'      => 'Sua conta está desativada. Entre em contato com a empresa.',
     'login_session_expired' => 'Sua sessão expirou. Faça login novamente.',
     'login_or'            => 'ou',
+    'login_use_magic_link' => 'Esta conta não possui senha. Utilize o link de acesso por e-mail.',
+
+    // ── Magic Link ──
+    'magic_link_requested' => 'Se este e-mail estiver cadastrado, você receberá um link de acesso em instantes.',
+
+    // ── Esqueci minha senha ──
+    'forgot_title'        => 'Recuperar Senha',
+    'forgot_subtitle'     => 'Informe seu e-mail para receber um link de redefinição de senha.',
+    'forgot_email'        => 'Seu e-mail',
+    'forgot_btn'          => 'Enviar link de recuperação',
+    'forgot_success'      => 'Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha.',
+    'forgot_back'         => 'Voltar ao login',
+
+    // ── Redefinir senha ──
+    'reset_title'         => 'Redefinir Senha',
+    'reset_password'      => 'Nova senha',
+    'reset_password_confirm' => 'Confirmar nova senha',
+    'reset_password_hint' => 'Mínimo 8 caracteres, com letras e números.',
+    'reset_btn'           => 'Salvar nova senha',
+    'reset_success'       => 'Senha redefinida com sucesso! Faça login com sua nova senha.',
+    'reset_invalid_token' => 'Link de redefinição inválido ou expirado. Solicite um novo.',
 
     // ── Registro ──
     'register_title'      => 'Criar conta',
@@ -76,6 +97,7 @@ return [
     'nav_new_order'       => 'Novo',
     'nav_financial'       => 'Financeiro',
     'nav_profile'         => 'Perfil',
+    'nav_more'            => 'Mais',
 
     // ── Pedidos ──
     'orders_title'        => 'Meus Pedidos',
@@ -89,6 +111,8 @@ return [
     'orders_track'        => 'Rastrear',
     'orders_approve'      => 'Aprovar',
     'orders_forecast'     => 'Previsão: :date',
+    'orders_next'         => 'Próxima',
+    'orders_no_items'     => 'Nenhum item encontrado.',
 
     // ── Detalhe do Pedido ──
     'order_detail_title'  => 'Pedido #:id',
@@ -103,6 +127,11 @@ return [
     'order_shipping'      => 'Envio',
     'order_tracking'      => 'Código de Rastreio',
     'order_notes'         => 'Observações',
+    'order_item_product'  => 'Produto',
+    'order_item_qty'      => 'Qtd',
+    'order_item_price'    => 'Preço',
+    'order_item_subtotal' => 'Subtotal',
+    'order_installment_number' => 'Parcela :n',
 
     // ── Aprovação ──
     'approval_title'      => 'Aprovar Orçamento #:id',
@@ -116,6 +145,15 @@ return [
     'approval_success'    => 'Orçamento aprovado com sucesso!',
     'approval_rejected'   => 'Orçamento recusado.',
     'approval_already'    => 'Este orçamento já foi :status.',
+    'approval_cancelled'  => 'Aprovação cancelada. O orçamento voltou para pendente.',
+    'approval_cancel_btn' => 'Cancelar Aprovação',
+    'approval_cancel_confirm' => 'Deseja realmente cancelar a aprovação? O orçamento voltará para "Pendente".',
+
+    // ── Aprovação — Layout Focado ──
+    'approval_focus_order'     => 'Pedido',
+    'approval_focus_date'      => 'Data',
+    'approval_focus_decision'  => 'Sua Decisão',
+    'approval_view_full_detail' => 'Ver detalhes completos do pedido',
 
     // ── Financeiro ──
     'financial_title'     => 'Financeiro',
@@ -130,6 +168,10 @@ return [
     'financial_paid_at'   => 'Paga em :date',
     'financial_overdue'   => 'Atrasada',
     'financial_pending'   => 'Pendente',
+    'financial_pendente'  => 'Pendente',
+    'financial_pago'      => 'Pago',
+    'financial_atrasado'  => 'Atrasada',
+    'financial_cancelado' => 'Cancelado',
     'financial_view'      => 'Ver Detalhes',
     'financial_pay'       => 'Pagar Online',
 
@@ -158,8 +200,13 @@ return [
     'profile_address'     => 'Endereço',
     'profile_password'    => 'Nova senha',
     'profile_password_current' => 'Senha atual',
+    'profile_password_current_required' => 'Informe sua senha atual para alterar a senha.',
+    'profile_password_current_wrong' => 'Senha atual incorreta.',
+    'profile_password_current_hint' => 'Obrigatório para alterar a senha.',
     'profile_password_new' => 'Nova senha',
     'profile_password_confirm' => 'Confirmar nova senha',
+    'profile_password_weak' => 'A senha deve ter no mínimo 8 caracteres, com letras e números.',
+    'profile_password_hint' => 'Mínimo 8 caracteres, com letras e números.',
     'profile_save'        => 'Salvar Alterações',
     'profile_updated'     => 'Perfil atualizado com sucesso!',
     'profile_language'    => 'Idioma',
@@ -182,6 +229,17 @@ return [
     'approval_status_aprovado' => 'Aprovado',
     'approval_status_recusado' => 'Recusado',
 
+    // ── Link de Pagamento ──
+    'payment_link_title'        => 'Link de Pagamento',
+    'payment_link_description'  => 'Clique no botão abaixo para realizar o pagamento de forma segura.',
+    'payment_link_btn'          => 'Pagar Agora',
+    'payment_link_generated_at' => 'Link gerado em :date',
+
+    // ── Link de Catálogo / Orçamento ──
+    'catalog_link_title'       => 'Ver Orçamento',
+    'catalog_link_description' => 'Clique no botão abaixo para visualizar o orçamento completo com os produtos e valores.',
+    'catalog_link_btn'         => 'Ver Orçamento Completo',
+
     // ── PWA / Instalação ──
     'pwa_install_title'   => 'Instalar App',
     'pwa_install_text'    => 'Instale o Portal do Cliente no seu dispositivo para acesso rápido!',
@@ -195,6 +253,39 @@ return [
     'error_generic'       => 'Algo deu errado. Tente novamente.',
     'error_required'      => 'Este campo é obrigatório.',
     'error_invalid_email' => 'E-mail inválido.',
+
+    // ── Novo Pedido (Fase 3) ──
+    'new_order_title'          => 'Novo Pedido',
+    'new_order_all_categories' => 'Todas as categorias',
+    'new_order_no_products'    => 'Nenhum produto disponível no momento.',
+    'new_order_add'            => 'Adicionar',
+    'new_order_cart'           => 'Carrinho',
+    'new_order_notes_placeholder' => 'Observações sobre o pedido...',
+    'new_order_submit'         => 'Enviar Pedido',
+    'new_order_success'        => 'Pedido enviado com sucesso! Aguarde análise.',
+    'cart_item_added'          => 'Produto adicionado ao carrinho!',
+    'cart_item_removed'        => 'Produto removido do carrinho.',
+    'cart_empty'               => 'Seu carrinho está vazio.',
+
+    // ── Financeiro (Fase 4) ──
+    'financial_overdue_alert'  => 'Você tem :count parcela(s) atrasada(s).',
+    'financial_method'         => 'Forma de pagamento',
+
+    // ── Rastreamento (Fase 4) ──
+    'tracking_empty'           => 'Nenhum pedido em rastreamento no momento.',
+    'tracking_orders_title'    => 'Pedidos em Envio',
+    'tracking_track_btn'       => 'Rastrear Encomenda',
+    'tracking_copy_code'       => 'Copiar Código',
+
+    // ── Mensagens (Fase 5) ──
+    'messages_filter_order'    => 'Pedido',
+    'messages_sent'            => 'Mensagem enviada!',
+    'messages_attachment'      => 'Anexo',
+
+    // ── Documentos (Fase 5) ──
+    'documents_title'          => 'Documentos',
+    'documents_empty'          => 'Nenhum documento disponível.',
+    'documents_nfe'            => 'NF-e',
 
     // ── Formatos ──
     'currency_prefix'     => 'R$',

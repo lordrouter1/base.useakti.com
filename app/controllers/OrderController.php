@@ -226,6 +226,17 @@ class OrderController {
             $logger = new Logger($db);
             $logger->log('QUOTE_CONFIRMATION_CLEARED', "Confirmação de orçamento do pedido #{$orderId} removida devido a alteração de produtos");
         }
+
+        // Sincronizar: voltar customer_approval_status para 'pendente' se estava aprovado/recusado
+        $orderModel = new Order($db);
+        $order = $orderModel->readOne($orderId);
+        $approvalStatus = $order['customer_approval_status'] ?? null;
+        if ($approvalStatus === 'aprovado' || $approvalStatus === 'recusado') {
+            $orderModel->setCustomerApprovalStatus($orderId, 'pendente');
+            $db->prepare(
+                "UPDATE orders SET customer_approval_at = NULL, customer_approval_ip = NULL, customer_approval_notes = NULL WHERE id = :id"
+            )->execute([':id' => $orderId]);
+        }
     }
 
     /**

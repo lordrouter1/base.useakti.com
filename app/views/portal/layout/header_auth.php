@@ -15,7 +15,7 @@ $companyLogo = $company['company_logo'] ?? '';
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title><?= e($companyName) ?> — <?= __p('portal_title') ?></title>
     <meta name="robots" content="noindex, nofollow">
-    <meta name="theme-color" content="#667eea">
+    <meta name="theme-color" content="#3b82f6">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -23,7 +23,7 @@ $companyLogo = $company['company_logo'] ?? '';
     <?= csrf_meta() ?>
 
     <!-- Manifest PWA -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="portal-manifest.json">
     <link rel="apple-touch-icon" href="assets/logos/akti-icon-dark.svg">
     <link rel="icon" type="image/x-icon" href="assets/logos/akti-icon-dark.ico">
 
@@ -36,6 +36,6 @@ $companyLogo = $company['company_logo'] ?? '';
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Portal CSS -->
-    <link rel="stylesheet" href="assets/css/portal.css">
+    <link rel="stylesheet" href="assets/css/portal.css?v=<?= filemtime(__DIR__ . '/../../../../assets/css/portal.css') ?>">
 </head>
 <body class="portal-body portal-auth-body">

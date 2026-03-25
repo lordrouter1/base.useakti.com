@@ -5,6 +5,7 @@ use Akti\Models\PortalAccess;
 use Akti\Models\PortalMessage;
 use Akti\Models\Customer;
 use Akti\Models\CompanySettings;
+use Akti\Models\CatalogLink;
 use Akti\Middleware\PortalAuthMiddleware;
 use Akti\Services\PortalLang;
 use Akti\Core\EventDispatcher;
@@ -98,6 +99,9 @@ class PortalController
         if (isset($_GET['expired'])) {
             $error = __p('login_session_expired');
         }
+        if (isset($_GET['password_reset'])) {
+            $successMsg = __p('reset_success');
+        }
 
         // POST — processar login
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -109,6 +113,9 @@ class PortalController
             } else {
                 $access = $this->portalAccess->findByEmail($email);
 
+                // Ler config require_password
+                $requirePassword = ($config['require_password'] ?? '0') === '1';
+
                 if (!$access) {
                     $error = __p('login_error');
                 } elseif (!$access['is_active']) {
@@ -116,8 +123,11 @@ class PortalController
                 } elseif ($this->portalAccess->isLocked($access)) {
                     $remainingMin = max(1, (int) ceil((strtotime($access['locked_until']) - time()) / 60));
                     $error = __p('login_locked', ['minutes' => $remainingMin]);
-                } elseif (empty($access['password_hash'])) {
-                    // Conta sem senha (apenas link mágico)
+                } elseif (empty($access['password_hash']) && !$requirePassword) {
+                    // Conta sem senha e senha não obrigatória — sugerir magic link
+                    $error = __p('login_use_magic_link');
+                } elseif (empty($access['password_hash']) && $requirePassword) {
+                    // Conta sem senha mas senha obrigatória — erro genérico
                     $error = __p('login_error');
                 } elseif (!$this->portalAccess->verifyPassword($password, $access['password_hash'])) {
                     $this->portalAccess->registerFailedAttempt($access['id']);
@@ -326,12 +336,17 @@ class PortalController
         $customerId   = PortalAuthMiddleware::getCustomerId();
         $customerName = $_SESSION['portal_customer_name'] ?? 'Cliente';
 
+        // Auto-marcar parcelas atrasadas
+        $this->portalAccess->markOverdueInstallments($customerId);
+
         // Dados do dashboard
-        $stats         = $this->portalAccess->getDashboardStats($customerId);
-        $recentOrders  = $this->portalAccess->getRecentOrders($customerId, 5);
-        $notifications = $this->portalAccess->getRecentNotifications($customerId, 5);
+        $stats          = $this->portalAccess->getDashboardStats($customerId);
+        $recentOrders   = $this->portalAccess->getRecentOrders($customerId, 5);
+        $notifications  = $this->portalAccess->getRecentNotifications($customerId, 5);
         $unreadMessages = (new PortalMessage($this->db))->countUnread($customerId);
-        $company       = $this->company;
+        $trackingCount  = count($this->portalAccess->getTrackingOrders($customerId));
+        $documentsCount = count($this->portalAccess->getDocumentsByCustomer($customerId));
+        $company        = $this->company;
 
         require 'app/views/portal/layout/header.php';
         require 'app/views/portal/dashboard.php';
@@ -400,12 +415,36 @@ class PortalController
             $_SESSION['portal_lang'] = $lang;
         }
 
-        // Atualizar senha se informada
+        // Atualizar senha se informada (exige senha atual + validação de força)
         $newPassword = Input::post('new_password');
         $newPasswordConfirm = Input::post('new_password_confirm');
+        $currentPassword = Input::post('current_password');
+
         if (!empty($newPassword)) {
-            if ($newPassword === $newPasswordConfirm) {
+            // Buscar acesso para verificar senha atual
+            $access = $this->portalAccess->findById($accessId);
+
+            // Validar senha atual
+            if (empty($currentPassword)) {
+                $passwordError = __p('profile_password_current_required');
+            } elseif (!empty($access['password_hash']) && !$this->portalAccess->verifyPassword($currentPassword, $access['password_hash'])) {
+                $passwordError = __p('profile_password_current_wrong');
+            } elseif ($newPassword !== $newPasswordConfirm) {
+                $passwordError = __p('register_password_mismatch');
+            } elseif (!$this->isPasswordStrong($newPassword)) {
+                $passwordError = __p('profile_password_weak');
+            } else {
                 $this->portalAccess->update($accessId, ['password' => $newPassword]);
+            }
+
+            if (isset($passwordError)) {
+                if ($this->isAjax()) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => $passwordError]);
+                    exit;
+                }
+                header('Location: ?page=portal&action=profile&password_error=' . urlencode($passwordError));
+                exit;
             }
         }
 
@@ -422,6 +461,1022 @@ class PortalController
         }
 
         header('Location: ?page=portal&action=profile&updated=1');
+        exit;
+    }
+
+    // ══════════════════════════════════════════════
+    // MAGIC LINK — Solicitar link de acesso
+    // ══════════════════════════════════════════════
+
+    /**
+     * Processa solicitação de link mágico (POST).
+     * Gera token e exibe mensagem genérica (sem vazar se o e-mail existe).
+     */
+    public function requestMagicLink(): void
+    {
+        if (!$this->isPortalEnabled()) {
+            $this->renderDisabled();
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=portal&action=login');
+            exit;
+        }
+
+        $email = Input::post('magic_email', 'email');
+        $successMsg = __p('magic_link_requested');
+
+        if (!empty($email)) {
+            $access = $this->portalAccess->findByEmail($email);
+            if ($access && $access['is_active']) {
+                // Gerar token (lê expiryHours da config automaticamente)
+                $token = $this->portalAccess->generateMagicToken($access['id']);
+
+                // TODO: Enviar e-mail com o link mágico
+                // $magicLink = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' .
+                //              $_SERVER['HTTP_HOST'] . '?page=portal&action=loginMagic&token=' . $token;
+                // mail($email, 'Seu link de acesso', $magicLink);
+
+                EventDispatcher::dispatch('portal.magic_link.requested', new Event('portal.magic_link.requested', [
+                    'customer_id' => $access['customer_id'],
+                    'email'       => $email,
+                    'ip'          => PortalAuthMiddleware::getClientIp(),
+                ]));
+            }
+        }
+
+        // Sempre exibe mensagem de sucesso — NUNCA vazar se o email existe ou não
+        $error = '';
+        $config = $this->portalAccess->getAllConfig();
+        $allowSelfRegister = ($config['allow_self_register'] ?? '0') === '1';
+        $company = $this->company;
+
+        require 'app/views/portal/layout/header_auth.php';
+        require 'app/views/portal/auth/login.php';
+        require 'app/views/portal/layout/footer_auth.php';
+    }
+
+    // ══════════════════════════════════════════════
+    // RECUPERAÇÃO DE SENHA (Forgot / Reset)
+    // ══════════════════════════════════════════════
+
+    /**
+     * Formulário/processamento de "Esqueci minha senha".
+     * GET: renderiza form / POST: gera token de reset.
+     */
+    public function forgotPassword(): void
+    {
+        if (!$this->isPortalEnabled()) {
+            $this->renderDisabled();
+            return;
+        }
+
+        if (PortalAuthMiddleware::isAuthenticated()) {
+            header('Location: ?page=portal&action=dashboard');
+            exit;
+        }
+
+        $error = '';
+        $successMsg = '';
+        $company = $this->company;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $email = Input::post('email', 'email');
+
+            if (empty($email)) {
+                $error = __p('error_required');
+            } else {
+                $access = $this->portalAccess->findByEmail($email);
+                if ($access && $access['is_active']) {
+                    // Gerar token de reset (validade de 1 hora)
+                    $token = $this->portalAccess->generateResetToken($access['id'], 1);
+
+                    // TODO: Enviar e-mail com o link de reset
+                    // $resetLink = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' .
+                    //              $_SERVER['HTTP_HOST'] . '?page=portal&action=resetPassword&token=' . $token;
+                    // mail($email, 'Recuperação de senha', $resetLink);
+
+                    EventDispatcher::dispatch('portal.password_reset.requested', new Event('portal.password_reset.requested', [
+                        'customer_id' => $access['customer_id'],
+                        'email'       => $email,
+                        'ip'          => PortalAuthMiddleware::getClientIp(),
+                    ]));
+                }
+
+                // Sempre exibe mensagem de sucesso — NUNCA vazar se o email existe
+                $successMsg = __p('forgot_success');
+            }
+        }
+
+        require 'app/views/portal/layout/header_auth.php';
+        require 'app/views/portal/auth/forgot.php';
+        require 'app/views/portal/layout/footer_auth.php';
+    }
+
+    /**
+     * Formulário/processamento de redefinição de senha via token.
+     * GET: valida token e exibe form / POST: salva nova senha.
+     */
+    public function resetPassword(): void
+    {
+        if (!$this->isPortalEnabled()) {
+            $this->renderDisabled();
+            return;
+        }
+
+        $error = '';
+        $successMsg = '';
+        $company = $this->company;
+        $token = Input::get('token') ?: Input::post('token');
+
+        if (empty($token)) {
+            header('Location: ?page=portal&action=forgotPassword');
+            exit;
+        }
+
+        // Validar token
+        $access = $this->portalAccess->validateResetToken($token);
+        if (!$access) {
+            $error = __p('reset_invalid_token');
+            require 'app/views/portal/layout/header_auth.php';
+            require 'app/views/portal/auth/forgot.php';
+            require 'app/views/portal/layout/footer_auth.php';
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $newPassword = Input::post('password');
+            $confirmPassword = Input::post('password_confirm');
+
+            if (empty($newPassword) || empty($confirmPassword)) {
+                $error = __p('error_required');
+            } elseif ($newPassword !== $confirmPassword) {
+                $error = __p('register_password_mismatch');
+            } elseif (!$this->isPasswordStrong($newPassword)) {
+                $error = __p('profile_password_weak');
+            } else {
+                // Salvar nova senha e invalidar token
+                $this->portalAccess->resetPassword($access['id'], $newPassword);
+                $this->portalAccess->invalidateResetToken($access['id']);
+
+                EventDispatcher::dispatch('portal.password_reset.completed', new Event('portal.password_reset.completed', [
+                    'customer_id' => $access['customer_id'],
+                    'email'       => $access['email'],
+                    'ip'          => PortalAuthMiddleware::getClientIp(),
+                ]));
+
+                // Redirecionar para login com mensagem de sucesso
+                header('Location: ?page=portal&action=login&password_reset=1');
+                exit;
+            }
+        }
+
+        // Renderizar form de nova senha
+        $validToken = true;
+        require 'app/views/portal/layout/header_auth.php';
+        require 'app/views/portal/auth/reset.php';
+        require 'app/views/portal/layout/footer_auth.php';
+    }
+
+    // ══════════════════════════════════════════════
+    // MEUS PEDIDOS (Fase 2)
+    // ══════════════════════════════════════════════
+
+    /**
+     * Listagem de pedidos do cliente com filtro e paginação.
+     * GET: ?page=portal&action=orders[&filter=all|open|approval|done][&p=1]
+     */
+    public function orders(): void
+    {
+        PortalAuthMiddleware::check();
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $filter     = Input::get('filter') ?: 'all';
+        $page       = max(1, (int) (Input::get('p') ?: 1));
+        $perPage    = 10;
+        $offset     = ($page - 1) * $perPage;
+
+        // Validar filtro
+        $validFilters = ['all', 'open', 'approval', 'done'];
+        if (!in_array($filter, $validFilters)) {
+            $filter = 'all';
+        }
+
+        $orders     = $this->portalAccess->getOrdersByCustomer($customerId, $filter, $perPage, $offset);
+        $totalCount = $this->portalAccess->countOrdersByCustomer($customerId, $filter);
+        $totalPages = max(1, (int) ceil($totalCount / $perPage));
+
+        // Contadores para badges nas tabs
+        $countAll      = $this->portalAccess->countOrdersByCustomer($customerId, 'all');
+        $countOpen     = $this->portalAccess->countOrdersByCustomer($customerId, 'open');
+        $countApproval = $this->portalAccess->countOrdersByCustomer($customerId, 'approval');
+        $countDone     = $this->portalAccess->countOrdersByCustomer($customerId, 'done');
+
+        $company = $this->company;
+
+        require 'app/views/portal/layout/header.php';
+        require 'app/views/portal/orders/index.php';
+        require 'app/views/portal/layout/footer.php';
+    }
+
+    /**
+     * Detalhe completo de um pedido.
+     * GET: ?page=portal&action=orderDetail&id=X
+     */
+    public function orderDetail(): void
+    {
+        PortalAuthMiddleware::check();
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $orderId    = (int) Input::get('id');
+
+        if ($orderId <= 0) {
+            header('Location: ?page=portal&action=orders');
+            exit;
+        }
+
+        // Buscar pedido (valida pertence ao cliente no Model via WHERE customer_id)
+        $order = $this->portalAccess->getOrderDetail($orderId, $customerId);
+
+        if (!$order) {
+            header('Location: ?page=portal&action=orders');
+            exit;
+        }
+
+        // Dados complementares
+        $items        = $this->portalAccess->getOrderItems($orderId);
+        $installments = $this->portalAccess->getOrderInstallments($orderId);
+        $extraCosts   = $this->portalAccess->getOrderExtraCosts($orderId);
+        $timeline     = $this->portalAccess->getOrderTimeline($order);
+
+        // Buscar link de catálogo ativo (para pedidos em fase de orçamento)
+        $catalogUrl = null;
+        try {
+            $catalogModel = new CatalogLink($this->db);
+            $activeLink = $catalogModel->findActiveByOrder($orderId);
+            if ($activeLink) {
+                $catalogUrl = CatalogLink::buildUrl($activeLink['token']);
+            }
+        } catch (\Exception $e) {
+            // Tabela pode não existir — ignorar
+        }
+
+        // Config de aprovação
+        $allowApproval = $this->portalAccess->getConfig('allow_order_approval', '1') === '1';
+
+        // Contexto focado de aprovação (vindo da aba Aprovação)
+        $approvalContext = (Input::get('context') === 'approval')
+            && ($order['customer_approval_status'] ?? '') === 'pendente'
+            && $allowApproval;
+
+        // Mensagens flash
+        $successMsg = '';
+        if (isset($_GET['approved'])) {
+            $successMsg = __p('approval_success');
+            $approvalContext = false; // Já aprovou, mostrar view completa
+        }
+        if (isset($_GET['rejected'])) {
+            $successMsg = __p('approval_rejected');
+            $approvalContext = false; // Já recusou, mostrar view completa
+        }
+        if (isset($_GET['cancelled'])) {
+            $successMsg = __p('approval_cancelled');
+        }
+
+        $company = $this->company;
+
+        require 'app/views/portal/layout/header.php';
+        require 'app/views/portal/orders/detail.php';
+        require 'app/views/portal/layout/footer.php';
+    }
+
+    /**
+     * Aprovar orçamento (POST).
+     * POST: ?page=portal&action=approveOrder
+     */
+    public function approveOrder(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=portal&action=orders');
+            exit;
+        }
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $orderId    = (int) Input::post('id');
+        $notes      = Input::post('notes');
+        $ip         = PortalAuthMiddleware::getClientIp();
+
+        // Validar config
+        if ($this->portalAccess->getConfig('allow_order_approval', '1') !== '1') {
+            header('Location: ?page=portal&action=orderDetail&id=' . $orderId . '&error=disabled');
+            exit;
+        }
+
+        // Verificar que o pedido pertence ao cliente e está pendente
+        $order = $this->portalAccess->getOrderDetail($orderId, $customerId);
+        if (!$order) {
+            header('Location: ?page=portal&action=orders');
+            exit;
+        }
+
+        $approvalStatus = $order['customer_approval_status'] ?? null;
+        if ($approvalStatus !== 'pendente') {
+            header('Location: ?page=portal&action=orderDetail&id=' . $orderId);
+            exit;
+        }
+
+        $success = $this->portalAccess->updateApprovalStatus($orderId, $customerId, 'aprovado', $ip, $notes);
+
+        if ($success) {
+            EventDispatcher::dispatch('portal.order.approved', new Event('portal.order.approved', [
+                'order_id'    => $orderId,
+                'customer_id' => $customerId,
+                'ip'          => $ip,
+                'notes'       => $notes,
+            ]));
+        }
+
+        header('Location: ?page=portal&action=orderDetail&id=' . $orderId . '&approved=1');
+        exit;
+    }
+
+    /**
+     * Recusar orçamento (POST).
+     * POST: ?page=portal&action=rejectOrder
+     */
+    public function rejectOrder(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=portal&action=orders');
+            exit;
+        }
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $orderId    = (int) Input::post('id');
+        $notes      = Input::post('notes');
+        $ip         = PortalAuthMiddleware::getClientIp();
+
+        // Validar config
+        if ($this->portalAccess->getConfig('allow_order_approval', '1') !== '1') {
+            header('Location: ?page=portal&action=orderDetail&id=' . $orderId . '&error=disabled');
+            exit;
+        }
+
+        // Verificar que o pedido pertence ao cliente e está pendente
+        $order = $this->portalAccess->getOrderDetail($orderId, $customerId);
+        if (!$order) {
+            header('Location: ?page=portal&action=orders');
+            exit;
+        }
+
+        $approvalStatus = $order['customer_approval_status'] ?? null;
+        if ($approvalStatus !== 'pendente') {
+            header('Location: ?page=portal&action=orderDetail&id=' . $orderId);
+            exit;
+        }
+
+        $success = $this->portalAccess->updateApprovalStatus($orderId, $customerId, 'recusado', $ip, $notes);
+
+        if ($success) {
+            EventDispatcher::dispatch('portal.order.rejected', new Event('portal.order.rejected', [
+                'order_id'    => $orderId,
+                'customer_id' => $customerId,
+                'ip'          => $ip,
+                'notes'       => $notes,
+            ]));
+        }
+
+        header('Location: ?page=portal&action=orderDetail&id=' . $orderId . '&rejected=1');
+        exit;
+    }
+
+    /**
+     * Cancelar aprovação/rejeição (voltar para pendente) — POST.
+     * POST: ?page=portal&action=cancelApproval
+     */
+    public function cancelApproval(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=portal&action=orders');
+            exit;
+        }
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $orderId    = (int) Input::post('id');
+        $ip         = PortalAuthMiddleware::getClientIp();
+
+        // Validar config
+        if ($this->portalAccess->getConfig('allow_order_approval', '1') !== '1') {
+            header('Location: ?page=portal&action=orderDetail&id=' . $orderId . '&error=disabled');
+            exit;
+        }
+
+        // Verificar que o pedido pertence ao cliente e está aprovado ou recusado
+        $order = $this->portalAccess->getOrderDetail($orderId, $customerId);
+        if (!$order) {
+            header('Location: ?page=portal&action=orders');
+            exit;
+        }
+
+        $approvalStatus = $order['customer_approval_status'] ?? null;
+        if (!in_array($approvalStatus, ['aprovado', 'recusado'])) {
+            header('Location: ?page=portal&action=orderDetail&id=' . $orderId);
+            exit;
+        }
+
+        $success = $this->portalAccess->cancelApprovalStatus($orderId, $customerId, $ip);
+
+        if ($success) {
+            EventDispatcher::dispatch('portal.order.approval_cancelled', new Event('portal.order.approval_cancelled', [
+                'order_id'       => $orderId,
+                'customer_id'    => $customerId,
+                'ip'             => $ip,
+                'previous_status' => $approvalStatus,
+            ]));
+        }
+
+        header('Location: ?page=portal&action=orderDetail&id=' . $orderId . '&cancelled=1');
+        exit;
+    }
+
+    // ══════════════════════════════════════════════
+    // NOVO PEDIDO / ORÇAMENTO (Fase 3)
+    // ══════════════════════════════════════════════
+
+    /**
+     * Página de criação de novo pedido (catálogo de produtos + carrinho).
+     * GET: ?page=portal&action=newOrder
+     */
+    public function newOrder(): void
+    {
+        PortalAuthMiddleware::check();
+
+        // Verificar se a funcionalidade está habilitada
+        if ($this->portalAccess->getConfig('allow_new_order', '1') !== '1') {
+            header('Location: ?page=portal&action=dashboard');
+            exit;
+        }
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $search     = Input::get('q') ?: '';
+        $categoryId = (int) (Input::get('category') ?: 0);
+        $page       = max(1, (int) (Input::get('p') ?: 1));
+        $perPage    = 12;
+        $offset     = ($page - 1) * $perPage;
+
+        $result     = $this->portalAccess->getAvailableProducts(
+            $search ?: null,
+            $categoryId ?: null,
+            $perPage,
+            $offset
+        );
+
+        $products   = $result['data'];
+        $totalCount = $result['total'];
+        $totalPages = max(1, (int) ceil($totalCount / $perPage));
+        $categories = $this->portalAccess->getCategories();
+
+        // Carrinho da sessão
+        $cart = $_SESSION['portal_cart'] ?? [];
+        $cartCount = array_sum(array_column($cart, 'quantity'));
+
+        $orderNotes = $this->portalAccess->getConfig('new_order_notes', '');
+        $company    = $this->company;
+
+        require 'app/views/portal/layout/header.php';
+        require 'app/views/portal/orders/new.php';
+        require 'app/views/portal/layout/footer.php';
+    }
+
+    /**
+     * Retorna produtos em JSON (para busca AJAX no catálogo).
+     * GET: ?page=portal&action=getProducts&q=...&category=...&p=1
+     */
+    public function getProducts(): void
+    {
+        PortalAuthMiddleware::check();
+
+        $search     = Input::get('q') ?: '';
+        $categoryId = (int) (Input::get('category') ?: 0);
+        $page       = max(1, (int) (Input::get('p') ?: 1));
+        $perPage    = 12;
+        $offset     = ($page - 1) * $perPage;
+
+        $result = $this->portalAccess->getAvailableProducts(
+            $search ?: null,
+            $categoryId ?: null,
+            $perPage,
+            $offset
+        );
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success'  => true,
+            'products' => $result['data'],
+            'total'    => $result['total'],
+            'pages'    => max(1, (int) ceil($result['total'] / $perPage)),
+            'page'     => $page,
+        ]);
+        exit;
+    }
+
+    /**
+     * Adiciona item ao carrinho (sessão). POST com JSON body.
+     * POST: ?page=portal&action=addToCart
+     */
+    public function addToCart(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(false, 'Método inválido.');
+        }
+
+        $productId = (int) Input::post('product_id');
+        $quantity  = max(1, (int) (Input::post('quantity') ?: 1));
+
+        if ($productId <= 0) {
+            $this->jsonResponse(false, 'Produto inválido.');
+        }
+
+        // Buscar dados do produto
+        $product = $this->portalAccess->getProductById($productId);
+        if (!$product) {
+            $this->jsonResponse(false, 'Produto não encontrado.');
+        }
+
+        // Inicializar carrinho
+        if (!isset($_SESSION['portal_cart'])) {
+            $_SESSION['portal_cart'] = [];
+        }
+
+        // Verificar se o produto já está no carrinho
+        $found = false;
+        foreach ($_SESSION['portal_cart'] as &$item) {
+            if ((int) $item['product_id'] === $productId) {
+                $item['quantity'] += $quantity;
+                $found = true;
+                break;
+            }
+        }
+        unset($item);
+
+        if (!$found) {
+            $_SESSION['portal_cart'][] = [
+                'product_id' => $productId,
+                'name'       => $product['name'],
+                'price'      => (float) $product['price'],
+                'quantity'   => $quantity,
+                'image'      => $product['main_image_path'] ?? null,
+            ];
+        }
+
+        $cart = $_SESSION['portal_cart'];
+        $cartCount = array_sum(array_column($cart, 'quantity'));
+        $cartTotal = 0;
+        foreach ($cart as $ci) {
+            $cartTotal += $ci['price'] * $ci['quantity'];
+        }
+
+        $this->jsonResponse(true, __p('cart_item_added'), [
+            'cart'      => $cart,
+            'cartCount' => $cartCount,
+            'cartTotal' => $cartTotal,
+        ]);
+    }
+
+    /**
+     * Remove item do carrinho. POST.
+     * POST: ?page=portal&action=removeFromCart
+     */
+    public function removeFromCart(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(false, 'Método inválido.');
+        }
+
+        $productId = (int) Input::post('product_id');
+
+        if (isset($_SESSION['portal_cart'])) {
+            $_SESSION['portal_cart'] = array_values(array_filter(
+                $_SESSION['portal_cart'],
+                fn($item) => (int) $item['product_id'] !== $productId
+            ));
+        }
+
+        $cart = $_SESSION['portal_cart'] ?? [];
+        $cartCount = array_sum(array_column($cart, 'quantity'));
+        $cartTotal = 0;
+        foreach ($cart as $ci) {
+            $cartTotal += $ci['price'] * $ci['quantity'];
+        }
+
+        $this->jsonResponse(true, __p('cart_item_removed'), [
+            'cart'      => $cart,
+            'cartCount' => $cartCount,
+            'cartTotal' => $cartTotal,
+        ]);
+    }
+
+    /**
+     * Atualiza quantidade de um item no carrinho. POST.
+     * POST: ?page=portal&action=updateCartItem
+     */
+    public function updateCartItem(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(false, 'Método inválido.');
+        }
+
+        $productId = (int) Input::post('product_id');
+        $quantity  = max(0, (int) Input::post('quantity'));
+
+        if (isset($_SESSION['portal_cart'])) {
+            if ($quantity <= 0) {
+                // Remover
+                $_SESSION['portal_cart'] = array_values(array_filter(
+                    $_SESSION['portal_cart'],
+                    fn($item) => (int) $item['product_id'] !== $productId
+                ));
+            } else {
+                foreach ($_SESSION['portal_cart'] as &$item) {
+                    if ((int) $item['product_id'] === $productId) {
+                        $item['quantity'] = $quantity;
+                        break;
+                    }
+                }
+                unset($item);
+            }
+        }
+
+        $cart = $_SESSION['portal_cart'] ?? [];
+        $cartCount = array_sum(array_column($cart, 'quantity'));
+        $cartTotal = 0;
+        foreach ($cart as $ci) {
+            $cartTotal += $ci['price'] * $ci['quantity'];
+        }
+
+        $this->jsonResponse(true, 'OK', [
+            'cart'      => $cart,
+            'cartCount' => $cartCount,
+            'cartTotal' => $cartTotal,
+        ]);
+    }
+
+    /**
+     * Retorna o carrinho atual em JSON.
+     * GET: ?page=portal&action=getCart
+     */
+    public function getCart(): void
+    {
+        PortalAuthMiddleware::check();
+
+        $cart = $_SESSION['portal_cart'] ?? [];
+        $cartCount = array_sum(array_column($cart, 'quantity'));
+        $cartTotal = 0;
+        foreach ($cart as $ci) {
+            $cartTotal += $ci['price'] * $ci['quantity'];
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success'   => true,
+            'cart'      => $cart,
+            'cartCount' => $cartCount,
+            'cartTotal' => $cartTotal,
+        ]);
+        exit;
+    }
+
+    /**
+     * Submete o pedido (cria orçamento a partir do carrinho). POST.
+     * POST: ?page=portal&action=submitOrder
+     */
+    public function submitOrder(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=portal&action=newOrder');
+            exit;
+        }
+
+        // Verificar se a funcionalidade está habilitada
+        if ($this->portalAccess->getConfig('allow_new_order', '1') !== '1') {
+            header('Location: ?page=portal&action=dashboard');
+            exit;
+        }
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $notes      = Input::post('notes');
+        $cart       = $_SESSION['portal_cart'] ?? [];
+
+        if (empty($cart)) {
+            if ($this->isAjax()) {
+                $this->jsonResponse(false, __p('cart_empty'));
+            }
+            header('Location: ?page=portal&action=newOrder&error=empty');
+            exit;
+        }
+
+        $orderId = $this->portalAccess->createPortalOrder($customerId, $cart, $notes);
+
+        // Limpar carrinho
+        $_SESSION['portal_cart'] = [];
+
+        // Disparar evento
+        EventDispatcher::dispatch('portal.order.created', new Event('portal.order.created', [
+            'order_id'    => $orderId,
+            'customer_id' => $customerId,
+            'items_count' => count($cart),
+            'ip'          => PortalAuthMiddleware::getClientIp(),
+        ]));
+
+        if ($this->isAjax()) {
+            $this->jsonResponse(true, __p('new_order_success'), ['order_id' => $orderId]);
+        }
+
+        header('Location: ?page=portal&action=orderDetail&id=' . $orderId . '&created=1');
+        exit;
+    }
+
+    // ══════════════════════════════════════════════
+    // FINANCEIRO (Fase 4)
+    // ══════════════════════════════════════════════
+
+    /**
+     * Listagem de parcelas do cliente.
+     * GET: ?page=portal&action=installments[&filter=all|open|paid]
+     */
+    public function installments(): void
+    {
+        PortalAuthMiddleware::check();
+
+        // Verificar se a funcionalidade está habilitada
+        if ($this->portalAccess->getConfig('allow_financial', '1') !== '1') {
+            header('Location: ?page=portal&action=dashboard');
+            exit;
+        }
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $filter     = Input::get('filter') ?: 'all';
+        $page       = max(1, (int) (Input::get('p') ?: 1));
+        $perPage    = 15;
+        $offset     = ($page - 1) * $perPage;
+
+        // Auto-marcar parcelas atrasadas antes de listar
+        $this->portalAccess->markOverdueInstallments($customerId);
+
+        $validFilters = ['all', 'open', 'paid'];
+        if (!in_array($filter, $validFilters)) {
+            $filter = 'all';
+        }
+
+        $installments = $this->portalAccess->getInstallmentsByCustomer($customerId, $filter, $perPage, $offset);
+        $totalCount   = $this->portalAccess->countInstallmentsByCustomer($customerId, $filter);
+        $totalPages   = max(1, (int) ceil($totalCount / $perPage));
+        $summary      = $this->portalAccess->getFinancialSummary($customerId);
+
+        // Contadores para badges
+        $countAll  = $this->portalAccess->countInstallmentsByCustomer($customerId, 'all');
+        $countOpen = $this->portalAccess->countInstallmentsByCustomer($customerId, 'open');
+        $countPaid = $this->portalAccess->countInstallmentsByCustomer($customerId, 'paid');
+
+        $company = $this->company;
+
+        require 'app/views/portal/layout/header.php';
+        require 'app/views/portal/financial/index.php';
+        require 'app/views/portal/layout/footer.php';
+    }
+
+    /**
+     * Detalhe de uma parcela.
+     * GET: ?page=portal&action=installmentDetail&id=X
+     */
+    public function installmentDetail(): void
+    {
+        PortalAuthMiddleware::check();
+
+        $customerId    = PortalAuthMiddleware::getCustomerId();
+        $installmentId = (int) Input::get('id');
+
+        if ($installmentId <= 0) {
+            header('Location: ?page=portal&action=installments');
+            exit;
+        }
+
+        $installment = $this->portalAccess->getInstallmentDetail($installmentId, $customerId);
+        if (!$installment) {
+            header('Location: ?page=portal&action=installments');
+            exit;
+        }
+
+        $company = $this->company;
+
+        require 'app/views/portal/layout/header.php';
+        require 'app/views/portal/financial/detail.php';
+        require 'app/views/portal/layout/footer.php';
+    }
+
+    // ══════════════════════════════════════════════
+    // RASTREAMENTO (Fase 4)
+    // ══════════════════════════════════════════════
+
+    /**
+     * Página de rastreamento dos pedidos.
+     * GET: ?page=portal&action=tracking[&id=X]
+     */
+    public function tracking(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($this->portalAccess->getConfig('allow_tracking', '1') !== '1') {
+            header('Location: ?page=portal&action=dashboard');
+            exit;
+        }
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $orderId    = (int) Input::get('id');
+
+        // Se um ID específico foi informado, mostrar detalhe
+        $trackingDetail = null;
+        if ($orderId > 0) {
+            $trackingDetail = $this->portalAccess->getTrackingDetail($orderId, $customerId);
+        }
+
+        $trackingOrders = $this->portalAccess->getTrackingOrders($customerId);
+        $company = $this->company;
+
+        require 'app/views/portal/layout/header.php';
+        require 'app/views/portal/tracking/index.php';
+        require 'app/views/portal/layout/footer.php';
+    }
+
+    // ══════════════════════════════════════════════
+    // MENSAGENS (Fase 5)
+    // ══════════════════════════════════════════════
+
+    /**
+     * Tela de mensagens.
+     * GET: ?page=portal&action=messages[&order_id=X]
+     */
+    public function messages(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($this->portalAccess->getConfig('allow_messages', '1') !== '1') {
+            header('Location: ?page=portal&action=dashboard');
+            exit;
+        }
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $orderId    = (int) (Input::get('order_id') ?: 0);
+
+        $messageModel = new PortalMessage($this->db);
+
+        // Marcar como lidas
+        $messageModel->markAsRead($customerId, $orderId ?: null);
+
+        // Buscar mensagens
+        $messages = $messageModel->getByCustomer($customerId, $orderId ?: null, 100);
+
+        // Buscar pedidos do cliente para seletor
+        $orders = $this->portalAccess->getOrdersByCustomer($customerId, 'all', 50, 0);
+
+        $company = $this->company;
+
+        require 'app/views/portal/layout/header.php';
+        require 'app/views/portal/messages/index.php';
+        require 'app/views/portal/layout/footer.php';
+    }
+
+    /**
+     * Enviar mensagem. POST.
+     * POST: ?page=portal&action=sendMessage
+     */
+    public function sendMessage(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=portal&action=messages');
+            exit;
+        }
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $accessId   = PortalAuthMiddleware::getAccessId();
+        $message    = Input::post('message');
+        $orderId    = (int) (Input::post('order_id') ?: 0);
+
+        if (empty(trim($message))) {
+            if ($this->isAjax()) {
+                $this->jsonResponse(false, __p('error_required'));
+            }
+            header('Location: ?page=portal&action=messages' . ($orderId ? '&order_id=' . $orderId : ''));
+            exit;
+        }
+
+        $messageModel = new PortalMessage($this->db);
+        $msgId = $messageModel->create([
+            'customer_id' => $customerId,
+            'order_id'    => $orderId ?: null,
+            'sender_type' => 'customer',
+            'sender_id'   => $accessId,
+            'message'     => $message,
+        ]);
+
+        EventDispatcher::dispatch('portal.message.sent', new Event('portal.message.sent', [
+            'message_id'  => $msgId,
+            'customer_id' => $customerId,
+            'order_id'    => $orderId,
+            'ip'          => PortalAuthMiddleware::getClientIp(),
+        ]));
+
+        if ($this->isAjax()) {
+            $this->jsonResponse(true, __p('messages_sent'), [
+                'message_id' => $msgId,
+                'message'    => $message,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        header('Location: ?page=portal&action=messages' . ($orderId ? '&order_id=' . $orderId : '') . '&sent=1');
+        exit;
+    }
+
+    // ══════════════════════════════════════════════
+    // DOCUMENTOS (Fase 5)
+    // ══════════════════════════════════════════════
+
+    /**
+     * Listagem de documentos (NF-e, boletos).
+     * GET: ?page=portal&action=documents
+     */
+    public function documents(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($this->portalAccess->getConfig('allow_documents', '1') !== '1') {
+            header('Location: ?page=portal&action=dashboard');
+            exit;
+        }
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $documents  = $this->portalAccess->getDocumentsByCustomer($customerId);
+        $company    = $this->company;
+
+        require 'app/views/portal/layout/header.php';
+        require 'app/views/portal/documents/index.php';
+        require 'app/views/portal/layout/footer.php';
+    }
+
+    /**
+     * Download de documento (PDF ou XML).
+     * GET: ?page=portal&action=downloadDocument&id=X&type=pdf|xml
+     */
+    public function downloadDocument(): void
+    {
+        PortalAuthMiddleware::check();
+
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $documentId = (int) Input::get('id');
+        $type       = Input::get('type') ?: 'pdf';
+
+        if ($documentId <= 0 || !in_array($type, ['pdf', 'xml'])) {
+            header('Location: ?page=portal&action=documents');
+            exit;
+        }
+
+        $document = $this->portalAccess->getDocumentDetail($documentId, $customerId);
+        if (!$document) {
+            header('Location: ?page=portal&action=documents');
+            exit;
+        }
+
+        $filePath = $type === 'pdf' ? ($document['pdf_path'] ?? '') : ($document['xml_path'] ?? '');
+        if (empty($filePath) || !file_exists($filePath)) {
+            header('Location: ?page=portal&action=documents');
+            exit;
+        }
+
+        $filename = 'NFe_' . ($document['number'] ?? 'doc') . '.' . $type;
+        $mime = $type === 'pdf' ? 'application/pdf' : 'application/xml';
+
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($filePath));
+        readfile($filePath);
         exit;
     }
 
@@ -468,5 +1523,37 @@ class PortalController
         $stmt->execute([':email' => $email]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
+    }
+
+    /**
+     * Valida força da senha (mín. 8 chars, letras + números).
+     *
+     * @param string $password
+     * @return bool
+     */
+    private function isPasswordStrong(string $password): bool
+    {
+        if (strlen($password) < 8) {
+            return false;
+        }
+        // Deve conter pelo menos uma letra e pelo menos um número
+        if (!preg_match('/[a-zA-Z]/', $password) || !preg_match('/[0-9]/', $password)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Envia resposta JSON padronizada e encerra execução.
+     *
+     * @param bool   $success
+     * @param string $message
+     * @param array  $data
+     */
+    private function jsonResponse(bool $success, string $message, array $data = []): void
+    {
+        header('Content-Type: application/json');
+        echo json_encode(array_merge(['success' => $success, 'message' => $message], $data));
+        exit;
     }
 }

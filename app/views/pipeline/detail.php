@@ -37,6 +37,22 @@
                     <i class="fas fa-exclamation-triangle me-1"></i> ATRASADO +<?= $hoursInStage - $stageGoal ?>h
                 </span>
                 <?php endif; ?>
+                <?php
+                    $clientApprovalStatus = $order['customer_approval_status'] ?? null;
+                    if ($clientApprovalStatus === 'aprovado'):
+                ?>
+                <span class="badge bg-success py-1 px-2" style="font-size:0.7rem;border-radius:20px;">
+                    <i class="fas fa-user-check me-1"></i> Cliente Aprovou
+                </span>
+                <?php elseif ($clientApprovalStatus === 'pendente'): ?>
+                <span class="badge bg-warning text-dark py-1 px-2" style="font-size:0.7rem;border-radius:20px;">
+                    <i class="fas fa-hourglass-half me-1"></i> Aguard. Aprovação
+                </span>
+                <?php elseif ($clientApprovalStatus === 'recusado'): ?>
+                <span class="badge bg-danger py-1 px-2" style="font-size:0.7rem;border-radius:20px;">
+                    <i class="fas fa-user-times me-1"></i> Cliente Recusou
+                </span>
+                <?php endif; ?>
             </div>
             <div class="d-flex align-items-center gap-3 mt-1" style="font-size: 0.72rem;">
                 <span class="text-muted">
@@ -178,17 +194,82 @@
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($order['quote_confirmed_at'])): ?>
+    <?php
+        // ═══ Banner unificado de aprovação do cliente ═══
+        // Ambos os mecanismos (catálogo e portal) atualizam customer_approval_status.
+        // O campo quote_confirmed_at indica aprovação via catálogo; customer_approval_at via portal.
+        // Exibimos um único banner com base no customer_approval_status.
+        $portalApproval = $order['customer_approval_status'] ?? null;
+
+        // Determinar a origem da aprovação (catálogo ou portal)
+        $approvedViaCatalog = !empty($order['quote_confirmed_at']);
+        $approvedViaPortal  = !empty($order['customer_approval_at']);
+
+        // Data e IP prioritários: o mais recente entre catálogo e portal
+        $approvalDate = $order['customer_approval_at'] ?? $order['quote_confirmed_at'] ?? null;
+        $approvalIp   = $order['customer_approval_ip'] ?? $order['quote_confirmed_ip'] ?? null;
+
+        // Origem para exibição
+        if ($approvedViaCatalog && $approvedViaPortal) {
+            $catalogTime = strtotime($order['quote_confirmed_at']);
+            $portalTime  = strtotime($order['customer_approval_at']);
+            $approvalOrigin = ($portalTime >= $catalogTime) ? 'Portal do Cliente' : 'Link de Catálogo';
+            $approvalDate   = ($portalTime >= $catalogTime) ? $order['customer_approval_at'] : $order['quote_confirmed_at'];
+            $approvalIp     = ($portalTime >= $catalogTime) ? ($order['customer_approval_ip'] ?? null) : ($order['quote_confirmed_ip'] ?? null);
+        } elseif ($approvedViaCatalog) {
+            $approvalOrigin = 'Link de Catálogo';
+            $approvalDate   = $order['quote_confirmed_at'];
+            $approvalIp     = $order['quote_confirmed_ip'] ?? null;
+        } elseif ($approvedViaPortal) {
+            $approvalOrigin = 'Portal do Cliente';
+        } else {
+            $approvalOrigin = '';
+        }
+    ?>
+    <?php if ($portalApproval === 'aprovado'): ?>
     <div class="alert alert-success border-success d-flex align-items-center mb-4 shadow-sm" role="alert" style="border-left: 5px solid #198754 !important;">
         <div class="me-3">
-            <i class="fas fa-clipboard-check fs-3 text-success"></i>
+            <i class="fas fa-user-check fs-3 text-success"></i>
         </div>
         <div>
             <strong class="fs-6"><i class="fas fa-check-circle me-1"></i> Orçamento Aprovado pelo Cliente!</strong>
             <div class="small mt-1 text-muted">
-                O cliente confirmou o orçamento em <strong><?= date('d/m/Y \à\s H:i', strtotime($order['quote_confirmed_at'])) ?></strong> através do link do catálogo.
-                <?php if (!empty($order['quote_confirmed_ip'])): ?>
-                    <br><i class="fas fa-globe me-1"></i>IP do dispositivo: <code><?= e($order['quote_confirmed_ip']) ?></code>
+                O cliente aprovou o orçamento<?php if ($approvalOrigin): ?> via <strong><?= $approvalOrigin ?></strong><?php endif; ?><?php if ($approvalDate): ?> em <strong><?= date('d/m/Y \à\s H:i', strtotime($approvalDate)) ?></strong><?php endif; ?>.
+                <?php if ($approvalIp): ?>
+                    <br><i class="fas fa-globe me-1"></i>IP do dispositivo: <code><?= e($approvalIp) ?></code>
+                <?php endif; ?>
+                <?php if (!empty($order['customer_approval_notes'])): ?>
+                    <br><i class="fas fa-comment me-1"></i>Observações: <?= e($order['customer_approval_notes']) ?>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php elseif ($portalApproval === 'pendente'): ?>
+    <div class="alert alert-warning d-flex align-items-center mb-4 shadow-sm" role="alert" style="border-left: 5px solid #ffc107 !important;">
+        <div class="me-3">
+            <i class="fas fa-hourglass-half fs-3 text-warning"></i>
+        </div>
+        <div>
+            <strong class="fs-6"><i class="fas fa-clock me-1"></i> Aguardando Aprovação do Cliente</strong>
+            <div class="small mt-1 text-muted">
+                O orçamento foi enviado para aprovação do cliente. Aguarde a decisão.
+            </div>
+        </div>
+    </div>
+    <?php elseif ($portalApproval === 'recusado'): ?>
+    <div class="alert alert-danger d-flex align-items-center mb-4 shadow-sm" role="alert" style="border-left: 5px solid #dc3545 !important;">
+        <div class="me-3">
+            <i class="fas fa-user-times fs-3 text-danger"></i>
+        </div>
+        <div>
+            <strong class="fs-6"><i class="fas fa-times-circle me-1"></i> Cliente Recusou o Orçamento</strong>
+            <div class="small mt-1 text-muted">
+                O cliente recusou o orçamento<?php if ($approvalOrigin): ?> via <strong><?= $approvalOrigin ?></strong><?php endif; ?><?php if ($approvalDate): ?> em <strong><?= date('d/m/Y \à\s H:i', strtotime($approvalDate)) ?></strong><?php endif; ?>.
+                <?php if ($approvalIp): ?>
+                    <br><i class="fas fa-globe me-1"></i>IP do dispositivo: <code><?= e($approvalIp) ?></code>
+                <?php endif; ?>
+                <?php if (!empty($order['customer_approval_notes'])): ?>
+                    <br><i class="fas fa-comment me-1"></i>Motivo: <?= e($order['customer_approval_notes']) ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -255,6 +336,22 @@
                 <fieldset class="p-4 mb-4" style="border: 2px solid #9b59b6; border-radius: 8px;">
                     <legend class="float-none w-auto px-2 fs-5" style="color: #9b59b6;">
                         <i class="fas fa-file-invoice-dollar me-2"></i>Produtos do Orçamento
+                        <?php
+                            $quoteApproval = $order['customer_approval_status'] ?? null;
+                            if ($quoteApproval === 'aprovado'):
+                        ?>
+                        <span class="badge bg-success ms-2" style="font-size:0.7rem;">
+                            <i class="fas fa-user-check me-1"></i>Cliente Aprovou
+                        </span>
+                        <?php elseif ($quoteApproval === 'pendente'): ?>
+                        <span class="badge bg-warning text-dark ms-2" style="font-size:0.7rem;">
+                            <i class="fas fa-hourglass-half me-1"></i>Aguard. Aprovação
+                        </span>
+                        <?php elseif ($quoteApproval === 'recusado'): ?>
+                        <span class="badge bg-danger ms-2" style="font-size:0.7rem;">
+                            <i class="fas fa-user-times me-1"></i>Cliente Recusou
+                        </span>
+                        <?php endif; ?>
                     </legend>
 
                     <!-- ═══ Link de Catálogo para o Cliente ═══ -->
@@ -1251,6 +1348,22 @@
                             <i class="fas fa-money-bill-wave me-1"></i>Etapa Atual
                         </span>
                         <?php endif; ?>
+                        <?php
+                            $finApproval = $order['customer_approval_status'] ?? null;
+                            if ($finApproval === 'aprovado'):
+                        ?>
+                        <span class="badge bg-success ms-2" style="font-size:0.7rem;">
+                            <i class="fas fa-user-check me-1"></i>Cliente Aprovou
+                        </span>
+                        <?php elseif ($finApproval === 'pendente'): ?>
+                        <span class="badge bg-warning text-dark ms-2" style="font-size:0.7rem;">
+                            <i class="fas fa-hourglass-half me-1"></i>Aguard. Aprovação
+                        </span>
+                        <?php elseif ($finApproval === 'recusado'): ?>
+                        <span class="badge bg-danger ms-2" style="font-size:0.7rem;">
+                            <i class="fas fa-user-times me-1"></i>Cliente Recusou
+                        </span>
+                        <?php endif; ?>
                     </legend>
 
                     <?php if ($isFinanceiroStage && !empty($orderItems)): ?>
@@ -1521,11 +1634,29 @@
                                 <h6 class="mb-0" style="font-size:0.85rem; color:#8e44ad;">
                                     <i class="fas fa-link me-2"></i>Link de Pagamento
                                 </h6>
-                                <?php if (!empty($savedPaymentLink)): ?>
-                                <span class="badge" style="font-size:0.6rem; background:#8e44ad20; color:#8e44ad;">
-                                    <i class="fas fa-check-circle me-1"></i>Link ativo
-                                </span>
-                                <?php endif; ?>
+                                <div class="d-flex gap-1 align-items-center">
+                                    <?php if (!empty($savedPaymentLink)): ?>
+                                    <span class="badge" style="font-size:0.6rem; background:#8e44ad20; color:#8e44ad;">
+                                        <i class="fas fa-check-circle me-1"></i>Link ativo
+                                    </span>
+                                    <?php endif; ?>
+                                    <?php
+                                        $clientApproval = $order['customer_approval_status'] ?? null;
+                                        if ($clientApproval === 'aprovado'):
+                                    ?>
+                                    <span class="badge bg-success" style="font-size:0.6rem;">
+                                        <i class="fas fa-user-check me-1"></i>Cliente Aprovou
+                                    </span>
+                                    <?php elseif ($clientApproval === 'pendente'): ?>
+                                    <span class="badge bg-warning text-dark" style="font-size:0.6rem;">
+                                        <i class="fas fa-hourglass-half me-1"></i>Aguardando Cliente
+                                    </span>
+                                    <?php elseif ($clientApproval === 'recusado'): ?>
+                                    <span class="badge bg-danger" style="font-size:0.6rem;">
+                                        <i class="fas fa-user-times me-1"></i>Cliente Recusou
+                                    </span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                         <div class="card-body p-3">

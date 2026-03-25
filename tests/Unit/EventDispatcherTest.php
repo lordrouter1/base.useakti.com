@@ -492,7 +492,7 @@ class EventDispatcherTest extends TestCase
     {
         // Padrão: camada.entidade.acao (3 partes separadas por ponto)
         $pattern = '/EventDispatcher::dispatch\(\s*[\'"]([^\'"]+)[\'"]/';
-        $validPrefixes = ['model.', 'controller.', 'core.', 'middleware.'];
+        $validPrefixes = ['model.', 'controller.', 'core.', 'middleware.', 'portal.'];
 
         $directories = [
             realpath(__DIR__ . '/../../app/models'),

@@ -239,6 +239,28 @@ class CustomerController {
     }
 
     // ═══════════════════════════════════════════════
+    //  AJAX: Busca clientes para Select2
+    // ═══════════════════════════════════════════════
+
+    /**
+     * AJAX: Busca clientes para Select2 (autocomplete).
+     * GET ?page=customers&action=searchSelect2&q=termo&limit=10
+     * Retorna JSON: { data: [{ id, name, email, phone, document }] }
+     */
+    public function searchSelect2()
+    {
+        header('Content-Type: application/json');
+
+        $q     = isset($_GET['q']) ? trim($_GET['q']) : '';
+        $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
+
+        $results = $this->customerModel->searchForSelect2($q, $limit);
+
+        echo json_encode(['data' => $results]);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
     //  IMPORTAÇÃO: Parse do arquivo (Step 1 → Step 2)
     // ═══════════════════════════════════════════════
 

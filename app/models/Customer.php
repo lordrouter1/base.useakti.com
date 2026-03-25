@@ -196,6 +196,50 @@ class Customer {
     }
 
     /**
+     * Busca clientes para Select2 (AJAX autocomplete).
+     * Pesquisa por nome, e-mail, telefone ou documento.
+     *
+     * @param string $term Termo de busca
+     * @param int    $limit Máximo de resultados
+     * @return array Lista de clientes [id, name, email, phone, document]
+     */
+    public function searchForSelect2(string $term, int $limit = 10): array
+    {
+        $term = trim($term);
+        if ($term === '') {
+            // Sem filtro: retorna os últimos cadastrados
+            $stmt = $this->conn->prepare(
+                "SELECT id, name, email, phone, document
+                 FROM {$this->table_name}
+                 ORDER BY name ASC
+                 LIMIT :lim"
+            );
+            $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        }
+
+        $like = "%{$term}%";
+        $stmt = $this->conn->prepare(
+            "SELECT id, name, email, phone, document
+             FROM {$this->table_name}
+             WHERE name LIKE :s1 OR email LIKE :s2 OR phone LIKE :s3 OR document LIKE :s4
+             ORDER BY
+                CASE WHEN name LIKE :exact THEN 0 ELSE 1 END,
+                name ASC
+             LIMIT :lim"
+        );
+        $stmt->bindValue(':s1', $like);
+        $stmt->bindValue(':s2', $like);
+        $stmt->bindValue(':s3', $like);
+        $stmt->bindValue(':s4', $like);
+        $stmt->bindValue(':exact', $term . '%');
+        $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Importa um cliente a partir de dados mapeados
      * @param array $data Dados mapeados
      * @return int|false ID do cliente criado ou false
