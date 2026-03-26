@@ -291,4 +291,35 @@ return [
     'currency_prefix'     => 'R$',
     'date_format'         => 'd/m/Y',
     'datetime_format'     => 'd/m/Y H:i',
+
+    // ── 2FA (Fase 7) ──
+    '2fa_title'           => 'Verificação em duas etapas',
+    '2fa_description'     => 'Ative a verificação em duas etapas para uma camada extra de segurança. Um código de 6 dígitos será enviado ao seu e-mail a cada login.',
+    '2fa_status_on'       => 'Ativo',
+    '2fa_status_off'      => 'Inativo',
+    '2fa_enabled'         => 'Verificação em duas etapas ativada!',
+    '2fa_disabled'        => 'Verificação em duas etapas desativada.',
+    '2fa_verify_title'    => 'Verificação de Segurança',
+    '2fa_verify_subtitle' => 'Digite o código de 6 dígitos enviado para o seu e-mail.',
+    '2fa_code_label'      => 'Código de verificação',
+    '2fa_verify_btn'      => 'Verificar',
+    '2fa_invalid_code'    => 'Código inválido ou expirado. Tente novamente.',
+    '2fa_code_resent'     => 'Novo código enviado para o seu e-mail!',
+    '2fa_resend'          => 'Não recebeu? Reenviar código',
+    '2fa_code_placeholder'=> '000000',
+
+    // ── Avatar (Fase 7) ──
+    'avatar_change'       => 'Alterar foto',
+    'avatar_updated'      => 'Foto atualizada com sucesso!',
+    'avatar_upload_error' => 'Erro ao enviar a foto. Tente novamente.',
+    'avatar_invalid_type' => 'Formato inválido. Use JPG, PNG ou WebP.',
+    'avatar_too_large'    => 'Imagem muito grande. Máximo 2MB.',
+
+    // ── Offline / PWA (Fase 7) ──
+    'offline_title'       => 'Sem Conexão',
+    'offline_message'     => 'Você está sem internet. Verifique sua conexão e tente novamente.',
+    'offline_retry'       => 'Tentar Novamente',
+
+    // ── Rate Limiting (Fase 7) ──
+    'rate_limit_exceeded' => 'Muitas tentativas. Tente novamente em alguns minutos.',
 ];

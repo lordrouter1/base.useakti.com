@@ -9,6 +9,8 @@ $companyName = $company['company_name'] ?? 'Akti';
 $companyLogo = $company['company_logo'] ?? '';
 $customerName = $_SESSION['portal_customer_name'] ?? 'Cliente';
 $currentAction = $_GET['action'] ?? 'dashboard';
+$customerAvatar = $_SESSION['portal_customer_avatar'] ?? '';
+$customerInitial = strtoupper(substr($customerName, 0, 1));
 // Mensagens não lidas: pode ser passada pelo controller ou calculada sob demanda
 if (!isset($unreadMessages)) {
     $unreadMessages = 0;
@@ -104,6 +106,9 @@ if (!isset($unreadMessages)) {
             </nav>
             <div class="portal-topbar-right">
                 <span class="portal-topbar-greeting d-none d-sm-inline">
+                    <?php if (!empty($customerAvatar) && file_exists($customerAvatar)): ?>
+                        <img src="<?= eAttr($customerAvatar) ?>" alt="" class="portal-topbar-avatar">
+                    <?php endif; ?>
                     <?= e($customerName) ?>
                 </span>
                 <a href="?page=portal&action=logout" class="portal-topbar-btn" title="<?= __p('profile_logout') ?>">

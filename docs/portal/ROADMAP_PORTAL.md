@@ -275,7 +275,7 @@ Criar telas administrativas (dentro do painel admin existente) para gerenciar ac
 [x] Controller admin — ativar/desativar acesso, resetar senha, enviar magic link
 [x] Controller admin — tela de edição de customer_portal_config (formulário key-value)
 [x] Dashboard admin — widget: total de acessos, logins recentes, clientes ativos, mensagens pendentes
-[ ] PortalAuthMiddleware — integrar com customer_portal_sessions (gravar/validar sessões na tabela)
+[x] PortalAuthMiddleware — integrar com customer_portal_sessions (gravar/validar sessões na tabela)
 [x] Método de forçar logout: DELETE sessão específica ou todas de um cliente
 [x] Views admin: portal_admin/index.php, portal_admin/create.php, portal_admin/edit.php, portal_admin/config.php
 [x] Permissão 'portal_admin' no sistema de grupos (menu.php)
@@ -307,6 +307,38 @@ Melhorias de experiência final, segurança avançada e funcionalidades PWA comp
 | 10 | Idiomas adicionais (en, es) | i18n |
 | 11 | Foto/avatar do cliente | UX |
 | 12 | Indicador de status offline | PWA |
+
+### Checklist
+```
+[x] PortalAccess::generate2faCode(), validate2faCode(), is2faEnabled(), toggle2fa() — model 2FA completo
+[x] PortalController::verify2fa() — GET/POST, tela de código 2FA, validação
+[x] PortalController::resend2fa() — POST AJAX, reenvio de código
+[x] PortalController::toggle2fa() — POST AJAX, ativar/desativar 2FA no perfil
+[x] View auth/verify_2fa.php — tela de inserção de código 2FA com auto-submit
+[x] portal-sw.js — Push Notification listeners (push, notificationclick), offline fallback
+[x] View offline.html — Página offline customizada com auto-reload
+[x] portal-manifest.json — shortcuts (Pedidos, Novo, Financeiro) para PWA
+[x] Dashboard — Skeleton loading (portal-skeleton-stat-card, portal-skeleton-order-card)
+[x] portal.js — Pull-to-refresh (PortalPullToRefresh) para mobile (touch devices)
+[x] portal.js — Input masks automáticas para phone/CPF/CNPJ (PortalMasks)
+[x] PortalController::checkRateLimit() — Rate limiting por IP usando ip_hits
+[x] Logger integrado em login, logout, password change, approve, reject, 2FA, avatar upload
+[x] app/lang/en/portal.php — Tradução completa para inglês
+[x] app/lang/es/portal.php — Tradução completa para espanhol
+[x] PortalLang::getAvailableLanguages() — habilitado en + es
+[x] PortalAccess::updateAvatar(), getAvatar() — model de avatar
+[x] PortalController::uploadAvatar() — POST multipart, validação tipo/tamanho, AJAX support
+[x] Profile view — avatar section (upload, preview, placeholder com inicial)
+[x] Header topbar — avatar do cliente exibido ao lado do nome
+[x] portal.js — PortalOffline (indicador de status offline, barra amarela)
+[x] portal.js — Avatar upload preview + auto-submit via AJAX
+[x] portal.js — 2FA toggle handler via AJAX
+[x] portal.css — Skeleton loading, avatar, 2FA card, offline bar, pull-to-refresh, input masks
+[x] Profile view — Card de 2FA com toggle switch e badge de status
+[x] Profile view — Input masks em telefone e documento
+[x] Migration SQL: sql/update_202503251200_portal_fase7.sql
+[x] Footer — Push notification permission request no SW registration
+```
 
 ---
 

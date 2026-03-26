@@ -1415,4 +1415,166 @@ class PortalAccess
 
         return $orderId;
     }
+
+    // ══════════════════════════════════════════════
+    // 2FA (Two-Factor Authentication via E-mail)
+    // ══════════════════════════════════════════════
+
+    /**
+     * Gera código 2FA de 6 dígitos e salva no acesso.
+     *
+     * @param int $accessId
+     * @param int $expiryMinutes Validade em minutos (padrão 10)
+     * @return string Código de 6 dígitos
+     */
+    public function generate2faCode(int $accessId, int $expiryMinutes = 10): string
+    {
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $stmt = $this->conn->prepare(
+            "UPDATE {$this->table}
+             SET two_factor_code = :code,
+                 two_factor_expires_at = DATE_ADD(NOW(), INTERVAL :exp MINUTE)
+             WHERE id = :id"
+        );
+        $stmt->execute([
+            ':code' => $code,
+            ':exp'  => $expiryMinutes,
+            ':id'   => $accessId,
+        ]);
+
+        return $code;
+    }
+
+    /**
+     * Valida código 2FA informado pelo cliente.
+     *
+     * @param int    $accessId
+     * @param string $code Código digitado pelo cliente
+     * @return bool
+     */
+    public function validate2faCode(int $accessId, string $code): bool
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT id FROM {$this->table}
+             WHERE id = :id
+               AND two_factor_code = :code
+               AND two_factor_expires_at > NOW()"
+        );
+        $stmt->execute([':id' => $accessId, ':code' => $code]);
+
+        if ($stmt->fetch()) {
+            // Invalidar código após uso
+            $upd = $this->conn->prepare(
+                "UPDATE {$this->table}
+                 SET two_factor_code = NULL, two_factor_expires_at = NULL
+                 WHERE id = :id"
+            );
+            $upd->execute([':id' => $accessId]);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Verifica se o acesso tem 2FA habilitado.
+     *
+     * @param int $accessId
+     * @return bool
+     */
+    public function is2faEnabled(int $accessId): bool
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT two_factor_enabled FROM {$this->table} WHERE id = :id"
+        );
+        $stmt->execute([':id' => $accessId]);
+        return (int) $stmt->fetchColumn() === 1;
+    }
+
+    /**
+     * Ativa ou desativa 2FA para um acesso.
+     *
+     * @param int  $accessId
+     * @param bool $enable
+     * @return bool
+     */
+    public function toggle2fa(int $accessId, bool $enable): bool
+    {
+        $stmt = $this->conn->prepare(
+            "UPDATE {$this->table} SET two_factor_enabled = :val WHERE id = :id"
+        );
+        return $stmt->execute([':val' => $enable ? 1 : 0, ':id' => $accessId]);
+    }
+
+    // ══════════════════════════════════════════════
+    // AVATAR
+    // ══════════════════════════════════════════════
+
+    /**
+     * Atualiza o avatar do acesso ao portal.
+     *
+     * @param int    $accessId
+     * @param string $avatarPath Caminho relativo do arquivo
+     * @return bool
+     */
+    public function updateAvatar(int $accessId, string $avatarPath): bool
+    {
+        $stmt = $this->conn->prepare(
+            "UPDATE {$this->table} SET avatar = :avatar WHERE id = :id"
+        );
+        return $stmt->execute([':avatar' => $avatarPath, ':id' => $accessId]);
+    }
+
+    /**
+     * Retorna o caminho do avatar do acesso.
+     *
+     * @param int $accessId
+     * @return string|null
+     */
+    public function getAvatar(int $accessId): ?string
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT avatar FROM {$this->table} WHERE id = :id"
+        );
+        $stmt->execute([':id' => $accessId]);
+        $val = $stmt->fetchColumn();
+        return $val ?: null;
+    }
+
+    // ══════════════════════════════════════════════
+    // SESSÕES ATIVAS
+    // ══════════════════════════════════════════════
+
+    /**
+     * Lista sessões ativas de um acesso.
+     *
+     * @param int $accessId
+     * @return array
+     */
+    public function getActiveSessions(int $accessId): array
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT * FROM customer_portal_sessions
+             WHERE access_id = :aid
+             ORDER BY last_activity DESC"
+        );
+        $stmt->execute([':aid' => $accessId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Remove sessões expiradas (limpeza periódica).
+     *
+     * @return int Número de sessões removidas
+     */
+    public function cleanExpiredSessions(): int
+    {
+        $stmt = $this->conn->prepare(
+            "DELETE FROM customer_portal_sessions
+             WHERE expires_at IS NOT NULL AND expires_at < NOW()"
+        );
+        $stmt->execute();
+        return $stmt->rowCount();
+    }
 }

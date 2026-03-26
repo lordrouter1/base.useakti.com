@@ -2230,3 +2230,419 @@
     gap: 8px;
     flex-wrap: wrap;
 }
+
+/* ══════════════════════════════════════════════
+   SKELETON LOADING (Fase 7)
+   ══════════════════════════════════════════════ */
+
+@keyframes portalShimmer {
+    0% { background-position: -200px 0; }
+    100% { background-position: calc(200px + 100%) 0; }
+}
+
+.portal-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 37%, #f0f0f0 63%);
+    background-size: 200px 100%;
+    animation: portalShimmer 1.4s ease-in-out infinite;
+    border-radius: var(--portal-radius-sm);
+    display: block;
+}
+
+.portal-skeleton-text {
+    height: 14px;
+    margin-bottom: 8px;
+    width: 80%;
+}
+
+.portal-skeleton-text-sm {
+    height: 10px;
+    margin-bottom: 6px;
+    width: 60%;
+}
+
+.portal-skeleton-title {
+    height: 20px;
+    margin-bottom: 10px;
+    width: 50%;
+}
+
+.portal-skeleton-circle {
+    border-radius: 50%;
+}
+
+.portal-skeleton-stat-card {
+    background: var(--portal-bg);
+    border-radius: var(--portal-radius);
+    padding: 20px 16px;
+    box-shadow: var(--portal-shadow);
+}
+
+.portal-skeleton-stat-card .portal-skeleton-number {
+    height: 28px;
+    width: 60px;
+    margin-bottom: 8px;
+}
+
+.portal-skeleton-stat-card .portal-skeleton-label {
+    height: 12px;
+    width: 80%;
+}
+
+.portal-skeleton-order-card {
+    background: var(--portal-bg);
+    border-radius: var(--portal-radius);
+    padding: 16px;
+    margin-bottom: 10px;
+    box-shadow: var(--portal-shadow);
+}
+
+.portal-skeleton-order-card .portal-skeleton-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.portal-skeleton-order-card .portal-skeleton-badge {
+    height: 22px;
+    width: 80px;
+    border-radius: 11px;
+}
+
+.portal-skeleton-quick-link {
+    background: var(--portal-bg);
+    border-radius: var(--portal-radius);
+    padding: 16px;
+    text-align: center;
+    box-shadow: var(--portal-shadow);
+}
+
+.portal-skeleton-quick-link .portal-skeleton-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    margin: 0 auto 8px;
+}
+
+.portal-skeleton-quick-link .portal-skeleton-link-text {
+    height: 12px;
+    width: 70%;
+    margin: 0 auto;
+}
+
+/* ══════════════════════════════════════════════
+   AVATAR (Fase 7)
+   ══════════════════════════════════════════════ */
+
+.portal-avatar-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 16px;
+}
+
+.portal-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--portal-primary);
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.2);
+}
+
+.portal-avatar-placeholder {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--portal-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 600;
+    border: 3px solid var(--portal-primary);
+}
+
+.portal-avatar-upload-btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--portal-primary);
+    color: #fff;
+    border: 2px solid var(--portal-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.portal-avatar-upload-btn:hover {
+    background: var(--portal-primary-dark);
+}
+
+.portal-avatar-section {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.portal-avatar-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 8px;
+    color: var(--portal-text);
+}
+
+.portal-avatar-email {
+    font-size: 0.85rem;
+    color: var(--portal-muted);
+}
+
+/* Topbar avatar small */
+.portal-topbar-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 6px;
+    border: 2px solid var(--portal-primary);
+}
+
+/* ══════════════════════════════════════════════
+   2FA CARD (Fase 7)
+   ══════════════════════════════════════════════ */
+
+.portal-2fa-card {
+    background: var(--portal-bg);
+    border-radius: var(--portal-radius);
+    padding: 16px;
+    box-shadow: var(--portal-shadow);
+    margin-top: 12px;
+}
+
+.portal-2fa-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.portal-2fa-header h5 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.portal-2fa-description {
+    font-size: 0.85rem;
+    color: var(--portal-muted);
+    margin-bottom: 12px;
+}
+
+.portal-2fa-toggle {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.portal-2fa-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.portal-2fa-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 26px;
+}
+
+.portal-2fa-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.portal-2fa-toggle input:checked + .portal-2fa-slider {
+    background: var(--portal-primary);
+}
+
+.portal-2fa-toggle input:checked + .portal-2fa-slider:before {
+    transform: translateX(24px);
+}
+
+.portal-2fa-status {
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.portal-2fa-status-on {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.portal-2fa-status-off {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+/* ══════════════════════════════════════════════
+   OFFLINE INDICATOR (Fase 7)
+   ══════════════════════════════════════════════ */
+
+.portal-offline-bar {
+    position: fixed;
+    top: var(--portal-topbar-height);
+    left: 0;
+    right: 0;
+    z-index: 999;
+    background: #f59e0b;
+    color: #fff;
+    text-align: center;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s ease;
+}
+
+.portal-offline-bar.show {
+    display: flex;
+}
+
+.portal-offline-bar i {
+    font-size: 0.9rem;
+}
+
+/* Push content down when offline bar is visible */
+.portal-body.is-offline .portal-content {
+    padding-top: calc(var(--portal-topbar-height) + 36px + 12px);
+}
+
+/* ══════════════════════════════════════════════
+   PULL TO REFRESH (Fase 7)
+   ══════════════════════════════════════════════ */
+
+.portal-ptr-indicator {
+    position: fixed;
+    top: var(--portal-topbar-height);
+    left: 50%;
+    transform: translateX(-50%) translateY(-50px);
+    z-index: 998;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--portal-bg);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    pointer-events: none;
+}
+
+.portal-ptr-indicator.pulling {
+    transform: translateX(-50%) translateY(10px);
+}
+
+.portal-ptr-indicator.refreshing {
+    transform: translateX(-50%) translateY(10px);
+}
+
+.portal-ptr-indicator i {
+    font-size: 1rem;
+    color: var(--portal-primary);
+    transition: transform 0.2s;
+}
+
+.portal-ptr-indicator.pulling i {
+    transform: rotate(180deg);
+}
+
+.portal-ptr-indicator.refreshing i {
+    animation: portalSpin 1s linear infinite;
+}
+
+@keyframes portalSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ══════════════════════════════════════════════
+   INPUT MASKS — Visual styling (Fase 7)
+   ══════════════════════════════════════════════ */
+
+.portal-input-masked {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.5px;
+}
+
+/* 2FA verify form */
+.portal-2fa-verify-form {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.portal-2fa-code-input {
+    font-size: 1.8rem;
+    letter-spacing: 12px;
+    text-align: center;
+    font-weight: 700;
+    max-width: 220px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    border: 2px solid var(--portal-border);
+    border-radius: var(--portal-radius-sm);
+    transition: border-color 0.2s;
+}
+
+.portal-2fa-code-input:focus {
+    border-color: var(--portal-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.portal-2fa-icon {
+    font-size: 3rem;
+    color: var(--portal-primary);
+    margin-bottom: 16px;
+}
+
+.portal-2fa-resend {
+    margin-top: 16px;
+    font-size: 0.85rem;
+}
+
+.portal-2fa-resend a {
+    color: var(--portal-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.portal-2fa-resend a:hover {
+    text-decoration: underline;
+}

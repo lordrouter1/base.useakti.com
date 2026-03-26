@@ -22,5 +22,27 @@
         }
     ],
     "categories": ["business", "productivity"],
-    "lang": "pt-BR"
+    "lang": "pt-BR",
+    "prefer_related_applications": false,
+    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "Meus Pedidos",
+            "short_name": "Pedidos",
+            "url": "?page=portal&action=orders",
+            "icons": []
+        },
+        {
+            "name": "Novo Pedido",
+            "short_name": "Novo",
+            "url": "?page=portal&action=newOrder",
+            "icons": []
+        },
+        {
+            "name": "Financeiro",
+            "short_name": "Financeiro",
+            "url": "?page=portal&action=installments",
+            "icons": []
+        }
+    ]
 }

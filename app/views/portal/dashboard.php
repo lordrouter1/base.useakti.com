@@ -10,7 +10,7 @@ $trackingCount  = $trackingCount ?? 0;
 $documentsCount = $documentsCount ?? 0;
 ?>
 
-<div class="portal-page">
+<div class="portal-page" id="portalDashboard">
     <!-- ═══ Saudação ═══ -->
     <div class="portal-greeting">
         <h2 class="portal-greeting-text">
@@ -19,6 +19,35 @@ $documentsCount = $documentsCount ?? 0;
         </h2>
         <p class="portal-greeting-sub"><?= e($company['company_name'] ?? '') ?></p>
     </div>
+
+    <!-- ═══ Skeleton Loading (shown initially, hidden by JS) ═══ -->
+    <div id="dashboardSkeleton" data-skeleton-for="dashboardContent" style="display:none">
+        <div class="portal-stats-grid">
+            <?php for ($i = 0; $i < 4; $i++): ?>
+                <div class="portal-skeleton-stat-card">
+                    <div class="portal-skeleton portal-skeleton-number"></div>
+                    <div class="portal-skeleton portal-skeleton-label"></div>
+                </div>
+            <?php endfor; ?>
+        </div>
+        <div class="mt-3">
+            <?php for ($i = 0; $i < 3; $i++): ?>
+                <div class="portal-skeleton-order-card">
+                    <div class="portal-skeleton-row">
+                        <div class="portal-skeleton portal-skeleton-text" style="width:40%"></div>
+                        <div class="portal-skeleton portal-skeleton-badge"></div>
+                    </div>
+                    <div class="portal-skeleton-row">
+                        <div class="portal-skeleton portal-skeleton-text-sm" style="width:50%"></div>
+                        <div class="portal-skeleton portal-skeleton-text-sm" style="width:25%"></div>
+                    </div>
+                </div>
+            <?php endfor; ?>
+        </div>
+    </div>
+
+    <!-- ═══ Real Content ═══ -->
+    <div id="dashboardContent">
 
     <!-- ═══ Cards de Estatísticas ═══ -->
     <div class="portal-stats-grid">
@@ -153,4 +182,6 @@ $documentsCount = $documentsCount ?? 0;
             </div>
         <?php endif; ?>
     </div>
+
+    </div><!-- /dashboardContent -->
 </div>

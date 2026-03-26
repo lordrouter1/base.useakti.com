@@ -74,6 +74,11 @@ return [
             'forgotPassword'    => 'forgotPassword',
             'resetPassword'     => 'resetPassword',
 
+            // 2FA
+            'verify2fa'         => 'verify2fa',
+            'resend2fa'         => 'resend2fa',
+            'toggle2fa'         => 'toggle2fa',
+
             // Dashboard
             'dashboard'         => 'dashboard',
 
@@ -111,6 +116,7 @@ return [
             // Perfil
             'profile'           => 'profile',
             'updateProfile'     => 'updateProfile',
+            'uploadAvatar'      => 'uploadAvatar',
         ],
     ],
 

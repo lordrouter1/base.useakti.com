@@ -94,6 +94,19 @@ $unreadMessages = $unreadMessages ?? 0;
         navigator.serviceWorker.register('portal-sw.js', { scope: './' })
             .then(function(reg) {
                 console.log('Portal SW registered:', reg.scope);
+
+                // Push notification permission (Fase 7)
+                if ('Notification' in window && Notification.permission === 'default') {
+                    // Pedir permissão após interação do usuário
+                    document.addEventListener('click', function askPush() {
+                        Notification.requestPermission().then(function(permission) {
+                            if (permission === 'granted') {
+                                console.log('Push notifications enabled');
+                            }
+                        });
+                        document.removeEventListener('click', askPush);
+                    }, { once: true });
+                }
             })
             .catch(function(err) {
                 console.log('Portal SW registration failed:', err);

@@ -6,6 +6,7 @@ use Akti\Models\PortalMessage;
 use Akti\Models\Customer;
 use Akti\Models\CompanySettings;
 use Akti\Models\CatalogLink;
+use Akti\Models\Logger;
 use Akti\Middleware\PortalAuthMiddleware;
 use Akti\Services\PortalLang;
 use Akti\Core\EventDispatcher;
@@ -28,12 +29,14 @@ class PortalController
     private PDO $db;
     private PortalAccess $portalAccess;
     private ?CompanySettings $companySettings = null;
+    private Logger $logger;
     private array $company = [];
 
     public function __construct()
     {
         $this->db = (new \Database())->getConnection();
         $this->portalAccess = new PortalAccess($this->db);
+        $this->logger = new Logger($this->db);
 
         // Carregar configurações da empresa
         $this->companySettings = new CompanySettings($this->db);
@@ -131,6 +134,7 @@ class PortalController
                     $error = __p('login_error');
                 } elseif (!$this->portalAccess->verifyPassword($password, $access['password_hash'])) {
                     $this->portalAccess->registerFailedAttempt($access['id']);
+                    $this->logger->log('portal_login_failed', "E-mail: {$email} | IP: " . PortalAuthMiddleware::getClientIp());
                     $error = __p('login_error');
                 } else {
                     // Login bem-sucedido
@@ -151,6 +155,30 @@ class PortalController
                         $access['email'],
                         $access['lang'] ?? 'pt-br'
                     );
+
+                    // Guardar avatar na sessão para exibição no topbar
+                    $_SESSION['portal_customer_avatar'] = $access['avatar'] ?? '';
+
+                    $this->logger->log('portal_login', "Cliente: {$customerName} | E-mail: {$email} | IP: {$ip}", $access['customer_id']);
+
+                    // ── Verificar 2FA ──
+                    $config = $this->portalAccess->getAllConfig();
+                    $global2fa = ($config['enable_2fa'] ?? '0') === '1';
+                    if ($global2fa && $this->portalAccess->is2faEnabled($access['id'])) {
+                        $code = $this->portalAccess->generate2faCode($access['id']);
+                        PortalAuthMiddleware::set2faPending(true);
+
+                        // TODO: Enviar e-mail com o código 2FA
+                        // mail($access['email'], 'Código de Verificação', "Seu código: {$code}");
+
+                        EventDispatcher::dispatch('portal.customer.2fa_requested', new Event('portal.customer.2fa_requested', [
+                            'customer_id' => $access['customer_id'],
+                            'email'       => $access['email'],
+                        ]));
+
+                        header('Location: ?page=portal&action=verify2fa');
+                        exit;
+                    }
 
                     EventDispatcher::dispatch('portal.customer.logged_in', new Event('portal.customer.logged_in', [
                         'customer_id' => $access['customer_id'],
@@ -234,6 +262,10 @@ class PortalController
      */
     public function logout(): void
     {
+        $customerId = PortalAuthMiddleware::getCustomerId();
+        $email = $_SESSION['portal_email'] ?? '';
+        $this->logger->log('portal_logout', "E-mail: {$email} | IP: " . PortalAuthMiddleware::getClientIp(), $customerId);
+
         PortalAuthMiddleware::logout();
         header('Location: ?page=portal&action=login');
         exit;
@@ -365,11 +397,16 @@ class PortalController
         PortalAuthMiddleware::check();
 
         $customerId = PortalAuthMiddleware::getCustomerId();
+        $accessId   = PortalAuthMiddleware::getAccessId();
         $customer   = (new Customer($this->db))->readOne($customerId);
         $access     = $this->portalAccess->findByCustomerId($customerId);
         $company    = $this->company;
         $languages  = PortalLang::getAvailableLanguages();
         $message    = '';
+
+        // Fase 7 — Avatar e 2FA
+        $avatarPath   = $access['avatar'] ?? '';
+        $is2faEnabled = (($access['two_factor_enabled'] ?? 0) == 1);
 
         require 'app/views/portal/layout/header.php';
         require 'app/views/portal/profile/index.php';
@@ -435,6 +472,7 @@ class PortalController
                 $passwordError = __p('profile_password_weak');
             } else {
                 $this->portalAccess->update($accessId, ['password' => $newPassword]);
+                $this->logger->log('portal_password_changed', "E-mail: " . ($_SESSION['portal_email'] ?? '') . " | IP: " . PortalAuthMiddleware::getClientIp(), $customerId);
             }
 
             if (isset($passwordError)) {
@@ -791,6 +829,7 @@ class PortalController
         $success = $this->portalAccess->updateApprovalStatus($orderId, $customerId, 'aprovado', $ip, $notes);
 
         if ($success) {
+            $this->logger->log('portal_order_approved', "Pedido #{$orderId} aprovado | IP: {$ip}", $customerId);
             EventDispatcher::dispatch('portal.order.approved', new Event('portal.order.approved', [
                 'order_id'    => $orderId,
                 'customer_id' => $customerId,
@@ -843,6 +882,7 @@ class PortalController
         $success = $this->portalAccess->updateApprovalStatus($orderId, $customerId, 'recusado', $ip, $notes);
 
         if ($success) {
+            $this->logger->log('portal_order_rejected', "Pedido #{$orderId} recusado | IP: {$ip}", $customerId);
             EventDispatcher::dispatch('portal.order.rejected', new Event('portal.order.rejected', [
                 'order_id'    => $orderId,
                 'customer_id' => $customerId,
@@ -1478,6 +1518,246 @@ class PortalController
         header('Content-Length: ' . filesize($filePath));
         readfile($filePath);
         exit;
+    }
+
+    // ══════════════════════════════════════════════
+    // 2FA — Verificação de dois fatores
+    // ══════════════════════════════════════════════
+
+    /**
+     * Tela de verificação 2FA / Processa código (POST).
+     */
+    public function verify2fa(): void
+    {
+        if (!PortalAuthMiddleware::isAuthenticated()) {
+            header('Location: ?page=portal&action=login');
+            exit;
+        }
+
+        // Se 2FA não está pendente, ir para dashboard
+        if (!PortalAuthMiddleware::is2faPending()) {
+            header('Location: ?page=portal&action=dashboard');
+            exit;
+        }
+
+        $error = '';
+        $accessId = PortalAuthMiddleware::getAccessId();
+        $company = $this->company;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $code = Input::post('code');
+
+            if (empty($code) || strlen($code) !== 6) {
+                $error = __p('2fa_invalid_code');
+            } elseif ($this->portalAccess->validate2faCode($accessId, $code)) {
+                PortalAuthMiddleware::set2faVerified();
+                $this->logger->log('portal_2fa_verified', "2FA verificado | IP: " . PortalAuthMiddleware::getClientIp(), PortalAuthMiddleware::getCustomerId());
+
+                EventDispatcher::dispatch('portal.customer.logged_in', new Event('portal.customer.logged_in', [
+                    'customer_id' => PortalAuthMiddleware::getCustomerId(),
+                    'email'       => $_SESSION['portal_email'] ?? '',
+                    'ip'          => PortalAuthMiddleware::getClientIp(),
+                    'method'      => '2fa',
+                ]));
+
+                header('Location: ?page=portal&action=dashboard');
+                exit;
+            } else {
+                $error = __p('2fa_invalid_code');
+                $this->logger->log('portal_2fa_failed', "Código 2FA inválido | IP: " . PortalAuthMiddleware::getClientIp(), PortalAuthMiddleware::getCustomerId());
+            }
+        }
+
+        require 'app/views/portal/layout/header_auth.php';
+        require 'app/views/portal/auth/verify_2fa.php';
+        require 'app/views/portal/layout/footer_auth.php';
+    }
+
+    /**
+     * Reenviar código 2FA (POST AJAX).
+     */
+    public function resend2fa(): void
+    {
+        if (!PortalAuthMiddleware::isAuthenticated() || !PortalAuthMiddleware::is2faPending()) {
+            $this->jsonResponse(false, __p('error_generic'));
+        }
+
+        $accessId = PortalAuthMiddleware::getAccessId();
+        $code = $this->portalAccess->generate2faCode($accessId);
+
+        // TODO: Enviar e-mail com o novo código
+        // $email = $_SESSION['portal_email'] ?? '';
+        // mail($email, 'Novo código de verificação', "Seu código: {$code}");
+
+        $this->jsonResponse(true, __p('2fa_code_resent'));
+    }
+
+    /**
+     * Ativa/desativa 2FA no perfil (POST AJAX).
+     */
+    public function toggle2fa(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(false, 'Método inválido.');
+        }
+
+        $accessId = PortalAuthMiddleware::getAccessId();
+        $enable = Input::post('enable') === '1';
+
+        $this->portalAccess->toggle2fa($accessId, $enable);
+
+        $action = $enable ? 'ativou' : 'desativou';
+        $this->logger->log('portal_2fa_toggled', "2FA {$action} | IP: " . PortalAuthMiddleware::getClientIp(), PortalAuthMiddleware::getCustomerId());
+
+        $this->jsonResponse(true, $enable ? __p('2fa_enabled') : __p('2fa_disabled'));
+    }
+
+    // ══════════════════════════════════════════════
+    // AVATAR — Upload de foto do cliente
+    // ══════════════════════════════════════════════
+
+    /**
+     * Upload de avatar (POST com multipart/form-data).
+     */
+    public function uploadAvatar(): void
+    {
+        PortalAuthMiddleware::check();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=portal&action=profile');
+            exit;
+        }
+
+        $accessId   = PortalAuthMiddleware::getAccessId();
+        $customerId = PortalAuthMiddleware::getCustomerId();
+
+        if (empty($_FILES['avatar']) || $_FILES['avatar']['error'] !== UPLOAD_ERR_OK) {
+            if ($this->isAjax()) {
+                $this->jsonResponse(false, __p('avatar_upload_error'));
+            }
+            header('Location: ?page=portal&action=profile&avatar_error=1');
+            exit;
+        }
+
+        $file = $_FILES['avatar'];
+
+        // Validar tipo e tamanho (máx. 2MB, apenas imagens)
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        $maxSize = 2 * 1024 * 1024; // 2MB
+
+        if (!in_array($file['type'], $allowedTypes)) {
+            if ($this->isAjax()) {
+                $this->jsonResponse(false, __p('avatar_invalid_type'));
+            }
+            header('Location: ?page=portal&action=profile&avatar_error=type');
+            exit;
+        }
+
+        if ($file['size'] > $maxSize) {
+            if ($this->isAjax()) {
+                $this->jsonResponse(false, __p('avatar_too_large'));
+            }
+            header('Location: ?page=portal&action=profile&avatar_error=size');
+            exit;
+        }
+
+        // Determinar extensão
+        $ext = match ($file['type']) {
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp',
+            default      => 'jpg',
+        };
+
+        // Gerar nome único
+        $filename = 'portal_avatar_' . $customerId . '_' . time() . '.' . $ext;
+        $destDir  = 'assets/uploads/portal/avatars/';
+
+        if (!is_dir($destDir)) {
+            mkdir($destDir, 0755, true);
+        }
+
+        $destPath = $destDir . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $destPath)) {
+            if ($this->isAjax()) {
+                $this->jsonResponse(false, __p('avatar_upload_error'));
+            }
+            header('Location: ?page=portal&action=profile&avatar_error=1');
+            exit;
+        }
+
+        // Remover avatar antigo
+        $oldAvatar = $this->portalAccess->getAvatar($accessId);
+        if ($oldAvatar && file_exists($oldAvatar)) {
+            @unlink($oldAvatar);
+        }
+
+        $this->portalAccess->updateAvatar($accessId, $destPath);
+        $_SESSION['portal_customer_avatar'] = $destPath;
+        $this->logger->log('portal_avatar_uploaded', "Avatar atualizado | IP: " . PortalAuthMiddleware::getClientIp(), $customerId);
+
+        if ($this->isAjax()) {
+            $this->jsonResponse(true, __p('avatar_updated'), ['path' => $destPath]);
+        }
+
+        header('Location: ?page=portal&action=profile&avatar_updated=1');
+        exit;
+    }
+
+    // ══════════════════════════════════════════════
+    // RATE LIMITING — Proteção contra abuso
+    // ══════════════════════════════════════════════
+
+    /**
+     * Verifica rate limiting para ações do portal (login, register, etc.).
+     * Usa a tabela de IpGuard existente.
+     *
+     * @param string $action Nome da ação para rate limit
+     * @param int    $maxAttempts Máximo de tentativas
+     * @param int    $windowSeconds Janela de tempo em segundos
+     * @return bool true se dentro do limite, false se excedeu
+     */
+    private function checkRateLimit(string $action, int $maxAttempts = 30, int $windowSeconds = 60): bool
+    {
+        $ip = PortalAuthMiddleware::getClientIp();
+        $key = "portal_{$action}_{$ip}";
+
+        // Ler config de rate limit
+        $maxConfig    = (int) $this->portalAccess->getConfig('rate_limit_portal_max', (string) $maxAttempts);
+        $windowConfig = (int) $this->portalAccess->getConfig('rate_limit_portal_window', (string) $windowSeconds);
+
+        try {
+            // Limpar hits antigos
+            $cleanup = $this->db->prepare(
+                "DELETE FROM ip_hits WHERE ip_address = :ip AND path = :key AND hit_at < DATE_SUB(NOW(), INTERVAL :window SECOND)"
+            );
+            $cleanup->execute([':ip' => $ip, ':key' => $key, ':window' => $windowConfig]);
+
+            // Contar hits recentes
+            $stmt = $this->db->prepare(
+                "SELECT COUNT(*) FROM ip_hits WHERE ip_address = :ip AND path = :key"
+            );
+            $stmt->execute([':ip' => $ip, ':key' => $key]);
+            $count = (int) $stmt->fetchColumn();
+
+            if ($count >= $maxConfig) {
+                $this->logger->log('portal_rate_limited', "IP: {$ip} | Action: {$action} | Hits: {$count}");
+                return false;
+            }
+
+            // Registrar hit
+            $ins = $this->db->prepare(
+                "INSERT INTO ip_hits (ip_address, path, hit_at) VALUES (:ip, :key, NOW())"
+            );
+            $ins->execute([':ip' => $ip, ':key' => $key]);
+
+            return true;
+        } catch (\Throwable $e) {
+            return true; // Em caso de erro, não bloquear
+        }
     }
 
     // ══════════════════════════════════════════════

@@ -83,9 +83,8 @@ class PortalLang
     {
         return [
             'pt-br' => 'Português (Brasil)',
-            // Futuros idiomas:
-            // 'en'    => 'English',
-            // 'es'    => 'Español',
+            'en'    => 'English',
+            'es'    => 'Español',
         ];
     }
 
