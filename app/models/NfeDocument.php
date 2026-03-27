@@ -37,15 +37,16 @@ class NfeDocument
     public function create(array $data): int
     {
         $q = "INSERT INTO {$this->table}
-              (order_id, numero, serie, status, natureza_op, valor_total, valor_produtos,
-               valor_desconto, valor_frete, dest_cnpj_cpf, dest_nome, dest_ie, dest_uf)
+              (order_id, modelo, numero, serie, status, natureza_op, valor_total, valor_produtos,
+               valor_desconto, valor_frete, dest_cnpj_cpf, dest_nome, dest_ie, dest_uf, tp_emis)
               VALUES
-              (:order_id, :numero, :serie, :status, :natureza_op, :valor_total, :valor_produtos,
-               :valor_desconto, :valor_frete, :dest_cnpj_cpf, :dest_nome, :dest_ie, :dest_uf)";
+              (:order_id, :modelo, :numero, :serie, :status, :natureza_op, :valor_total, :valor_produtos,
+               :valor_desconto, :valor_frete, :dest_cnpj_cpf, :dest_nome, :dest_ie, :dest_uf, :tp_emis)";
 
         $s = $this->conn->prepare($q);
         $s->execute([
             ':order_id'       => $data['order_id'] ?? null,
+            ':modelo'         => $data['modelo'] ?? 55,
             ':numero'         => $data['numero'],
             ':serie'          => $data['serie'] ?? 1,
             ':status'         => $data['status'] ?? 'rascunho',
@@ -58,6 +59,7 @@ class NfeDocument
             ':dest_nome'      => $data['dest_nome'] ?? null,
             ':dest_ie'        => $data['dest_ie'] ?? null,
             ':dest_uf'        => $data['dest_uf'] ?? null,
+            ':tp_emis'        => $data['tp_emis'] ?? 1,
         ]);
 
         $id = (int) $this->conn->lastInsertId();
@@ -81,6 +83,21 @@ class NfeDocument
         $q = "SELECT * FROM {$this->table} WHERE id = :id";
         $s = $this->conn->prepare($q);
         $s->execute([':id' => $id]);
+        return $s->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Busca NF-e por número, série e modelo.
+     * @param int $numero
+     * @param int $serie
+     * @param int $modelo
+     * @return array|false
+     */
+    public function findByNumero(int $numero, int $serie = 1, int $modelo = 55)
+    {
+        $q = "SELECT * FROM {$this->table} WHERE numero = :numero AND serie = :serie AND modelo = :modelo LIMIT 1";
+        $s = $this->conn->prepare($q);
+        $s->execute([':numero' => $numero, ':serie' => $serie, ':modelo' => $modelo]);
         return $s->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -182,8 +199,13 @@ class NfeDocument
         $allowedFields = [
             'chave', 'protocolo', 'recibo',
             'status', 'status_sefaz', 'motivo_sefaz',
+            'modelo', 'tp_emis', 'contingencia_justificativa',
+            'natureza_op',
+            'valor_total', 'valor_produtos', 'valor_desconto', 'valor_frete',
+            'valor_icms', 'valor_pis', 'valor_cofins', 'valor_ipi', 'valor_tributos_aprox',
+            'dest_cnpj_cpf', 'dest_nome', 'dest_ie', 'dest_uf',
             'xml_envio', 'xml_autorizado', 'xml_cancelamento', 'xml_correcao',
-            'danfe_path',
+            'xml_path', 'danfe_path', 'cancel_xml_path',
             'cancel_protocolo', 'cancel_motivo', 'cancel_date',
             'correcao_texto', 'correcao_seq', 'correcao_date',
             'emitted_at',
@@ -219,25 +241,30 @@ class NfeDocument
 
     /**
      * Marca NF-e como autorizada e sincroniza com a tabela orders.
-     * @param int    $id
-     * @param string $chave
-     * @param string $protocolo
-     * @param string $xmlAutorizado
+     * @param int         $id
+     * @param string      $chave
+     * @param string      $protocolo
+     * @param string      $xmlAutorizado
+     * @param string|null $xmlPath  Caminho relativo do XML salvo em disco
      * @return bool
      */
-    public function markAuthorized(int $id, string $chave, string $protocolo, string $xmlAutorizado): bool
+    public function markAuthorized(int $id, string $chave, string $protocolo, string $xmlAutorizado, ?string $xmlPath = null): bool
     {
         $this->conn->beginTransaction();
         try {
             // Atualizar nfe_documents
-            $this->update($id, [
+            $updateData = [
                 'chave'          => $chave,
                 'protocolo'      => $protocolo,
                 'status'         => 'autorizada',
                 'status_sefaz'   => '100',
                 'xml_autorizado' => $xmlAutorizado,
                 'emitted_at'     => date('Y-m-d H:i:s'),
-            ]);
+            ];
+            if ($xmlPath !== null) {
+                $updateData['xml_path'] = $xmlPath;
+            }
+            $this->update($id, $updateData);
 
             // Sincronizar com orders
             $doc = $this->readOne($id);

@@ -2,17 +2,30 @@
 namespace Akti\Controllers;
 
 use Akti\Models\Customer;
+use Akti\Models\CustomerContact;
 use Akti\Models\PriceTable;
 use Akti\Models\Logger;
+use Akti\Models\User;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
 use Database;
 use PDO;
 use TenantManager;
 
+/**
+ * Controller: CustomerController
+ *
+ * CRUD completo de clientes com ~40 campos, validação server-side,
+ * soft delete, auditoria, AJAX endpoints, exportação CSV e proxy APIs.
+ *
+ * Fase 2 do Roadmap de Refatoração do Cadastro de Clientes.
+ *
+ * @see docs/cadastro/ROADMAP_CADASTRO_CLIENTES.md
+ */
 class CustomerController {
     
     private $customerModel;
+    private $contactModel;
     private $logger;
     private $db;
 
@@ -20,8 +33,13 @@ class CustomerController {
         $database = new Database();
         $this->db = $database->getConnection();
         $this->customerModel = new Customer($this->db);
+        $this->contactModel  = new CustomerContact($this->db);
         $this->logger = new Logger($this->db);
     }
+
+    // ═══════════════════════════════════════════════
+    //  CRUD — Listagem (index)
+    // ═══════════════════════════════════════════════
 
     public function index() {
         $totalItems = (int) $this->customerModel->countAll();
@@ -32,78 +50,141 @@ class CustomerController {
         $limitReached = ($maxCustomers !== null && $currentCustomers >= $maxCustomers);
         $limitInfo = $limitReached ? ['current' => $currentCustomers, 'max' => $maxCustomers] : null;
 
-        // Campos disponíveis para mapeamento de importação
+        // Campos disponíveis para mapeamento de importação (Fase 4 — atualizado com todos os novos campos)
         $importFields = [
-            'name'           => ['label' => 'Nome / Razão Social', 'required' => true],
-            'email'          => ['label' => 'E-mail', 'required' => false],
-            'phone'          => ['label' => 'Telefone', 'required' => false],
-            'document'       => ['label' => 'CPF / CNPJ', 'required' => false],
-            'zipcode'        => ['label' => 'CEP', 'required' => false],
-            'address_type'   => ['label' => 'Tipo Logradouro', 'required' => false],
-            'address_name'   => ['label' => 'Nome do Logradouro', 'required' => false],
-            'address_number' => ['label' => 'Número', 'required' => false],
-            'neighborhood'   => ['label' => 'Bairro', 'required' => false],
-            'complement'     => ['label' => 'Complemento', 'required' => false],
+            'name'                 => ['label' => 'Nome / Razão Social', 'required' => true],
+            'person_type'          => ['label' => 'Tipo Pessoa (PF/PJ)', 'required' => false],
+            'fantasy_name'         => ['label' => 'Nome Fantasia', 'required' => false],
+            'document'             => ['label' => 'CPF / CNPJ', 'required' => false],
+            'rg_ie'                => ['label' => 'RG / Inscrição Estadual', 'required' => false],
+            'im'                   => ['label' => 'Inscrição Municipal', 'required' => false],
+            'birth_date'           => ['label' => 'Data Nascimento/Fundação', 'required' => false],
+            'gender'               => ['label' => 'Gênero', 'required' => false],
+            'email'                => ['label' => 'E-mail', 'required' => false],
+            'email_secondary'      => ['label' => 'E-mail Secundário', 'required' => false],
+            'phone'                => ['label' => 'Telefone', 'required' => false],
+            'cellphone'            => ['label' => 'Celular / WhatsApp', 'required' => false],
+            'phone_commercial'     => ['label' => 'Telefone Comercial', 'required' => false],
+            'website'              => ['label' => 'Website', 'required' => false],
+            'instagram'            => ['label' => 'Instagram', 'required' => false],
+            'contact_name'         => ['label' => 'Nome do Contato (PJ)', 'required' => false],
+            'contact_role'         => ['label' => 'Cargo do Contato', 'required' => false],
+            'zipcode'              => ['label' => 'CEP', 'required' => false],
+            'address_street'       => ['label' => 'Logradouro', 'required' => false],
+            'address_type'         => ['label' => 'Tipo Logradouro', 'required' => false],
+            'address_name'         => ['label' => 'Nome do Logradouro', 'required' => false],
+            'address_number'       => ['label' => 'Número', 'required' => false],
+            'address_complement'   => ['label' => 'Complemento', 'required' => false],
+            'address_neighborhood' => ['label' => 'Bairro', 'required' => false],
+            'address_city'         => ['label' => 'Cidade', 'required' => false],
+            'address_state'        => ['label' => 'Estado (UF)', 'required' => false],
+            'neighborhood'         => ['label' => 'Bairro (legado)', 'required' => false],
+            'complement'           => ['label' => 'Complemento (legado)', 'required' => false],
+            'origin'               => ['label' => 'Origem', 'required' => false],
+            'tags'                 => ['label' => 'Tags', 'required' => false],
+            'observations'         => ['label' => 'Observações', 'required' => false],
         ];
+
+        // Dados para filtros avançados
+        $states = $this->customerModel->getDistinctStates();
+        $cities = $this->customerModel->getDistinctCities();
 
         require 'app/views/layout/header.php';
         require 'app/views/customers/index.php';
         require 'app/views/layout/footer.php';
     }
 
+    // ═══════════════════════════════════════════════
+    //  CRUD — Formulário de Criação
+    // ═══════════════════════════════════════════════
+
     public function create() {
         $priceTableModel = new PriceTable($this->db);
         $priceTables = $priceTableModel->readAll();
-        
+
+        // Carregar lista de vendedores (usuários)
+        $userModel = new User($this->db);
+        $sellers = $userModel->readAll();
+
         require 'app/views/layout/header.php';
         require 'app/views/customers/create.php';
         require 'app/views/layout/footer.php';
     }
 
+    // ═══════════════════════════════════════════════
+    //  CRUD — Processar Criação (POST) — Fase 2
+    // ═══════════════════════════════════════════════
+
     public function store() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $photoPath = $this->handlePhotoUpload();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=customers');
+            exit;
+        }
 
-            $address = json_encode([
-                'zipcode' => Input::post('zipcode'),
-                'address_type' => Input::post('address_type'),
-                'address_name' => Input::post('address_name'),
-                'address_number' => Input::post('address_number'),
-                'neighborhood' => Input::post('neighborhood'),
-                'complement' => Input::post('complement')
-            ]);
-            
-            $name = Input::post('name');
-            $email = Input::post('email', 'email');
-            $phone = Input::post('phone', 'phone');
-            $document = Input::post('document', 'document');
-            $priceTableId = Input::post('price_table_id', 'int');
-
-            $v = new Validator();
-            $v->required('name', $name, 'Nome')
-              ->maxLength('name', $name, 191, 'Nome');
-
-            if ($v->fails()) {
-                $_SESSION['errors'] = $v->errors();
-                $_SESSION['old'] = $_POST;
+        // Verificar limite de clientes do tenant
+        $maxCustomers = TenantManager::getTenantLimit('max_customers');
+        if ($maxCustomers !== null) {
+            $currentCustomers = (int) $this->customerModel->countAll();
+            if ($currentCustomers >= $maxCustomers) {
+                $_SESSION['errors'] = ['limit' => 'Limite de clientes atingido para o seu plano.'];
                 header('Location: ?page=customers&action=create');
                 exit;
             }
+        }
 
-            $this->customerModel->create([
-                'name' => $name,
-                'email' => $email,
-                'phone' => $phone,
-                'document' => $document,
-                'address' => $address,
-                'photo' => $photoPath,
-                'price_table_id' => $priceTableId
-            ]);
-            
-            header('Location: ?page=customers&status=success');
+        // Capturar e sanitizar TODOS os campos
+        $data = $this->captureFormData();
+
+        // Validação server-side completa
+        $v = $this->validateCustomerData($data);
+
+        // Verificar duplicidade de documento
+        if (!empty($data['document'])) {
+            $duplicate = $this->customerModel->checkDuplicate($data['document']);
+            if ($duplicate) {
+                $v->addError('document', "Já existe um cliente com este documento: {$duplicate['name']} ({$duplicate['code']}).");
+            }
+        }
+
+        if ($v->fails()) {
+            $_SESSION['errors'] = $v->errors();
+            $_SESSION['old'] = $_POST;
+            header('Location: ?page=customers&action=create');
             exit;
         }
+
+        // Processar upload de foto
+        $data['photo'] = $this->handlePhotoUpload();
+
+        // Adicionar auditoria
+        $data['created_by'] = $_SESSION['user_id'] ?? null;
+
+        // Manter campo address JSON para retrocompatibilidade
+        $data['address'] = json_encode([
+            'zipcode'        => $data['zipcode'] ?? '',
+            'address_type'   => '',
+            'address_name'   => $data['address_street'] ?? '',
+            'address_number' => $data['address_number'] ?? '',
+            'neighborhood'   => $data['address_neighborhood'] ?? '',
+            'complement'     => $data['address_complement'] ?? '',
+        ]);
+
+        // Criar o cliente
+        $newId = $this->customerModel->create($data);
+
+        // Log de auditoria
+        $code = $data['code'] ?? 'CLI-?????';
+        $userName = $_SESSION['user_name'] ?? 'Sistema';
+        $this->logger->log('CUSTOMER_CREATE', "Cliente {$code} '{$data['name']}' criado por {$userName}");
+
+        $_SESSION['success'] = 'Cliente cadastrado com sucesso!';
+        header('Location: ?page=customers&status=success');
+        exit;
     }
+
+    // ═══════════════════════════════════════════════
+    //  CRUD — Formulário de Edição
+    // ═══════════════════════════════════════════════
 
     public function edit() {
         $id = Input::get('id', 'int');
@@ -118,101 +199,749 @@ class CustomerController {
             exit;
         }
 
-        // Decode address JSON for the form
+        // Decode address JSON for the form (retrocompatibilidade)
         $customer['address_data'] = json_decode($customer['address'] ?? '{}', true) ?: [];
         
         $priceTableModel = new PriceTable($this->db);
         $priceTables = $priceTableModel->readAll();
+
+        // Carregar lista de vendedores (usuários)
+        $userModel = new User($this->db);
+        $sellers = $userModel->readAll();
+
+        // Carregar contatos adicionais
+        $contacts = $this->contactModel->readByCustomer($id);
 
         require 'app/views/layout/header.php';
         require 'app/views/customers/edit.php';
         require 'app/views/layout/footer.php';
     }
 
+    // ═══════════════════════════════════════════════
+    //  CRUD — Processar Edição (POST) — Fase 2
+    // ═══════════════════════════════════════════════
+
     public function update() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $photoPath = $this->handlePhotoUpload();
-
-            $address = json_encode([
-                'zipcode' => Input::post('zipcode'),
-                'address_type' => Input::post('address_type'),
-                'address_name' => Input::post('address_name'),
-                'address_number' => Input::post('address_number'),
-                'neighborhood' => Input::post('neighborhood'),
-                'complement' => Input::post('complement')
-            ]);
-            
-            $id = Input::post('id', 'int');
-            $name = Input::post('name');
-            $email = Input::post('email', 'email');
-            $phone = Input::post('phone', 'phone');
-            $document = Input::post('document', 'document');
-            $priceTableId = Input::post('price_table_id', 'int');
-
-            $v = new Validator();
-            $v->required('id', $id, 'ID')
-              ->required('name', $name, 'Nome')
-              ->maxLength('name', $name, 191, 'Nome');
-
-            if ($v->fails()) {
-                $_SESSION['errors'] = $v->errors();
-                header('Location: ?page=customers&action=edit&id=' . $id);
-                exit;
-            }
-
-            $this->customerModel->update([
-                'id' => $id,
-                'name' => $name,
-                'email' => $email,
-                'phone' => $phone,
-                'document' => $document,
-                'address' => $address,
-                'photo' => $photoPath,
-                'price_table_id' => $priceTableId
-            ]);
-            
-            header('Location: ?page=customers&status=success');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=customers');
             exit;
         }
+
+        $id = Input::post('id', 'int');
+        if (!$id) {
+            header('Location: ?page=customers');
+            exit;
+        }
+
+        // Verificar se o cliente existe
+        $existing = $this->customerModel->readOne($id);
+        if (!$existing) {
+            $_SESSION['errors'] = ['id' => 'Cliente não encontrado.'];
+            header('Location: ?page=customers');
+            exit;
+        }
+
+        // Capturar e sanitizar TODOS os campos
+        $data = $this->captureFormData();
+        $data['id'] = $id;
+
+        // Validação server-side completa
+        $v = $this->validateCustomerData($data, $id);
+
+        // Verificar duplicidade de documento (excluindo o próprio)
+        if (!empty($data['document'])) {
+            $duplicate = $this->customerModel->checkDuplicate($data['document'], $id);
+            if ($duplicate) {
+                $v->addError('document', "Já existe outro cliente com este documento: {$duplicate['name']} ({$duplicate['code']}).");
+            }
+        }
+
+        if ($v->fails()) {
+            $_SESSION['errors'] = $v->errors();
+            $_SESSION['old'] = $_POST;
+            header('Location: ?page=customers&action=edit&id=' . $id);
+            exit;
+        }
+
+        // Processar upload de foto (manter existente se nenhuma nova)
+        $newPhoto = $this->handlePhotoUpload();
+        if ($newPhoto) {
+            $data['photo'] = $newPhoto;
+        }
+        // Se não houver nova foto, NÃO incluir 'photo' no data para não sobrescrever
+
+        // Adicionar auditoria
+        $data['updated_by'] = $_SESSION['user_id'] ?? null;
+
+        // Manter campo address JSON para retrocompatibilidade
+        $data['address'] = json_encode([
+            'zipcode'        => $data['zipcode'] ?? '',
+            'address_type'   => '',
+            'address_name'   => $data['address_street'] ?? '',
+            'address_number' => $data['address_number'] ?? '',
+            'neighborhood'   => $data['address_neighborhood'] ?? '',
+            'complement'     => $data['address_complement'] ?? '',
+        ]);
+
+        // Atualizar o cliente
+        $this->customerModel->update($data);
+
+        // Log de auditoria
+        $code = $existing['code'] ?? 'CLI-?????';
+        $userName = $_SESSION['user_name'] ?? 'Sistema';
+        $this->logger->log('CUSTOMER_UPDATE', "Cliente {$code} '{$data['name']}' atualizado por {$userName}");
+
+        $_SESSION['success'] = 'Cliente atualizado com sucesso!';
+        header('Location: ?page=customers&status=success');
+        exit;
     }
+
+    // ═══════════════════════════════════════════════
+    //  CRUD — Exclusão (POST + Soft Delete) — Fase 2
+    // ═══════════════════════════════════════════════
 
     public function delete() {
-        $id = Input::get('id', 'int');
-        if ($id) {
-            $this->customerModel->delete($id);
-            header('Location: ?page=customers&status=success');
+        // Aceitar tanto POST (novo) quanto GET (retrocompatibilidade)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = Input::post('id', 'int');
+        } else {
+            // Retrocompatibilidade: ainda aceita GET mas faz soft delete
+            $id = Input::get('id', 'int');
+        }
+
+        if (!$id) {
+            if ($this->isAjax()) {
+                $this->jsonResponse(['success' => false, 'message' => 'ID não informado.']);
+            }
+            header('Location: ?page=customers');
             exit;
         }
+
+        $customer = $this->customerModel->readOne($id);
+        if (!$customer) {
+            if ($this->isAjax()) {
+                $this->jsonResponse(['success' => false, 'message' => 'Cliente não encontrado.']);
+            }
+            header('Location: ?page=customers');
+            exit;
+        }
+
+        // Soft delete (não remove do banco)
+        $this->customerModel->softDelete($id);
+
+        // Log de auditoria
+        $code = $customer['code'] ?? 'CLI-?????';
+        $userName = $_SESSION['user_name'] ?? 'Sistema';
+        $this->logger->log('CUSTOMER_DELETE', "Cliente {$code} '{$customer['name']}' excluído (soft) por {$userName}");
+
+        if ($this->isAjax()) {
+            $this->jsonResponse(['success' => true, 'message' => 'Cliente excluído com sucesso.']);
+        }
+
+        $_SESSION['success'] = 'Cliente excluído com sucesso!';
+        header('Location: ?page=customers&status=success');
+        exit;
     }
 
-    private function handlePhotoUpload() {
-        if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-            $maxSize = 5 * 1024 * 1024;
-            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
-            $fileType = mime_content_type($_FILES['photo']['tmp_name']);
-            
-            if ($_FILES['photo']['size'] > $maxSize || !in_array($fileType, $allowedTypes)) {
-                return null;
-            }
+    // ═══════════════════════════════════════════════
+    //  Action: Restaurar cliente (POST) — Fase 2
+    // ═══════════════════════════════════════════════
 
-            $uploadDir = TenantManager::getTenantUploadBase() . 'customers/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
-            
-            $fileExtension = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
-            $fileName = uniqid() . '.' . $fileExtension;
-            $targetFile = $uploadDir . $fileName;
+    public function restore() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['success' => false, 'message' => 'Método não permitido.']);
+        }
 
-            if (move_uploaded_file($_FILES['photo']['tmp_name'], $targetFile)) {
-                return $targetFile;
+        $id = Input::post('id', 'int');
+        if (!$id) {
+            $this->jsonResponse(['success' => false, 'message' => 'ID não informado.']);
+        }
+
+        $this->customerModel->restore($id);
+
+        $customer = $this->customerModel->readOne($id);
+        $code = $customer['code'] ?? 'CLI-?????';
+        $userName = $_SESSION['user_name'] ?? 'Sistema';
+        $this->logger->log('CUSTOMER_RESTORE', "Cliente {$code} '{$customer['name']}' restaurado por {$userName}");
+
+        $this->jsonResponse(['success' => true, 'message' => 'Cliente restaurado com sucesso.']);
+    }
+
+    // ═══════════════════════════════════════════════
+    //  Action: Atualizar Status (POST/AJAX) — Fase 2
+    // ═══════════════════════════════════════════════
+
+    public function updateStatus() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['success' => false, 'message' => 'Método não permitido.']);
+        }
+
+        $id     = Input::post('id', 'int');
+        $status = Input::post('status');
+
+        if (!$id || !$status) {
+            $this->jsonResponse(['success' => false, 'message' => 'ID e status são obrigatórios.']);
+        }
+
+        $allowed = ['active', 'inactive', 'blocked'];
+        if (!in_array($status, $allowed, true)) {
+            $this->jsonResponse(['success' => false, 'message' => 'Status inválido.']);
+        }
+
+        $result = $this->customerModel->updateStatus($id, $status);
+
+        if ($result) {
+            $customer = $this->customerModel->readOne($id);
+            $code = $customer['code'] ?? 'CLI-?????';
+            $userName = $_SESSION['user_name'] ?? 'Sistema';
+            $this->logger->log('CUSTOMER_STATUS', "Cliente {$code} status alterado para {$status} por {$userName}");
+        }
+
+        $this->jsonResponse(['success' => $result, 'message' => $result ? 'Status atualizado.' : 'Erro ao atualizar.']);
+    }
+
+    // ═══════════════════════════════════════════════
+    //  Action: Ficha completa do cliente — Fase 2
+    // ═══════════════════════════════════════════════
+
+    public function view() {
+        $id = Input::get('id', 'int');
+        if (!$id) {
+            header('Location: ?page=customers');
+            exit;
+        }
+
+        $customer = $this->customerModel->readOne($id);
+        if (!$customer) {
+            header('Location: ?page=customers');
+            exit;
+        }
+
+        // Decode address JSON (retrocompatibilidade)
+        $customer['address_data'] = json_decode($customer['address'] ?? '{}', true) ?: [];
+
+        // Contatos adicionais
+        $contacts = $this->contactModel->readByCustomer($id);
+
+        // Estatísticas (total pedidos, valor total, último pedido, ticket médio)
+        $stats = $this->customerModel->getCustomerStats($id);
+
+        // Últimos 5 pedidos do cliente
+        $recentOrders = $this->getRecentOrders($id, 5);
+
+        // Tabela de preço vinculada
+        $priceTable = null;
+        if (!empty($customer['price_table_id'])) {
+            $ptModel = new PriceTable($this->db);
+            $priceTable = $ptModel->readOne($customer['price_table_id']);
+        }
+
+        // Nome do vendedor
+        $sellerName = null;
+        if (!empty($customer['seller_id'])) {
+            $userModel = new User($this->db);
+            $seller = $userModel->readOne($customer['seller_id']);
+            $sellerName = $seller['name'] ?? null;
+        }
+
+        require 'app/views/layout/header.php';
+        require 'app/views/customers/view.php';
+        require 'app/views/layout/footer.php';
+    }
+
+    // ═══════════════════════════════════════════════
+    //  Action: Verificar duplicidade (AJAX) — Fase 2
+    // ═══════════════════════════════════════════════
+
+    public function checkDuplicate() {
+        header('Content-Type: application/json');
+
+        $document  = Input::get('document');
+        $excludeId = Input::get('exclude_id', 'int');
+
+        if (empty($document)) {
+            echo json_encode(['exists' => false]);
+            exit;
+        }
+
+        $document = preg_replace('/\D/', '', $document);
+        $result = $this->customerModel->checkDuplicate($document, $excludeId ?: null);
+
+        if ($result) {
+            echo json_encode([
+                'exists'   => true,
+                'customer' => [
+                    'id'       => $result['id'],
+                    'code'     => $result['code'] ?? '',
+                    'name'     => $result['name'],
+                    'document' => $result['document'],
+                ],
+            ]);
+        } else {
+            echo json_encode(['exists' => false]);
+        }
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  Action: Proxy ViaCEP (AJAX) — Fase 2
+    // ═══════════════════════════════════════════════
+
+    public function searchCep() {
+        header('Content-Type: application/json');
+
+        $cep = Input::get('cep');
+        $cep = preg_replace('/\D/', '', $cep ?? '');
+
+        if (strlen($cep) !== 8) {
+            echo json_encode(['success' => false, 'message' => 'CEP deve ter 8 dígitos.']);
+            exit;
+        }
+
+        // Verificar cache na sessão (1 hora)
+        $cacheKey = 'cep_cache_' . $cep;
+        if (isset($_SESSION[$cacheKey]) && $_SESSION[$cacheKey]['expires'] > time()) {
+            echo json_encode(['success' => true, 'data' => $_SESSION[$cacheKey]['data'], 'cached' => true]);
+            exit;
+        }
+
+        // Chamar ViaCEP
+        $url = "https://viacep.com.br/ws/{$cep}/json/";
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 10,
+                'header'  => "User-Agent: Akti/1.0\r\n",
+            ],
+        ]);
+
+        $response = @file_get_contents($url, false, $context);
+
+        if ($response === false) {
+            echo json_encode(['success' => false, 'message' => 'Não foi possível consultar o CEP.']);
+            exit;
+        }
+
+        $viaCep = json_decode($response, true);
+
+        if (!$viaCep || isset($viaCep['erro'])) {
+            echo json_encode(['success' => false, 'message' => 'CEP não encontrado.']);
+            exit;
+        }
+
+        $data = [
+            'zipcode'              => preg_replace('/\D/', '', $viaCep['cep'] ?? ''),
+            'address_street'       => $viaCep['logradouro'] ?? '',
+            'address_neighborhood' => $viaCep['bairro'] ?? '',
+            'address_city'         => $viaCep['localidade'] ?? '',
+            'address_state'        => $viaCep['uf'] ?? '',
+            'address_ibge'         => $viaCep['ibge'] ?? '',
+        ];
+
+        // Cachear por 1 hora
+        $_SESSION[$cacheKey] = ['data' => $data, 'expires' => time() + 3600];
+
+        echo json_encode(['success' => true, 'data' => $data]);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  Action: Proxy BrasilAPI CNPJ (AJAX) — Fase 2
+    // ═══════════════════════════════════════════════
+
+    public function searchCnpj() {
+        header('Content-Type: application/json');
+
+        $cnpj = Input::get('cnpj');
+        $cnpj = preg_replace('/\D/', '', $cnpj ?? '');
+
+        if (strlen($cnpj) !== 14) {
+            echo json_encode(['success' => false, 'message' => 'CNPJ deve ter 14 dígitos.']);
+            exit;
+        }
+
+        // Validar CNPJ
+        if (!Validator::isValidCnpj($cnpj)) {
+            echo json_encode(['success' => false, 'message' => 'CNPJ inválido.']);
+            exit;
+        }
+
+        // Verificar cache na sessão (1 hora)
+        $cacheKey = 'cnpj_cache_' . $cnpj;
+        if (isset($_SESSION[$cacheKey]) && $_SESSION[$cacheKey]['expires'] > time()) {
+            echo json_encode(['success' => true, 'data' => $_SESSION[$cacheKey]['data'], 'cached' => true]);
+            exit;
+        }
+
+        // Chamar BrasilAPI
+        $url = "https://brasilapi.com.br/api/cnpj/v1/{$cnpj}";
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 15,
+                'header'  => "User-Agent: Akti/1.0\r\n",
+            ],
+        ]);
+
+        $response = @file_get_contents($url, false, $context);
+
+        if ($response === false) {
+            echo json_encode(['success' => false, 'message' => 'Não foi possível consultar o CNPJ.']);
+            exit;
+        }
+
+        $apiData = json_decode($response, true);
+
+        if (!$apiData || isset($apiData['message'])) {
+            echo json_encode(['success' => false, 'message' => $apiData['message'] ?? 'CNPJ não encontrado.']);
+            exit;
+        }
+
+        $data = [
+            'name'                 => $apiData['razao_social'] ?? '',
+            'fantasy_name'         => $apiData['nome_fantasia'] ?? '',
+            'document'             => $cnpj,
+            'email'                => strtolower($apiData['email'] ?? ''),
+            'phone'                => preg_replace('/\D/', '', $apiData['ddd_telefone_1'] ?? ''),
+            'zipcode'              => preg_replace('/\D/', '', $apiData['cep'] ?? ''),
+            'address_street'       => $apiData['logradouro'] ?? '',
+            'address_number'       => $apiData['numero'] ?? '',
+            'address_complement'   => $apiData['complemento'] ?? '',
+            'address_neighborhood' => $apiData['bairro'] ?? '',
+            'address_city'         => $apiData['municipio'] ?? '',
+            'address_state'        => $apiData['uf'] ?? '',
+        ];
+
+        // Cachear por 1 hora
+        $_SESSION[$cacheKey] = ['data' => $data, 'expires' => time() + 3600];
+
+        echo json_encode(['success' => true, 'data' => $data]);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  Action: Exportação CSV — Fase 2
+    // ═══════════════════════════════════════════════
+
+    public function export() {
+        $format = Input::get('format', 'string', 'csv');
+        $filters = $this->captureFilters();
+
+        // Se recebeu IDs específicos (exportação de selecionados), filtrar apenas esses
+        $idsParam = Input::get('ids');
+        if (!empty($idsParam)) {
+            $ids = array_filter(array_map('intval', explode(',', $idsParam)));
+            if (!empty($ids)) {
+                $filters['ids'] = $ids;
             }
         }
-        return null;
+
+        $customers = $this->customerModel->exportAll($filters);
+
+        // Log de auditoria
+        $count = count($customers);
+        $userName = $_SESSION['user_name'] ?? 'Sistema';
+        $this->logger->log('CUSTOMER_EXPORT', "Exportação de {$count} clientes por {$userName}");
+
+        // Gerar CSV
+        $filename = 'clientes_' . date('Ymd_His') . '.csv';
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $output = fopen('php://output', 'w');
+        // BOM UTF-8
+        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+        // Cabeçalho
+        fputcsv($output, [
+            'Código', 'Tipo', 'Nome/Razão Social', 'Nome Fantasia', 'CPF/CNPJ',
+            'IE', 'IM', 'E-mail', 'E-mail Secundário', 'Celular', 'Telefone',
+            'Telefone Comercial', 'Site', 'Instagram',
+            'CEP', 'Endereço', 'Número', 'Complemento', 'Bairro', 'Cidade', 'UF',
+            'Status', 'Condição Pgto', 'Limite de Crédito', 'Desconto Padrão',
+            'Origem', 'Tags', 'Observações', 'Cadastrado em',
+        ], ';');
+
+        // Dados
+        foreach ($customers as $c) {
+            fputcsv($output, [
+                $c['code'] ?? '',
+                $c['person_type'] ?? 'PF',
+                $c['name'] ?? '',
+                $c['fantasy_name'] ?? '',
+                $c['document'] ?? '',
+                $c['rg_ie'] ?? '',
+                $c['im'] ?? '',
+                $c['email'] ?? '',
+                $c['email_secondary'] ?? '',
+                $c['cellphone'] ?? '',
+                $c['phone'] ?? '',
+                $c['phone_commercial'] ?? '',
+                $c['website'] ?? '',
+                $c['instagram'] ?? '',
+                $c['zipcode'] ?? '',
+                $c['address_street'] ?? '',
+                $c['address_number'] ?? '',
+                $c['address_complement'] ?? '',
+                $c['address_neighborhood'] ?? '',
+                $c['address_city'] ?? '',
+                $c['address_state'] ?? '',
+                $c['status'] ?? 'active',
+                $c['payment_term'] ?? '',
+                $c['credit_limit'] ?? '',
+                $c['discount_default'] ?? '',
+                $c['origin'] ?? '',
+                $c['tags'] ?? '',
+                $c['observations'] ?? '',
+                $c['created_at'] ?? '',
+            ], ';');
+        }
+
+        fclose($output);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  Action: Listar Tags Existentes (AJAX) — Fase 4
+    // ═══════════════════════════════════════════════
+
+    /**
+     * Retorna todas as tags distintas já utilizadas em clientes.
+     * Endpoint: GET ?page=customers&action=getTags
+     * Usado pelo componente de autocomplete de tags (customer-tags.js).
+     */
+    public function getTags()
+    {
+        header('Content-Type: application/json');
+
+        $tags = $this->customerModel->getAllTags();
+
+        echo json_encode([
+            'success' => true,
+            'tags'    => $tags,
+        ]);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  Action: Histórico de Pedidos do Cliente (AJAX) — Fase 4
+    // ═══════════════════════════════════════════════
+
+    /**
+     * Retorna pedidos paginados de um cliente.
+     * Endpoint: GET ?page=customers&action=getOrderHistory&id=X&page_num=1&per_page=10
+     * Usado na tab "Histórico" da ficha do cliente (view.php).
+     */
+    public function getOrderHistory()
+    {
+        header('Content-Type: application/json');
+
+        $customerId = Input::get('id', 'int');
+        $pageNum    = Input::get('page_num', 'int') ?: 1;
+        $perPage    = Input::get('per_page', 'int') ?: 10;
+
+        if (!$customerId) {
+            echo json_encode(['success' => false, 'message' => 'ID do cliente não informado.']);
+            exit;
+        }
+
+        $offset = ($pageNum - 1) * $perPage;
+
+        // Contar total de pedidos
+        $countQuery = "SELECT COUNT(*) as total FROM orders WHERE customer_id = :cid";
+        $countStmt = $this->db->prepare($countQuery);
+        $countStmt->bindValue(':cid', $customerId, PDO::PARAM_INT);
+        $countStmt->execute();
+        $total = (int) $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+        // Buscar pedidos paginados
+        $query = "SELECT o.id, o.total_amount, o.status, o.created_at
+                  FROM orders o
+                  WHERE o.customer_id = :cid
+                  ORDER BY o.created_at DESC
+                  LIMIT :lim OFFSET :off";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindValue(':cid', $customerId, PDO::PARAM_INT);
+        $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Formatar dados
+        $formatted = [];
+        foreach ($orders as $order) {
+            $formatted[] = [
+                'id'           => (int) $order['id'],
+                'total_amount' => number_format($order['total_amount'] ?? 0, 2, ',', '.'),
+                'status'       => $order['status'] ?? '',
+                'created_at'   => !empty($order['created_at']) ? date('d/m/Y', strtotime($order['created_at'])) : '—',
+            ];
+        }
+
+        echo json_encode([
+            'success'    => true,
+            'orders'     => $formatted,
+            'total'      => $total,
+            'page'       => $pageNum,
+            'per_page'   => $perPage,
+            'total_pages' => (int) ceil($total / $perPage),
+        ]);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  Action: Ações em lote (POST/AJAX) — Fase 2
+    // ═══════════════════════════════════════════════
+
+    public function bulkAction() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
+            exit;
+        }
+
+        $action = Input::post('bulk_action');
+        $ids = array_map('intval', Input::postArray('ids'));
+
+        if (empty($ids)) {
+            echo json_encode(['success' => false, 'message' => 'Nenhum cliente selecionado.']);
+            exit;
+        }
+
+        $userName = $_SESSION['user_name'] ?? 'Sistema';
+        $count = count($ids);
+
+        switch ($action) {
+            case 'activate':
+                $affected = $this->customerModel->bulkUpdateStatus($ids, 'active');
+                $this->logger->log('CUSTOMER_STATUS', "Status de {$affected} clientes alterado para 'active' por {$userName}");
+                echo json_encode(['success' => true, 'message' => "{$affected} clientes ativados.", 'affected' => $affected]);
+                break;
+
+            case 'inactivate':
+                $affected = $this->customerModel->bulkUpdateStatus($ids, 'inactive');
+                $this->logger->log('CUSTOMER_STATUS', "Status de {$affected} clientes alterado para 'inactive' por {$userName}");
+                echo json_encode(['success' => true, 'message' => "{$affected} clientes inativados.", 'affected' => $affected]);
+                break;
+
+            case 'block':
+                $affected = $this->customerModel->bulkUpdateStatus($ids, 'blocked');
+                $this->logger->log('CUSTOMER_STATUS', "Status de {$affected} clientes alterado para 'blocked' por {$userName}");
+                echo json_encode(['success' => true, 'message' => "{$affected} clientes bloqueados.", 'affected' => $affected]);
+                break;
+
+            case 'delete':
+                $affected = $this->customerModel->bulkDelete($ids);
+                $this->logger->log('CUSTOMER_DELETE', "Exclusão em lote de {$affected} clientes por {$userName}");
+                echo json_encode(['success' => true, 'message' => "{$affected} clientes excluídos.", 'affected' => $affected]);
+                break;
+
+            default:
+                echo json_encode(['success' => false, 'message' => 'Ação inválida.']);
+                break;
+        }
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  Contatos — CRUD AJAX — Fase 2
+    // ═══════════════════════════════════════════════
+
+    /**
+     * GET: Lista contatos de um cliente (AJAX/JSON)
+     */
+    public function getContacts() {
+        header('Content-Type: application/json');
+
+        $customerId = Input::get('customer_id', 'int');
+        if (!$customerId) {
+            echo json_encode(['success' => false, 'message' => 'ID do cliente é obrigatório.']);
+            exit;
+        }
+
+        $contacts = $this->contactModel->readByCustomer($customerId);
+
+        echo json_encode(['success' => true, 'data' => $contacts]);
+        exit;
+    }
+
+    /**
+     * POST: Cria ou atualiza um contato (AJAX/JSON)
+     */
+    public function saveContact() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
+            exit;
+        }
+
+        $contactId   = Input::post('contact_id', 'int');
+        $customerId  = Input::post('customer_id', 'int');
+        $name        = Input::post('name');
+        $role        = Input::post('role');
+        $email       = Input::post('email', 'email');
+        $phone       = Input::post('phone', 'phone');
+        $isPrimary   = Input::post('is_primary', 'int', 0);
+        $notes       = Input::post('notes');
+
+        if (!$customerId || !$name) {
+            echo json_encode(['success' => false, 'message' => 'Cliente e nome do contato são obrigatórios.']);
+            exit;
+        }
+
+        $data = [
+            'customer_id' => $customerId,
+            'name'        => $name,
+            'role'        => $role,
+            'email'       => $email,
+            'phone'       => preg_replace('/\D/', '', $phone ?? ''),
+            'is_primary'  => $isPrimary,
+            'notes'       => $notes,
+        ];
+
+        if ($contactId) {
+            // Atualizar
+            $data['id'] = $contactId;
+            $this->contactModel->update($data);
+            $this->logger->log('CUSTOMER_UPDATE', "Contato #{$contactId} atualizado para cliente #{$customerId}");
+            echo json_encode(['success' => true, 'message' => 'Contato atualizado.', 'id' => $contactId]);
+        } else {
+            // Criar
+            $newId = $this->contactModel->create($data);
+            $this->logger->log('CUSTOMER_UPDATE', "Contato #{$newId} criado para cliente #{$customerId}");
+            echo json_encode(['success' => true, 'message' => 'Contato adicionado.', 'id' => $newId]);
+        }
+        exit;
+    }
+
+    /**
+     * POST: Remove um contato (AJAX/JSON)
+     */
+    public function deleteContact() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
+            exit;
+        }
+
+        $contactId = Input::post('contact_id', 'int');
+        if (!$contactId) {
+            echo json_encode(['success' => false, 'message' => 'ID do contato é obrigatório.']);
+            exit;
+        }
+
+        $this->contactModel->delete($contactId);
+        $this->logger->log('CUSTOMER_UPDATE', "Contato #{$contactId} removido");
+
+        echo json_encode(['success' => true, 'message' => 'Contato removido.']);
+        exit;
     }
 
     // ═══════════════════════════════════════════════
     //  AJAX: Lista de clientes com filtro e paginação
+    //  (atualizado com filtros avançados — Fase 2)
     // ═══════════════════════════════════════════════
 
     public function getCustomersList() {
@@ -222,7 +951,10 @@ class CustomerController {
         $page    = max(1, Input::get('pg', 'int', 1));
         $perPage = Input::get('per_page', 'int', 20);
 
-        $result     = $this->customerModel->readPaginatedFiltered($page, $perPage, $search ?: null);
+        // Filtros avançados
+        $filters = $this->captureFilters();
+
+        $result     = $this->customerModel->readPaginatedFiltered($page, $perPage, $search ?: null, $filters);
         $total      = $result['total'];
         $totalPages = max(1, (int) ceil($total / $perPage));
         $items      = $result['data'];
@@ -242,11 +974,6 @@ class CustomerController {
     //  AJAX: Busca clientes para Select2
     // ═══════════════════════════════════════════════
 
-    /**
-     * AJAX: Busca clientes para Select2 (autocomplete).
-     * GET ?page=customers&action=searchSelect2&q=termo&limit=10
-     * Retorna JSON: { data: [{ id, name, email, phone, document }] }
-     */
     public function searchSelect2()
     {
         header('Content-Type: application/json');
@@ -313,18 +1040,50 @@ class CustomerController {
         $preview = array_slice($rows, 0, 10);
         $totalRows = count($rows);
 
-        // Auto-mapeamento por nome de coluna
+        // Auto-mapeamento por nome de coluna (Fase 4 — expandido com todos os novos campos)
         $colMap = [
+            // Nome
             'nome' => 'name', 'name' => 'name', 'razao_social' => 'name', 'razao social' => 'name', 'cliente' => 'name',
-            'email' => 'email', 'e-mail' => 'email', 'e_mail' => 'email',
-            'telefone' => 'phone', 'phone' => 'phone', 'fone' => 'phone', 'celular' => 'phone', 'whatsapp' => 'phone', 'tel' => 'phone',
+            // Tipo pessoa
+            'tipo' => 'person_type', 'tipo_pessoa' => 'person_type', 'type' => 'person_type', 'person_type' => 'person_type', 'tipo pessoa' => 'person_type',
+            // Fantasia
+            'fantasia' => 'fantasy_name', 'nome_fantasia' => 'fantasy_name', 'fantasy' => 'fantasy_name', 'nome fantasia' => 'fantasy_name', 'fantasy_name' => 'fantasy_name',
+            // Documento
             'cpf' => 'document', 'cnpj' => 'document', 'cpf/cnpj' => 'document', 'cpf_cnpj' => 'document', 'documento' => 'document', 'document' => 'document',
+            // RG/IE
+            'rg' => 'rg_ie', 'ie' => 'rg_ie', 'inscricao_estadual' => 'rg_ie', 'inscricao estadual' => 'rg_ie', 'rg_ie' => 'rg_ie',
+            // IM
+            'im' => 'im', 'inscricao_municipal' => 'im', 'inscricao municipal' => 'im',
+            // E-mail
+            'email' => 'email', 'e-mail' => 'email', 'e_mail' => 'email',
+            'email_secundario' => 'email_secondary', 'email secundario' => 'email_secondary', 'email_secondary' => 'email_secondary',
+            // Telefones
+            'telefone' => 'phone', 'phone' => 'phone', 'fone' => 'phone', 'tel' => 'phone',
+            'celular' => 'cellphone', 'whatsapp' => 'cellphone', 'mobile' => 'cellphone', 'cellphone' => 'cellphone', 'cel' => 'cellphone',
+            'telefone_comercial' => 'phone_commercial', 'tel_comercial' => 'phone_commercial', 'phone_commercial' => 'phone_commercial',
+            // Web/Social
+            'website' => 'website', 'site' => 'website', 'url' => 'website',
+            'instagram' => 'instagram', 'insta' => 'instagram',
+            // Contato PJ
+            'nome_contato' => 'contact_name', 'contato' => 'contact_name', 'contact_name' => 'contact_name',
+            'cargo' => 'contact_role', 'funcao' => 'contact_role', 'contact_role' => 'contact_role',
+            // Endereço
             'cep' => 'zipcode', 'zip' => 'zipcode', 'zipcode' => 'zipcode', 'zip_code' => 'zipcode',
             'tipo_logradouro' => 'address_type', 'tipo logradouro' => 'address_type',
-            'logradouro' => 'address_name', 'endereco' => 'address_name', 'endereço' => 'address_name', 'rua' => 'address_name', 'address' => 'address_name',
-            'numero' => 'address_number', 'número' => 'address_number', 'num' => 'address_number', 'nro' => 'address_number',
-            'bairro' => 'neighborhood', 'neighborhood' => 'neighborhood',
-            'complemento' => 'complement', 'complement' => 'complement', 'comp' => 'complement',
+            'logradouro' => 'address_street', 'endereco' => 'address_street', 'rua' => 'address_street', 'address' => 'address_street', 'address_street' => 'address_street',
+            'numero' => 'address_number', 'num' => 'address_number', 'nro' => 'address_number', 'address_number' => 'address_number',
+            'bairro' => 'address_neighborhood', 'neighborhood' => 'address_neighborhood', 'address_neighborhood' => 'address_neighborhood',
+            'complemento' => 'address_complement', 'complement' => 'address_complement', 'comp' => 'address_complement', 'address_complement' => 'address_complement',
+            'cidade' => 'address_city', 'city' => 'address_city', 'municipio' => 'address_city', 'address_city' => 'address_city',
+            'estado' => 'address_state', 'uf' => 'address_state', 'state' => 'address_state', 'address_state' => 'address_state',
+            // Data
+            'nascimento' => 'birth_date', 'fundacao' => 'birth_date', 'birth' => 'birth_date', 'birth_date' => 'birth_date', 'data_nascimento' => 'birth_date',
+            // Gênero
+            'genero' => 'gender', 'sexo' => 'gender', 'gender' => 'gender',
+            // Outros
+            'origem' => 'origin', 'canal' => 'origin', 'origin' => 'origin',
+            'tags' => 'tags', 'etiquetas' => 'tags', 'classificacao' => 'tags',
+            'obs' => 'observations', 'observacao' => 'observations', 'observacoes' => 'observations', 'notes' => 'observations', 'observations' => 'observations',
         ];
 
         $autoMapping = [];
@@ -438,6 +1197,10 @@ class CustomerController {
         }
         unset($_SESSION['cust_import_tmp_file'], $_SESSION['cust_import_tmp_ext']);
 
+        // Log de auditoria
+        $userName = $_SESSION['user_name'] ?? 'Sistema';
+        $this->logger->log('CUSTOMER_IMPORT', "Importação de {$imported} clientes por {$userName}");
+
         echo json_encode([
             'success'  => true,
             'imported' => $imported,
@@ -457,11 +1220,385 @@ class CustomerController {
         $output = fopen('php://output', 'w');
         fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM UTF-8
 
-        fputcsv($output, ['nome', 'email', 'telefone', 'cpf_cnpj', 'cep', 'logradouro', 'numero', 'bairro', 'complemento'], ';');
-        fputcsv($output, ['Maria Silva', 'maria@email.com', '(11) 99999-0000', '123.456.789-00', '01001-000', 'Rua Exemplo', '100', 'Centro', 'Sala 5'], ';');
-        fputcsv($output, ['Empresa ABC Ltda', 'contato@abc.com.br', '(21) 3333-4444', '12.345.678/0001-99', '20040-020', 'Av. Brasil', '500', 'Comercial', ''], ';');
+        fputcsv($output, [
+            'nome', 'tipo_pessoa', 'nome_fantasia', 'cpf_cnpj', 'rg_ie', 'im',
+            'data_nascimento', 'genero', 'email', 'email_secundario',
+            'telefone', 'celular', 'telefone_comercial', 'website', 'instagram',
+            'nome_contato', 'cargo_contato',
+            'cep', 'logradouro', 'numero', 'bairro', 'complemento',
+            'cidade', 'uf', 'origem', 'tags', 'observacoes'
+        ], ';');
+        fputcsv($output, [
+            'Maria Silva', 'PF', '', '529.982.247-25', '12.345.678-9', '',
+            '15/03/1990', 'F', 'maria@email.com', '',
+            '(11) 3333-4444', '(11) 99999-0000', '', 'https://maria.com.br', 'mariasilva',
+            '', '',
+            '01001-000', 'Praça da Sé', '100', 'Sé', 'Sala 5',
+            'São Paulo', 'SP', 'Site', 'VIP,Varejo', 'Cliente desde 2020'
+        ], ';');
+        fputcsv($output, [
+            'Empresa ABC Ltda', 'PJ', 'ABC', '11.222.333/0001-81', '123.456.789.001', '12345',
+            '10/01/2005', '', 'contato@abc.com.br', 'financeiro@abc.com.br',
+            '(21) 3333-4444', '(21) 98888-7777', '(21) 3333-5555', 'https://abc.com.br', 'empresa_abc',
+            'João Gerente', 'Gerente de Compras',
+            '20040-020', 'Av. Brasil', '500', 'Centro', '',
+            'Rio de Janeiro', 'RJ', 'Indicação', 'Atacado,Indústria', ''
+        ], ';');
 
         fclose($output);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  MÉTODOS PRIVADOS — Helpers
+    // ═══════════════════════════════════════════════
+
+    /**
+     * Captura e sanitiza todos os campos do formulário de cliente.
+     * Aplicando sanitizações específicas por campo conforme checklist.
+     *
+     * @return array Dados sanitizados
+     */
+    private function captureFormData(): array
+    {
+        // Campos básicos de identificação
+        $personType  = Input::post('person_type', 'string', 'PF');
+        $name        = Input::post('name');
+        $fantasyName = Input::post('fantasy_name');
+        $document    = Input::post('document');
+        $rgIe        = Input::post('rg_ie');
+        $im          = Input::post('im');
+        $birthDate   = Input::post('birth_date');
+        $gender      = Input::post('gender');
+
+        // Converter data de nascimento de DD/MM/AAAA para Y-m-d
+        if ($birthDate) {
+            $birthDate = trim($birthDate);
+            // Aceitar formato DD/MM/AAAA
+            if (preg_match('#^(\d{2})/(\d{2})/(\d{4})$#', $birthDate, $m)) {
+                $birthDate = $m[3] . '-' . $m[2] . '-' . $m[1];
+            }
+            // Aceitar formato DD-MM-AAAA
+            elseif (preg_match('#^(\d{2})-(\d{2})-(\d{4})$#', $birthDate, $m)) {
+                $birthDate = $m[3] . '-' . $m[2] . '-' . $m[1];
+            }
+            // Se já estiver em Y-m-d, manter
+        }
+
+        // Campos de contato
+        $email          = Input::post('email', 'email');
+        $emailSecondary = Input::post('email_secondary', 'email');
+        $phone          = Input::post('phone', 'phone');
+        $cellphone      = Input::post('cellphone', 'phone');
+        $phoneComm      = Input::post('phone_commercial', 'phone');
+        $website        = Input::post('website');
+        $instagram      = Input::post('instagram');
+        $contactName    = Input::post('contact_name');
+        $contactRole    = Input::post('contact_role');
+
+        // Campos de endereço
+        $zipcode       = Input::post('zipcode');
+        $street        = Input::post('address_street');
+        $number        = Input::post('address_number');
+        $complement    = Input::post('address_complement');
+        $neighborhood  = Input::post('address_neighborhood');
+        $city          = Input::post('address_city');
+        $state         = Input::post('address_state');
+        $country       = Input::post('address_country', 'string', 'Brasil');
+        $ibge          = Input::post('address_ibge');
+
+        // Campos comerciais
+        $priceTableId    = Input::post('price_table_id', 'int');
+        $paymentTerm     = Input::post('payment_term');
+        $creditLimit     = Input::post('credit_limit');
+        $discountDefault = Input::post('discount_default');
+        $sellerId        = Input::post('seller_id', 'int');
+        $origin          = Input::post('origin');
+        $tags            = Input::post('tags');
+        $observations    = Input::post('observations');
+        $status          = Input::post('status', 'string', 'active');
+
+        // Sanitizações específicas
+        $name     = trim(preg_replace('/\s+/', ' ', $name ?? ''));
+        $document = preg_replace('/\D/', '', $document ?? '');
+        $phone    = preg_replace('/\D/', '', $phone ?? '');
+        $cellphone = preg_replace('/\D/', '', $cellphone ?? '');
+        $phoneComm = preg_replace('/\D/', '', $phoneComm ?? '');
+        $zipcode  = preg_replace('/\D/', '', $zipcode ?? '');
+        $email    = $email ? trim(strtolower($email)) : null;
+        $emailSecondary = $emailSecondary ? trim(strtolower($emailSecondary)) : null;
+
+        // Instagram: remover @ inicial
+        if ($instagram && strpos($instagram, '@') === 0) {
+            $instagram = substr($instagram, 1);
+        }
+
+        // Website: adicionar https:// se não tiver protocolo
+        if ($website && !preg_match('#^https?://#i', $website)) {
+            $website = 'https://' . $website;
+        }
+
+        // Credit limit: converter para float (aceitar formato BR)
+        if ($creditLimit !== null && $creditLimit !== '') {
+            $creditLimit = str_replace(['R$', ' ', '.'], '', $creditLimit);
+            $creditLimit = str_replace(',', '.', $creditLimit);
+            $creditLimit = is_numeric($creditLimit) ? (float) $creditLimit : null;
+        }
+
+        // Discount: converter para float
+        if ($discountDefault !== null && $discountDefault !== '') {
+            $discountDefault = str_replace(['%', ' '], '', $discountDefault);
+            $discountDefault = str_replace(',', '.', $discountDefault);
+            $discountDefault = is_numeric($discountDefault) ? (float) $discountDefault : null;
+        }
+
+        return [
+            'person_type'          => $personType,
+            'name'                 => $name,
+            'fantasy_name'         => $fantasyName ?: null,
+            'document'             => $document ?: null,
+            'rg_ie'                => $rgIe ?: null,
+            'im'                   => $im ?: null,
+            'birth_date'           => $birthDate ?: null,
+            'gender'               => $gender ?: null,
+            'email'                => $email ?: null,
+            'email_secondary'      => $emailSecondary ?: null,
+            'phone'                => $phone ?: null,
+            'cellphone'            => $cellphone ?: null,
+            'phone_commercial'     => $phoneComm ?: null,
+            'website'              => $website ?: null,
+            'instagram'            => $instagram ?: null,
+            'contact_name'         => $contactName ?: null,
+            'contact_role'         => $contactRole ?: null,
+            'zipcode'              => $zipcode ?: null,
+            'address_street'       => $street ?: null,
+            'address_number'       => $number ?: null,
+            'address_complement'   => $complement ?: null,
+            'address_neighborhood' => $neighborhood ?: null,
+            'address_city'         => $city ?: null,
+            'address_state'        => $state ?: null,
+            'address_country'      => $country ?: 'Brasil',
+            'address_ibge'         => $ibge ?: null,
+            'price_table_id'       => $priceTableId ?: null,
+            'payment_term'         => $paymentTerm ?: null,
+            'credit_limit'         => $creditLimit,
+            'discount_default'     => $discountDefault,
+            'seller_id'            => $sellerId ?: null,
+            'origin'               => $origin ?: null,
+            'tags'                 => $tags ?: null,
+            'observations'         => $observations ?: null,
+            'status'               => $status ?: 'active',
+        ];
+    }
+
+    /**
+     * Validação server-side completa dos dados do cliente.
+     *
+     * @param array    $data      Dados sanitizados
+     * @param int|null $excludeId ID a excluir na validação de unicidade (edição)
+     * @return Validator
+     */
+    private function validateCustomerData(array $data, ?int $excludeId = null): Validator
+    {
+        $v = new Validator();
+
+        // Obrigatórios
+        $v->required('person_type', $data['person_type'], 'Tipo de Pessoa')
+          ->inList('person_type', $data['person_type'], ['PF', 'PJ'], 'Tipo de Pessoa')
+          ->required('name', $data['name'], 'Nome / Razão Social')
+          ->minLength('name', $data['name'], 3, 'Nome / Razão Social')
+          ->maxLength('name', $data['name'], 191, 'Nome / Razão Social');
+
+        // Documento (CPF/CNPJ) — validação conforme tipo
+        if (!empty($data['document'])) {
+            $v->document('document', $data['document'], $data['person_type'] ?? 'PF', 'CPF/CNPJ');
+        }
+
+        // Fantasy name
+        $v->maxLength('fantasy_name', $data['fantasy_name'], 191, 'Nome Fantasia');
+
+        // RG/IE e IM
+        $v->maxLength('rg_ie', $data['rg_ie'], 30, 'RG / Inscrição Estadual')
+          ->maxLength('im', $data['im'], 30, 'Inscrição Municipal');
+
+        // Data de nascimento
+        if (!empty($data['birth_date'])) {
+            $v->date('birth_date', $data['birth_date'], 'Data de Nascimento')
+              ->dateNotFuture('birth_date', $data['birth_date'], 'Data de Nascimento');
+        }
+
+        // Gênero
+        if (!empty($data['gender'])) {
+            $v->inList('gender', $data['gender'], ['M', 'F', 'O'], 'Gênero');
+        }
+
+        // E-mails
+        if (!empty($data['email'])) {
+            $v->email('email', $data['email'], 'E-mail')
+              ->maxLength('email', $data['email'], 191, 'E-mail');
+        }
+        if (!empty($data['email_secondary'])) {
+            $v->email('email_secondary', $data['email_secondary'], 'E-mail Secundário')
+              ->maxLength('email_secondary', $data['email_secondary'], 191, 'E-mail Secundário');
+        }
+
+        // Telefones
+        $v->maxLength('phone', $data['phone'], 20, 'Telefone')
+          ->maxLength('cellphone', $data['cellphone'], 20, 'Celular')
+          ->maxLength('phone_commercial', $data['phone_commercial'], 20, 'Telefone Comercial');
+
+        // Website
+        if (!empty($data['website'])) {
+            $v->url('website', $data['website'], 'Website')
+              ->maxLength('website', $data['website'], 255, 'Website');
+        }
+
+        // Instagram
+        $v->maxLength('instagram', $data['instagram'], 50, 'Instagram');
+
+        // Contato PJ
+        $v->maxLength('contact_name', $data['contact_name'], 100, 'Nome do Contato')
+          ->maxLength('contact_role', $data['contact_role'], 80, 'Cargo do Contato');
+
+        // Endereço
+        $v->maxLength('address_street', $data['address_street'], 200, 'Logradouro')
+          ->maxLength('address_number', $data['address_number'], 20, 'Número')
+          ->maxLength('address_complement', $data['address_complement'], 100, 'Complemento')
+          ->maxLength('address_neighborhood', $data['address_neighborhood'], 100, 'Bairro')
+          ->maxLength('address_city', $data['address_city'], 100, 'Cidade');
+
+        // UF
+        if (!empty($data['address_state'])) {
+            $ufs = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+            $v->inList('address_state', strtoupper($data['address_state']), $ufs, 'UF');
+        }
+
+        // Comercial
+        $v->maxLength('payment_term', $data['payment_term'], 50, 'Condição de Pagamento');
+
+        if ($data['credit_limit'] !== null && $data['credit_limit'] !== '') {
+            $v->decimal('credit_limit', $data['credit_limit'], 'Limite de Crédito');
+        }
+        if ($data['discount_default'] !== null && $data['discount_default'] !== '') {
+            $v->decimal('discount_default', $data['discount_default'], 'Desconto Padrão')
+              ->between('discount_default', $data['discount_default'], 0, 100, 'Desconto Padrão');
+        }
+
+        // Origin e Tags
+        $v->maxLength('origin', $data['origin'], 50, 'Origem')
+          ->maxLength('tags', $data['tags'], 500, 'Tags');
+
+        // Status
+        $v->inList('status', $data['status'], ['active', 'inactive', 'blocked'], 'Status');
+
+        return $v;
+    }
+
+    /**
+     * Captura filtros avançados do GET para listagem.
+     *
+     * @return array Filtros sanitizados
+     */
+    private function captureFilters(): array
+    {
+        $filters = [];
+
+        $status     = Input::get('status');
+        $personType = Input::get('person_type');
+        $state      = Input::get('state');
+        $city       = Input::get('city');
+        $sellerId   = Input::get('seller_id', 'int');
+        $from       = Input::get('from');
+        $to         = Input::get('to');
+        $tags       = Input::get('tags');
+        $search     = Input::get('search');
+
+        if ($status)     $filters['status']      = $status;
+        if ($personType) $filters['person_type']  = $personType;
+        if ($state)      $filters['state']        = $state;
+        if ($city)       $filters['city']         = $city;
+        if ($sellerId)   $filters['seller_id']    = $sellerId;
+        if ($from)       $filters['from']         = $from;
+        if ($to)         $filters['to']           = $to;
+        if ($tags)       $filters['tags']         = $tags;
+        if ($search)     $filters['search']       = $search;
+
+        return $filters;
+    }
+
+    /**
+     * Busca os últimos pedidos de um cliente (para a ficha do cliente).
+     *
+     * @param int $customerId ID do cliente
+     * @param int $limit      Número máximo de pedidos
+     * @return array Lista de pedidos recentes
+     */
+    private function getRecentOrders(int $customerId, int $limit = 5): array
+    {
+        $query = "SELECT o.id, o.total_amount, o.status, o.created_at
+                  FROM orders o
+                  WHERE o.customer_id = :cid
+                  ORDER BY o.created_at DESC
+                  LIMIT :lim";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindValue(':cid', $customerId, PDO::PARAM_INT);
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Processa upload de foto do cliente.
+     *
+     * @return string|null Caminho da foto salva ou null
+     */
+    private function handlePhotoUpload(): ?string
+    {
+        if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+            $maxSize = 5 * 1024 * 1024;
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+            $fileType = mime_content_type($_FILES['photo']['tmp_name']);
+            
+            if ($_FILES['photo']['size'] > $maxSize || !in_array($fileType, $allowedTypes)) {
+                return null;
+            }
+
+            $uploadDir = TenantManager::getTenantUploadBase() . 'customers/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+            
+            $fileExtension = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
+            $fileName = uniqid() . '.' . $fileExtension;
+            $targetFile = $uploadDir . $fileName;
+
+            if (move_uploaded_file($_FILES['photo']['tmp_name'], $targetFile)) {
+                return $targetFile;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Verifica se a requisição é AJAX.
+     *
+     * @return bool
+     */
+    private function isAjax(): bool
+    {
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+            && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    }
+
+    /**
+     * Envia resposta JSON e encerra.
+     *
+     * @param array $data
+     */
+    private function jsonResponse(array $data): void
+    {
+        header('Content-Type: application/json');
+        echo json_encode($data);
         exit;
     }
 
@@ -490,61 +1627,59 @@ class CustomerController {
 
         $separator = (substr_count($firstLine, ';') >= substr_count($firstLine, ',')) ? ';' : ',';
 
-        // Header
-        $headers = fgetcsv($handle, 0, $separator);
-        if (!$headers) { fclose($handle); return $rows; }
-        $headers = array_map(function($h) {
-            return strtolower(trim(str_replace(['"', "'"], '', $h)));
-        }, $headers);
+        $header = fgetcsv($handle, 0, $separator);
+        if (!$header) {
+            fclose($handle);
+            return $rows;
+        }
 
-        // Data rows
+        // Normalize header keys
+        $header = array_map(function ($h) {
+            return trim(mb_strtolower($h));
+        }, $header);
+
         while (($line = fgetcsv($handle, 0, $separator)) !== false) {
-            if (count(array_filter($line, function($v) { return trim($v) !== ''; })) === 0) continue;
-            $row = [];
-            foreach ($headers as $i => $header) {
-                $row[$header] = isset($line[$i]) ? $line[$i] : '';
+            if (count($line) === count($header)) {
+                $rows[] = array_combine($header, $line);
             }
-            $rows[] = $row;
         }
 
         fclose($handle);
         return $rows;
     }
 
+    /**
+     * Faz parse de arquivo Excel (.xlsx) e retorna array de linhas.
+     *
+     * @param string $filePath Caminho do arquivo
+     * @return array Linhas parseadas como arrays associativos
+     */
     private function parseExcelFile($filePath) {
-        if (!class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) return [];
+        $rows = [];
 
-        try {
-            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
-            $worksheet = $spreadsheet->getActiveSheet();
-            $rows = [];
-            $headers = [];
+        // Se PhpSpreadsheet estiver disponível
+        if (class_exists('\\PhpOffice\\PhpSpreadsheet\\IOFactory')) {
+            try {
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+                $worksheet = $spreadsheet->getActiveSheet();
+                $data = $worksheet->toArray();
 
-            foreach ($worksheet->getRowIterator() as $rowIndex => $row) {
-                $cells = [];
-                foreach ($row->getCellIterator() as $cell) {
-                    $cells[] = $cell->getValue();
+                if (empty($data)) return $rows;
+
+                $header = array_map(function ($h) {
+                    return trim(mb_strtolower($h ?? ''));
+                }, array_shift($data));
+
+                foreach ($data as $line) {
+                    if (count($line) === count($header)) {
+                        $rows[] = array_combine($header, $line);
+                    }
                 }
-
-                if ($rowIndex === 1) {
-                    $headers = array_map(function($h) {
-                        return strtolower(trim((string)$h));
-                    }, $cells);
-                    continue;
-                }
-
-                if (count(array_filter($cells, function($v) { return trim((string)$v) !== ''; })) === 0) continue;
-
-                $row = [];
-                foreach ($headers as $i => $header) {
-                    $row[$header] = isset($cells[$i]) ? (string)$cells[$i] : '';
-                }
-                $rows[] = $row;
+            } catch (\Exception $e) {
+                // Falha ao ler o Excel, retorna vazio
             }
-
-            return $rows;
-        } catch (\Exception $e) {
-            return [];
         }
+
+        return $rows;
     }
 }

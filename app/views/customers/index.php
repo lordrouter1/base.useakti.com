@@ -1,8 +1,8 @@
 <?php
 /**
- * Clientes — Página Unificada com Sidebar
- * Layout inspirado na página de produtos: sidebar com seções à esquerda,
- * conteúdo da seção ativa à direita.
+ * Clientes — Página Unificada com Sidebar (Fase 3)
+ * Layout com sidebar, drawer de filtros, toggle cards/tabela,
+ * ações em lote, badges de filtros ativos, responsividade.
  *
  * Variáveis disponíveis (carregadas pelo CustomerController::index):
  *   $totalItems     — total de clientes
@@ -15,6 +15,8 @@ $activeSection = $_GET['section'] ?? 'overview';
 $validSections = ['overview', 'create', 'import'];
 if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
 ?>
+
+<link rel="stylesheet" href="assets/css/customers.css">
 
 <!-- ══════ Flash messages ══════ -->
 <?php if (!empty($_SESSION['flash_error'])): ?>
@@ -45,13 +47,10 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
     .import-dropzone{border:2px dashed #ccc;border-radius:12px;padding:2rem;text-align:center;transition:all .2s ease;cursor:pointer;background:#fafbfc}
     .import-dropzone:hover,.import-dropzone.dragover{border-color:#3498db;background:rgba(52,152,219,.05)}
     .import-dropzone.has-file{border-color:#27ae60;background:rgba(39,174,96,.05)}
-
     .mapping-select{font-size:.78rem;padding:.25rem .5rem}
-
     .preview-table{font-size:.72rem;max-height:300px;overflow:auto}
     .preview-table th{position:sticky;top:0;z-index:2;background:#e9ecef}
     .preview-table td{white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
-
     .import-step{display:none}
     .import-step.active{display:block}
 
@@ -63,6 +62,26 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
         .cst-sidebar-label{display:none}
         .cst-sidebar-divider{display:none}
     }
+
+    /* ── Cards grid ── */
+    .cst-cards-grid{display:none;overflow:hidden;max-width:100%}
+    .cst-cards-grid.active{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+    .cst-card-col{min-width:0;overflow:hidden}
+    @media(max-width:991.98px){.cst-cards-grid.active{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:575.98px){.cst-cards-grid.active{grid-template-columns:minmax(0,1fr)}}
+    .cst-table-wrap.active{display:block}
+    .cst-table-wrap{display:none}
+
+    /* ── Status badge colors ── */
+    .badge-status-active{background:rgba(39,174,96,.12);color:#27ae60}
+    .badge-status-inactive{background:rgba(243,156,18,.12);color:#f39c12}
+    .badge-status-blocked{background:rgba(231,76,60,.12);color:#e74c3c}
+
+    /* ── Bulk toolbar animation ── */
+    .cst-bulk-bar{display:none;align-items:center;gap:.6rem;padding:.6rem 1rem;background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;border-radius:10px;font-size:.82rem;margin-bottom:.75rem;box-shadow:0 2px 12px rgba(52,152,219,.25);animation:cstSlideDown .25s ease}
+    .cst-bulk-bar.show{display:flex}
+    .cst-bulk-bar .btn{font-size:.75rem;padding:.3rem .65rem;border-color:rgba(255,255,255,.3);color:#fff}
+    .cst-bulk-bar .btn:hover{background:rgba(255,255,255,.15)}
 </style>
 
 <div class="container-fluid py-3">
@@ -72,11 +91,6 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
         <div>
             <h1 class="h2 mb-1"><i class="fas fa-users me-2 text-primary"></i>Clientes</h1>
             <p class="text-muted mb-0" style="font-size:.82rem;">Gerencie seus clientes, cadastre novos e importe em massa.</p>
-        </div>
-        <div class="btn-toolbar gap-2">
-            <a href="?page=dashboard" class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
-            </a>
         </div>
     </div>
 
@@ -99,7 +113,6 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
             <div class="card border-0 shadow-sm" style="border-radius:12px;">
                 <div class="card-body p-3">
                     <nav class="cst-sidebar">
-
                         <div class="cst-sidebar-label">Clientes</div>
 
                         <a href="#" class="cst-nav-item <?= $activeSection === 'overview' ? 'active' : '' ?>" data-section="overview">
@@ -125,7 +138,6 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                             </span>
                             <span>Importação</span>
                         </a>
-
                     </nav>
                 </div>
             </div>
@@ -155,60 +167,106 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
             <!-- ══════════════════════════════════════ -->
             <div class="cst-section <?= $activeSection === 'overview' ? 'active' : '' ?>" id="cst-overview">
 
-                <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
                     <div class="d-flex align-items-center">
                         <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(52,152,219,.1);">
                             <i class="fas fa-users" style="color:#3498db;font-size:.85rem;"></i>
                         </div>
                         <div>
                             <h5 class="mb-0" style="font-size:1rem;">Clientes Cadastrados</h5>
-                            <p class="text-muted mb-0" style="font-size:.72rem;">Lista completa de clientes com filtros e paginação.</p>
+                            <p class="text-muted mb-0" style="font-size:.72rem;">Lista completa com filtros avançados.</p>
                         </div>
                     </div>
-                    <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- View toggle -->
+                        <div class="cst-view-toggle">
+                            <button type="button" class="btn active" id="btnViewTable" title="Visualizar como tabela"><i class="fas fa-list"></i></button>
+                            <button type="button" class="btn" id="btnViewCards" title="Visualizar como cards"><i class="fas fa-th-large"></i></button>
+                        </div>
+                        <!-- Export -->
+                        <button type="button" class="btn btn-sm btn-outline-success" id="btnExportCsv" title="Exportar CSV">
+                            <i class="fas fa-file-csv me-1"></i><span class="d-none d-md-inline">Exportar</span>
+                        </button>
                         <?php if (empty($limitReached)): ?>
                         <a href="?page=customers&action=create" class="btn btn-sm btn-primary">
-                            <i class="fas fa-plus me-1"></i> Novo Cliente
+                            <i class="fas fa-plus me-1"></i><span class="d-none d-md-inline">Novo Cliente</span>
                         </a>
                         <?php endif; ?>
                     </div>
                 </div>
 
-                <!-- Filtros -->
+                <!-- Filtros + Busca -->
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body p-3">
-                        <div class="row g-2 align-items-end" id="customerFilterForm">
-                            <div class="col-md-8">
-                                <label class="form-label small fw-bold mb-1">Buscar</label>
+                        <div class="row g-2 align-items-end">
+                            <div class="col">
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><i class="fas fa-search"></i></span>
                                     <input type="text" id="cst_search" class="form-control cst-filter" placeholder="Buscar por nome, e-mail, telefone ou documento..." autocomplete="off">
                                 </div>
                             </div>
-                            <div class="col-md-4 text-end">
-                                <a href="#" class="text-muted small" id="btnClearCustomers" style="font-size:.72rem;"><i class="fas fa-times me-1"></i>Limpar filtros</a>
+                            <div class="col-auto">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="btnOpenFilters" data-bs-toggle="offcanvas" data-bs-target="#filterDrawer">
+                                    <i class="fas fa-sliders-h me-1"></i>Filtros
+                                </button>
+                            </div>
+                            <div class="col-auto">
+                                <a href="#" class="text-muted small" id="btnClearCustomers" style="font-size:.72rem;"><i class="fas fa-times me-1"></i>Limpar</a>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tabela de Clientes -->
-                <div class="table-responsive bg-white rounded shadow-sm">
-                    <table class="table table-hover align-middle mb-0" id="customersTable">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="py-3 ps-4">Nome</th>
-                                <th class="py-3">E-mail</th>
-                                <th class="py-3">Telefone</th>
-                                <th class="py-3">Documento</th>
-                                <th class="py-3 text-end pe-4">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="customersTableBody">
-                            <tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i>Carregando...</td></tr>
-                        </tbody>
-                    </table>
+                <!-- Badges de filtros ativos -->
+                <div class="cst-filter-badges" id="filterBadges" style="display:none;"></div>
+
+                <!-- Toolbar de ações em lote -->
+                <div class="cst-bulk-bar" id="bulkToolbar">
+                    <i class="fas fa-check-square me-1"></i>
+                    <span id="bulkCount">0</span> selecionado(s)
+                    <div class="ms-auto d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-light" id="btnBulkExport" title="Exportar selecionados"><i class="fas fa-file-export me-1"></i>Exportar</button>
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-sm btn-outline-light dropdown-toggle" data-bs-toggle="dropdown" title="Alterar status"><i class="fas fa-exchange-alt me-1"></i>Status</button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item small bulk-status-action" href="#" data-status="active"><i class="fas fa-check-circle text-success me-1"></i>Ativar</a></li>
+                                <li><a class="dropdown-item small bulk-status-action" href="#" data-status="inactive"><i class="fas fa-pause-circle text-warning me-1"></i>Inativar</a></li>
+                                <li><a class="dropdown-item small bulk-status-action" href="#" data-status="blocked"><i class="fas fa-ban text-danger me-1"></i>Bloquear</a></li>
+                            </ul>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-light" id="btnBulkDelete" title="Excluir selecionados"><i class="fas fa-trash me-1"></i>Excluir</button>
+                    </div>
                 </div>
+
+                <!-- TABELA de Clientes -->
+                <div class="cst-table-wrap active" id="customersTableWrap">
+                    <div class="table-responsive bg-white rounded shadow-sm">
+                        <table class="table table-hover align-middle mb-0" id="customersTable">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="py-3 ps-3" style="width:40px;">
+                                        <input type="checkbox" class="form-check-input" id="checkAll" title="Selecionar todos">
+                                    </th>
+                                    <th class="py-3">Nome</th>
+                                    <th class="py-3" style="width:60px;">Tipo</th>
+                                    <th class="py-3" style="width:150px;">Documento</th>
+                                    <th class="py-3 d-none d-lg-table-cell" style="width:150px;">Cidade/UF</th>
+                                    <th class="py-3" style="width:90px;">Status</th>
+                                    <th class="py-3 text-end pe-4" style="width:130px;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customersTableBody">
+                                <tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i>Carregando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- CARDS de Clientes -->
+                <div class="cst-cards-grid" id="customersCardsGrid">
+                    <!-- Preenchido via JS -->
+                </div>
+
                 <!-- Paginação -->
                 <div class="d-flex justify-content-between align-items-center mt-2">
                     <span class="text-muted small" id="cstPaginationInfo"></span>
@@ -222,7 +280,6 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
             <!-- SEÇÃO: Cadastro de Clientes             -->
             <!-- ══════════════════════════════════════ -->
             <div class="cst-section <?= $activeSection === 'create' ? 'active' : '' ?>" id="cst-create">
-
                 <div class="d-flex align-items-center mb-3">
                     <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(39,174,96,.1);">
                         <i class="fas fa-user-plus" style="color:#27ae60;font-size:.85rem;"></i>
@@ -257,8 +314,7 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                     </div>
                 </div>
                 <?php endif; ?>
-
-            </div><!-- /.cst-section create -->
+            </div>
 
 
             <!-- ══════════════════════════════════════ -->
@@ -291,7 +347,7 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                 </div>
                 <?php else: ?>
 
-                <!-- ── Stepper visual ── -->
+                <!-- Stepper visual -->
                 <div class="d-flex align-items-center mb-4 gap-2" id="importStepper">
                     <div class="import-step-indicator active" data-step="1">
                         <span class="badge bg-primary rounded-pill px-3 py-2"><i class="fas fa-upload me-1"></i>1. Upload</span>
@@ -306,7 +362,7 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                     </div>
                 </div>
 
-                <!-- ══ Step 1: Upload do Arquivo ══ -->
+                <!-- Step 1: Upload -->
                 <div class="import-step active" id="importStep1">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body p-4">
@@ -317,7 +373,6 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                                 <input type="file" id="importFileInput" accept=".csv,.xls,.xlsx" style="display:none;">
                                 <p class="text-muted mb-0" style="font-size:.7rem;">Formatos aceitos: <strong>CSV</strong>, <strong>XLS</strong>, <strong>XLSX</strong></p>
                             </div>
-
                             <div id="importFileInfo" style="display:none;" class="mt-3">
                                 <div class="alert alert-success d-flex align-items-center py-2 mb-0">
                                     <i class="fas fa-file-circle-check fa-lg me-3 text-success"></i>
@@ -325,22 +380,17 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                                         <strong id="importFileName">arquivo.csv</strong>
                                         <span class="text-muted small ms-2" id="importFileSize"></span>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="btnRemoveFile">
-                                        <i class="fas fa-times"></i>
-                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="btnRemoveFile"><i class="fas fa-times"></i></button>
                                 </div>
                             </div>
-
                             <div class="text-end mt-3">
-                                <button type="button" class="btn btn-primary" id="btnParseFile" disabled>
-                                    <i class="fas fa-cog me-1"></i>Analisar Arquivo
-                                </button>
+                                <button type="button" class="btn btn-primary" id="btnParseFile" disabled><i class="fas fa-cog me-1"></i>Analisar Arquivo</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- ══ Step 2: Mapeamento de Colunas + Preview ══ -->
+                <!-- Step 2: Mapeamento -->
                 <div class="import-step" id="importStep2">
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-header bg-white py-3 border-bottom">
@@ -348,32 +398,25 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                                 <h6 class="mb-0 fw-bold"><i class="fas fa-columns me-2 text-primary"></i>Mapeamento de Colunas</h6>
                                 <span class="badge bg-info" id="totalRowsBadge">0 linhas</span>
                             </div>
-                            <p class="text-muted mb-0 mt-1" style="font-size:.72rem;">Selecione a qual campo do sistema cada coluna do arquivo corresponde. Colunas sem mapeamento serão ignoradas.</p>
+                            <p class="text-muted mb-0 mt-1" style="font-size:.72rem;">Selecione a qual campo do sistema cada coluna do arquivo corresponde.</p>
                         </div>
                         <div class="card-body p-3">
                             <div class="table-responsive">
                                 <table class="table table-bordered table-sm align-middle mb-0" id="mappingTable">
                                     <thead class="table-light">
                                         <tr>
-                                            <th style="width:40px;" class="text-center">
-                                                <input type="checkbox" class="form-check-input" id="checkAllCols" checked title="Marcar/desmarcar todas">
-                                            </th>
+                                            <th style="width:40px;" class="text-center"><input type="checkbox" class="form-check-input" id="checkAllCols" checked title="Marcar/desmarcar todas"></th>
                                             <th>Coluna do Arquivo</th>
                                             <th>Amostra de Dados</th>
                                             <th style="width:220px;">Corresponde a</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="mappingTableBody">
-                                    </tbody>
+                                    <tbody id="mappingTableBody"></tbody>
                                 </table>
                             </div>
-
-                            <!-- Validação do mapeamento -->
                             <div id="mappingValidation" class="mt-3" style="display:none;"></div>
                         </div>
                     </div>
-
-                    <!-- Preview dos dados -->
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-header bg-white py-3 border-bottom">
                             <h6 class="mb-0 fw-bold"><i class="fas fa-table me-2 text-info"></i>Preview dos Dados <small class="text-muted fw-normal">(primeiras 10 linhas)</small></h6>
@@ -387,41 +430,104 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                             </div>
                         </div>
                     </div>
-
                     <div class="d-flex justify-content-between">
-                        <button type="button" class="btn btn-outline-secondary" id="btnBackToStep1">
-                            <i class="fas fa-arrow-left me-1"></i>Voltar
-                        </button>
-                        <button type="button" class="btn btn-success btn-lg" id="btnDoImport" disabled>
-                            <i class="fas fa-upload me-1"></i>Importar <span id="importCountLabel">0</span> Cliente(s)
-                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="btnBackToStep1"><i class="fas fa-arrow-left me-1"></i>Voltar</button>
+                        <button type="button" class="btn btn-success btn-lg" id="btnDoImport" disabled><i class="fas fa-upload me-1"></i>Importar <span id="importCountLabel">0</span> Cliente(s)</button>
                     </div>
                 </div>
 
-                <!-- ══ Step 3: Resultado ══ -->
+                <!-- Step 3: Resultado -->
                 <div class="import-step" id="importStep3">
                     <div class="card border-0 shadow-sm">
-                        <div class="card-body p-4" id="importResultContent">
-                            <!-- Preenchido via JS -->
-                        </div>
+                        <div class="card-body p-4" id="importResultContent"></div>
                     </div>
                     <div class="text-center mt-3">
-                        <button type="button" class="btn btn-outline-primary" id="btnNewImport">
-                            <i class="fas fa-redo me-1"></i>Nova Importação
-                        </button>
-                        <a href="#" class="btn btn-primary ms-2 cst-go-overview">
-                            <i class="fas fa-users me-1"></i>Ver Clientes
-                        </a>
+                        <button type="button" class="btn btn-outline-primary" id="btnNewImport"><i class="fas fa-redo me-1"></i>Nova Importação</button>
+                        <a href="#" class="btn btn-primary ms-2 cst-go-overview"><i class="fas fa-users me-1"></i>Ver Clientes</a>
                     </div>
                 </div>
 
                 <?php endif; ?>
-
-            </div><!-- /.cst-section import -->
+            </div>
 
         </div><!-- /.col-lg-9 -->
     </div><!-- /.row -->
 </div><!-- /.container-fluid -->
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- DRAWER DE FILTROS — Off-canvas Bootstrap 5      -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="offcanvas offcanvas-end cst-filter-drawer" tabindex="-1" id="filterDrawer" aria-labelledby="filterDrawerLabel" style="width:320px;">
+    <div class="offcanvas-header">
+        <h6 class="offcanvas-title fw-bold" id="filterDrawerLabel"><i class="fas fa-sliders-h me-2 text-primary"></i>Filtros Avançados</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
+    </div>
+    <div class="offcanvas-body">
+        <!-- Status -->
+        <div class="cst-filter-group">
+            <label>Status</label>
+            <div class="d-flex flex-wrap gap-2">
+                <div class="form-check"><input class="form-check-input filter-status" type="checkbox" value="active" id="fStatusActive" checked><label class="form-check-label small" for="fStatusActive">Ativo</label></div>
+                <div class="form-check"><input class="form-check-input filter-status" type="checkbox" value="inactive" id="fStatusInactive"><label class="form-check-label small" for="fStatusInactive">Inativo</label></div>
+                <div class="form-check"><input class="form-check-input filter-status" type="checkbox" value="blocked" id="fStatusBlocked"><label class="form-check-label small" for="fStatusBlocked">Bloqueado</label></div>
+            </div>
+        </div>
+
+        <!-- Tipo de Pessoa -->
+        <div class="cst-filter-group">
+            <label>Tipo de Pessoa</label>
+            <div class="d-flex flex-wrap gap-2">
+                <div class="form-check"><input class="form-check-input filter-person-type" type="checkbox" value="PF" id="fTypePF"><label class="form-check-label small" for="fTypePF">Pessoa Física</label></div>
+                <div class="form-check"><input class="form-check-input filter-person-type" type="checkbox" value="PJ" id="fTypePJ"><label class="form-check-label small" for="fTypePJ">Pessoa Jurídica</label></div>
+            </div>
+        </div>
+
+        <!-- UF -->
+        <div class="cst-filter-group">
+            <label for="fState">Estado (UF)</label>
+            <select id="fState" class="form-select form-select-sm">
+                <option value="">Todos</option>
+                <?php
+                $ufs = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO'];
+                foreach ($ufs as $uf): ?>
+                <option value="<?= $uf ?>"><?= $uf ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <!-- Cidade -->
+        <div class="cst-filter-group">
+            <label for="fCity">Cidade</label>
+            <input type="text" id="fCity" class="form-control form-control-sm" placeholder="Nome da cidade...">
+        </div>
+
+        <!-- Tags -->
+        <div class="cst-filter-group">
+            <label for="fTags">Tags</label>
+            <input type="text" id="fTags" class="form-control form-control-sm" placeholder="Ex: VIP, Atacado...">
+        </div>
+
+        <!-- Período -->
+        <div class="cst-filter-group">
+            <label>Período de Cadastro</label>
+            <div class="row g-2">
+                <div class="col-6">
+                    <input type="date" id="fDateFrom" class="form-control form-control-sm" title="De">
+                </div>
+                <div class="col-6">
+                    <input type="date" id="fDateTo" class="form-control form-control-sm" title="Até">
+                </div>
+            </div>
+        </div>
+
+        <hr>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary btn-sm flex-fill" id="btnApplyFilters"><i class="fas fa-check me-1"></i>Aplicar</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" id="btnResetFilters"><i class="fas fa-undo me-1"></i>Limpar</button>
+        </div>
+    </div>
+</div>
 
 
 <script>
@@ -455,7 +561,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Links de atalho entre seções
     document.querySelectorAll('.cst-go-overview').forEach(function(a) {
         a.addEventListener('click', function(e) { e.preventDefault(); navigateToSection('overview'); });
     });
@@ -483,15 +588,144 @@ document.addEventListener('DOMContentLoaded', function() {
     var csrfMeta = document.querySelector('meta[name="csrf-token"]');
     var csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
 
-    // ═══════════════════════════════════════════
-    // ═══ UTILITÁRIOS                          ═══
-    // ═══════════════════════════════════════════
     function escHtml(str) {
         if (!str) return '';
         var div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
     }
+
+    // ═══════════════════════════════════════════
+    // ═══ VIEW TOGGLE — Tabela / Cards        ═══
+    // ═══════════════════════════════════════════
+    var currentView = 'table';
+
+    document.getElementById('btnViewTable').addEventListener('click', function() {
+        currentView = 'table';
+        this.classList.add('active');
+        document.getElementById('btnViewCards').classList.remove('active');
+        document.getElementById('customersTableWrap').classList.add('active');
+        document.getElementById('customersCardsGrid').classList.remove('active');
+    });
+
+    document.getElementById('btnViewCards').addEventListener('click', function() {
+        currentView = 'cards';
+        this.classList.add('active');
+        document.getElementById('btnViewTable').classList.remove('active');
+        document.getElementById('customersCardsGrid').classList.add('active');
+        document.getElementById('customersTableWrap').classList.remove('active');
+    });
+
+
+    // ═══════════════════════════════════════════
+    // ═══ FILTROS AVANÇADOS                    ═══
+    // ═══════════════════════════════════════════
+    var activeFilters = {};
+
+    function collectFilters() {
+        activeFilters = {};
+
+        // Status
+        var statuses = [];
+        document.querySelectorAll('.filter-status:checked').forEach(function(cb) { statuses.push(cb.value); });
+        if (statuses.length > 0 && statuses.length < 3) activeFilters.status = statuses.join(',');
+
+        // Person type
+        var types = [];
+        document.querySelectorAll('.filter-person-type:checked').forEach(function(cb) { types.push(cb.value); });
+        if (types.length === 1) activeFilters.person_type = types[0];
+
+        // State
+        var state = document.getElementById('fState').value;
+        if (state) activeFilters.state = state;
+
+        // City
+        var city = document.getElementById('fCity').value.trim();
+        if (city) activeFilters.city = city;
+
+        // Tags
+        var tags = document.getElementById('fTags').value.trim();
+        if (tags) activeFilters.tags = tags;
+
+        // Date range
+        var from = document.getElementById('fDateFrom').value;
+        var to = document.getElementById('fDateTo').value;
+        if (from) activeFilters.from = from;
+        if (to) activeFilters.to = to;
+    }
+
+    function renderFilterBadges() {
+        var container = document.getElementById('filterBadges');
+        var badges = [];
+        var labelMap = {
+            status: 'Status',
+            person_type: 'Tipo',
+            state: 'UF',
+            city: 'Cidade',
+            tags: 'Tags',
+            from: 'De',
+            to: 'Até'
+        };
+
+        for (var key in activeFilters) {
+            var label = labelMap[key] || key;
+            var value = activeFilters[key];
+            badges.push(
+                '<span class="cst-filter-badge">' + label + ': <strong>' + escHtml(value) + '</strong>' +
+                '<button type="button" class="btn-close-filter" data-filter="' + key + '" title="Remover">&times;</button>' +
+                '</span>'
+            );
+        }
+
+        if (badges.length > 0) {
+            container.innerHTML = badges.join('');
+            container.style.display = '';
+            // Bind remove buttons
+            container.querySelectorAll('.btn-close-filter').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    removeFilter(this.dataset.filter);
+                });
+            });
+        } else {
+            container.innerHTML = '';
+            container.style.display = 'none';
+        }
+    }
+
+    function removeFilter(key) {
+        delete activeFilters[key];
+        // Reset corresponding UI element
+        if (key === 'status') document.querySelectorAll('.filter-status').forEach(function(cb) { cb.checked = true; });
+        if (key === 'person_type') document.querySelectorAll('.filter-person-type').forEach(function(cb) { cb.checked = false; });
+        if (key === 'state') document.getElementById('fState').value = '';
+        if (key === 'city') document.getElementById('fCity').value = '';
+        if (key === 'tags') document.getElementById('fTags').value = '';
+        if (key === 'from') document.getElementById('fDateFrom').value = '';
+        if (key === 'to') document.getElementById('fDateTo').value = '';
+        renderFilterBadges();
+        loadCustomers(1);
+    }
+
+    document.getElementById('btnApplyFilters').addEventListener('click', function() {
+        collectFilters();
+        renderFilterBadges();
+        loadCustomers(1);
+        // Close drawer
+        var drawer = bootstrap.Offcanvas.getInstance(document.getElementById('filterDrawer'));
+        if (drawer) drawer.hide();
+    });
+
+    document.getElementById('btnResetFilters').addEventListener('click', function() {
+        document.querySelectorAll('.filter-status').forEach(function(cb) { cb.checked = (cb.value === 'active'); });
+        document.querySelectorAll('.filter-person-type').forEach(function(cb) { cb.checked = false; });
+        document.getElementById('fState').value = '';
+        document.getElementById('fCity').value = '';
+        document.getElementById('fTags').value = '';
+        document.getElementById('fDateFrom').value = '';
+        document.getElementById('fDateTo').value = '';
+        activeFilters = {};
+        renderFilterBadges();
+    });
 
 
     // ═══════════════════════════════════════════
@@ -559,11 +793,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // ═══ VISÃO GERAL — AJAX + Paginação      ═══
     // ═══════════════════════════════════════════
     var cstCurrentPage = 1;
+    var selectedIds = [];
 
     function loadCustomers(page) {
         cstCurrentPage = page || 1;
+        selectedIds = [];
+        updateBulkToolbar();
+
         var tbody = document.getElementById('customersTableBody');
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i>Carregando...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i>Carregando...</td></tr>';
+
+        var cardsGrid = document.getElementById('customersCardsGrid');
+        cardsGrid.innerHTML = '';
 
         var params = new URLSearchParams({
             page: 'customers',
@@ -573,53 +814,33 @@ document.addEventListener('DOMContentLoaded', function() {
             per_page: 20
         });
 
+        // Append active filters
+        for (var key in activeFilters) {
+            params.set(key, activeFilters[key]);
+        }
+
         fetch('?' + params.toString())
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (!data.success) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Erro ao carregar dados.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Erro ao carregar dados.</td></tr>';
                     return;
                 }
 
                 if (data.items.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-5">' +
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5">' +
                         '<i class="fas fa-users fa-3x mb-3 d-block text-secondary"></i>' +
                         'Nenhum cliente encontrado com os filtros selecionados.' +
                         '</td></tr>';
+                    cardsGrid.innerHTML = '<div class="col-12 text-center text-muted py-5"><i class="fas fa-users fa-3x mb-3 d-block text-secondary"></i>Nenhum cliente encontrado.</div>';
                     document.getElementById('cstPagination').innerHTML = '';
                     document.getElementById('cstPaginationInfo').textContent = '0 registros';
                     return;
                 }
 
-                var html = '';
-                data.items.forEach(function(c) {
-                    var initial = c.name ? c.name.charAt(0).toUpperCase() : '?';
-                    var photoCell = c.photo
-                        ? '<img src="' + escHtml(c.photo) + '" class="rounded-circle" style="width:35px;height:35px;object-fit:cover;">'
-                        : '<div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:35px;height:35px;font-size:.9rem;">' + escHtml(initial) + '</div>';
-
-                    var emailCell = c.email ? escHtml(c.email) : '<span class="text-muted">—</span>';
-                    var phoneCell = c.phone ? escHtml(c.phone) : '<span class="text-muted">—</span>';
-                    var docCell = c.document
-                        ? '<span class="badge bg-light text-dark border">' + escHtml(c.document) + '</span>'
-                        : '<span class="text-muted">—</span>';
-
-                    html += '<tr>' +
-                        '<td class="ps-4"><div class="d-flex align-items-center">' + photoCell +
-                            '<span class="fw-bold ms-3">' + escHtml(c.name) + '</span></div></td>' +
-                        '<td>' + emailCell + '</td>' +
-                        '<td>' + phoneCell + '</td>' +
-                        '<td>' + docCell + '</td>' +
-                        '<td class="text-end pe-4"><div class="btn-group">' +
-                            '<a href="?page=customers&action=edit&id=' + c.id + '" class="btn btn-sm btn-outline-primary" title="Editar"><i class="fas fa-edit"></i></a>' +
-                            '<button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-customer" data-id="' + c.id + '" data-name="' + escHtml(c.name) + '" title="Excluir"><i class="fas fa-trash"></i></button>' +
-                        '</div></td>' +
-                    '</tr>';
-                });
-                tbody.innerHTML = html;
-
-                // Rebind delete buttons
-                bindDeleteButtons();
+                renderTable(data.items);
+                renderCards(data.items);
+                bindRowActions();
 
                 // Paginação
                 renderPagination('cstPagination', data.page, data.total_pages, data.total, data.per_page, loadCustomers);
@@ -629,21 +850,145 @@ document.addEventListener('DOMContentLoaded', function() {
                     var to = Math.min(data.page * data.per_page, data.total);
                     infoEl.textContent = 'Exibindo ' + from + '–' + to + ' de ' + data.total + ' cliente(s)';
                 }
+
+                // Check all reset
+                var checkAll = document.getElementById('checkAll');
+                if (checkAll) checkAll.checked = false;
             })
             .catch(function() {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Erro de comunicação ao carregar clientes.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Erro de comunicação ao carregar clientes.</td></tr>';
             });
     }
 
-    // Delete buttons
-    function bindDeleteButtons() {
+
+    // ═══════════════════════════════════════════
+    // ═══ RENDER — Tabela                      ═══
+    // ═══════════════════════════════════════════
+    function renderTable(items) {
+        var tbody = document.getElementById('customersTableBody');
+        var html = '';
+        var statusMap = { active: ['Ativo', 'badge-status-active'], inactive: ['Inativo', 'badge-status-inactive'], blocked: ['Bloqueado', 'badge-status-blocked'] };
+
+        items.forEach(function(c) {
+            var initial = c.name ? c.name.charAt(0).toUpperCase() : '?';
+            var photoCell = c.photo
+                ? '<img src="' + escHtml(c.photo) + '" class="rounded-circle" style="width:32px;height:32px;object-fit:cover;">'
+                : '<div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;font-size:.8rem;">' + escHtml(initial) + '</div>';
+
+            var docCell = c.document ? '<span class="badge bg-light text-dark border" style="font-size:.72rem;">' + formatDoc(c.document) + '</span>' : '<span class="text-muted">—</span>';
+            var typeCell = (c.person_type === 'PJ')
+                ? '<span class="badge bg-info bg-opacity-10 text-info" style="font-size:.68rem;">PJ</span>'
+                : '<span class="badge bg-secondary bg-opacity-10 text-secondary" style="font-size:.68rem;">PF</span>';
+
+            var cityUf = '';
+            if (c.address_city || c.address_state) {
+                cityUf = escHtml((c.address_city || '') + (c.address_state ? ' / ' + c.address_state : ''));
+            } else {
+                cityUf = '<span class="text-muted">—</span>';
+            }
+
+            var st = c.status || 'active';
+            var statusInfo = statusMap[st] || ['—', ''];
+            var statusBadge = '<span class="badge ' + statusInfo[1] + '" style="font-size:.68rem;padding:.35em .6em;border-radius:6px;">' + statusInfo[0] + '</span>';
+
+            var codeStr = c.code ? '<small class="text-muted d-block" style="font-size:.68rem;">' + escHtml(c.code) + '</small>' : '';
+
+            html += '<tr data-id="' + c.id + '">' +
+                '<td class="ps-3"><input type="checkbox" class="form-check-input row-check" value="' + c.id + '"></td>' +
+                '<td><div class="d-flex align-items-center">' + photoCell +
+                    '<div class="ms-2"><span class="fw-bold" style="font-size:.85rem;">' + escHtml(c.name) + '</span>' + codeStr + '</div></div></td>' +
+                '<td>' + typeCell + '</td>' +
+                '<td>' + docCell + '</td>' +
+                '<td class="d-none d-lg-table-cell" style="font-size:.78rem;">' + cityUf + '</td>' +
+                '<td>' + statusBadge + '</td>' +
+                '<td class="text-end pe-3"><div class="btn-group btn-group-sm">' +
+                    '<a href="?page=customers&action=view&id=' + c.id + '" class="btn btn-outline-info" title="Ver ficha"><i class="fas fa-eye"></i></a>' +
+                    '<a href="?page=customers&action=edit&id=' + c.id + '" class="btn btn-outline-primary" title="Editar"><i class="fas fa-edit"></i></a>' +
+                    '<button type="button" class="btn btn-outline-danger btn-delete-customer" data-id="' + c.id + '" data-name="' + escHtml(c.name) + '" title="Excluir"><i class="fas fa-trash"></i></button>' +
+                '</div></td>' +
+            '</tr>';
+        });
+        tbody.innerHTML = html;
+    }
+
+
+    // ═══════════════════════════════════════════
+    // ═══ RENDER — Cards                       ═══
+    // ═══════════════════════════════════════════
+    function renderCards(items) {
+        var grid = document.getElementById('customersCardsGrid');
+        var html = '';
+        var statusMap = { active: ['Ativo', 'badge-status-active'], inactive: ['Inativo', 'badge-status-inactive'], blocked: ['Bloqueado', 'badge-status-blocked'] };
+
+        items.forEach(function(c) {
+            var initial = c.name ? c.name.charAt(0).toUpperCase() : '?';
+            var avatar = c.photo
+                ? '<img src="' + escHtml(c.photo) + '" class="cst-card-avatar">'
+                : '<div class="cst-card-avatar-placeholder">' + escHtml(initial) + '</div>';
+
+            var typeLabel = (c.person_type === 'PJ') ? 'PJ' : 'PF';
+            var st = c.status || 'active';
+            var statusInfo = statusMap[st] || ['—', ''];
+
+            var cityUf = (c.address_city || c.address_state)
+                ? '<i class="fas fa-map-marker-alt"></i> ' + escHtml((c.address_city || '') + (c.address_state ? ' / ' + c.address_state : ''))
+                : '';
+
+            var emailLine = c.email
+                ? '<span><i class="fas fa-envelope"></i> ' + escHtml(c.email) + '</span>' : '';
+            var phoneLine = (c.cellphone || c.phone)
+                ? '<span><i class="fas fa-phone"></i> ' + escHtml(c.cellphone || c.phone) + '</span>' : '';
+
+            html += '<div class="cst-card-col">' +
+                '<div class="cst-customer-card">' +
+                    '<div class="d-flex align-items-center gap-3 mb-2">' +
+                        avatar +
+                        '<div class="cst-card-body" style="min-width:0;">' +
+                            '<div class="cst-card-name">' + escHtml(c.name) + '</div>' +
+                            '<div class="cst-card-meta">' +
+                                typeLabel + ' · <span class="badge ' + statusInfo[1] + '" style="font-size:.62rem;padding:.2em .5em;">' + statusInfo[0] + '</span>' +
+                            '</div>' +
+                            (cityUf ? '<div class="cst-card-meta mt-1" style="font-size:.7rem;">' + cityUf + '</div>' : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="cst-card-info">' +
+                        emailLine + phoneLine +
+                    '</div>' +
+                    '<div class="cst-card-actions">' +
+                        '<a href="?page=customers&action=view&id=' + c.id + '" class="btn btn-sm btn-outline-info flex-fill"><i class="fas fa-eye me-1"></i>Ver</a>' +
+                        '<a href="?page=customers&action=edit&id=' + c.id + '" class="btn btn-sm btn-outline-primary flex-fill"><i class="fas fa-edit me-1"></i>Editar</a>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        });
+        grid.innerHTML = html;
+    }
+
+
+    // ═══════════════════════════════════════════
+    // ═══ HELPERS                              ═══
+    // ═══════════════════════════════════════════
+    function formatDoc(doc) {
+        if (!doc) return '';
+        var d = doc.replace(/\D/g, '');
+        if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+        return doc;
+    }
+
+
+    // ═══════════════════════════════════════════
+    // ═══ ROW ACTIONS — Delete, Checkbox       ═══
+    // ═══════════════════════════════════════════
+    function bindRowActions() {
+        // Delete buttons
         document.querySelectorAll('.btn-delete-customer').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var id = this.dataset.id;
                 var name = this.dataset.name;
                 Swal.fire({
                     title: 'Excluir cliente?',
-                    html: 'Deseja realmente excluir <strong>' + name + '</strong>?<br>Esta ação não pode ser desfeita.',
+                    html: 'Deseja realmente excluir <strong>' + name + '</strong>?<br><small class="text-muted">O registro será inativado (soft delete).</small>',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#c0392b',
@@ -652,29 +997,201 @@ document.addEventListener('DOMContentLoaded', function() {
                     cancelButtonText: 'Cancelar'
                 }).then(function(result) {
                     if (result.isConfirmed) {
-                        window.location.href = '?page=customers&action=delete&id=' + id;
+                        var fd = new FormData();
+                        fd.append('id', id);
+                        fetch('?page=customers&action=delete', { method: 'POST', body: fd, headers: { 'X-CSRF-TOKEN': csrfToken } })
+                            .then(function(r) { return r.json(); })
+                            .then(function(data) {
+                                if (data.success) {
+                                    Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2000,timerProgressBar:true})
+                                        .fire({icon:'success',title:'Cliente excluído com sucesso'});
+                                    loadCustomers(cstCurrentPage);
+                                } else {
+                                    Swal.fire({icon:'error',title:'Erro',text:data.message || 'Não foi possível excluir.'});
+                                }
+                            })
+                            .catch(function() {
+                                Swal.fire({icon:'error',title:'Erro de comunicação'});
+                            });
                     }
                 });
             });
         });
+
+        // Row checkboxes
+        document.querySelectorAll('.row-check').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                var id = parseInt(this.value);
+                if (this.checked) {
+                    if (selectedIds.indexOf(id) === -1) selectedIds.push(id);
+                } else {
+                    selectedIds = selectedIds.filter(function(x) { return x !== id; });
+                }
+                updateBulkToolbar();
+            });
+        });
     }
 
-    // Filtrar clientes — dinâmico ao alterar campo de busca
-    var _cstDebounce = null;
-    document.querySelectorAll('.cst-filter').forEach(function(el) {
-        el.addEventListener('input', function() {
-            clearTimeout(_cstDebounce);
-            _cstDebounce = setTimeout(function() { loadCustomers(1); }, 350);
+    // Check all
+    document.getElementById('checkAll').addEventListener('change', function() {
+        var checked = this.checked;
+        if (!checked) selectedIds = [];
+        document.querySelectorAll('.row-check').forEach(function(cb) {
+            cb.checked = checked;
+            var id = parseInt(cb.value);
+            if (checked && selectedIds.indexOf(id) === -1) selectedIds.push(id);
         });
+        updateBulkToolbar();
+    });
+
+
+    // ═══════════════════════════════════════════
+    // ═══ BULK ACTIONS — Toolbar               ═══
+    // ═══════════════════════════════════════════
+    function updateBulkToolbar() {
+        var toolbar = document.getElementById('bulkToolbar');
+        var countEl = document.getElementById('bulkCount');
+        if (selectedIds.length > 0) {
+            toolbar.classList.add('show');
+            countEl.textContent = selectedIds.length;
+        } else {
+            toolbar.classList.remove('show');
+        }
+    }
+
+    // Bulk status
+    document.querySelectorAll('.bulk-status-action').forEach(function(a) {
+        a.addEventListener('click', function(e) {
+            e.preventDefault();
+            var status = this.dataset.status;
+            var statusLabels = { active: 'Ativar', inactive: 'Inativar', blocked: 'Bloquear' };
+            // Map view status to controller bulk_action
+            var bulkActionMap = { active: 'activate', inactive: 'inactivate', blocked: 'block' };
+            Swal.fire({
+                title: statusLabels[status] + ' ' + selectedIds.length + ' cliente(s)?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sim, ' + statusLabels[status].toLowerCase(),
+                cancelButtonText: 'Cancelar'
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    var fd = new FormData();
+                    fd.append('bulk_action', bulkActionMap[status]);
+                    selectedIds.forEach(function(id) { fd.append('ids[]', id); });
+                    fetch('?page=customers&action=bulkAction', { method: 'POST', body: fd, headers: { 'X-CSRF-TOKEN': csrfToken } })
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) {
+                            if (data.success) {
+                                Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2000,timerProgressBar:true})
+                                    .fire({icon:'success',title:data.message || 'Ação realizada com sucesso'});
+                                loadCustomers(cstCurrentPage);
+                            } else {
+                                Swal.fire({icon:'error',title:'Erro',text:data.message});
+                            }
+                        });
+                }
+            });
+        });
+    });
+
+    // Bulk delete
+    document.getElementById('btnBulkDelete').addEventListener('click', function() {
+        Swal.fire({
+            title: 'Excluir ' + selectedIds.length + ' cliente(s)?',
+            html: '<small class="text-muted">Os registros serão inativados (soft delete).</small>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#c0392b',
+            confirmButtonText: '<i class="fas fa-trash me-1"></i>Excluir',
+            cancelButtonText: 'Cancelar'
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                var fd = new FormData();
+                fd.append('bulk_action', 'delete');
+                selectedIds.forEach(function(id) { fd.append('ids[]', id); });
+                fetch('?page=customers&action=bulkAction', { method: 'POST', body: fd, headers: { 'X-CSRF-TOKEN': csrfToken } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.success) {
+                            Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2000,timerProgressBar:true})
+                                .fire({icon:'success',title:data.message || 'Registros excluídos'});
+                            loadCustomers(cstCurrentPage);
+                        } else {
+                            Swal.fire({icon:'error',title:'Erro',text:data.message});
+                        }
+                    });
+            }
+        });
+    });
+
+    // Bulk export
+    document.getElementById('btnBulkExport').addEventListener('click', function() {
+        if (selectedIds.length === 0) return;
+        var params = new URLSearchParams({ page: 'customers', action: 'export', format: 'csv' });
+        params.set('ids', selectedIds.join(','));
+        window.location.href = '?' + params.toString();
+    });
+
+
+    // ═══════════════════════════════════════════
+    // ═══ EXPORT BUTTON                        ═══
+    // ═══════════════════════════════════════════
+    document.getElementById('btnExportCsv').addEventListener('click', function() {
+        var params = new URLSearchParams({ page: 'customers', action: 'export', format: 'csv' });
+        for (var key in activeFilters) { params.set(key, activeFilters[key]); }
+        params.set('search', document.getElementById('cst_search').value);
+        window.location.href = '?' + params.toString();
+    });
+
+
+    // ═══════════════════════════════════════════
+    // ═══ SEARCH DEBOUNCE                      ═══
+    // ═══════════════════════════════════════════
+    var _cstDebounce = null;
+    document.getElementById('cst_search').addEventListener('input', function() {
+        clearTimeout(_cstDebounce);
+        _cstDebounce = setTimeout(function() { loadCustomers(1); }, 350);
     });
 
     document.getElementById('btnClearCustomers').addEventListener('click', function(e) {
         e.preventDefault();
         document.getElementById('cst_search').value = '';
+        activeFilters = {};
+        document.querySelectorAll('.filter-status').forEach(function(cb) { cb.checked = (cb.value === 'active'); });
+        document.querySelectorAll('.filter-person-type').forEach(function(cb) { cb.checked = false; });
+        document.getElementById('fState').value = '';
+        document.getElementById('fCity').value = '';
+        document.getElementById('fTags').value = '';
+        document.getElementById('fDateFrom').value = '';
+        document.getElementById('fDateTo').value = '';
+        renderFilterBadges();
         loadCustomers(1);
     });
 
-    // Carregar ao abrir se seção ativa for overview
+    // Keyboard shortcut: "/" to focus search
+    document.addEventListener('keydown', function(e) {
+        if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+            var active = document.activeElement;
+            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return;
+            e.preventDefault();
+            var searchEl = document.getElementById('cst_search');
+            if (searchEl) searchEl.focus();
+        }
+        // Ctrl+N → new customer
+        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+            e.preventDefault();
+            window.location.href = '?page=customers&action=create';
+        }
+        // Ctrl+E → export
+        if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+            var active2 = document.activeElement;
+            if (active2 && (active2.tagName === 'INPUT' || active2.tagName === 'TEXTAREA')) return;
+            e.preventDefault();
+            document.getElementById('btnExportCsv').click();
+        }
+    });
+
+    // Load on section active
     <?php if ($activeSection === 'overview'): ?>
     loadCustomers(1);
     <?php endif; ?>
@@ -684,9 +1201,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ═══ IMPORTAÇÃO — Lógica completa         ═══
     // ═══════════════════════════════════════════
 
-    // Campos disponíveis para mapeamento
     var importFieldOptions = <?= json_encode($importFields ?? []) ?>;
-
     var importDropzone = document.getElementById('importDropzone');
     var importFileInput = document.getElementById('importFileInput');
     var importFileInfo = document.getElementById('importFileInfo');
@@ -695,47 +1210,31 @@ document.addEventListener('DOMContentLoaded', function() {
     var btnDoImport = document.getElementById('btnDoImport');
     var btnBackToStep1 = document.getElementById('btnBackToStep1');
     var btnNewImport = document.getElementById('btnNewImport');
+    var importData = null;
 
-    var importData = null; // dados do arquivo parseado
+    if (!importDropzone) return;
 
-    if (!importDropzone) return; // se limite atingido, não há dropzone
+    importDropzone.addEventListener('click', function() { importFileInput.click(); });
 
-    // Dropzone click
-    importDropzone.addEventListener('click', function() {
-        importFileInput.click();
-    });
-
-    // Drag & drop
-    importDropzone.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        this.classList.add('dragover');
-    });
-    importDropzone.addEventListener('dragleave', function() {
-        this.classList.remove('dragover');
-    });
+    importDropzone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
+    importDropzone.addEventListener('dragleave', function() { this.classList.remove('dragover'); });
     importDropzone.addEventListener('drop', function(e) {
         e.preventDefault();
         this.classList.remove('dragover');
-        if (e.dataTransfer.files.length > 0) {
-            importFileInput.files = e.dataTransfer.files;
-            handleFileSelected();
-        }
+        if (e.dataTransfer.files.length > 0) { importFileInput.files = e.dataTransfer.files; handleFileSelected(); }
     });
 
-    // File input change
     importFileInput.addEventListener('change', handleFileSelected);
 
     function handleFileSelected() {
         var file = importFileInput.files[0];
         if (!file) return;
-
         var validExts = ['.csv', '.xls', '.xlsx'];
         var ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
         if (!validExts.includes(ext)) {
             Swal.fire({ icon:'error', title:'Formato inválido', text:'Use arquivos CSV, XLS ou XLSX.' });
             return;
         }
-
         document.getElementById('importFileName').textContent = file.name;
         document.getElementById('importFileSize').textContent = formatFileSize(file.size);
         importFileInfo.style.display = '';
@@ -743,7 +1242,6 @@ document.addEventListener('DOMContentLoaded', function() {
         btnParseFile.disabled = false;
     }
 
-    // Remover arquivo
     if (btnRemoveFile) {
         btnRemoveFile.addEventListener('click', function() {
             importFileInput.value = '';
@@ -759,53 +1257,36 @@ document.addEventListener('DOMContentLoaded', function() {
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     }
 
-    // Step navigation
     function goToStep(step) {
         document.querySelectorAll('.import-step').forEach(function(s) { s.classList.remove('active'); });
         var stepEl = document.getElementById('importStep' + step);
         if (stepEl) stepEl.classList.add('active');
-
         document.querySelectorAll('.import-step-indicator').forEach(function(ind) {
             var badge = ind.querySelector('.badge');
-            if (parseInt(ind.dataset.step) <= step) {
-                badge.classList.remove('bg-secondary');
-                badge.classList.add('bg-primary');
-            } else {
-                badge.classList.remove('bg-primary');
-                badge.classList.add('bg-secondary');
-            }
+            if (parseInt(ind.dataset.step) <= step) { badge.classList.remove('bg-secondary'); badge.classList.add('bg-primary'); }
+            else { badge.classList.remove('bg-primary'); badge.classList.add('bg-secondary'); }
         });
     }
 
-    // Parse file (Step 1 → Step 2)
     if (btnParseFile) {
         btnParseFile.addEventListener('click', function() {
             var file = importFileInput.files[0];
             if (!file) return;
-
             btnParseFile.disabled = true;
             btnParseFile.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Analisando...';
-
             var formData = new FormData();
             formData.append('import_file', file);
-
             fetch('?page=customers&action=parseImportFile', { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken } })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     btnParseFile.disabled = false;
                     btnParseFile.innerHTML = '<i class="fas fa-cog me-1"></i>Analisar Arquivo';
-
-                    if (!data.success) {
-                        Swal.fire({ icon:'error', title:'Erro', text: data.message });
-                        return;
-                    }
-
+                    if (!data.success) { Swal.fire({ icon:'error', title:'Erro', text: data.message }); return; }
                     importData = data;
                     buildMappingTable(data.columns, data.preview, data.auto_mapping);
                     buildPreviewTable(data.columns, data.preview);
                     document.getElementById('totalRowsBadge').textContent = data.total_rows + ' linha(s)';
                     document.getElementById('importCountLabel').textContent = data.total_rows;
-
                     goToStep(2);
                     validateMapping();
                 })
@@ -817,35 +1298,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Build mapping table
     function buildMappingTable(columns, preview, autoMapping) {
         var tbody = document.getElementById('mappingTableBody');
         var html = '';
-
         columns.forEach(function(col) {
-            // Sample: first 3 non-empty values
             var samples = [];
             for (var i = 0; i < Math.min(preview.length, 3); i++) {
                 var val = preview[i][col];
-                if (val && String(val).trim() !== '') {
-                    samples.push(String(val).trim());
-                }
+                if (val && String(val).trim() !== '') samples.push(String(val).trim());
             }
             var sampleHtml = samples.length > 0
                 ? samples.map(function(s) { return '<span class="badge bg-light text-dark border me-1" style="font-size:.7rem;">' + escHtml(s.substring(0, 40)) + '</span>'; }).join('')
                 : '<span class="text-muted" style="font-size:.7rem;">—</span>';
-
             var autoVal = autoMapping[col] || '';
-
-            // Build select options
             var optionsHtml = '<option value="_skip"' + (autoVal === '' ? ' selected' : '') + '>— Ignorar coluna —</option>';
             for (var field in importFieldOptions) {
                 var info = importFieldOptions[field];
                 var isReq = info.required ? ' *' : '';
-                optionsHtml += '<option value="' + field + '"' + (autoVal === field ? ' selected' : '') + '>' +
-                    info.label + isReq + '</option>';
+                optionsHtml += '<option value="' + field + '"' + (autoVal === field ? ' selected' : '') + '>' + info.label + isReq + '</option>';
             }
-
             html += '<tr>' +
                 '<td class="text-center"><input type="checkbox" class="form-check-input col-check" data-col="' + escHtml(col) + '" checked></td>' +
                 '<td><strong style="font-size:.82rem;"><i class="fas fa-columns me-1 text-muted"></i>' + escHtml(col) + '</strong></td>' +
@@ -853,67 +1324,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<td><select class="form-select mapping-select" data-col="' + escHtml(col) + '">' + optionsHtml + '</select></td>' +
             '</tr>';
         });
-
         tbody.innerHTML = html;
-
-        // Event listeners para validar mapeamento
-        tbody.querySelectorAll('.mapping-select').forEach(function(sel) {
-            sel.addEventListener('change', validateMapping);
-        });
+        tbody.querySelectorAll('.mapping-select').forEach(function(sel) { sel.addEventListener('change', validateMapping); });
         tbody.querySelectorAll('.col-check').forEach(function(chk) {
             chk.addEventListener('change', function() {
                 var row = this.closest('tr');
                 var sel = row.querySelector('.mapping-select');
-                if (!this.checked) {
-                    sel.value = '_skip';
-                    sel.disabled = true;
-                } else {
-                    sel.disabled = false;
-                }
+                if (!this.checked) { sel.value = '_skip'; sel.disabled = true; }
+                else { sel.disabled = false; }
                 validateMapping();
             });
         });
-
-        // Check all
         var checkAll = document.getElementById('checkAllCols');
         if (checkAll) {
             checkAll.addEventListener('change', function() {
                 var checked = this.checked;
-                tbody.querySelectorAll('.col-check').forEach(function(chk) {
-                    chk.checked = checked;
-                    chk.dispatchEvent(new Event('change'));
-                });
+                tbody.querySelectorAll('.col-check').forEach(function(chk) { chk.checked = checked; chk.dispatchEvent(new Event('change')); });
             });
         }
     }
 
-    // Validate mapping
     function validateMapping() {
         var validationEl = document.getElementById('mappingValidation');
         if (!validationEl) return;
         var mapping = getMapping();
         var mappedFields = Object.values(mapping).filter(function(v) { return v !== '_skip'; });
-
         var warnings = [];
         var errors = [];
-
-        // Check required fields
-        if (!mappedFields.includes('name')) {
-            errors.push('<i class="fas fa-times-circle text-danger me-1"></i><strong>Nome / Razão Social</strong> é obrigatório. Mapeie uma coluna para este campo.');
-        }
-
-        // Check duplicate mappings
+        if (!mappedFields.includes('name')) errors.push('<i class="fas fa-times-circle text-danger me-1"></i><strong>Nome / Razão Social</strong> é obrigatório.');
         var fieldCount = {};
-        mappedFields.forEach(function(f) {
-            fieldCount[f] = (fieldCount[f] || 0) + 1;
-        });
+        mappedFields.forEach(function(f) { fieldCount[f] = (fieldCount[f] || 0) + 1; });
         for (var f in fieldCount) {
             if (fieldCount[f] > 1) {
                 var label = importFieldOptions[f] ? importFieldOptions[f].label : f;
-                warnings.push('<i class="fas fa-exclamation-triangle text-warning me-1"></i>O campo <strong>' + label + '</strong> está mapeado para mais de uma coluna.');
+                warnings.push('<i class="fas fa-exclamation-triangle text-warning me-1"></i><strong>' + label + '</strong> mapeado mais de uma vez.');
             }
         }
-
         if (errors.length > 0 || warnings.length > 0) {
             var html = '';
             errors.forEach(function(e) { html += '<div class="alert alert-danger py-1 mb-1 small">' + e + '</div>'; });
@@ -921,11 +1367,9 @@ document.addEventListener('DOMContentLoaded', function() {
             validationEl.innerHTML = html;
             validationEl.style.display = '';
         } else {
-            validationEl.innerHTML = '<div class="alert alert-success py-1 mb-1 small"><i class="fas fa-check-circle text-success me-1"></i>Mapeamento válido! Pronto para importar.</div>';
+            validationEl.innerHTML = '<div class="alert alert-success py-1 mb-1 small"><i class="fas fa-check-circle text-success me-1"></i>Mapeamento válido!</div>';
             validationEl.style.display = '';
         }
-
-        // Enable/disable import button
         if (btnDoImport) btnDoImport.disabled = errors.length > 0;
     }
 
@@ -934,77 +1378,54 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('#mappingTableBody .mapping-select').forEach(function(sel) {
             var col = sel.dataset.col;
             var val = sel.value;
-            if (val && val !== '_skip') {
-                mapping[col] = val;
-            }
+            if (val && val !== '_skip') mapping[col] = val;
         });
         return mapping;
     }
 
-    // Build preview table
     function buildPreviewTable(columns, preview) {
         var thead = document.getElementById('previewTableHead');
         var tbody = document.getElementById('previewTableBody');
-
         var headHtml = '<tr><th class="text-muted" style="width:30px;">#</th>';
-        columns.forEach(function(col) {
-            headHtml += '<th>' + escHtml(col) + '</th>';
-        });
+        columns.forEach(function(col) { headHtml += '<th>' + escHtml(col) + '</th>'; });
         headHtml += '</tr>';
         thead.innerHTML = headHtml;
-
         var bodyHtml = '';
         preview.forEach(function(row, idx) {
             bodyHtml += '<tr><td class="text-muted">' + (idx + 1) + '</td>';
-            columns.forEach(function(col) {
-                var val = row[col] || '';
-                bodyHtml += '<td title="' + escHtml(String(val)) + '">' + escHtml(String(val).substring(0, 50)) + '</td>';
-            });
+            columns.forEach(function(col) { var val = row[col] || ''; bodyHtml += '<td title="' + escHtml(String(val)) + '">' + escHtml(String(val).substring(0, 50)) + '</td>'; });
             bodyHtml += '</tr>';
         });
         tbody.innerHTML = bodyHtml;
     }
 
-    // Back to step 1
-    if (btnBackToStep1) {
-        btnBackToStep1.addEventListener('click', function() {
-            goToStep(1);
-        });
-    }
+    if (btnBackToStep1) btnBackToStep1.addEventListener('click', function() { goToStep(1); });
 
-    // Do Import (Step 2 → Step 3)
     if (btnDoImport) {
         btnDoImport.addEventListener('click', function() {
             var mapping = getMapping();
-            var mappedFields = Object.values(mapping);
-
-            if (!mappedFields.includes('name')) {
-                Swal.fire({ icon:'error', title:'Mapeamento incompleto', text:'O campo Nome / Razão Social é obrigatório.' });
+            if (!Object.values(mapping).includes('name')) {
+                Swal.fire({ icon:'error', title:'Mapeamento incompleto', text:'O campo Nome é obrigatório.' });
                 return;
             }
-
             Swal.fire({
                 title: 'Confirmar importação?',
-                html: '<strong>' + (importData ? importData.total_rows : '?') + '</strong> cliente(s) serão importados com o mapeamento definido.',
+                html: '<strong>' + (importData ? importData.total_rows : '?') + '</strong> cliente(s) serão importados.',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: '<i class="fas fa-upload me-1"></i>Importar',
                 cancelButtonText: 'Cancelar'
             }).then(function(result) {
                 if (!result.isConfirmed) return;
-
                 btnDoImport.disabled = true;
                 btnDoImport.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Importando...';
-
                 var formData = new FormData();
                 formData.append('mapping', JSON.stringify(mapping));
-
                 fetch('?page=customers&action=importCustomersMapped', { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken } })
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
                         btnDoImport.disabled = false;
                         btnDoImport.innerHTML = '<i class="fas fa-upload me-1"></i>Importar';
-
                         showImportResult(data);
                         goToStep(3);
                     })
@@ -1017,60 +1438,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Show import result
     function showImportResult(data) {
         var container = document.getElementById('importResultContent');
         if (!container) return;
         var html = '';
-
         if (data.success) {
-            // Success summary
-            html += '<div class="text-center mb-4">';
             if (data.imported > 0) {
-                html += '<div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(39,174,96,.1);">' +
-                    '<i class="fas fa-check-circle fa-2x text-success"></i></div>';
-                html += '<h4 class="text-success">Importação Concluída!</h4>';
-                html += '<p class="text-muted"><strong>' + data.imported + '</strong> cliente(s) importado(s) com sucesso.</p>';
+                html += '<div class="text-center mb-4"><div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(39,174,96,.1);"><i class="fas fa-check-circle fa-2x text-success"></i></div>';
+                html += '<h4 class="text-success">Importação Concluída!</h4><p class="text-muted"><strong>' + data.imported + '</strong> cliente(s) importado(s).</p></div>';
             } else {
-                html += '<div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(243,156,18,.1);">' +
-                    '<i class="fas fa-exclamation-triangle fa-2x text-warning"></i></div>';
-                html += '<h4 class="text-warning">Nenhum cliente importado</h4>';
-                html += '<p class="text-muted">Verifique os erros abaixo.</p>';
+                html += '<div class="text-center mb-4"><div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(243,156,18,.1);"><i class="fas fa-exclamation-triangle fa-2x text-warning"></i></div>';
+                html += '<h4 class="text-warning">Nenhum cliente importado</h4><p class="text-muted">Verifique os erros abaixo.</p></div>';
             }
-            html += '</div>';
-
-            // Errors list
             if (data.errors && data.errors.length > 0) {
-                html += '<div class="alert alert-warning py-2 d-flex align-items-center">' +
-                    '<i class="fas fa-exclamation-triangle me-2"></i>' +
-                    '<strong>' + data.errors.length + '</strong>&nbsp;linha(s) com erro:</div>';
+                html += '<div class="alert alert-warning py-2 d-flex align-items-center"><i class="fas fa-exclamation-triangle me-2"></i><strong>' + data.errors.length + '</strong>&nbsp;linha(s) com erro:</div>';
                 html += '<div class="list-group" style="max-height:250px;overflow-y:auto;">';
                 data.errors.forEach(function(err) {
-                    html += '<div class="list-group-item list-group-item-danger py-2 small">' +
-                        '<i class="fas fa-times-circle me-1"></i><strong>Linha ' + err.line + ':</strong> ' + escHtml(err.message) +
-                    '</div>';
+                    html += '<div class="list-group-item list-group-item-danger py-2 small"><i class="fas fa-times-circle me-1"></i><strong>Linha ' + err.line + ':</strong> ' + escHtml(err.message) + '</div>';
                 });
                 html += '</div>';
             }
-
-            // Update sidebar count
             var countEl = document.querySelector('.cst-nav-item[data-section="overview"] .cst-nav-count');
-            if (countEl && data.imported > 0) {
-                var current = parseInt(countEl.textContent) || 0;
-                countEl.textContent = current + data.imported;
-            }
+            if (countEl && data.imported > 0) { var current = parseInt(countEl.textContent) || 0; countEl.textContent = current + data.imported; }
         } else {
-            html += '<div class="text-center">' +
-                '<div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(192,57,43,.1);">' +
-                '<i class="fas fa-times-circle fa-2x text-danger"></i></div>' +
-                '<h4 class="text-danger">Erro na Importação</h4>' +
-                '<p class="text-muted">' + escHtml(data.message || 'Erro desconhecido.') + '</p></div>';
+            html += '<div class="text-center"><div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(192,57,43,.1);"><i class="fas fa-times-circle fa-2x text-danger"></i></div>';
+            html += '<h4 class="text-danger">Erro na Importação</h4><p class="text-muted">' + escHtml(data.message || 'Erro desconhecido.') + '</p></div>';
         }
-
         container.innerHTML = html;
     }
 
-    // New Import
     if (btnNewImport) {
         btnNewImport.addEventListener('click', function() {
             importFileInput.value = '';

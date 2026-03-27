@@ -4,6 +4,8 @@
     "type": "project",
     "require": {
         "php": ">=7.4",
+        "nfephp-org/sped-nfe": "^5.0",
+        "nfephp-org/sped-da": "^4.0",
         "phpoffice/phpspreadsheet": "^5.5",
         "tecnickcom/tcpdf": "^6.11"
     },

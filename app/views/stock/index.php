@@ -77,11 +77,6 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
             <h1 class="h2 mb-1"><i class="fas fa-warehouse me-2 text-primary"></i>Controle de Estoque</h1>
             <p class="text-muted mb-0" style="font-size:.82rem;">Gerencie o estoque, movimentações, entradas/saídas e armazéns.</p>
         </div>
-        <div class="btn-toolbar gap-2">
-            <a href="?page=dashboard" class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
-            </a>
-        </div>
     </div>
 
     <div class="row g-4">

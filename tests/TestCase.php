@@ -30,11 +30,11 @@ abstract class TestCase extends PHPUnitTestCase
     protected int $timeout;
 
     // ─── Strings que indicam erro PHP na resposta HTML ───────────
+    // Usamos padrões específicos para evitar falsos-positivos com conteúdo
+    // legítimo do Bootstrap/JS (ex: alert-warning, icon:'warning').
     protected static array $errorPatterns = [
         'Fatal error',
         'Parse error',
-        'Warning:',
-        'Notice:',
         'Uncaught Error',
         'Uncaught Exception',
         'Stack trace:',
@@ -44,7 +44,19 @@ abstract class TestCase extends PHPUnitTestCase
         'Undefined array key',
         'Call to undefined',
         'Class &quot;',      // Class "X" not found (HTML-encoded)
-        'Class "',            // Class "X" not found (raw)
+    ];
+
+    // ─── Padrões regex para erros PHP (mais precisos) ────────────
+    // Detectam "Warning:" e "Notice:" apenas quando precedidos por
+    // indicadores de erro PHP (tag <b>, "PHP", início de linha).
+    protected static array $errorRegexPatterns = [
+        '/<b>Warning<\/b>:/i',
+        '/<b>Notice<\/b>:/i',
+        '/\bPHP Warning:/i',
+        '/\bPHP Notice:/i',
+        '/\bPHP Fatal error/i',
+        '/\bPHP Parse error/i',
+        '/\bClass ".+" not found/i',
     ];
 
     // ══════════════════════════════════════════════════════════════
@@ -285,14 +297,25 @@ abstract class TestCase extends PHPUnitTestCase
 
     /**
      * Verifica que a resposta NÃO contém strings de erro PHP.
+     * Usa padrões exatos (string) e regex (para Warning:/Notice: com contexto PHP).
      */
     protected function assertNoPhpErrors(string $body, string $label = ''): void
     {
+        // Padrões de string simples
         foreach (self::$errorPatterns as $pattern) {
             $this->assertStringNotContainsStringIgnoringCase(
                 $pattern,
                 $body,
                 "Erro PHP detectado na página '{$label}': contém '{$pattern}'"
+            );
+        }
+
+        // Padrões regex (mais precisos para Warning/Notice)
+        foreach (self::$errorRegexPatterns as $regex) {
+            $this->assertDoesNotMatchRegularExpression(
+                $regex,
+                $body,
+                "Erro PHP detectado na página '{$label}': regex '{$regex}' encontrado"
             );
         }
     }

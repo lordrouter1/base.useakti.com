@@ -74,11 +74,6 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
             <h1 class="h2 mb-1"><i class="fas fa-box-open me-2 text-primary"></i>Produtos</h1>
             <p class="text-muted mb-0" style="font-size:.82rem;">Gerencie o catálogo de produtos, cadastre novos e importe em massa.</p>
         </div>
-        <div class="btn-toolbar gap-2">
-            <a href="?page=dashboard" class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
-            </a>
-        </div>
     </div>
 
     <?php if (!empty($limitReached)): ?>

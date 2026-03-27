@@ -101,7 +101,7 @@
             });
 
             document.getElementById('paymentsTableBody').innerHTML =
-                '<tr><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x mb-2 d-block opacity-50"></i>Carregando...</td></tr>';
+                '<tr><td colspan="10" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x mb-2 d-block opacity-50"></i>Carregando...</td></tr>';
 
             fetch('?' + params.toString())
             .then(function(r) { return r.json(); })
@@ -121,7 +121,7 @@
                 // Build table
                 var tbody = document.getElementById('paymentsTableBody');
                 if (!data.items || data.items.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-inbox fa-3x mb-2 d-block opacity-50"></i><div class="fw-bold">Nenhuma parcela encontrada</div></td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-5"><i class="fas fa-inbox fa-3x mb-2 d-block opacity-50"></i><div class="fw-bold">Nenhuma parcela encontrada</div></td></tr>';
                     document.getElementById('paymentsPagination').innerHTML = '';
                     return;
                 }
@@ -166,6 +166,17 @@
                     }
                     // Status
                     html += '<td><span class="badge ' + st.badge + '"><i class="' + st.icon + ' me-1"></i>' + st.label + '</span></td>';
+                    // NF-e
+                    if (inst.nfe_id && inst.nfe_numero) {
+                        var nfeBadgeColor = inst.nfe_status === 'autorizada' ? 'bg-success' :
+                                           (inst.nfe_status === 'cancelada' ? 'bg-dark' :
+                                           (inst.nfe_status === 'rejeitada' ? 'bg-danger' : 'bg-secondary'));
+                        html += '<td class="small"><a href="?page=nfe_documents&action=detail&id=' + inst.nfe_id + '" class="text-decoration-none" title="NF-e #' + inst.nfe_numero + '">';
+                        html += '<span class="badge ' + nfeBadgeColor + '"><i class="fas fa-file-invoice me-1"></i>' + inst.nfe_numero + '</span>';
+                        html += '</a></td>';
+                    } else {
+                        html += '<td class="small text-muted">—</td>';
+                    }
                     // Ações
                     html += '<td class="text-end pe-3"><div class="btn-group btn-group-sm">';
                     if (inst.status === 'pendente' || inst.status === 'atrasado') {

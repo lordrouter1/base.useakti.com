@@ -3,9 +3,11 @@ namespace Akti\Controllers;
 
 use Akti\Models\NfeCredential;
 use Akti\Services\NfeService;
+use Akti\Services\NfeAuditService;
 use Akti\Core\ModuleBootloader;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
+use Akti\Models\User;
 use Database;
 use TenantManager;
 
@@ -33,6 +35,29 @@ class NfeCredentialController
         $database = new Database();
         $this->db = $database->getConnection();
         $this->credModel = new NfeCredential($this->db);
+
+        // Verificar permissão de visualização (nfe_credentials)
+        $this->checkPermission('nfe_credentials');
+    }
+
+    /**
+     * Verifica se o usuário tem permissão para acessar credenciais NF-e.
+     * @param string $page Nome da página/módulo
+     */
+    private function checkPermission(string $page): void
+    {
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: ?page=login');
+            exit;
+        }
+        $userModel = new User($this->db);
+        if (!$userModel->checkPermission($_SESSION['user_id'], $page)) {
+            http_response_code(403);
+            require 'app/views/layout/header.php';
+            echo "<div class='container mt-5'><div class='alert alert-danger'><i class='fas fa-ban me-2'></i>Acesso Negado. Você não tem permissão para acessar as Credenciais SEFAZ.</div></div>";
+            require 'app/views/layout/footer.php';
+            exit;
+        }
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -44,6 +69,9 @@ class NfeCredentialController
      */
     public function index()
     {
+        // Auditoria: registrar visualização de credenciais (FASE4-04)
+        $this->getAuditService()->logCredentialsView();
+
         $credentials = $this->credModel->get() ?: [];
         $validation = $this->credModel->validateForEmission();
 
@@ -59,6 +87,17 @@ class NfeCredentialController
             $certExpiringSoon = !$certExpired && $diff->days <= 30;
         }
 
+        // AJAX: retornar apenas o fragmento (sem header/footer)
+        $isAjax = !empty($_GET['_ajax']) || (
+            isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+            strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+        );
+
+        if ($isAjax) {
+            require 'app/views/nfe/credentials.php';
+            return;
+        }
+
         require 'app/views/layout/header.php';
         require 'app/views/nfe/credentials.php';
         require 'app/views/layout/footer.php';
@@ -69,6 +108,18 @@ class NfeCredentialController
      */
     public function store()
     {
+        // Verificar permissão de escrita nas credenciais
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: ?page=login');
+            exit;
+        }
+        $userModel = new User($this->db);
+        if (!$userModel->checkPermission($_SESSION['user_id'], 'nfe_credentials')) {
+            $_SESSION['flash_error'] = 'Sem permissão para alterar credenciais SEFAZ.';
+            header('Location: ?page=nfe_documents&sec=credenciais');
+            exit;
+        }
+
         $data = [
             'cnpj'           => Input::post('cnpj'),
             'ie'             => Input::post('ie'),
@@ -110,12 +161,16 @@ class NfeCredentialController
         $result = $this->credModel->update($data);
 
         if ($result) {
+            // Auditoria: registrar atualização de credenciais (FASE4-04)
+            $updatedFields = array_keys(array_filter($data, fn($v) => $v !== null && $v !== ''));
+            $this->getAuditService()->logCredentialsUpdate($updatedFields);
+
             $_SESSION['flash_success'] = 'Credenciais SEFAZ atualizadas com sucesso!';
         } else {
             $_SESSION['flash_error'] = 'Erro ao salvar credenciais.';
         }
 
-        header('Location: ?page=nfe_credentials');
+        header('Location: ?page=nfe_documents&sec=credenciais');
         exit;
     }
 
@@ -143,6 +198,14 @@ class NfeCredentialController
 
         if (move_uploaded_file($file['tmp_name'], $certFile)) {
             $data['certificate_path'] = $certFile;
+
+            // Auditoria: registrar upload de certificado digital (FASE4-04)
+            $this->getAuditService()->record(
+                'credential_cert_upload',
+                'nfe_credential',
+                1,
+                'Upload de certificado digital (' . $ext . ')'
+            );
 
             // Tentar ler expiração do certificado
             $password = Input::post('certificate_password', 'string', '');
@@ -186,5 +249,121 @@ class NfeCredentialController
 
         echo json_encode($result);
         exit;
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Importação IBPTax (CSV)
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * Importa tabela IBPTax a partir de arquivo CSV enviado pelo usuário.
+     * Aceita POST com arquivo CSV no campo 'ibptax_csv'.
+     * Retorna JSON com resultado.
+     */
+    public function importIbptax()
+    {
+        header('Content-Type: application/json');
+
+        // Verificar permissão de escrita
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Sessão expirada.']);
+            exit;
+        }
+        $userModel = new User($this->db);
+        if (!$userModel->checkPermission($_SESSION['user_id'], 'nfe_credentials')) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Sem permissão para esta ação.']);
+            exit;
+        }
+
+        // Validar arquivo
+        if (!isset($_FILES['ibptax_csv']) || $_FILES['ibptax_csv']['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo CSV enviado ou erro no upload.']);
+            exit;
+        }
+
+        $file = $_FILES['ibptax_csv'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+        if (!in_array($ext, ['csv', 'txt'])) {
+            echo json_encode(['success' => false, 'message' => 'Formato inválido. Envie um arquivo .csv ou .txt da tabela IBPTax.']);
+            exit;
+        }
+
+        // Limite de tamanho: 20MB
+        if ($file['size'] > 20 * 1024 * 1024) {
+            echo json_encode(['success' => false, 'message' => 'Arquivo muito grande (máx. 20MB).']);
+            exit;
+        }
+
+        try {
+            $ibptaxModel = new \Akti\Models\IbptaxModel($this->db);
+
+            // Opção de truncar antes de importar
+            $truncateBefore = Input::post('truncate_before', 'int', 0);
+            if ($truncateBefore) {
+                $removed = $ibptaxModel->truncate();
+            }
+
+            $result = $ibptaxModel->importFromCsv($file['tmp_name']);
+
+            $msg = sprintf(
+                'Importação concluída: %d registros importados, %d erros de %d linhas processadas.',
+                $result['imported'],
+                $result['errors'],
+                $result['total']
+            );
+            if (!empty($removed)) {
+                $msg .= sprintf(' (%d registros anteriores removidos.)', $removed);
+            }
+
+            echo json_encode([
+                'success'  => true,
+                'message'  => $msg,
+                'imported' => $result['imported'],
+                'errors'   => $result['errors'],
+                'total'    => $result['total'],
+            ]);
+        } catch (\Throwable $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erro na importação: ' . $e->getMessage(),
+            ]);
+        }
+        exit;
+    }
+
+    /**
+     * Retorna estatísticas da tabela IBPTax (AJAX/JSON).
+     */
+    public function ibptaxStats()
+    {
+        header('Content-Type: application/json');
+
+        try {
+            $ibptaxModel = new \Akti\Models\IbptaxModel($this->db);
+            $stats = $ibptaxModel->getStats();
+            echo json_encode(['success' => true, 'stats' => $stats]);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Helpers internos
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * Retorna instância do serviço de auditoria (lazy).
+     * @return NfeAuditService
+     */
+    private function getAuditService(): NfeAuditService
+    {
+        static $service = null;
+        if ($service === null) {
+            $service = new NfeAuditService($this->db);
+        }
+        return $service;
     }
 }

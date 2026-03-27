@@ -1,0 +1,874 @@
+/* ═══════════════════════════════════════════════════════
+   Módulo de Clientes — CSS Dedicado
+   Namespace: .cst-*
+   Filosofia: Minimalismo funcional (Linear, Stripe, Notion)
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Variáveis CSS do módulo ── */
+:root {
+    --cst-primary: #3498db;
+    --cst-primary-rgb: 52, 152, 219;
+    --cst-success: #27ae60;
+    --cst-success-rgb: 39, 174, 96;
+    --cst-danger: #e74c3c;
+    --cst-danger-rgb: 231, 76, 60;
+    --cst-warning: #f39c12;
+    --cst-warning-rgb: 243, 156, 18;
+    --cst-info: #17a2b8;
+    --cst-bg: #f8f9fb;
+    --cst-card: #ffffff;
+    --cst-text: #1a1a2e;
+    --cst-muted: #6c757d;
+    --cst-border: #e9ecef;
+    --cst-focus: rgba(52, 152, 219, 0.25);
+    --cst-radius: 12px;
+    --cst-radius-sm: 8px;
+    --cst-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    --cst-shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.08);
+    --cst-transition: 0.25s ease;
+}
+
+/* ═══════════════════════════════════════════════
+   STEPPER — Wizard Multi-Step
+   ═══════════════════════════════════════════════ */
+.cst-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 1.25rem 0;
+    margin-bottom: 1.5rem;
+    counter-reset: step;
+}
+
+.cst-step {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem 1rem;
+    font-size: .82rem;
+    font-weight: 500;
+    color: var(--cst-muted);
+    cursor: pointer;
+    position: relative;
+    transition: all var(--cst-transition);
+    border-radius: 30px;
+    white-space: nowrap;
+}
+
+.cst-step:not(:last-child)::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 2px;
+    background: var(--cst-border);
+    margin-left: .5rem;
+    transition: background var(--cst-transition);
+}
+
+.cst-step-number {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .75rem;
+    font-weight: 700;
+    background: var(--cst-border);
+    color: var(--cst-muted);
+    transition: all var(--cst-transition);
+    flex-shrink: 0;
+}
+
+.cst-step.active .cst-step-number {
+    background: var(--cst-primary);
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(var(--cst-primary-rgb), 0.15);
+}
+
+.cst-step.active {
+    color: var(--cst-primary);
+    font-weight: 600;
+}
+
+.cst-step.completed .cst-step-number {
+    background: var(--cst-success);
+    color: #fff;
+}
+
+.cst-step.completed .cst-step-number::before {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: .65rem;
+}
+
+.cst-step.completed .cst-step-number span {
+    display: none;
+}
+
+.cst-step.completed {
+    color: var(--cst-success);
+}
+
+.cst-step.completed:not(:last-child)::after {
+    background: var(--cst-success);
+}
+
+/* ═══════════════════════════════════════════════
+   STEP CONTENT — Transições entre steps
+   ═══════════════════════════════════════════════ */
+.cst-step-content {
+    display: none;
+    animation: cstStepFadeIn 0.3s ease;
+}
+
+.cst-step-content.active {
+    display: block;
+}
+
+@keyframes cstStepFadeIn {
+    from { opacity: 0; transform: translateX(16px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ═══════════════════════════════════════════════
+   TOGGLE PF/PJ — Pills animados
+   ═══════════════════════════════════════════════ */
+.cst-person-toggle {
+    display: inline-flex;
+    background: #f1f5f9;
+    border-radius: 30px;
+    padding: 4px;
+    gap: 0;
+    border: 1px solid var(--cst-border);
+}
+
+.cst-person-toggle .cst-toggle-option {
+    padding: .5rem 1.25rem;
+    border-radius: 26px;
+    font-size: .82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--cst-muted);
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+.cst-person-toggle .cst-toggle-option.active {
+    background: var(--cst-primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(var(--cst-primary-rgb), 0.3);
+}
+
+.cst-person-toggle .cst-toggle-option:hover:not(.active) {
+    background: rgba(var(--cst-primary-rgb), 0.08);
+    color: var(--cst-primary);
+}
+
+/* ═══════════════════════════════════════════════
+   UPLOAD DE FOTO — Drag & Drop circular
+   ═══════════════════════════════════════════════ */
+.cst-photo-upload {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 2px dashed var(--cst-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--cst-transition);
+    position: relative;
+    overflow: hidden;
+    background: var(--cst-bg);
+    margin: 0 auto;
+}
+
+.cst-photo-upload:hover {
+    border-color: var(--cst-primary);
+    background: rgba(var(--cst-primary-rgb), 0.04);
+}
+
+.cst-photo-upload.has-photo {
+    border-style: solid;
+    border-color: var(--cst-success);
+}
+
+.cst-photo-upload img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.cst-photo-upload .cst-photo-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    color: #fff;
+    font-size: .75rem;
+}
+
+.cst-photo-upload:hover .cst-photo-overlay,
+.cst-photo-upload.has-photo:hover .cst-photo-overlay {
+    opacity: 1;
+}
+
+.cst-photo-upload .cst-photo-placeholder {
+    text-align: center;
+    color: var(--cst-muted);
+}
+
+.cst-photo-upload .cst-photo-placeholder i {
+    font-size: 1.8rem;
+    display: block;
+    margin-bottom: .35rem;
+}
+
+.cst-photo-upload .cst-photo-placeholder span {
+    font-size: .7rem;
+    display: block;
+}
+
+/* ═══════════════════════════════════════════════
+   VALIDAÇÃO INLINE — Feedback visual
+   ═══════════════════════════════════════════════ */
+.cst-field-valid {
+    border-color: var(--cst-success) !important;
+    box-shadow: 0 0 0 3px rgba(var(--cst-success-rgb), 0.1) !important;
+}
+
+.cst-field-invalid {
+    border-color: var(--cst-danger) !important;
+    box-shadow: 0 0 0 3px rgba(var(--cst-danger-rgb), 0.1) !important;
+}
+
+.cst-field-msg {
+    font-size: .72rem;
+    margin-top: .25rem;
+    display: block;
+}
+
+.cst-field-msg.valid {
+    color: var(--cst-success);
+}
+
+.cst-field-msg.invalid {
+    color: var(--cst-danger);
+}
+
+/* ═══════════════════════════════════════════════
+   CAMPO PREENCHIDO POR API — Fundo verde sutil
+   ═══════════════════════════════════════════════ */
+.cst-api-filled {
+    background-color: #f0fdf4 !important;
+    border-color: #86efac !important;
+    transition: background-color 0.5s ease, border-color 0.5s ease;
+}
+
+.cst-api-filled:focus {
+    background-color: #fff !important;
+}
+
+/* ═══════════════════════════════════════════════
+   COMPLETUDE — Barra de progresso
+   ═══════════════════════════════════════════════ */
+.cst-completeness {
+    background: var(--cst-bg);
+    border-radius: var(--cst-radius);
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--cst-border);
+}
+
+.cst-completeness-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--cst-border);
+    overflow: hidden;
+    margin: .5rem 0;
+}
+
+.cst-completeness-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease, background-color 0.3s ease;
+}
+
+.cst-completeness-fill.low    { background: var(--cst-danger); }
+.cst-completeness-fill.medium { background: var(--cst-warning); }
+.cst-completeness-fill.high   { background: var(--cst-success); }
+
+.cst-completeness-checks {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: .75rem;
+    margin-top: .5rem;
+}
+
+.cst-completeness-checks span {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+}
+
+.cst-completeness-checks .done { color: var(--cst-success); }
+.cst-completeness-checks .pending { color: var(--cst-muted); }
+
+/* ═══════════════════════════════════════════════
+   CARD DE CLIENTE — Modo cards na listagem
+   ═══════════════════════════════════════════════ */
+.cst-customer-card {
+    background: var(--cst-card);
+    border: 1px solid var(--cst-border);
+    border-radius: var(--cst-radius);
+    padding: 1.25rem;
+    transition: all var(--cst-transition);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.cst-customer-card:hover {
+    box-shadow: var(--cst-shadow-lg);
+    border-color: rgba(var(--cst-primary-rgb), 0.3);
+    transform: translateY(-2px);
+}
+
+.cst-customer-card .cst-card-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.cst-customer-card .cst-card-avatar-placeholder {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(var(--cst-primary-rgb), 0.1);
+    color: var(--cst-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.cst-customer-card .cst-card-body {
+    flex: 1;
+}
+
+.cst-customer-card .cst-card-name {
+    font-weight: 600;
+    font-size: .9rem;
+    color: var(--cst-text);
+    margin-bottom: .15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cst-customer-card .cst-card-meta {
+    font-size: .72rem;
+    color: var(--cst-muted);
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+.cst-customer-card .cst-card-info {
+    font-size: .78rem;
+    color: var(--cst-muted);
+    margin-top: .6rem;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    min-width: 0;
+}
+
+.cst-customer-card .cst-card-info span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cst-customer-card .cst-card-info i {
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.cst-customer-card .cst-card-actions {
+    margin-top: auto;
+    padding-top: .75rem;
+    border-top: 1px solid var(--cst-border);
+    display: flex;
+    gap: .4rem;
+}
+
+/* ═══════════════════════════════════════════════
+   DRAWER DE FILTROS — Painel lateral
+   ═══════════════════════════════════════════════ */
+.cst-filter-drawer .offcanvas-header {
+    border-bottom: 1px solid var(--cst-border);
+}
+
+.cst-filter-drawer .offcanvas-body {
+    padding: 1.25rem;
+}
+
+.cst-filter-drawer .cst-filter-group {
+    margin-bottom: 1.25rem;
+}
+
+.cst-filter-drawer .cst-filter-group label {
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--cst-text);
+    margin-bottom: .4rem;
+    display: block;
+}
+
+.cst-filter-badges {
+    display: flex;
+    gap: .35rem;
+    flex-wrap: wrap;
+    margin-bottom: .75rem;
+}
+
+.cst-filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .25rem .6rem;
+    background: rgba(var(--cst-primary-rgb), 0.08);
+    color: var(--cst-primary);
+    border-radius: 20px;
+    font-size: .72rem;
+    font-weight: 500;
+}
+
+.cst-filter-badge .btn-close-filter {
+    background: none;
+    border: none;
+    color: var(--cst-primary);
+    font-size: .6rem;
+    cursor: pointer;
+    padding: 0;
+    margin-left: .15rem;
+    opacity: .7;
+}
+
+.cst-filter-badge .btn-close-filter:hover {
+    opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════
+   TAGS / CHIPS — Input de tags
+   ═══════════════════════════════════════════════ */
+.cst-tag-input-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+    padding: .4rem .5rem;
+    border: 1px solid var(--cst-border);
+    border-radius: var(--cst-radius-sm);
+    background: #fff;
+    min-height: 38px;
+    align-items: center;
+    cursor: text;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cst-tag-input-wrapper:focus-within {
+    border-color: var(--cst-primary);
+    box-shadow: 0 0 0 3px rgba(var(--cst-primary-rgb), 0.15);
+}
+
+.cst-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    padding: .2rem .55rem;
+    border-radius: 16px;
+    font-size: .72rem;
+    font-weight: 500;
+    background: rgba(var(--cst-primary-rgb), 0.1);
+    color: var(--cst-primary);
+}
+
+.cst-tag .cst-tag-remove {
+    background: none;
+    border: none;
+    color: var(--cst-primary);
+    font-size: .6rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    opacity: .7;
+}
+
+.cst-tag .cst-tag-remove:hover {
+    opacity: 1;
+}
+
+.cst-tag-input {
+    border: none;
+    outline: none;
+    flex: 1;
+    min-width: 80px;
+    font-size: .82rem;
+    background: transparent;
+}
+
+.cst-tag-suggestions {
+    position: absolute;
+    z-index: 100;
+    background: #fff;
+    border: 1px solid var(--cst-border);
+    border-radius: var(--cst-radius-sm);
+    box-shadow: var(--cst-shadow);
+    max-height: 150px;
+    overflow-y: auto;
+    width: 100%;
+    display: none;
+}
+
+.cst-tag-suggestions.show {
+    display: block;
+}
+
+.cst-tag-suggestions .cst-tag-suggestion {
+    padding: .4rem .75rem;
+    font-size: .78rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.cst-tag-suggestions .cst-tag-suggestion:hover {
+    background: rgba(var(--cst-primary-rgb), 0.06);
+}
+
+/* ═══════════════════════════════════════════════
+   FICHA DO CLIENTE — Layout de perfil (view.php)
+   ═══════════════════════════════════════════════ */
+.cst-profile-hero {
+    background: linear-gradient(135deg, rgba(var(--cst-primary-rgb), 0.05), rgba(var(--cst-primary-rgb), 0.02));
+    border-radius: var(--cst-radius);
+    padding: 1.5rem;
+    border: 1px solid var(--cst-border);
+}
+
+.cst-profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #fff;
+    box-shadow: var(--cst-shadow);
+}
+
+.cst-profile-avatar-placeholder {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--cst-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    border: 3px solid #fff;
+    box-shadow: var(--cst-shadow);
+}
+
+.cst-profile-stat-card {
+    background: var(--cst-card);
+    border: 1px solid var(--cst-border);
+    border-radius: var(--cst-radius);
+    padding: 1rem;
+    text-align: center;
+    transition: all var(--cst-transition);
+}
+
+.cst-profile-stat-card:hover {
+    box-shadow: var(--cst-shadow);
+}
+
+.cst-profile-stat-card .stat-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.cst-profile-stat-card .stat-label {
+    font-size: .72rem;
+    color: var(--cst-muted);
+    margin-top: .2rem;
+}
+
+/* ═══════════════════════════════════════════════
+   STATUS BADGES
+   ═══════════════════════════════════════════════ */
+.cst-status-active   { background: rgba(var(--cst-success-rgb), 0.1); color: var(--cst-success); }
+.cst-status-inactive { background: rgba(var(--cst-warning-rgb), 0.1); color: var(--cst-warning); }
+.cst-status-blocked  { background: rgba(var(--cst-danger-rgb), 0.1);  color: var(--cst-danger); }
+.cst-badge-pf        { background: rgba(108, 117, 125, 0.1); color: #6c757d; }
+.cst-badge-pj        { background: rgba(var(--cst-info, 23, 162, 184), 0.1); color: var(--cst-info); }
+
+/* ═══════════════════════════════════════════════
+   CHECKBOX LOTE — Toolbar flutuante
+   ═══════════════════════════════════════════════ */
+.cst-bulk-toolbar {
+    display: none;
+    align-items: center;
+    gap: .6rem;
+    padding: .5rem 1rem;
+    background: var(--cst-primary);
+    color: #fff;
+    border-radius: var(--cst-radius);
+    font-size: .82rem;
+    box-shadow: var(--cst-shadow-lg);
+    margin-bottom: .75rem;
+    animation: cstSlideDown 0.25s ease;
+}
+
+.cst-bulk-toolbar.show {
+    display: flex;
+}
+
+@keyframes cstSlideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.cst-bulk-toolbar .btn {
+    font-size: .78rem;
+    padding: .3rem .7rem;
+}
+
+/* ═══════════════════════════════════════════════
+   VIEW TOGGLE — Tabela / Cards
+   ═══════════════════════════════════════════════ */
+.cst-view-toggle {
+    display: inline-flex;
+    background: #f1f5f9;
+    border-radius: var(--cst-radius-sm);
+    padding: 2px;
+    gap: 0;
+}
+
+.cst-view-toggle .btn {
+    border: none;
+    background: transparent;
+    color: var(--cst-muted);
+    padding: .3rem .6rem;
+    font-size: .78rem;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.cst-view-toggle .btn.active {
+    background: #fff;
+    color: var(--cst-primary);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+/* ═══════════════════════════════════════════════
+   FORM SECTIONS — Cards limpos
+   ═══════════════════════════════════════════════ */
+.cst-form-section {
+    background: var(--cst-card);
+    border: 1px solid var(--cst-border);
+    border-radius: var(--cst-radius);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.cst-form-section-title {
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--cst-text);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.cst-form-section-title i {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .75rem;
+}
+
+/* ═══════════════════════════════════════════════
+   FORM FIELDS — Estilo minimalista
+   ═══════════════════════════════════════════════ */
+.cst-form-section .form-label {
+    font-size: .78rem;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: .3rem;
+}
+
+.cst-form-section .form-control,
+.cst-form-section .form-select {
+    font-size: .85rem;
+    border-radius: var(--cst-radius-sm);
+    border-color: var(--cst-border);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cst-form-section .form-control:focus,
+.cst-form-section .form-select:focus {
+    border-color: var(--cst-primary);
+    box-shadow: 0 0 0 3px rgba(var(--cst-primary-rgb), 0.15);
+}
+
+/* ═══════════════════════════════════════════════
+   WIZARD FOOTER — Botões de navegação
+   ═══════════════════════════════════════════════ */
+.cst-wizard-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--cst-border);
+    margin-top: 1rem;
+}
+
+.cst-wizard-footer .btn {
+    min-width: 120px;
+}
+
+/* ═══════════════════════════════════════════════
+   CONSULTA CNPJ — Botão inline
+   ═══════════════════════════════════════════════ */
+.cst-cnpj-search-btn {
+    font-size: .75rem;
+    padding: .25rem .6rem;
+    white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVIDADE
+   ═══════════════════════════════════════════════ */
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    .cst-stepper {
+        gap: 0;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .cst-step:not(:last-child)::after {
+        width: 20px;
+    }
+
+    .cst-step-label {
+        display: none;
+    }
+
+    .cst-customer-card {
+        padding: 1rem;
+    }
+}
+
+/* Mobile */
+@media (max-width: 767.98px) {
+    .cst-stepper {
+        padding: .75rem 0;
+    }
+
+    .cst-step {
+        padding: .35rem .5rem;
+        font-size: .75rem;
+    }
+
+    .cst-step:not(:last-child)::after {
+        width: 12px;
+    }
+
+    .cst-step-number {
+        width: 24px;
+        height: 24px;
+        font-size: .65rem;
+    }
+
+    .cst-person-toggle .cst-toggle-option {
+        padding: .4rem .8rem;
+        font-size: .75rem;
+    }
+
+    .cst-photo-upload {
+        width: 100px;
+        height: 100px;
+    }
+
+    .cst-form-section {
+        padding: 1rem;
+    }
+
+    .cst-wizard-footer {
+        flex-direction: column;
+        gap: .5rem;
+    }
+
+    .cst-wizard-footer .btn {
+        width: 100%;
+    }
+
+    .cst-bulk-toolbar {
+        flex-wrap: wrap;
+        font-size: .75rem;
+    }
+
+    .cst-filter-badges {
+        flex-wrap: wrap;
+    }
+
+    .cst-view-toggle {
+        display: none;
+    }
+}
+
+/* Mobile pequeno */
+@media (max-width: 575.98px) {
+    .cst-step-label {
+        display: none;
+    }
+
+    .cst-profile-hero {
+        padding: 1rem;
+    }
+
+    .cst-profile-avatar,
+    .cst-profile-avatar-placeholder {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+}

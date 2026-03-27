@@ -3,6 +3,7 @@
 > ⚠️ **REGRA CRÍTICA — Atualização do Banco de Dados**
 > 
 > **Toda alteração que envolva o banco de dados** (criação, modificação ou remoção de tabelas, colunas, índices, constraints, dados de configuração etc.) **deve obrigatoriamente gerar um arquivo SQL de atualização** (ex: `update_YYYYMMDDhhmm_descricao.sql`) na pasta `/sql`. Esse arquivo deve conter **apenas os comandos necessários** para atualizar o banco de produção, garantindo que o deploy seja feito apenas subindo e executando os arquivos SQL de atualização. **Nunca altere diretamente o banco de produção sem o arquivo de migração correspondente.**
+> **Nenhum teste do phpunit deve testar existencia de arquivo .sql** garanta que não seja feito casos de testes onde verifique arquivos .sql
 
 ## Nome do Sistema
 **Akti - Gestão em Produção**

@@ -304,4 +304,79 @@ return [
         'contains'   => ['<html'],
     ],
 
+    // ══════════════════════════════════════════════════════════════
+    // NF-e — DOCUMENTOS FISCAIS
+    // ══════════════════════════════════════════════════════════════
+
+    [
+        'route'    => '?page=nfe_documents',
+        'label'    => 'NF-e — Listagem',
+        'auth'     => true,
+        'contains' => ['<html'],
+    ],
+
+    [
+        'route'    => '?page=nfe_documents&action=create',
+        'label'    => 'NF-e — Nova Emissão',
+        'auth'     => true,
+        'contains' => ['<form'],
+    ],
+
+    [
+        'route'    => '?page=nfe_documents&action=queue',
+        'label'    => 'NF-e — Fila de Emissão',
+        'auth'     => true,
+        'contains' => ['<html'],
+    ],
+
+    [
+        'route'    => '?page=nfe_documents&action=received',
+        'label'    => 'NF-e — NF-e Recebidas (DistDFe)',
+        'auth'     => true,
+        'contains' => ['<html'],
+    ],
+
+    [
+        'route'    => '?page=nfe_documents&action=dashboard',
+        'label'    => 'NF-e — Dashboard Fiscal',
+        'auth'     => true,
+        'contains' => ['<html'],
+    ],
+
+    [
+        'route'    => '?page=nfe_documents&action=audit',
+        'label'    => 'NF-e — Auditoria',
+        'auth'     => true,
+        'contains' => ['<html'],
+    ],
+
+    [
+        'route'    => '?page=nfe_documents&action=webhooks',
+        'label'    => 'NF-e — Webhooks',
+        'auth'     => true,
+        'contains' => ['<html'],
+    ],
+
+    [
+        'route'    => '?page=nfe_documents&action=danfeSettings',
+        'label'    => 'NF-e — Configurações DANFE',
+        'auth'     => true,
+        'contains' => ['<html'],
+    ],
+
+    // Fase 4 — Relatório CC-e
+    [
+        'route'    => '?page=nfe_documents&action=correctionReport',
+        'label'    => 'NF-e — Relatório CC-e',
+        'auth'     => true,
+        'contains' => ['<html'],
+    ],
+
+    [
+        'route'    => '?page=nfe_credentials',
+        'label'    => 'NF-e — Credenciais',
+        'auth'     => true,
+        'contains' => ['<html'],
+    ],
+
 ];

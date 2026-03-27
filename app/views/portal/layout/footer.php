@@ -27,14 +27,14 @@ $unreadMessages = $unreadMessages ?? 0;
                 <i class="fas fa-plus"></i>
             </span>
         </a>
-        <a href="?page=portal&action=messages"
+        <!--<a href="?page=portal&action=messages"
            class="portal-nav-item portal-nav-item-badge <?= in_array($currentAction, ['messages']) ? 'active' : '' ?>">
             <i class="fas fa-comments"></i>
             <?php if ($unreadMessages > 0): ?>
                 <span class="portal-bottom-badge"><?= (int) $unreadMessages ?></span>
             <?php endif; ?>
             <span><?= __p('messages_title') ?></span>
-        </a>
+        </a>-->
         <a href="#" class="portal-nav-item" id="portalMoreBtn"
            onclick="event.preventDefault(); document.getElementById('portalMoreMenu').classList.toggle('show');">
             <i class="fas fa-ellipsis-h"></i>

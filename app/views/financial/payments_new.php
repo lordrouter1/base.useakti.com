@@ -113,11 +113,6 @@ $allCats = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? [],
             <h1 class="h2 mb-1"><i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Financeiro</h1>
             <p class="text-muted mb-0" style="font-size:.82rem;">Pagamentos, entradas/saídas, importação, relatórios e recorrências.</p>
         </div>
-        <div class="btn-toolbar gap-2">
-            <a href="?page=financial" class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-chart-line me-1"></i> Dashboard
-            </a>
-        </div>
     </div>
 
     <div class="row g-4">

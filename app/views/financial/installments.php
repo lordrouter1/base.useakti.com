@@ -62,6 +62,29 @@ $methodLabels = [
         <a href="?page=pipeline&action=detail&id=<?= $orderId ?>" class="btn btn-sm btn-outline-primary">
             <i class="fas fa-eye me-1"></i> Ver Pedido
         </a>
+        <?php
+        // Verificar se existe NF-e vinculada ao pedido
+        $nfeLinked = null;
+        try {
+            $nfeDocModel = new \Akti\Models\NfeDocument((new Database())->getConnection());
+            $nfeLinked = $nfeDocModel->readByOrder($orderId);
+        } catch (\Throwable $e) {}
+        ?>
+        <?php if ($nfeLinked): ?>
+        <a href="?page=nfe_documents&action=detail&id=<?= $nfeLinked['id'] ?>" class="btn btn-sm btn-outline-success" title="NF-e vinculada">
+            <i class="fas fa-file-invoice me-1"></i> NF-e #<?= e($nfeLinked['numero'] ?? $nfeLinked['id']) ?>
+            <?php 
+            $nfeBadgeColor = match($nfeLinked['status'] ?? '') {
+                'autorizada' => 'bg-success',
+                'cancelada'  => 'bg-dark',
+                'rejeitada'  => 'bg-danger',
+                'processando'=> 'bg-info',
+                default      => 'bg-secondary',
+            };
+            ?>
+            <span class="badge <?= $nfeBadgeColor ?> ms-1" style="font-size:0.6rem;"><?= ucfirst($nfeLinked['status'] ?? 'N/A') ?></span>
+        </a>
+        <?php endif; ?>
     </div>
 </div>
 

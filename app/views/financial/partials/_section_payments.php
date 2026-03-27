@@ -131,11 +131,12 @@
                             <th class="py-3">Pago em</th>
                             <th class="py-3">Valor Pago</th>
                             <th class="py-3">Status</th>
+                            <th class="py-3">NF-e</th>
                             <th class="py-3 text-end pe-3">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="paymentsTableBody">
-                        <tr><td colspan="9" class="text-center text-muted py-5">
+                        <tr><td colspan="10" class="text-center text-muted py-5">
                             <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block opacity-50"></i>Carregando...
                         </td></tr>
                     </tbody>

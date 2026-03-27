@@ -300,6 +300,105 @@ class Validator
     }
 
     /**
+     * Valida documento (CPF ou CNPJ) conforme o tipo de pessoa informado.
+     * Wrapper que chama cpf() se PF ou cnpj() se PJ.
+     *
+     * @param string $field   Nome do campo
+     * @param mixed  $value   Valor do documento
+     * @param string $personType 'PF' ou 'PJ'
+     * @param string $label   Rótulo para mensagem de erro
+     * @return self
+     */
+    public function document(string $field, $value, string $personType = 'PF', string $label = ''): self
+    {
+        if (isset($this->errors[$field])) return $this;
+        $label = $label ?: 'Documento';
+
+        if ($value === null || $value === '') {
+            return $this;
+        }
+
+        $personType = strtoupper(trim($personType));
+
+        if ($personType === 'PJ') {
+            return $this->cnpj($field, $value, $label);
+        }
+
+        // PF ou qualquer outro valor: valida como CPF
+        return $this->cpf($field, $value, $label);
+    }
+
+    /**
+     * Valida que a data informada não é futura.
+     *
+     * @param string $field   Nome do campo
+     * @param mixed  $value   Data no formato Y-m-d
+     * @param string $label   Rótulo para mensagem de erro
+     * @return self
+     */
+    public function dateNotFuture(string $field, $value, string $label = ''): self
+    {
+        if (isset($this->errors[$field])) return $this;
+        $label = $label ?: $field;
+
+        if ($value !== null && $value !== '') {
+            $dt = \DateTime::createFromFormat('Y-m-d', (string) $value);
+            if ($dt && $dt->format('Y-m-d') === (string) $value) {
+                $dt->setTime(0, 0, 0);
+                if ($dt > new \DateTime('today')) {
+                    $this->errors[$field] = "O campo {$label} não pode ser uma data futura.";
+                }
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Valida decimal positivo (ou zero).
+     *
+     * @param string $field   Nome do campo
+     * @param mixed  $value   Valor numérico
+     * @param string $label   Rótulo para mensagem de erro
+     * @return self
+     */
+    public function decimal(string $field, $value, string $label = ''): self
+    {
+        if (isset($this->errors[$field])) return $this;
+        $label = $label ?: $field;
+
+        if ($value !== null && $value !== '') {
+            if (!is_numeric($value) || (float) $value < 0) {
+                $this->errors[$field] = "O campo {$label} deve ser um valor decimal positivo.";
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Valida se o valor está dentro de um range numérico.
+     *
+     * @param string $field   Nome do campo
+     * @param mixed  $value   Valor a validar
+     * @param float  $min     Valor mínimo
+     * @param float  $max     Valor máximo
+     * @param string $label   Rótulo para mensagem de erro
+     * @return self
+     */
+    public function between(string $field, $value, float $min, float $max, string $label = ''): self
+    {
+        if (isset($this->errors[$field])) return $this;
+        $label = $label ?: $field;
+
+        if ($value !== null && $value !== '' && is_numeric($value)) {
+            $val = (float) $value;
+            if ($val < $min || $val > $max) {
+                $this->errors[$field] = "O campo {$label} deve estar entre {$min} e {$max}.";
+            }
+        }
+        return $this;
+    }
+
+    /**
      * CPF ou CNPJ válido (detecta pelo tamanho).
      */
     public function cpfOrCnpj(string $field, $value, string $label = ''): self
@@ -316,6 +415,49 @@ class Validator
             } else {
                 $this->errors[$field] = "O {$label} deve ser um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.";
             }
+        }
+        return $this;
+    }
+
+    /**
+     * Valida unicidade no banco de dados, excluindo opcionalmente um ID.
+     * Útil para validar que um campo não está duplicado ao editar um registro.
+     *
+     * @param string    $field     Nome do campo (para mensagem de erro)
+     * @param mixed     $value     Valor a verificar
+     * @param \PDO      $db        Conexão PDO
+     * @param string    $table     Nome da tabela
+     * @param string    $column    Nome da coluna no banco
+     * @param int|null  $excludeId ID a excluir da verificação (edição)
+     * @param string    $label     Rótulo para mensagem de erro
+     * @return self
+     */
+    public function uniqueExcept(string $field, $value, \PDO $db, string $table, string $column, ?int $excludeId = null, string $label = ''): self
+    {
+        if (isset($this->errors[$field])) return $this;
+        $label = $label ?: $field;
+
+        if ($value === null || $value === '') {
+            return $this;
+        }
+
+        $query = "SELECT id FROM {$table} WHERE {$column} = :val AND deleted_at IS NULL";
+        $params = [':val' => $value];
+
+        if ($excludeId) {
+            $query .= " AND id != :eid";
+            $params[':eid'] = $excludeId;
+        }
+
+        $query .= " LIMIT 1";
+        $stmt = $db->prepare($query);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->execute();
+
+        if ($stmt->fetch(\PDO::FETCH_ASSOC)) {
+            $this->errors[$field] = "Já existe um registro com este {$label}.";
         }
         return $this;
     }

@@ -102,11 +102,6 @@ $allCats = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? [],
             <h1 class="h2 mb-1"><i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Financeiro</h1>
             <p class="text-muted mb-0" style="font-size:.82rem;">Pagamentos, entradas/saídas, importação e transações.</p>
         </div>
-        <div class="btn-toolbar gap-2">
-            <a href="?page=financial" class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-chart-line me-1"></i> Dashboard
-            </a>
-        </div>
     </div>
 
     <div class="row g-4">
@@ -320,11 +315,12 @@ $allCats = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? [],
                                         <th class="py-3">Pago em</th>
                                         <th class="py-3">Valor Pago</th>
                                         <th class="py-3">Status</th>
+                                        <th class="py-3">NF-e</th>
                                         <th class="py-3 text-end pe-3">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody id="paymentsTableBody">
-                                    <tr><td colspan="9" class="text-center text-muted py-5">
+                                    <tr><td colspan="10" class="text-center text-muted py-5">
                                         <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block opacity-50"></i>Carregando...
                                     </td></tr>
                                 </tbody>

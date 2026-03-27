@@ -241,11 +241,13 @@ class Installment
                      c.name as customer_name,
                      c.document as customer_document,
                      c.address as customer_address,
-                     u.name as confirmed_by_name
+                     u.name as confirmed_by_name,
+                     nd.id as nfe_id, nd.numero as nfe_numero, nd.status as nfe_status
               FROM order_installments oi
               JOIN orders o ON oi.order_id = o.id
               LEFT JOIN customers c ON o.customer_id = c.id
               LEFT JOIN users u ON oi.confirmed_by = u.id
+              LEFT JOIN nfe_documents nd ON nd.order_id = o.id AND nd.status != 'rejeitada'
               $where
               ORDER BY
                 CASE oi.status

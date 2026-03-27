@@ -158,6 +158,14 @@ return [
                 'permission' => true,
                 'module'     => 'nfe',
             ],
+            'nfe_credentials' => [
+                'label'      => 'Credenciais SEFAZ',
+                'icon'       => 'fas fa-certificate',
+                'menu'       => false,
+                'permission' => true,
+                'module'     => 'nfe',
+                'permission_alias' => null,
+            ],
         ],
     ],
 

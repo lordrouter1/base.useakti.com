@@ -6,6 +6,8 @@ use Akti\Models\NfeDocument;
 use Akti\Models\NfeLog;
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
+use Akti\Services\NfeXmlValidator;
+use Akti\Services\NfeStorageService;
 use PDO;
 
 /**
@@ -249,6 +251,37 @@ class NfeService
             // Salvar XML de envio
             $this->docModel->update($nfeId, ['xml_envio' => $xml]);
 
+            // Validar XML contra XSD antes do envio
+            $validation = NfeXmlValidator::validate($xml);
+            if (!$validation['valid']) {
+                $errorMsg = 'XML inválido: ' . implode('; ', array_slice($validation['errors'], 0, 5));
+                $this->docModel->update($nfeId, [
+                    'status'       => 'rascunho',
+                    'motivo_sefaz' => $errorMsg,
+                ]);
+
+                $this->logModel->create([
+                    'nfe_document_id' => $nfeId,
+                    'order_id'        => $orderId,
+                    'action'          => 'validacao_xml',
+                    'status'          => 'error',
+                    'message'         => $errorMsg,
+                ]);
+
+                return [
+                    'success' => false,
+                    'message' => $errorMsg,
+                    'nfe_id'  => $nfeId,
+                    'chave'   => null,
+                ];
+            }
+
+            // Salvar itens calculados na tabela nfe_document_items
+            $this->saveDocumentItems($nfeId, $xmlBuilder->getCalculatedItems());
+
+            // Salvar totais fiscais no documento
+            $this->saveFiscalTotals($nfeId, $xmlBuilder->getCalculatedTotals());
+
             // Assinar
             $xmlSigned = $this->tools->signNFe($xml);
 
@@ -296,24 +329,88 @@ class NfeService
             $recibo = $std->infRec->nRec ?? '';
             $this->docModel->update($nfeId, ['recibo' => $recibo]);
 
-            // Consultar recibo (aguardar processamento)
-            sleep(3);
-            $respRecibo = $this->tools->sefazConsultaRecibo($recibo);
-            $stRec = new \NFePHP\NFe\Common\Standardize($respRecibo);
-            $stdRec = $stRec->toStd();
+            // Consultar recibo com retry e backoff exponencial
+            // Intervalos: [3, 5, 10, 15, 30] segundos (5 tentativas máximas)
+            $retryIntervals = [3, 5, 10, 15, 30];
+            $maxRetries = count($retryIntervals);
+            $protNFe = null;
+            $stdRec = null;
+            $respRecibo = null;
 
-            $this->logModel->create([
-                'nfe_document_id' => $nfeId,
-                'order_id'        => $orderId,
-                'action'          => 'consulta_recibo',
-                'status'          => 'info',
-                'code_sefaz'      => $stdRec->cStat ?? '',
-                'message'         => $stdRec->xMotivo ?? '',
-                'xml_response'    => $respRecibo,
-            ]);
+            for ($attempt = 0; $attempt < $maxRetries; $attempt++) {
+                sleep($retryIntervals[$attempt]);
+
+                $respRecibo = $this->tools->sefazConsultaRecibo($recibo);
+                $stRec = new \NFePHP\NFe\Common\Standardize($respRecibo);
+                $stdRec = $stRec->toStd();
+
+                $cStatRecibo = $stdRec->cStat ?? '';
+
+                $this->logModel->create([
+                    'nfe_document_id' => $nfeId,
+                    'order_id'        => $orderId,
+                    'action'          => 'consulta_recibo',
+                    'status'          => 'info',
+                    'code_sefaz'      => $cStatRecibo,
+                    'message'         => sprintf(
+                        'Tentativa %d/%d — cStat: %s — %s',
+                        $attempt + 1,
+                        $maxRetries,
+                        $cStatRecibo,
+                        $stdRec->xMotivo ?? ''
+                    ),
+                    'xml_response'    => $respRecibo,
+                ]);
+
+                // cStat 104 = Lote processado — sair do loop e processar
+                if ($cStatRecibo == '104') {
+                    $protNFe = $stdRec->protNFe ?? null;
+                    break;
+                }
+
+                // cStat 105 = Lote em processamento — retry
+                if ($cStatRecibo == '105') {
+                    continue;
+                }
+
+                // Qualquer outro cStat — erro, sair do loop
+                $this->docModel->update($nfeId, [
+                    'status'       => 'rejeitada',
+                    'status_sefaz' => $cStatRecibo,
+                    'motivo_sefaz' => $stdRec->xMotivo ?? 'Erro na consulta de recibo',
+                ]);
+
+                EventDispatcher::dispatch('model.nfe_document.error', new Event('model.nfe_document.error', [
+                    'nfe_id'   => $nfeId,
+                    'order_id' => $orderId,
+                    'code'     => $cStatRecibo,
+                    'message'  => $stdRec->xMotivo ?? '',
+                ]));
+
+                return [
+                    'success' => false,
+                    'message' => 'Erro na consulta de recibo: ' . ($stdRec->xMotivo ?? "cStat {$cStatRecibo}"),
+                    'nfe_id'  => $nfeId,
+                    'chave'   => null,
+                ];
+            }
+
+            // Se esgotou as tentativas sem resposta definitiva
+            if ($protNFe === null) {
+                $this->docModel->update($nfeId, [
+                    'status'       => 'processando',
+                    'motivo_sefaz' => 'Timeout: SEFAZ não processou o lote após ' . $maxRetries . ' tentativas. Consulte manualmente.',
+                ]);
+
+                return [
+                    'success' => false,
+                    'message' => 'A SEFAZ não processou o lote a tempo. Recibo: ' . $recibo . '. Tente consultar o status manualmente.',
+                    'nfe_id'  => $nfeId,
+                    'chave'   => null,
+                ];
+            }
 
             // Verificar resultado do processamento
-            $protNFe = $stdRec->protNFe ?? null;
             if ($protNFe && isset($protNFe->infProt)) {
                 $infProt = $protNFe->infProt;
                 $cStatProt = $infProt->cStat ?? '';
@@ -326,7 +423,11 @@ class NfeService
                     // Montar procNFe (XML autorizado completo)
                     $xmlAutorizado = \NFePHP\NFe\Complements::toAuthorize($xmlSigned, $respRecibo);
 
-                    $this->docModel->markAuthorized($nfeId, $chave, $protocolo, $xmlAutorizado);
+                    // Salvar XMLs em disco (legislação exige guarda por 5 anos)
+                    $storage = new NfeStorageService();
+                    $xmlPath = $storage->saveXml($chave, $xmlAutorizado, 'nfe');
+
+                    $this->docModel->markAuthorized($nfeId, $chave, $protocolo, $xmlAutorizado, $xmlPath);
 
                     $this->logModel->create([
                         'nfe_document_id' => $nfeId,
@@ -356,6 +457,13 @@ class NfeService
                         'order_id' => $orderId,
                         'code'     => $cStatProt,
                         'message'  => $infProt->xMotivo ?? '',
+                    ]));
+
+                    EventDispatcher::dispatch('model.nfe_document.rejected', new Event('model.nfe_document.rejected', [
+                        'nfe_id'      => $nfeId,
+                        'order_id'    => $orderId,
+                        'code_sefaz'  => $cStatProt,
+                        'motivo'      => $infProt->xMotivo ?? 'Rejeitada',
                     ]));
 
                     return [
@@ -424,6 +532,25 @@ class NfeService
         }
         if (strlen($motivo) < 15) {
             return ['success' => false, 'message' => 'Justificativa deve ter no mínimo 15 caracteres.'];
+        }
+
+        // Verificar prazo de cancelamento (24 horas após autorização)
+        $emittedAt = $doc['emitted_at'] ?? null;
+        if ($emittedAt) {
+            $emittedDate = new \DateTime($emittedAt);
+            $now = new \DateTime();
+            $diffHours = ($now->getTimestamp() - $emittedDate->getTimestamp()) / 3600;
+            $prazoMaximo = 24; // horas — configurável por UF futuramente
+
+            if ($diffHours > $prazoMaximo) {
+                $horasDecorridas = number_format($diffHours, 1, ',', '.');
+                return [
+                    'success' => false,
+                    'message' => "Prazo de cancelamento excedido. A NF-e foi autorizada há {$horasDecorridas} horas. "
+                               . "O prazo máximo para cancelamento é de {$prazoMaximo} horas após a autorização. "
+                               . "Utilize Carta de Correção ou entre em contato com a SEFAZ.",
+                ];
+            }
         }
 
         if (!$this->initTools()) {
@@ -495,6 +622,16 @@ class NfeService
             return ['success' => false, 'message' => 'Texto da correção deve ter no mínimo 15 caracteres.'];
         }
 
+        // Verificar limite de 20 CC-e por NF-e (regra SEFAZ)
+        $seqAtual = (int) ($doc['correcao_seq'] ?? 0);
+        if ($seqAtual >= 20) {
+            return [
+                'success' => false,
+                'message' => 'Limite de 20 Cartas de Correção atingido para esta NF-e. '
+                           . 'Não é possível enviar novas correções.',
+            ];
+        }
+
         if (!$this->initTools()) {
             return ['success' => false, 'message' => 'Erro ao inicializar comunicação com SEFAZ.'];
         }
@@ -528,6 +665,38 @@ class NfeService
                     'correcao_date'  => date('Y-m-d H:i:s'),
                     'xml_correcao'   => $response,
                 ]);
+
+                // Salvar no histórico de CC-e (tabela nfe_correction_history)
+                $nProt = $std->retEvento->infEvento->nProt ?? '';
+                try {
+                    $qHist = "INSERT INTO nfe_correction_history
+                              (nfe_document_id, seq_evento, texto_correcao, protocolo, code_sefaz, motivo_sefaz, xml_correcao, user_id)
+                              VALUES (:doc_id, :seq, :texto, :prot, :cstat, :motivo, :xml, :uid)";
+                    $sHist = $this->db->prepare($qHist);
+                    $sHist->execute([
+                        ':doc_id' => $nfeId,
+                        ':seq'    => $seqEvento,
+                        ':texto'  => $texto,
+                        ':prot'   => $nProt,
+                        ':cstat'  => $cStat,
+                        ':motivo' => $xMotivo,
+                        ':xml'    => $response,
+                        ':uid'    => $_SESSION['user_id'] ?? null,
+                    ]);
+                } catch (\Exception $e) {
+                    // Não falhar a operação se o histórico falhar — apenas logar
+                    error_log('[NfeService] Erro ao salvar histórico CC-e: ' . $e->getMessage());
+                }
+
+                EventDispatcher::dispatch('model.nfe_document.corrected', new Event('model.nfe_document.corrected', [
+                    'nfe_id'    => $nfeId,
+                    'order_id'  => $doc['order_id'] ?? null,
+                    'chave'     => $doc['chave'] ?? '',
+                    'seq'       => $seqEvento,
+                    'texto'     => $texto,
+                    'protocolo' => $nProt,
+                ]));
+
                 return ['success' => true, 'message' => "Carta de Correção enviada com sucesso (seq: {$seqEvento})."];
             }
 
@@ -603,5 +772,208 @@ class NfeService
     public function getCredentials(): array
     {
         return $this->credentials;
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Persistência de itens e totais fiscais
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * Salva os itens calculados na tabela nfe_document_items.
+     *
+     * @param int   $nfeId  ID do documento NF-e
+     * @param array $items  Array de itens com dados fiscais calculados
+     */
+    private function saveDocumentItems(int $nfeId, array $items): void
+    {
+        if (empty($items)) {
+            return;
+        }
+
+        $q = "INSERT INTO nfe_document_items
+              (nfe_document_id, n_item, c_prod, x_prod, ncm, cest, cfop, u_com, q_com, v_un_com,
+               v_prod, v_desc, origem, icms_cst, icms_csosn, icms_vbc, icms_aliquota, icms_valor,
+               icms_reducao_bc, pis_cst, pis_vbc, pis_aliquota, pis_valor,
+               cofins_cst, cofins_vbc, cofins_aliquota, cofins_valor,
+               ipi_cst, ipi_vbc, ipi_aliquota, ipi_valor, v_tot_trib)
+              VALUES
+              (:doc_id, :n_item, :c_prod, :x_prod, :ncm, :cest, :cfop, :u_com, :q_com, :v_un_com,
+               :v_prod, :v_desc, :origem, :icms_cst, :icms_csosn, :icms_vbc, :icms_aliquota, :icms_valor,
+               :icms_reducao_bc, :pis_cst, :pis_vbc, :pis_aliquota, :pis_valor,
+               :cofins_cst, :cofins_vbc, :cofins_aliquota, :cofins_valor,
+               :ipi_cst, :ipi_vbc, :ipi_aliquota, :ipi_valor, :v_tot_trib)";
+
+        $stmt = $this->db->prepare($q);
+
+        foreach ($items as $item) {
+            try {
+                $stmt->execute([
+                    ':doc_id'          => $nfeId,
+                    ':n_item'          => $item['nItem'] ?? 0,
+                    ':c_prod'          => $item['cProd'] ?? '',
+                    ':x_prod'          => $item['xProd'] ?? 'Produto',
+                    ':ncm'             => $item['ncm'] ?? '',
+                    ':cest'            => $item['cest'] ?? null,
+                    ':cfop'            => $item['cfop'] ?? '',
+                    ':u_com'           => $item['uCom'] ?? 'UN',
+                    ':q_com'           => $item['qCom'] ?? 1,
+                    ':v_un_com'        => $item['vUnCom'] ?? 0,
+                    ':v_prod'          => $item['vProd'] ?? 0,
+                    ':v_desc'          => $item['vDesc'] ?? 0,
+                    ':origem'          => $item['origem'] ?? 0,
+                    ':icms_cst'        => $item['icms_cst'] ?? null,
+                    ':icms_csosn'      => $item['icms_csosn'] ?? null,
+                    ':icms_vbc'        => $item['icms_vbc'] ?? 0,
+                    ':icms_aliquota'   => $item['icms_aliquota'] ?? 0,
+                    ':icms_valor'      => $item['icms_valor'] ?? 0,
+                    ':icms_reducao_bc' => $item['icms_reducao_bc'] ?? 0,
+                    ':pis_cst'         => $item['pis_cst'] ?? null,
+                    ':pis_vbc'         => $item['pis_vbc'] ?? 0,
+                    ':pis_aliquota'    => $item['pis_aliquota'] ?? 0,
+                    ':pis_valor'       => $item['pis_valor'] ?? 0,
+                    ':cofins_cst'      => $item['cofins_cst'] ?? null,
+                    ':cofins_vbc'      => $item['cofins_vbc'] ?? 0,
+                    ':cofins_aliquota' => $item['cofins_aliquota'] ?? 0,
+                    ':cofins_valor'    => $item['cofins_valor'] ?? 0,
+                    ':ipi_cst'         => $item['ipi_cst'] ?? null,
+                    ':ipi_vbc'         => $item['ipi_vbc'] ?? 0,
+                    ':ipi_aliquota'    => $item['ipi_aliquota'] ?? 0,
+                    ':ipi_valor'       => $item['ipi_valor'] ?? 0,
+                    ':v_tot_trib'      => $item['vTotTrib'] ?? 0,
+                ]);
+            } catch (\Exception $e) {
+                error_log('[NfeService] Erro ao salvar item NF-e: ' . $e->getMessage());
+                // Não falhar a emissão se um item não salvar — apenas logar
+            }
+        }
+    }
+
+    /**
+     * Salva os totais fiscais calculados no documento NF-e.
+     *
+     * @param int   $nfeId  ID do documento
+     * @param array $totals Totais do TaxCalculator
+     */
+    private function saveFiscalTotals(int $nfeId, array $totals): void
+    {
+        $updateData = [];
+
+        if (isset($totals['vICMS']))    $updateData['valor_icms']            = $totals['vICMS'];
+        if (isset($totals['vPIS']))     $updateData['valor_pis']             = $totals['vPIS'];
+        if (isset($totals['vCOFINS']))  $updateData['valor_cofins']          = $totals['vCOFINS'];
+        if (isset($totals['vIPI']))     $updateData['valor_ipi']             = $totals['vIPI'];
+        if (isset($totals['vTotTrib'])) $updateData['valor_tributos_aprox']  = $totals['vTotTrib'];
+
+        if (!empty($updateData)) {
+            try {
+                $this->docModel->update($nfeId, $updateData);
+            } catch (\Exception $e) {
+                error_log('[NfeService] Erro ao salvar totais fiscais: ' . $e->getMessage());
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Inutilização de Numeração
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * Inutiliza faixa de numeração na SEFAZ.
+     *
+     * @param int    $numInicial   Número inicial da faixa
+     * @param int    $numFinal     Número final da faixa
+     * @param string $justificativa Justificativa (mín. 15 caracteres)
+     * @param int    $modelo       Modelo do documento (55=NF-e, 65=NFC-e)
+     * @param int    $serie        Série do documento
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function inutilizar(int $numInicial, int $numFinal, string $justificativa, int $modelo = 55, int $serie = 1): array
+    {
+        if (!$this->initTools()) {
+            return ['success' => false, 'message' => 'Biblioteca sefaz-nfe não disponível.'];
+        }
+
+        if (empty($this->credentials['cnpj'])) {
+            return ['success' => false, 'message' => 'Credenciais incompletas. Configure o CNPJ do emitente.'];
+        }
+
+        try {
+            $config = [
+                'tpAmb'  => $this->credentials['environment'] === 'producao' ? 1 : 2,
+                'CNPJ'   => preg_replace('/\D/', '', $this->credentials['cnpj']),
+                'mod'    => $modelo,
+                'serie'  => $serie,
+                'nNFIni' => $numInicial,
+                'nNFFin' => $numFinal,
+                'xJust'  => $justificativa,
+                'ano'    => date('y'),
+            ];
+
+            // Integração real com SEFAZ via sped-nfe
+            $sefazProtocol = null;
+            if ($this->tools !== null) {
+                try {
+                    $response = $this->tools->sefazInutiliza(
+                        $config['serie'],
+                        $config['nNFIni'],
+                        $config['nNFFin'],
+                        $config['xJust'],
+                        $config['tpAmb']
+                    );
+
+                    $st = new \NFePHP\NFe\Common\Standardize($response);
+                    $std = $st->toStd();
+
+                    // cStat 102 = Inutilização homologada
+                    if (isset($std->infInut) && $std->infInut->cStat == 102) {
+                        $sefazProtocol = $std->infInut->nProt ?? null;
+                    } elseif (isset($std->cStat) && $std->cStat == 102) {
+                        $sefazProtocol = $std->nProt ?? null;
+                    } else {
+                        $cStat = $std->infInut->cStat ?? $std->cStat ?? '???';
+                        $xMotivo = $std->infInut->xMotivo ?? $std->xMotivo ?? 'Motivo desconhecido';
+                        return [
+                            'success' => false,
+                            'message' => "SEFAZ rejeitou inutilização: [{$cStat}] {$xMotivo}",
+                        ];
+                    }
+                } catch (\Throwable $sefazEx) {
+                    error_log('[NfeService] SEFAZ inutilizar error: ' . $sefazEx->getMessage());
+                    // Se falhou a comunicação SEFAZ, registrar localmente com aviso
+                    $sefazProtocol = null;
+                }
+            }
+
+            // Registrar os documentos inutilizados no banco
+            for ($n = $numInicial; $n <= $numFinal; $n++) {
+                $existing = $this->docModel->findByNumero($n, $serie, $modelo);
+                if (!$existing) {
+                    $this->docModel->create([
+                        'numero'       => $n,
+                        'serie'        => $serie,
+                        'modelo'       => $modelo,
+                        'status'       => 'inutilizada',
+                        'valor_total'  => 0,
+                        'dest_nome'    => 'INUTILIZAÇÃO',
+                        'natureza_op'  => $justificativa,
+                        'protocolo'    => $sefazProtocol,
+                    ]);
+                }
+            }
+
+            $msgSuffix = $sefazProtocol
+                ? " Protocolo SEFAZ: {$sefazProtocol}."
+                : ' (registrada localmente — comunicação SEFAZ indisponível).';
+
+            return [
+                'success'   => true,
+                'message'   => "Numeração {$numInicial} a {$numFinal} inutilizada com sucesso (série {$serie}, modelo {$modelo}).{$msgSuffix}",
+                'protocolo' => $sefazProtocol,
+            ];
+
+        } catch (\Throwable $e) {
+            error_log('[NfeService] Inutilizar error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Erro ao inutilizar: ' . $e->getMessage()];
+        }
     }
 }

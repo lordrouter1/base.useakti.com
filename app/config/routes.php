@@ -253,16 +253,46 @@ return [
         'controller'     => 'CustomerController',
         'default_action' => 'index',
         'actions'        => [
+            // CRUD básico
             'store'                   => 'store',
             'create'                  => 'create',
             'edit'                    => 'edit',
             'update'                  => 'update',
             'delete'                  => 'delete',
+
+            // Ficha detalhada (Fase 2)
+            'view'                    => 'view',
+
+            // AJAX — Listagem e busca
             'getCustomersList'        => 'getCustomersList',
             'searchSelect2'           => 'searchSelect2',
+
+            // AJAX — Verificações e APIs externas (Fase 2)
+            'checkDuplicate'          => 'checkDuplicate',
+            'searchCep'               => 'searchCep',
+            'searchCnpj'              => 'searchCnpj',
+
+            // Exportação (Fase 2)
+            'export'                  => 'export',
+
+            // Ações em lote (Fase 2)
+            'bulkAction'              => 'bulkAction',
+            'updateStatus'            => 'updateStatus',
+            'restore'                 => 'restore',
+
+            // Contatos CRUD AJAX (Fase 2)
+            'getContacts'             => 'getContacts',
+            'saveContact'             => 'saveContact',
+            'deleteContact'           => 'deleteContact',
+
+            // Importação
             'parseImportFile'         => 'parseImportFile',
             'importCustomersMapped'   => 'importCustomersMapped',
             'downloadImportTemplate'  => 'downloadImportTemplate',
+
+            // Tags e Histórico (Fase 4)
+            'getTags'                 => 'getTags',
+            'getOrderHistory'         => 'getOrderHistory',
         ],
     ],
 
@@ -576,6 +606,8 @@ return [
             'store'          => 'store',
             'update'         => 'update',
             'testConnection' => 'testConnection',
+            'importIbptax'   => 'importIbptax',
+            'ibptaxStats'    => 'ibptaxStats',
         ],
     ],
 
@@ -583,12 +615,64 @@ return [
         'controller'     => 'NfeDocumentController',
         'default_action' => 'index',
         'actions'        => [
-            'emit'        => 'emit',
-            'cancel'      => 'cancel',
-            'correction'  => 'correction',
-            'download'    => 'download',
-            'checkStatus' => 'checkStatus',
-            'detail'      => 'detail',
+            'emit'               => 'emit',
+            'cancel'             => 'cancel',
+            'correction'         => 'correction',
+            'download'           => 'download',
+            'checkStatus'        => 'checkStatus',
+            'detail'             => 'detail',
+            'dashboard'          => 'dashboard',
+            // Fase 3 — Reenvio de NF-e rejeitada
+            'retry'              => 'retry',
+            // Fase 5 — Emissão em lote e fila
+            'batchEmit'          => 'batchEmit',
+            'queue'              => 'queue',
+            'processQueue'       => 'processQueue',
+            'cancelQueue'        => 'cancelQueue',
+            // Fase 5 — Documentos recebidos (DistDFe)
+            'received'           => 'received',
+            'queryDistDFe'       => 'queryDistDFe',
+            'queryDistDFeByChave' => 'queryDistDFeByChave',
+            // Fase 5 — Manifestação
+            'manifest'           => 'manifest',
+            // Fase 5 — Auditoria
+            'audit'              => 'audit',
+            // Fase 5 — Webhooks
+            'webhooks'           => 'webhooks',
+            'saveWebhook'        => 'saveWebhook',
+            'deleteWebhook'      => 'deleteWebhook',
+            'testWebhook'        => 'testWebhook',
+            'webhookLogs'        => 'webhookLogs',
+            // Fase 5 — DANFE
+            'danfeSettings'      => 'danfeSettings',
+            'saveDanfeSettings'  => 'saveDanfeSettings',
+            // Fase 6 — Inutilização de numeração
+            'inutilizar'         => 'inutilizar',
+            // Fase 4 — Relatório de CC-e e Exportação
+            'correctionReport'   => 'correctionReport',
+            'exportReport'       => 'exportReport',
+            // Fase 5 — NFC-e (Modelo 65)
+            'emitNfce'           => 'emitNfce',
+            'downloadDanfeNfce'  => 'downloadDanfeNfce',
+            // Fase 5 — Contingência Automática
+            'contingencyStatus'    => 'contingencyStatus',
+            'contingencyActivate'  => 'contingencyActivate',
+            'contingencyDeactivate'=> 'contingencyDeactivate',
+            'contingencySync'      => 'contingencySync',
+            'contingencyHistory'   => 'contingencyHistory',
+            // Fase 5 — Download XML em Lote (ZIP)
+            'downloadBatch'      => 'downloadBatch',
+            // Fase 5 — Exportação SPED Fiscal e SINTEGRA
+            'exportSped'         => 'exportSped',
+            'exportSintegra'     => 'exportSintegra',
+            // Fase 5 — Livros de Registro
+            'livroSaidas'        => 'livroSaidas',
+            'livroEntradas'      => 'livroEntradas',
+            // Fase 5 — Backup de XMLs
+            'backupXml'          => 'backupXml',
+            'backupHistory'      => 'backupHistory',
+            'backupSettings'     => 'backupSettings',
+            'saveBackupSettings' => 'saveBackupSettings',
         ],
     ],
 

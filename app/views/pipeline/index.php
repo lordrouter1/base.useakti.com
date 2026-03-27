@@ -269,6 +269,23 @@
                                         <i class="fas fa-user-times"></i> Recusado
                                     </span>
                                     <?php endif; ?>
+                                    <?php
+                                        // ═══ Badge NF-e — Integração Pipeline × Fiscal ═══
+                                        $nfeStatus = $order['nfe_status'] ?? $order['nf_status'] ?? null;
+                                        if ($nfeStatus):
+                                            $_nfeBadge = [
+                                                'autorizada' => ['bg' => '#d4edda', 'color' => '#155724', 'icon' => 'fas fa-check-circle', 'label' => 'NF-e OK'],
+                                                'emitida'    => ['bg' => '#d4edda', 'color' => '#155724', 'icon' => 'fas fa-check-circle', 'label' => 'NF-e OK'],
+                                                'processando'=> ['bg' => '#d1ecf1', 'color' => '#0c5460', 'icon' => 'fas fa-spinner fa-spin', 'label' => 'NF-e...'],
+                                                'rejeitada'  => ['bg' => '#f8d7da', 'color' => '#721c24', 'icon' => 'fas fa-times-circle', 'label' => 'NF-e Rej.'],
+                                                'cancelada'  => ['bg' => '#e2e3e5', 'color' => '#383d41', 'icon' => 'fas fa-ban', 'label' => 'NF-e Canc.'],
+                                            ];
+                                            $_nb = $_nfeBadge[$nfeStatus] ?? ['bg' => '#e2e3e5', 'color' => '#383d41', 'icon' => 'fas fa-file-invoice', 'label' => 'NF-e'];
+                                    ?>
+                                    <span class="pipeline-card-chip" style="background:<?= $_nb['bg'] ?>;color:<?= $_nb['color'] ?>;">
+                                        <i class="<?= $_nb['icon'] ?>"></i> <?= $_nb['label'] ?>
+                                    </span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

@@ -2,6 +2,7 @@
 namespace Akti\Controllers;
 
 use Akti\Models\ReportModel;
+use Akti\Models\NfeReportModel;
 use Akti\Models\CompanySettings;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
@@ -32,6 +33,7 @@ class ReportController
 {
     private $db;
     private $report;
+    private $nfeReport;
     private $company;
 
     /** @var string Nome do usuário responsável pela geração */
@@ -56,6 +58,7 @@ class ReportController
         $database   = new Database();
         $this->db   = $database->getConnection();
         $this->report = new ReportModel($this->db);
+        $this->nfeReport = new NfeReportModel($this->db);
 
         $companySettings = new CompanySettings($this->db);
         $this->company   = $companySettings->getAll();
@@ -80,6 +83,9 @@ class ReportController
 
         // Dados para o select de filtro (categoria Comissões)
         $usersList = $this->report->getUsersForSelect();
+
+        // Dados para os selects de filtro (categoria Fiscal)
+        $nfeCustomersList = $this->nfeReport->getCustomersWithNfe();
 
         require 'app/views/layout/header.php';
         require 'app/views/reports/index.php';
@@ -144,6 +150,27 @@ class ReportController
             case 'commissions_report':
                 $userId = Input::get('user_id', 'int', null);
                 $this->exportPdfCommissionsReport($start, $end, $userId ?: null);
+                break;
+            case 'nfes_period':
+                $this->exportPdfNfesByPeriod($start, $end);
+                break;
+            case 'tax_summary':
+                $this->exportPdfTaxSummary($start, $end);
+                break;
+            case 'nfes_customer':
+                $this->exportPdfNfesByCustomer($start, $end);
+                break;
+            case 'cfop_summary':
+                $this->exportPdfCfopSummary($start, $end);
+                break;
+            case 'cancelled_nfes':
+                $this->exportPdfCancelledNfes($start, $end);
+                break;
+            case 'inutilizacoes':
+                $this->exportPdfInutilizacoes($start, $end);
+                break;
+            case 'sefaz_logs':
+                $this->exportPdfSefazLogs($start, $end);
                 break;
             default:
                 $_SESSION['flash_error'] = 'Tipo de relatório inválido.';
@@ -210,6 +237,27 @@ class ReportController
             case 'commissions_report':
                 $userId = Input::get('user_id', 'int', null);
                 $this->exportExcelCommissionsReport($start, $end, $userId ?: null);
+                break;
+            case 'nfes_period':
+                $this->exportExcelNfesByPeriod($start, $end);
+                break;
+            case 'tax_summary':
+                $this->exportExcelTaxSummary($start, $end);
+                break;
+            case 'nfes_customer':
+                $this->exportExcelNfesByCustomer($start, $end);
+                break;
+            case 'cfop_summary':
+                $this->exportExcelCfopSummary($start, $end);
+                break;
+            case 'cancelled_nfes':
+                $this->exportExcelCancelledNfes($start, $end);
+                break;
+            case 'inutilizacoes':
+                $this->exportExcelInutilizacoes($start, $end);
+                break;
+            case 'sefaz_logs':
+                $this->exportExcelSefazLogs($start, $end);
                 break;
             default:
                 $_SESSION['flash_error'] = 'Tipo de relatório inválido.';
@@ -492,9 +540,6 @@ class ReportController
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Pedidos por Período');
-
-        $cols = ['A', 'B', 'C', 'D', 'E', 'F'];
-        $lastCol = 'F';
 
         // ── Cabeçalho da empresa ──
         $row = $this->excelCompanyHeader($sheet, 'Relatório de Pedidos por Período', $lastCol);
@@ -1672,7 +1717,7 @@ class ReportController
             $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getFill()
                 ->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::CLR_SUMMARY_BG);
             $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getBorders()->getTop()
-                ->setBorderStyle(Border::BORDER_DOUBLE)->getColor()->setARGB(self::CLR_PRIMARY);
+                ->setBorderStyle(Border::BORDER_MEDIUM)->getColor()->setARGB(self::CLR_PRIMARY);
             $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getBorders()->getBottom()
                 ->setBorderStyle(Border::BORDER_DOUBLE)->getColor()->setARGB(self::CLR_PRIMARY);
             $sheet->getRowDimension($row)->setRowHeight(24);
@@ -1684,6 +1729,785 @@ class ReportController
 
         $this->autoSizeColumns($sheet, $cols);
         $this->sendExcel($spreadsheet, 'comissoes_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PDF — NF-e POR PERÍODO
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportPdfNfesByPeriod(string $start, string $end): void
+    {
+        $statusFilter = Input::get('nfe_status', 'string', '');
+        $modeloFilter = Input::get('nfe_modelo', 'string', '');
+        $filters = [];
+        if ($statusFilter) $filters['status'] = $statusFilter;
+        if ($modeloFilter) $filters['modelo'] = $modeloFilter;
+
+        $data = $this->nfeReport->getNfesByPeriod($start, $end, $filters);
+        $kpis = $this->nfeReport->getFiscalKpis($start, $end);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $pdf = $this->createPdf('Relatório de NF-e por Período');
+
+        $this->pdfSummaryBox($pdf, [
+            'Período'        => $period,
+            'Total NF-e'     => (int) $kpis['total_emitidas'],
+            'Autorizadas'    => (int) $kpis['autorizadas'],
+            'Valor Autoriz.' => 'R$ ' . number_format((float) $kpis['valor_autorizado'], 2, ',', '.'),
+        ]);
+
+        $headers = ['#', 'Mod.', 'Número', 'Destinatário', 'Valor (R$)', 'Status', 'Data'];
+        $widths  = [10, 14, 18, 52, 28, 24, 34];
+        $aligns  = ['C', 'C', 'C', 'L', 'R', 'C', 'C'];
+        $this->pdfTableHeader($pdf, $headers, $widths);
+
+        $fill = false;
+        foreach ($data as $row) {
+            $this->pdfTableRow($pdf, $widths, [
+                $row['id'],
+                NfeReportModel::getModeloLabel((int) $row['modelo']),
+                $row['numero'] . '/' . $row['serie'],
+                mb_substr($row['dest_nome'] ?? 'Consumidor', 0, 32),
+                number_format((float) $row['valor_total'], 2, ',', '.'),
+                NfeReportModel::getNfeStatusLabel($row['status']),
+                $row['emitted_at_fmt'] ?: $row['created_at_fmt'],
+            ], $aligns, $fill);
+            $fill = !$fill;
+        }
+
+        $totalValue = array_sum(array_column($data, 'valor_total'));
+        $this->pdfTotalRow($pdf, [
+            ['w' => $widths[0] + $widths[1] + $widths[2] + $widths[3], 'text' => 'TOTAL (' . count($data) . ' documentos)', 'align' => 'R'],
+            ['w' => $widths[4], 'text' => 'R$ ' . number_format($totalValue, 2, ',', '.'), 'align' => 'R'],
+            ['w' => $widths[5] + $widths[6], 'text' => '', 'align' => 'C'],
+        ]);
+
+        $this->pdfFooter($pdf);
+        $this->sendPdf($pdf, 'nfe_periodo_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PDF — RESUMO DE IMPOSTOS
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportPdfTaxSummary(string $start, string $end): void
+    {
+        $data = $this->nfeReport->getTaxSummary($start, $end);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $totals = $data['totals'];
+        $totalTributos = (float) $totals['total_icms'] + (float) $totals['total_pis']
+                       + (float) $totals['total_cofins'] + (float) $totals['total_ipi'];
+
+        $pdf = $this->createPdf('Resumo de Impostos por Período');
+
+        $this->pdfSummaryBox($pdf, [
+            'Período'       => $period,
+            'Total NF-e'    => (int) $totals['total_nfes'],
+            'ICMS Total'    => 'R$ ' . number_format((float) $totals['total_icms'], 2, ',', '.'),
+            'Total Tributos'=> 'R$ ' . number_format($totalTributos, 2, ',', '.'),
+        ]);
+
+        // Resumo geral por tipo de imposto
+        $pdf->Ln(2);
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->SetTextColor(52, 73, 94);
+        $pdf->Cell(0, 7, 'Resumo por Tipo de Imposto', 0, 1, 'L');
+        $pdf->SetTextColor(51, 51, 51);
+
+        $taxHeaders = ['Imposto', 'Valor Total (R$)', '% do Total'];
+        $taxWidths  = [60, 60, 60];
+        $this->pdfTableHeader($pdf, $taxHeaders, $taxWidths);
+
+        $taxes = [
+            ['ICMS', (float) $totals['total_icms']],
+            ['PIS', (float) $totals['total_pis']],
+            ['COFINS', (float) $totals['total_cofins']],
+            ['IPI', (float) $totals['total_ipi']],
+        ];
+        $fill = false;
+        foreach ($taxes as $tax) {
+            $pct = $totalTributos > 0 ? ($tax[1] / $totalTributos * 100) : 0;
+            $this->pdfTableRow($pdf, $taxWidths, [
+                $tax[0],
+                'R$ ' . number_format($tax[1], 2, ',', '.'),
+                number_format($pct, 1, ',', '.') . '%',
+            ], ['L', 'R', 'C'], $fill);
+            $fill = !$fill;
+        }
+
+        $this->pdfTotalRow($pdf, [
+            ['w' => $taxWidths[0], 'text' => 'TOTAL TRIBUTOS', 'align' => 'R'],
+            ['w' => $taxWidths[1], 'text' => 'R$ ' . number_format($totalTributos, 2, ',', '.'), 'align' => 'R'],
+            ['w' => $taxWidths[2], 'text' => '100%', 'align' => 'C'],
+        ]);
+
+        // Detalhamento por NCM/CFOP
+        if (!empty($data['items'])) {
+            $pdf->Ln(4);
+            $pdf->SetFont('helvetica', 'B', 10);
+            $pdf->SetTextColor(52, 73, 94);
+            $pdf->Cell(0, 7, 'Detalhamento por NCM / CFOP', 0, 1, 'L');
+            $pdf->SetTextColor(51, 51, 51);
+
+            $detHeaders = ['NCM', 'CFOP', 'Qtd', 'Valor (R$)', 'ICMS (R$)', 'PIS (R$)', 'COFINS (R$)'];
+            $detWidths  = [24, 18, 14, 30, 28, 28, 28];
+            $this->pdfTableHeader($pdf, $detHeaders, $detWidths);
+
+            $fill = false;
+            foreach (array_slice($data['items'], 0, 30) as $item) {
+                $this->pdfTableRow($pdf, $detWidths, [
+                    $item['ncm'] ?? '-',
+                    $item['cfop'] ?? '-',
+                    $item['qtd_itens'],
+                    number_format((float) $item['valor_total'], 2, ',', '.'),
+                    number_format((float) $item['icms'], 2, ',', '.'),
+                    number_format((float) $item['pis'], 2, ',', '.'),
+                    number_format((float) $item['cofins'], 2, ',', '.'),
+                ], ['C', 'C', 'C', 'R', 'R', 'R', 'R'], $fill);
+                $fill = !$fill;
+            }
+        }
+
+        $this->pdfFooter($pdf);
+        $this->sendPdf($pdf, 'impostos_periodo_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PDF — NF-e POR CLIENTE
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportPdfNfesByCustomer(string $start, string $end): void
+    {
+        $customerId = Input::get('customer_id', 'int', null);
+        $data = $this->nfeReport->getNfesByCustomer($start, $end, $customerId ?: null);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $totalNfes = array_sum(array_column($data, 'total_nfes'));
+        $totalValue = array_sum(array_column($data, 'valor_total'));
+
+        $pdf = $this->createPdf('NF-e por Cliente');
+
+        $this->pdfSummaryBox($pdf, [
+            'Período'         => $period,
+            'Clientes'        => count($data),
+            'Total NF-e'      => $totalNfes,
+            'Valor Total'     => 'R$ ' . number_format($totalValue, 2, ',', '.'),
+        ]);
+
+        $headers = ['Cliente', 'CPF/CNPJ', 'Qtd NF-e', 'Valor Total (R$)', 'Primeira', 'Última'];
+        $widths  = [50, 36, 18, 32, 26, 26];
+        $aligns  = ['L', 'C', 'C', 'R', 'C', 'C'];
+        $this->pdfTableHeader($pdf, $headers, $widths);
+
+        $fill = false;
+        foreach ($data as $row) {
+            $this->pdfTableRow($pdf, $widths, [
+                mb_substr($row['customer_name'] ?? 'N/A', 0, 30),
+                $row['dest_cnpj_cpf'] ?? '-',
+                $row['total_nfes'],
+                'R$ ' . number_format((float) $row['valor_total'], 2, ',', '.'),
+                $row['primeira_emissao'] ?? '-',
+                $row['ultima_emissao'] ?? '-',
+            ], $aligns, $fill);
+            $fill = !$fill;
+        }
+
+        $this->pdfTotalRow($pdf, [
+            ['w' => $widths[0] + $widths[1], 'text' => 'TOTAL (' . count($data) . ' clientes)', 'align' => 'R'],
+            ['w' => $widths[2], 'text' => (string) $totalNfes, 'align' => 'C'],
+            ['w' => $widths[3], 'text' => 'R$ ' . number_format($totalValue, 2, ',', '.'), 'align' => 'R'],
+            ['w' => $widths[4] + $widths[5], 'text' => '', 'align' => 'C'],
+        ]);
+
+        $this->pdfFooter($pdf);
+        $this->sendPdf($pdf, 'nfe_cliente_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PDF — RESUMO CFOP
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportPdfCfopSummary(string $start, string $end): void
+    {
+        $data = $this->nfeReport->getCfopSummary($start, $end);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $totalValue = array_sum(array_column($data, 'valor_total'));
+
+        $pdf = $this->createPdf('Resumo por CFOP');
+
+        $this->pdfSummaryBox($pdf, [
+            'Período'        => $period,
+            'CFOPs Utilizados' => count($data),
+            'Valor Total'    => 'R$ ' . number_format($totalValue, 2, ',', '.'),
+        ]);
+
+        $headers = ['CFOP', 'Descrição', 'NF-e', 'Itens', 'Valor (R$)', 'ICMS (R$)'];
+        $widths  = [16, 55, 16, 16, 36, 36];
+        $aligns  = ['C', 'L', 'C', 'C', 'R', 'R'];
+        $this->pdfTableHeader($pdf, $headers, $widths);
+
+        $fill = false;
+        foreach ($data as $row) {
+            $this->pdfTableRow($pdf, $widths, [
+                $row['cfop'],
+                mb_substr(NfeReportModel::getCfopDescription($row['cfop']), 0, 35),
+                $row['qtd_nfes'],
+                $row['qtd_itens'],
+                number_format((float) $row['valor_total'], 2, ',', '.'),
+                number_format((float) $row['icms_total'], 2, ',', '.'),
+            ], $aligns, $fill);
+            $fill = !$fill;
+        }
+
+        $this->pdfTotalRow($pdf, [
+            ['w' => $widths[0] + $widths[1] + $widths[2] + $widths[3], 'text' => 'TOTAL', 'align' => 'R'],
+            ['w' => $widths[4], 'text' => 'R$ ' . number_format($totalValue, 2, ',', '.'), 'align' => 'R'],
+            ['w' => $widths[5], 'text' => 'R$ ' . number_format(array_sum(array_column($data, 'icms_total')), 2, ',', '.'), 'align' => 'R'],
+        ]);
+
+        $this->pdfFooter($pdf);
+        $this->sendPdf($pdf, 'cfop_resumo_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PDF — NF-e CANCELADAS
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportPdfCancelledNfes(string $start, string $end): void
+    {
+        $data = $this->nfeReport->getCancelledNfes($start, $end);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $totalValue = array_sum(array_column($data, 'valor_total'));
+
+        $pdf = $this->createPdf('NF-e Canceladas');
+
+        $this->pdfSummaryBox($pdf, [
+            'Período'        => $period,
+            'Canceladas'     => count($data),
+            'Valor Cancelado'=> 'R$ ' . number_format($totalValue, 2, ',', '.'),
+        ]);
+
+        $headers = ['Número', 'Destinatário', 'Valor (R$)', 'Data Emissão', 'Data Cancel.', 'Motivo'];
+        $widths  = [18, 40, 26, 26, 26, 44];
+        $aligns  = ['C', 'L', 'R', 'C', 'C', 'L'];
+        $this->pdfTableHeader($pdf, $headers, $widths);
+
+        $fill = false;
+        foreach ($data as $row) {
+            $this->pdfTableRow($pdf, $widths, [
+                $row['numero'] . '/' . $row['serie'],
+                mb_substr($row['dest_nome'] ?? 'N/A', 0, 24),
+                number_format((float) $row['valor_total'], 2, ',', '.'),
+                $row['emitted_at_fmt'] ?? '-',
+                $row['cancel_date_fmt'] ?? '-',
+                mb_substr($row['cancel_motivo'] ?? '-', 0, 28),
+            ], $aligns, $fill);
+            $fill = !$fill;
+        }
+
+        $this->pdfTotalRow($pdf, [
+            ['w' => $widths[0] + $widths[1], 'text' => 'TOTAL (' . count($data) . ' canceladas)', 'align' => 'R'],
+            ['w' => $widths[2], 'text' => 'R$ ' . number_format($totalValue, 2, ',', '.'), 'align' => 'R'],
+            ['w' => $widths[3] + $widths[4] + $widths[5], 'text' => '', 'align' => 'C'],
+        ]);
+
+        $this->pdfFooter($pdf);
+        $this->sendPdf($pdf, 'nfe_canceladas_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PDF — INUTILIZAÇÕES
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportPdfInutilizacoes(string $start, string $end): void
+    {
+        $data = $this->nfeReport->getInutilizacoes($start, $end);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $pdf = $this->createPdf('Numerações Inutilizadas');
+
+        $this->pdfSummaryBox($pdf, [
+            'Período'           => $period,
+            'Inutilizações'     => count($data),
+        ]);
+
+        $headers = ['#', 'Número', 'Série', 'Modelo', 'Justificativa', 'Data'];
+        $widths  = [12, 22, 16, 18, 72, 40];
+        $aligns  = ['C', 'C', 'C', 'C', 'L', 'C'];
+        $this->pdfTableHeader($pdf, $headers, $widths);
+
+        $fill = false;
+        foreach ($data as $row) {
+            $this->pdfTableRow($pdf, $widths, [
+                $row['id'],
+                $row['numero'],
+                $row['serie'],
+                NfeReportModel::getModeloLabel((int) $row['modelo']),
+                mb_substr($row['justificativa'] ?? '-', 0, 45),
+                $row['created_at_fmt'],
+            ], $aligns, $fill);
+            $fill = !$fill;
+        }
+
+        $this->pdfFooter($pdf);
+        $this->sendPdf($pdf, 'inutilizacoes_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PDF — LOGS SEFAZ
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportPdfSefazLogs(string $start, string $end): void
+    {
+        $actionFilter = Input::get('log_action', 'string', '');
+        $data = $this->nfeReport->getSefazLogs($start, $end, $actionFilter ?: null);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $pdf = $this->createPdf('Log de Comunicação SEFAZ');
+
+        $this->pdfSummaryBox($pdf, [
+            'Período'       => $period,
+            'Total Registros' => count($data),
+        ]);
+
+        $headers = ['NF-e', 'Ação', 'Status', 'Código', 'Mensagem', 'Usuário', 'Data'];
+        $widths  = [18, 22, 16, 16, 50, 24, 34];
+        $aligns  = ['C', 'C', 'C', 'C', 'L', 'C', 'C'];
+        $this->pdfTableHeader($pdf, $headers, $widths);
+
+        $fill = false;
+        foreach ($data as $row) {
+            $nfeLabel = $row['nfe_numero'] ? $row['nfe_numero'] . '/' . $row['nfe_serie'] : '-';
+            $this->pdfTableRow($pdf, $widths, [
+                $nfeLabel,
+                NfeReportModel::getLogActionLabel($row['action']),
+                $row['status'],
+                $row['code_sefaz'] ?? '-',
+                mb_substr($row['message'] ?? '-', 0, 32),
+                mb_substr($row['user_name'] ?? 'Sistema', 0, 14),
+                $row['created_at_fmt'],
+            ], $aligns, $fill);
+            $fill = !$fill;
+        }
+
+        $this->pdfFooter($pdf);
+        $this->sendPdf($pdf, 'sefaz_logs_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // EXCEL — NF-e POR PERÍODO
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportExcelNfesByPeriod(string $start, string $end): void
+    {
+        $statusFilter = Input::get('nfe_status', 'string', '');
+        $modeloFilter = Input::get('nfe_modelo', 'string', '');
+        $filters = [];
+        if ($statusFilter) $filters['status'] = $statusFilter;
+        if ($modeloFilter) $filters['modelo'] = $modeloFilter;
+
+        $data = $this->nfeReport->getNfesByPeriod($start, $end, $filters);
+        $kpis = $this->nfeReport->getFiscalKpis($start, $end);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('NF-e por Período');
+        $cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+        $lastCol = 'G';
+
+        $row = $this->excelCompanyHeader($sheet, 'Relatório de NF-e por Período', $lastCol);
+        $row = $this->excelSummaryBlock($sheet, $row, $lastCol, [
+            'Período'     => $period,
+            'Total NF-e'  => (int) $kpis['total_emitidas'],
+            'Autorizadas' => (int) $kpis['autorizadas'],
+            'Canceladas'  => (int) $kpis['canceladas'],
+            'Valor'       => 'R$ ' . number_format((float) $kpis['valor_autorizado'], 2, ',', '.'),
+        ]);
+
+        $headers = ['#', 'Modelo', 'Número/Série', 'Destinatário', 'Valor (R$)', 'Status', 'Data Emissão'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValue($cols[$i] . $row, $h);
+        }
+        $this->styleExcelHeader($sheet, "A{$row}:{$lastCol}{$row}");
+        $row++;
+
+        $dataStartRow = $row;
+        foreach ($data as $i => $item) {
+            $sheet->setCellValue('A' . $row, $item['id']);
+            $sheet->setCellValue('B' . $row, NfeReportModel::getModeloLabel((int) $item['modelo']));
+            $sheet->setCellValue('C' . $row, $item['numero'] . '/' . $item['serie']);
+            $sheet->setCellValue('D' . $row, $item['dest_nome'] ?? 'Consumidor');
+            $sheet->setCellValue('E' . $row, (float) $item['valor_total']);
+            $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->setCellValue('F' . $row, NfeReportModel::getNfeStatusLabel($item['status']));
+            $sheet->setCellValue('G' . $row, $item['emitted_at_fmt'] ?: $item['created_at_fmt']);
+            $this->styleExcelDataRow($sheet, "A{$row}:{$lastCol}{$row}", $i % 2 === 1);
+            $row++;
+        }
+
+        $sheet->setCellValue('A' . $row, 'TOTAL');
+        $sheet->setCellValue('D' . $row, count($data) . ' documentos');
+        $sheet->setCellValue('E' . $row, '=SUM(E' . $dataStartRow . ':E' . ($row - 1) . ')');
+        $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+        $this->styleExcelTotalRow($sheet, "A{$row}:{$lastCol}{$row}");
+        $row += 2;
+        $this->excelFooter($sheet, $row, $lastCol);
+        $this->autoSizeColumns($sheet, $cols);
+        $this->sendExcel($spreadsheet, 'nfe_periodo_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // EXCEL — RESUMO DE IMPOSTOS
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportExcelTaxSummary(string $start, string $end): void
+    {
+        $data = $this->nfeReport->getTaxSummary($start, $end);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+        $totals = $data['totals'];
+        $totalTributos = (float) $totals['total_icms'] + (float) $totals['total_pis']
+                       + (float) $totals['total_cofins'] + (float) $totals['total_ipi'];
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Resumo de Impostos');
+        $cols = ['A', 'B', 'C'];
+        $lastCol = 'C';
+
+        $row = $this->excelCompanyHeader($sheet, 'Resumo de Impostos por Período', $lastCol);
+        $row = $this->excelSummaryBlock($sheet, $row, $lastCol, [
+            'Período'    => $period,
+            'Total NF-e' => (int) $totals['total_nfes'],
+            'Tributos'   => 'R$ ' . number_format($totalTributos, 2, ',', '.'),
+        ]);
+
+        $headers = ['Imposto', 'Valor Total (R$)', '% do Total'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValue($cols[$i] . $row, $h);
+        }
+        $this->styleExcelHeader($sheet, "A{$row}:{$lastCol}{$row}");
+        $row++;
+
+        $taxes = [
+            ['ICMS', (float) $totals['total_icms']],
+            ['PIS', (float) $totals['total_pis']],
+            ['COFINS', (float) $totals['total_cofins']],
+            ['IPI', (float) $totals['total_ipi']],
+        ];
+        foreach ($taxes as $i => $tax) {
+            $pct = $totalTributos > 0 ? ($tax[1] / $totalTributos * 100) : 0;
+            $sheet->setCellValue('A' . $row, $tax[0]);
+            $sheet->setCellValue('B' . $row, $tax[1]);
+            $sheet->getStyle('B' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->setCellValue('C' . $row, number_format($pct, 1) . '%');
+            $this->styleExcelDataRow($sheet, "A{$row}:{$lastCol}{$row}", $i % 2 === 1);
+            $row++;
+        }
+
+        $sheet->setCellValue('A' . $row, 'TOTAL');
+        $sheet->setCellValue('B' . $row, $totalTributos);
+        $sheet->getStyle('B' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->setCellValue('C' . $row, '100%');
+        $this->styleExcelTotalRow($sheet, "A{$row}:{$lastCol}{$row}");
+        $row += 2;
+
+        // Aba detalhada NCM/CFOP
+        if (!empty($data['items'])) {
+            $detSheet = $spreadsheet->createSheet();
+            $detSheet->setTitle('Detalhamento NCM-CFOP');
+            $detCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+            $detLastCol = 'G';
+
+            $dRow = $this->excelCompanyHeader($detSheet, 'Detalhamento por NCM / CFOP', $detLastCol);
+
+            $detHeaders = ['NCM', 'CFOP', 'Qtd Itens', 'Valor (R$)', 'ICMS (R$)', 'PIS (R$)', 'COFINS (R$)'];
+            foreach ($detHeaders as $i => $h) {
+                $detSheet->setCellValue($detCols[$i] . $dRow, $h);
+            }
+            $this->styleExcelHeader($detSheet, "A{$dRow}:{$detLastCol}{$dRow}");
+            $dRow++;
+
+            foreach ($data['items'] as $i => $item) {
+                $detSheet->setCellValue('A' . $dRow, $item['ncm'] ?? '-');
+                $detSheet->setCellValue('B' . $dRow, $item['cfop'] ?? '-');
+                $detSheet->setCellValue('C' . $dRow, (int) $item['qtd_itens']);
+                $detSheet->setCellValue('D' . $dRow, (float) $item['valor_total']);
+                $detSheet->setCellValue('E' . $dRow, (float) $item['icms']);
+                $detSheet->setCellValue('F' . $dRow, (float) $item['pis']);
+                $detSheet->setCellValue('G' . $dRow, (float) $item['cofins']);
+                foreach (['D', 'E', 'F', 'G'] as $c) {
+                    $detSheet->getStyle($c . $dRow)->getNumberFormat()->setFormatCode('#,##0.00');
+                }
+                $this->styleExcelDataRow($detSheet, "A{$dRow}:{$detLastCol}{$dRow}", $i % 2 === 1);
+                $dRow++;
+            }
+            $this->autoSizeColumns($detSheet, $detCols);
+        }
+
+        $this->excelFooter($sheet, $row, $lastCol);
+        $this->autoSizeColumns($sheet, $cols);
+        $spreadsheet->setActiveSheetIndex(0);
+        $this->sendExcel($spreadsheet, 'impostos_periodo_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // EXCEL — NF-e POR CLIENTE
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportExcelNfesByCustomer(string $start, string $end): void
+    {
+        $customerId = Input::get('customer_id', 'int', null);
+        $data = $this->nfeReport->getNfesByCustomer($start, $end, $customerId ?: null);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $totalNfes = array_sum(array_column($data, 'total_nfes'));
+        $totalValue = array_sum(array_column($data, 'valor_total'));
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('NF-e por Cliente');
+        $cols = ['A', 'B', 'C', 'D', 'E', 'F'];
+        $lastCol = 'F';
+
+        $row = $this->excelCompanyHeader($sheet, 'NF-e por Cliente', $lastCol);
+        $row = $this->excelSummaryBlock($sheet, $row, $lastCol, [
+            'Período'    => $period,
+            'Clientes'   => count($data),
+            'Total NF-e' => $totalNfes,
+            'Valor'      => 'R$ ' . number_format($totalValue, 2, ',', '.'),
+        ]);
+
+        $headers = ['Cliente', 'CPF/CNPJ', 'Qtd NF-e', 'Valor Total (R$)', 'Primeira', 'Última'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValue($cols[$i] . $row, $h);
+        }
+        $this->styleExcelHeader($sheet, "A{$row}:{$lastCol}{$row}");
+        $row++;
+
+        $dataStartRow = $row;
+        foreach ($data as $i => $item) {
+            $sheet->setCellValue('A' . $row, $item['customer_name'] ?? 'N/A');
+            $sheet->setCellValue('B' . $row, $item['dest_cnpj_cpf'] ?? '-');
+            $sheet->setCellValue('C' . $row, (int) $item['total_nfes']);
+            $sheet->setCellValue('D' . $row, (float) $item['valor_total']);
+            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->setCellValue('E' . $row, $item['primeira_emissao'] ?? '-');
+            $sheet->setCellValue('F' . $row, $item['ultima_emissao'] ?? '-');
+            $this->styleExcelDataRow($sheet, "A{$row}:{$lastCol}{$row}", $i % 2 === 1);
+            $row++;
+        }
+
+        $sheet->setCellValue('A' . $row, 'TOTAL');
+        $sheet->setCellValue('B' . $row, count($data) . ' clientes');
+        $sheet->setCellValue('C' . $row, '=SUM(C' . $dataStartRow . ':C' . ($row - 1) . ')');
+        $sheet->setCellValue('D' . $row, '=SUM(D' . $dataStartRow . ':D' . ($row - 1) . ')');
+        $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+        $this->styleExcelTotalRow($sheet, "A{$row}:{$lastCol}{$row}");
+        $row += 2;
+        $this->excelFooter($sheet, $row, $lastCol);
+        $this->autoSizeColumns($sheet, $cols);
+        $this->sendExcel($spreadsheet, 'nfe_cliente_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // EXCEL — RESUMO CFOP
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportExcelCfopSummary(string $start, string $end): void
+    {
+        $data = $this->nfeReport->getCfopSummary($start, $end);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Resumo CFOP');
+        $cols = ['A', 'B', 'C', 'D', 'E', 'F'];
+        $lastCol = 'F';
+
+        $row = $this->excelCompanyHeader($sheet, 'Resumo por CFOP', $lastCol);
+        $row = $this->excelSummaryBlock($sheet, $row, $lastCol, [
+            'Período'         => $period,
+            'CFOPs utilizados'=> count($data),
+            'Valor Total'     => 'R$ ' . number_format(array_sum(array_column($data, 'valor_total')), 2, ',', '.'),
+        ]);
+
+        $headers = ['CFOP', 'Descrição', 'NF-e', 'Itens', 'Valor (R$)', 'ICMS (R$)'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValue($cols[$i] . $row, $h);
+        }
+        $this->styleExcelHeader($sheet, "A{$row}:{$lastCol}{$row}");
+        $row++;
+
+        $dataStartRow = $row;
+        foreach ($data as $i => $item) {
+            $sheet->setCellValue('A' . $row, $item['cfop']);
+            $sheet->setCellValue('B' . $row, NfeReportModel::getCfopDescription($item['cfop']));
+            $sheet->setCellValue('C' . $row, (int) $item['qtd_nfes']);
+            $sheet->setCellValue('D' . $row, (int) $item['qtd_itens']);
+            $sheet->setCellValue('E' . $row, (float) $item['valor_total']);
+            $sheet->setCellValue('F' . $row, (float) $item['icms_total']);
+            foreach (['E', 'F'] as $c) {
+                $sheet->getStyle($c . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            }
+            $this->styleExcelDataRow($sheet, "A{$row}:{$lastCol}{$row}", $i % 2 === 1);
+            $row++;
+        }
+
+        $sheet->setCellValue('A' . $row, 'TOTAL');
+        $sheet->setCellValue('E' . $row, '=SUM(E' . $dataStartRow . ':E' . ($row - 1) . ')');
+        $sheet->setCellValue('F' . $row, '=SUM(F' . $dataStartRow . ':F' . ($row - 1) . ')');
+        foreach (['E', 'F'] as $c) {
+            $sheet->getStyle($c . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+        }
+        $this->styleExcelTotalRow($sheet, "A{$row}:{$lastCol}{$row}");
+        $row += 2;
+        $this->excelFooter($sheet, $row, $lastCol);
+        $this->autoSizeColumns($sheet, $cols);
+        $this->sendExcel($spreadsheet, 'cfop_resumo_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // EXCEL — NF-e CANCELADAS
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportExcelCancelledNfes(string $start, string $end): void
+    {
+        $data = $this->nfeReport->getCancelledNfes($start, $end);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('NF-e Canceladas');
+        $cols = ['A', 'B', 'C', 'D', 'E', 'F'];
+        $lastCol = 'F';
+
+        $row = $this->excelCompanyHeader($sheet, 'NF-e Canceladas', $lastCol);
+        $row = $this->excelSummaryBlock($sheet, $row, $lastCol, [
+            'Período'    => $period,
+            'Canceladas' => count($data),
+            'Valor Total'=> 'R$ ' . number_format(array_sum(array_column($data, 'valor_total')), 2, ',', '.'),
+        ]);
+
+        $headers = ['Número/Série', 'Destinatário', 'Valor (R$)', 'Data Emissão', 'Data Cancelamento', 'Motivo'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValue($cols[$i] . $row, $h);
+        }
+        $this->styleExcelHeader($sheet, "A{$row}:{$lastCol}{$row}");
+        $row++;
+
+        foreach ($data as $i => $item) {
+            $sheet->setCellValue('A' . $row, $item['numero'] . '/' . $item['serie']);
+            $sheet->setCellValue('B' . $row, $item['dest_nome'] ?? 'N/A');
+            $sheet->setCellValue('C' . $row, (float) $item['valor_total']);
+            $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->setCellValue('D' . $row, $item['emitted_at_fmt'] ?? '-');
+            $sheet->setCellValue('E' . $row, $item['cancel_date_fmt'] ?? '-');
+            $sheet->setCellValue('F' . $row, $item['cancel_motivo'] ?? '-');
+            $this->styleExcelDataRow($sheet, "A{$row}:{$lastCol}{$row}", $i % 2 === 1);
+            $row++;
+        }
+
+        $row += 1;
+        $this->excelFooter($sheet, $row, $lastCol);
+        $this->autoSizeColumns($sheet, $cols);
+        $this->sendExcel($spreadsheet, 'nfe_canceladas_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // EXCEL — INUTILIZAÇÕES
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportExcelInutilizacoes(string $start, string $end): void
+    {
+        $data = $this->nfeReport->getInutilizacoes($start, $end);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Inutilizações');
+        $cols = ['A', 'B', 'C', 'D', 'E', 'F'];
+        $lastCol = 'F';
+
+        $row = $this->excelCompanyHeader($sheet, 'Numerações Inutilizadas', $lastCol);
+        $row = $this->excelSummaryBlock($sheet, $row, $lastCol, [
+            'Período'       => $period,
+            'Inutilizações' => count($data),
+        ]);
+
+        $headers = ['#', 'Número', 'Série', 'Modelo', 'Justificativa', 'Data'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValue($cols[$i] . $row, $h);
+        }
+        $this->styleExcelHeader($sheet, "A{$row}:{$lastCol}{$row}");
+        $row++;
+
+        foreach ($data as $i => $item) {
+            $sheet->setCellValue('A' . $row, $item['id']);
+            $sheet->setCellValue('B' . $row, $item['numero']);
+            $sheet->setCellValue('C' . $row, $item['serie']);
+            $sheet->setCellValue('D' . $row, NfeReportModel::getModeloLabel((int) $item['modelo']));
+            $sheet->setCellValue('E' . $row, $item['justificativa'] ?? '-');
+            $sheet->setCellValue('F' . $row, $item['created_at_fmt']);
+            $this->styleExcelDataRow($sheet, "A{$row}:{$lastCol}{$row}", $i % 2 === 1);
+            $row++;
+        }
+
+        $row += 1;
+        $this->excelFooter($sheet, $row, $lastCol);
+        $this->autoSizeColumns($sheet, $cols);
+        $this->sendExcel($spreadsheet, 'inutilizacoes_' . $start . '_' . $end);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // EXCEL — LOGS SEFAZ
+    // ═══════════════════════════════════════════════════════════════
+
+    private function exportExcelSefazLogs(string $start, string $end): void
+    {
+        $actionFilter = Input::get('log_action', 'string', '');
+        $data = $this->nfeReport->getSefazLogs($start, $end, $actionFilter ?: null);
+        $period = date('d/m/Y', strtotime($start)) . ' a ' . date('d/m/Y', strtotime($end));
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Logs SEFAZ');
+        $cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+        $lastCol = 'G';
+
+        $row = $this->excelCompanyHeader($sheet, 'Log de Comunicação SEFAZ', $lastCol);
+        $row = $this->excelSummaryBlock($sheet, $row, $lastCol, [
+            'Período'         => $period,
+            'Total Registros' => count($data),
+        ]);
+
+        $headers = ['NF-e', 'Ação', 'Status', 'Código SEFAZ', 'Mensagem', 'Usuário', 'Data/Hora'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValue($cols[$i] . $row, $h);
+        }
+        $this->styleExcelHeader($sheet, "A{$row}:{$lastCol}{$row}");
+        $row++;
+
+        foreach ($data as $i => $item) {
+            $nfeLabel = $item['nfe_numero'] ? $item['nfe_numero'] . '/' . $item['nfe_serie'] : '-';
+            $sheet->setCellValue('A' . $row, $nfeLabel);
+            $sheet->setCellValue('B' . $row, NfeReportModel::getLogActionLabel($item['action']));
+            $sheet->setCellValue('C' . $row, $item['status']);
+            $sheet->setCellValue('D' . $row, $item['code_sefaz'] ?? '-');
+            $sheet->setCellValue('E' . $row, $item['message'] ?? '-');
+            $sheet->setCellValue('F' . $row, $item['user_name'] ?? 'Sistema');
+            $sheet->setCellValue('G' . $row, $item['created_at_fmt']);
+            $this->styleExcelDataRow($sheet, "A{$row}:{$lastCol}{$row}", $i % 2 === 1);
+            $row++;
+        }
+
+        $row += 1;
+        $this->excelFooter($sheet, $row, $lastCol);
+        $this->autoSizeColumns($sheet, $cols);
+        $this->sendExcel($spreadsheet, 'sefaz_logs_' . $start . '_' . $end);
     }
 
     // ═══════════════════════════════════════════════════════════════

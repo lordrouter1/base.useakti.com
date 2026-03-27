@@ -88,13 +88,13 @@ if (!isset($unreadMessages)) {
                    class="portal-desktop-link <?= $currentAction === 'tracking' ? 'active' : '' ?>">
                     <i class="fas fa-truck me-1"></i> <?= __p('tracking_title') ?>
                 </a>
-                <a href="?page=portal&action=messages"
+                <!--<a href="?page=portal&action=messages"
                    class="portal-desktop-link portal-desktop-link-badge <?= $currentAction === 'messages' ? 'active' : '' ?>">
                     <i class="fas fa-comments me-1"></i> <?= __p('messages_title') ?>
                     <?php if ($unreadMessages > 0): ?>
                         <span class="portal-nav-badge"><?= (int) $unreadMessages ?></span>
                     <?php endif; ?>
-                </a>
+                </a>-->
                 <a href="?page=portal&action=documents"
                    class="portal-desktop-link <?= $currentAction === 'documents' ? 'active' : '' ?>">
                     <i class="fas fa-file-alt me-1"></i> <?= __p('documents_title') ?>

@@ -8,7 +8,7 @@
  */
 
 $activeCategory = $_GET['cat'] ?? 'vendas';
-$validCategories = ['vendas', 'financeiro', 'cobranca', 'agendamentos', 'produtos', 'comissoes'];
+$validCategories = ['vendas', 'financeiro', 'cobranca', 'agendamentos', 'produtos', 'comissoes', 'fiscal'];
 if (!in_array($activeCategory, $validCategories)) $activeCategory = 'vendas';
 ?>
 
@@ -62,12 +62,7 @@ if (!in_array($activeCategory, $validCategories)) $activeCategory = 'vendas';
     <div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-2 mb-4 border-bottom">
         <div>
             <h1 class="h2 mb-1"><i class="fas fa-chart-bar me-2 text-primary"></i>Relatórios</h1>
-            <p class="text-muted mb-0" style="font-size:.82rem;">Central de relatórios do sistema — vendas, financeiro, cobrança, agendamentos, produtos e comissões.</p>
-        </div>
-        <div class="btn-toolbar gap-2">
-            <a href="?page=dashboard" class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
-            </a>
+            <p class="text-muted mb-0" style="font-size:.82rem;">Central de relatórios do sistema — vendas, financeiro, cobrança, agendamentos, produtos, comissões e fiscal.</p>
         </div>
     </div>
 
@@ -129,6 +124,16 @@ if (!in_array($activeCategory, $validCategories)) $activeCategory = 'vendas';
                             </span>
                             <span>Comissões</span>
                             <span class="rpt-nav-count" style="background:rgba(142,68,173,.1);color:#8e44ad;">1</span>
+                        </a>
+
+                        <div class="rpt-sidebar-label">Fiscal</div>
+
+                        <a href="#" class="rpt-nav-item <?= $activeCategory === 'fiscal' ? 'active' : '' ?>" data-cat="fiscal">
+                            <span class="rpt-nav-icon" style="background:rgba(41,128,185,.1);color:#2980b9;">
+                                <i class="fas fa-file-invoice"></i>
+                            </span>
+                            <span>NF-e / NFC-e</span>
+                            <span class="rpt-nav-count" style="background:rgba(41,128,185,.1);color:#2980b9;">7</span>
                         </a>
 
                     </nav>
@@ -605,6 +610,316 @@ if (!in_array($activeCategory, $validCategories)) $activeCategory = 'vendas';
                                             <?php foreach ($usersList as $uItem): ?>
                                                 <option value="<?= eAttr($uItem['id']) ?>"><?= e($uItem['name']) ?></option>
                                             <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-danger rpt-export-btn flex-fill rpt-custom-btn" data-action="exportPdf">
+                                            <i class="fas fa-file-pdf me-1"></i> PDF
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success rpt-export-btn flex-fill rpt-custom-btn" data-action="exportExcel">
+                                            <i class="fas fa-file-excel me-1"></i> Excel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- CATEGORIA: Fiscal (NF-e / NFC-e)       -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="rpt-section <?= $activeCategory === 'fiscal' ? 'active' : '' ?>" id="cat-fiscal">
+
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rpt-icon-circle me-2" style="background:rgba(41,128,185,.1);width:34px;height:34px;">
+                        <i class="fas fa-file-invoice" style="color:#2980b9;font-size:.85rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0" style="font-size:1rem;">Fiscal — NF-e / NFC-e</h5>
+                        <p class="text-muted mb-0" style="font-size:.72rem;">Relatórios de documentos fiscais, impostos, CFOP, cancelamentos e comunicação SEFAZ.</p>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+
+                    <!-- ── 1. NF-e por Período ── -->
+                    <div class="col-xl-6">
+                        <div class="card border-0 shadow-sm h-100 rpt-card">
+                            <div class="card-header py-2" style="background:linear-gradient(135deg,#2980b9 0%,#3498db 100%);">
+                                <h6 class="mb-0 text-white" style="font-size:.85rem;">
+                                    <i class="fas fa-file-invoice-dollar me-2"></i>NF-e por Período
+                                </h6>
+                            </div>
+                            <div class="card-body p-3 d-flex flex-column">
+                                <p class="rpt-desc mb-3">Lista de todas as notas fiscais emitidas no período, com número, série, destinatário, valor, status e chave de acesso.</p>
+                                <form class="rpt-form-custom mt-auto" data-type="nfes_period">
+                                    <?= csrf_field() ?>
+                                    <div class="row g-2 mb-2 rpt-period-row">
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">De</label>
+                                            <input type="date" class="form-control form-control-sm" name="start" required value="<?= eAttr(date('Y-m-01')) ?>">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">Até</label>
+                                            <input type="date" class="form-control form-control-sm" name="end" required value="<?= eAttr(date('Y-m-d')) ?>">
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:#999;">Status</label>
+                                            <select name="nfe_status" class="form-select form-select-sm" style="border-radius:8px;font-size:.8rem;">
+                                                <option value="">— Todos —</option>
+                                                <option value="autorizada">Autorizada</option>
+                                                <option value="cancelada">Cancelada</option>
+                                                <option value="rejeitada">Rejeitada</option>
+                                                <option value="inutilizada">Inutilizada</option>
+                                                <option value="processando">Processando</option>
+                                                <option value="rascunho">Rascunho</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:#999;">Modelo</label>
+                                            <select name="nfe_modelo" class="form-select form-select-sm" style="border-radius:8px;font-size:.8rem;">
+                                                <option value="">— Todos —</option>
+                                                <option value="55">NF-e (55)</option>
+                                                <option value="65">NFC-e (65)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-danger rpt-export-btn flex-fill rpt-custom-btn" data-action="exportPdf">
+                                            <i class="fas fa-file-pdf me-1"></i> PDF
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success rpt-export-btn flex-fill rpt-custom-btn" data-action="exportExcel">
+                                            <i class="fas fa-file-excel me-1"></i> Excel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── 2. Resumo de Impostos ── -->
+                    <div class="col-xl-6">
+                        <div class="card border-0 shadow-sm h-100 rpt-card">
+                            <div class="card-header py-2" style="background:linear-gradient(135deg,#e67e22 0%,#f39c12 100%);">
+                                <h6 class="mb-0 text-white" style="font-size:.85rem;">
+                                    <i class="fas fa-calculator me-2"></i>Resumo de Impostos
+                                </h6>
+                            </div>
+                            <div class="card-body p-3 d-flex flex-column">
+                                <p class="rpt-desc mb-3">Totalização de ICMS, PIS, COFINS e IPI das NF-e autorizadas, com detalhamento por NCM e CFOP.</p>
+                                <form class="rpt-form mt-auto" data-type="tax_summary">
+                                    <?= csrf_field() ?>
+                                    <div class="row g-2 mb-3 rpt-period-row">
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">De</label>
+                                            <input type="date" class="form-control form-control-sm" name="start" required value="<?= eAttr(date('Y-m-01')) ?>">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">Até</label>
+                                            <input type="date" class="form-control form-control-sm" name="end" required value="<?= eAttr(date('Y-m-d')) ?>">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-danger rpt-export-btn flex-fill" data-action="exportPdf">
+                                            <i class="fas fa-file-pdf me-1"></i> PDF
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success rpt-export-btn flex-fill" data-action="exportExcel">
+                                            <i class="fas fa-file-excel me-1"></i> Excel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── 3. NF-e por Cliente ── -->
+                    <div class="col-xl-6">
+                        <div class="card border-0 shadow-sm h-100 rpt-card">
+                            <div class="card-header py-2" style="background:linear-gradient(135deg,#27ae60 0%,#2ecc71 100%);">
+                                <h6 class="mb-0 text-white" style="font-size:.85rem;">
+                                    <i class="fas fa-users me-2"></i>NF-e por Cliente
+                                </h6>
+                            </div>
+                            <div class="card-body p-3 d-flex flex-column">
+                                <p class="rpt-desc mb-3">Ranking de clientes por volume e valor de NF-e autorizadas. Filtre por cliente específico ou veja todos.</p>
+                                <form class="rpt-form-custom mt-auto" data-type="nfes_customer">
+                                    <?= csrf_field() ?>
+                                    <div class="row g-2 mb-2 rpt-period-row">
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">De</label>
+                                            <input type="date" class="form-control form-control-sm" name="start" required value="<?= eAttr(date('Y-m-01')) ?>">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">Até</label>
+                                            <input type="date" class="form-control form-control-sm" name="end" required value="<?= eAttr(date('Y-m-d')) ?>">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:#999;">Cliente (opcional)</label>
+                                        <select name="customer_id" class="form-select form-select-sm" style="border-radius:8px;font-size:.8rem;">
+                                            <option value="">— Todos os clientes —</option>
+                                            <?php foreach ($nfeCustomersList as $ncItem): ?>
+                                                <option value="<?= eAttr($ncItem['id']) ?>"><?= e($ncItem['name']) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-danger rpt-export-btn flex-fill rpt-custom-btn" data-action="exportPdf">
+                                            <i class="fas fa-file-pdf me-1"></i> PDF
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success rpt-export-btn flex-fill rpt-custom-btn" data-action="exportExcel">
+                                            <i class="fas fa-file-excel me-1"></i> Excel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── 4. Resumo por CFOP ── -->
+                    <div class="col-xl-6">
+                        <div class="card border-0 shadow-sm h-100 rpt-card">
+                            <div class="card-header py-2" style="background:linear-gradient(135deg,#8e44ad 0%,#9b59b6 100%);">
+                                <h6 class="mb-0 text-white" style="font-size:.85rem;">
+                                    <i class="fas fa-layer-group me-2"></i>Resumo por CFOP
+                                </h6>
+                            </div>
+                            <div class="card-body p-3 d-flex flex-column">
+                                <p class="rpt-desc mb-3">Agrupamento por código CFOP com descrição, quantidade de itens, NF-e envolvidas, valor total e ICMS apurado.</p>
+                                <form class="rpt-form mt-auto" data-type="cfop_summary">
+                                    <?= csrf_field() ?>
+                                    <div class="row g-2 mb-3 rpt-period-row">
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">De</label>
+                                            <input type="date" class="form-control form-control-sm" name="start" required value="<?= eAttr(date('Y-m-01')) ?>">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">Até</label>
+                                            <input type="date" class="form-control form-control-sm" name="end" required value="<?= eAttr(date('Y-m-d')) ?>">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-danger rpt-export-btn flex-fill" data-action="exportPdf">
+                                            <i class="fas fa-file-pdf me-1"></i> PDF
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success rpt-export-btn flex-fill" data-action="exportExcel">
+                                            <i class="fas fa-file-excel me-1"></i> Excel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── 5. NF-e Canceladas ── -->
+                    <div class="col-xl-6">
+                        <div class="card border-0 shadow-sm h-100 rpt-card">
+                            <div class="card-header py-2" style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);">
+                                <h6 class="mb-0 text-white" style="font-size:.85rem;">
+                                    <i class="fas fa-ban me-2"></i>NF-e Canceladas
+                                </h6>
+                            </div>
+                            <div class="card-body p-3 d-flex flex-column">
+                                <p class="rpt-desc mb-3">Notas fiscais canceladas com motivo do cancelamento, protocolo, data de emissão e data do cancelamento.</p>
+                                <form class="rpt-form mt-auto" data-type="cancelled_nfes">
+                                    <?= csrf_field() ?>
+                                    <div class="row g-2 mb-3 rpt-period-row">
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">De</label>
+                                            <input type="date" class="form-control form-control-sm" name="start" required value="<?= eAttr(date('Y-m-01')) ?>">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">Até</label>
+                                            <input type="date" class="form-control form-control-sm" name="end" required value="<?= eAttr(date('Y-m-d')) ?>">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-danger rpt-export-btn flex-fill" data-action="exportPdf">
+                                            <i class="fas fa-file-pdf me-1"></i> PDF
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success rpt-export-btn flex-fill" data-action="exportExcel">
+                                            <i class="fas fa-file-excel me-1"></i> Excel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── 6. Inutilizações ── -->
+                    <div class="col-xl-6">
+                        <div class="card border-0 shadow-sm h-100 rpt-card">
+                            <div class="card-header py-2" style="background:linear-gradient(135deg,#95a5a6 0%,#7f8c8d 100%);">
+                                <h6 class="mb-0 text-white" style="font-size:.85rem;">
+                                    <i class="fas fa-hashtag me-2"></i>Inutilizações
+                                </h6>
+                            </div>
+                            <div class="card-body p-3 d-flex flex-column">
+                                <p class="rpt-desc mb-3">Registro de numerações inutilizadas junto à SEFAZ, com série, modelo, protocolo e justificativa.</p>
+                                <form class="rpt-form mt-auto" data-type="inutilizacoes">
+                                    <?= csrf_field() ?>
+                                    <div class="row g-2 mb-3 rpt-period-row">
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">De</label>
+                                            <input type="date" class="form-control form-control-sm" name="start" required value="<?= eAttr(date('Y-m-01')) ?>">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">Até</label>
+                                            <input type="date" class="form-control form-control-sm" name="end" required value="<?= eAttr(date('Y-m-d')) ?>">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-danger rpt-export-btn flex-fill" data-action="exportPdf">
+                                            <i class="fas fa-file-pdf me-1"></i> PDF
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success rpt-export-btn flex-fill" data-action="exportExcel">
+                                            <i class="fas fa-file-excel me-1"></i> Excel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── 7. Logs de Comunicação SEFAZ ── -->
+                    <div class="col-xl-6">
+                        <div class="card border-0 shadow-sm h-100 rpt-card">
+                            <div class="card-header py-2" style="background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%);">
+                                <h6 class="mb-0 text-white" style="font-size:.85rem;">
+                                    <i class="fas fa-satellite-dish me-2"></i>Logs SEFAZ
+                                </h6>
+                            </div>
+                            <div class="card-body p-3 d-flex flex-column">
+                                <p class="rpt-desc mb-3">Histórico completo de comunicações com a SEFAZ — emissões, consultas, cancelamentos, erros e retornos.</p>
+                                <form class="rpt-form-custom mt-auto" data-type="sefaz_logs">
+                                    <?= csrf_field() ?>
+                                    <div class="row g-2 mb-2 rpt-period-row">
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">De</label>
+                                            <input type="date" class="form-control form-control-sm" name="start" required value="<?= eAttr(date('Y-m-01')) ?>">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label mb-1">Até</label>
+                                            <input type="date" class="form-control form-control-sm" name="end" required value="<?= eAttr(date('Y-m-d')) ?>">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:#999;">Tipo de Ação</label>
+                                        <select name="log_action" class="form-select form-select-sm" style="border-radius:8px;font-size:.8rem;">
+                                            <option value="">— Todas as ações —</option>
+                                            <option value="emissao">Emissão</option>
+                                            <option value="consulta">Consulta</option>
+                                            <option value="cancelamento">Cancelamento</option>
+                                            <option value="correcao">Carta de Correção</option>
+                                            <option value="inutilizacao">Inutilização</option>
+                                            <option value="contingencia">Contingência</option>
+                                            <option value="status_servico">Status Serviço</option>
+                                            <option value="error">Erro</option>
                                         </select>
                                     </div>
                                     <div class="d-flex gap-2">
