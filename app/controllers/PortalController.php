@@ -159,7 +159,7 @@ class PortalController
                     // Guardar avatar na sessão para exibição no topbar
                     $_SESSION['portal_customer_avatar'] = $access['avatar'] ?? '';
 
-                    $this->logger->log('portal_login', "Cliente: {$customerName} | E-mail: {$email} | IP: {$ip}", $access['customer_id']);
+                    $this->logger->log('portal_login', "Cliente ID: {$access['customer_id']} | Nome: {$customerName} | E-mail: {$email} | IP: {$ip}");
 
                     // ── Verificar 2FA ──
                     $config = $this->portalAccess->getAllConfig();

@@ -292,6 +292,7 @@ return [
             'getImportProgress'       => 'getImportProgress',
             'undoImport'              => 'undoImport',
             'getImportHistory'        => 'getImportHistory',
+            'getImportDetails'        => 'getImportDetails',
             'getMappingProfiles'      => 'getMappingProfiles',
             'saveMappingProfile'      => 'saveMappingProfile',
             'deleteMappingProfile'    => 'deleteMappingProfile',

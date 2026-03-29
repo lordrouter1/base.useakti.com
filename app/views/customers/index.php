@@ -1413,17 +1413,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     var undoBtn = (b.status !== 'undone' && b.status !== 'processing')
                         ? '<button class="btn btn-outline-danger btn-sm py-0 px-1 hist-undo-btn" data-batch-id="' + b.id + '" title="Desfazer"><i class="fas fa-undo"></i></button>'
                         : '';
+                    var detailBtn = '<button class="btn btn-outline-primary btn-sm py-0 px-1 hist-detail-btn me-1" data-batch-id="' + b.id + '" title="Ver detalhes"><i class="fas fa-eye"></i></button>';
                     html += '<tr><td>' + b.id + '</td><td>' + escHtml(b.created_at || '') + '</td><td>' + escHtml(b.import_mode || 'create') + '</td>';
                     html += '<td class="text-success fw-bold">' + (b.created_count || 0) + '</td>';
                     html += '<td class="text-info fw-bold">' + (b.updated_count || 0) + '</td>';
                     html += '<td class="text-danger fw-bold">' + (b.error_count || 0) + '</td>';
-                    html += '<td>' + statusBadge + '</td><td>' + undoBtn + '</td></tr>';
+                    html += '<td>' + statusBadge + '</td><td class="text-nowrap">' + detailBtn + undoBtn + '</td></tr>';
                 });
                 html += '</tbody></table>';
                 container.innerHTML = html;
                 // Bind undo buttons
                 container.querySelectorAll('.hist-undo-btn').forEach(function(btn) {
                     btn.addEventListener('click', function() { doUndoImport(this.dataset.batchId); });
+                });
+                // Bind detail buttons
+                container.querySelectorAll('.hist-detail-btn').forEach(function(btn) {
+                    btn.addEventListener('click', function() { showImportDetails(this.dataset.batchId); });
                 });
             })
             .catch(function() {
@@ -1817,6 +1822,123 @@ document.addEventListener('DOMContentLoaded', function() {
             if (btnUndoImport) btnUndoImport.style.display = 'none';
             goToStep(1);
         });
+    }
+
+    // ── Detalhes da importação ──
+    function showImportDetails(batchId) {
+        Swal.fire({ title: 'Carregando...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+
+        fetch('?page=customers&action=getImportDetails&batch_id=' + encodeURIComponent(batchId), { headers: { 'X-CSRF-TOKEN': csrfToken } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                Swal.close();
+                if (!data.success) {
+                    Swal.fire({ icon: 'error', title: 'Erro', text: data.message || 'Não foi possível carregar os detalhes.' });
+                    return;
+                }
+
+                var b = data.batch;
+                var modeLabel = { create: 'Criar', update: 'Atualizar', create_or_update: 'Criar ou Atualizar' };
+
+                var html = '<div style="font-size:.82rem; text-align:left;">';
+
+                // Header info
+                html += '<div class="row mb-3">';
+                html += '<div class="col-6"><strong>Arquivo:</strong> ' + escHtml(b.file_name || '—') + '</div>';
+                html += '<div class="col-6"><strong>Data:</strong> ' + escHtml(b.created_at || '') + '</div>';
+                html += '<div class="col-6"><strong>Modo:</strong> ' + escHtml(modeLabel[b.import_mode] || b.import_mode) + '</div>';
+                html += '<div class="col-6"><strong>Total de linhas:</strong> ' + (b.total_rows || 0) + '</div>';
+                html += '</div>';
+
+                // Summary badges
+                html += '<div class="d-flex gap-2 flex-wrap mb-3">';
+                html += '<span class="badge bg-success"><i class="fas fa-plus me-1"></i>Criados: ' + (b.imported_count || 0) + '</span>';
+                html += '<span class="badge bg-info"><i class="fas fa-sync-alt me-1"></i>Atualizados: ' + (b.updated_count || 0) + '</span>';
+                html += '<span class="badge bg-secondary"><i class="fas fa-forward me-1"></i>Ignorados: ' + (b.skipped_count || 0) + '</span>';
+                html += '<span class="badge bg-danger"><i class="fas fa-times me-1"></i>Erros: ' + (b.error_count || 0) + '</span>';
+                html += '</div>';
+
+                // Tabs
+                html += '<ul class="nav nav-tabs nav-fill" role="tablist" style="font-size:.78rem;">';
+                html += '<li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabCreated"><i class="fas fa-user-plus me-1"></i>Criados (' + data.created.length + ')</a></li>';
+                html += '<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabUpdated"><i class="fas fa-user-edit me-1"></i>Atualizados (' + data.updated.length + ')</a></li>';
+                html += '<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabErrors"><i class="fas fa-exclamation-triangle me-1"></i>Erros (' + (data.errors ? data.errors.length : 0) + ')</a></li>';
+                html += '<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabWarnings"><i class="fas fa-info-circle me-1"></i>Avisos (' + (data.warnings ? data.warnings.length : 0) + ')</a></li>';
+                html += '</ul>';
+
+                html += '<div class="tab-content border border-top-0 rounded-bottom p-2" style="max-height:350px; overflow-y:auto;">';
+
+                // Created tab
+                html += '<div class="tab-pane fade show active" id="tabCreated">';
+                if (data.created.length === 0) {
+                    html += '<p class="text-muted text-center my-3">Nenhum cliente criado neste lote.</p>';
+                } else {
+                    html += '<table class="table table-sm table-striped mb-0" style="font-size:.75rem;"><thead><tr><th>Linha</th><th>ID</th><th>Nome</th><th>Documento</th><th>E-mail</th></tr></thead><tbody>';
+                    data.created.forEach(function(c) {
+                        html += '<tr><td>' + (c.line || '—') + '</td><td>' + c.id + '</td><td>' + escHtml(c.name) + '</td><td>' + escHtml(c.document || '') + '</td><td>' + escHtml(c.email || '') + '</td></tr>';
+                    });
+                    html += '</tbody></table>';
+                }
+                html += '</div>';
+
+                // Updated tab
+                html += '<div class="tab-pane fade" id="tabUpdated">';
+                if (data.updated.length === 0) {
+                    html += '<p class="text-muted text-center my-3">Nenhum cliente atualizado neste lote.</p>';
+                } else {
+                    html += '<table class="table table-sm table-striped mb-0" style="font-size:.75rem;"><thead><tr><th>Linha</th><th>ID</th><th>Nome</th><th>Documento</th><th>E-mail</th></tr></thead><tbody>';
+                    data.updated.forEach(function(c) {
+                        html += '<tr><td>' + (c.line || '—') + '</td><td>' + c.id + '</td><td>' + escHtml(c.name) + '</td><td>' + escHtml(c.document || '') + '</td><td>' + escHtml(c.email || '') + '</td></tr>';
+                    });
+                    html += '</tbody></table>';
+                }
+                html += '</div>';
+
+                // Errors tab
+                html += '<div class="tab-pane fade" id="tabErrors">';
+                if (!data.errors || data.errors.length === 0) {
+                    html += '<p class="text-muted text-center my-3">Nenhum erro registrado.</p>';
+                } else {
+                    html += '<table class="table table-sm table-striped mb-0" style="font-size:.75rem;"><thead><tr><th>Linha</th><th>Erro</th></tr></thead><tbody>';
+                    data.errors.forEach(function(e) {
+                        var line = (typeof e === 'object') ? (e.line || e.row || '—') : '—';
+                        var msg  = (typeof e === 'object') ? (e.message || e.error || JSON.stringify(e)) : escHtml(e);
+                        html += '<tr><td>' + escHtml(String(line)) + '</td><td class="text-danger">' + escHtml(msg) + '</td></tr>';
+                    });
+                    html += '</tbody></table>';
+                }
+                html += '</div>';
+
+                // Warnings tab
+                html += '<div class="tab-pane fade" id="tabWarnings">';
+                if (!data.warnings || data.warnings.length === 0) {
+                    html += '<p class="text-muted text-center my-3">Nenhum aviso registrado.</p>';
+                } else {
+                    html += '<table class="table table-sm table-striped mb-0" style="font-size:.75rem;"><thead><tr><th>Linha</th><th>Aviso</th></tr></thead><tbody>';
+                    data.warnings.forEach(function(w) {
+                        var line = (typeof w === 'object') ? (w.line || w.row || '—') : '—';
+                        var msg  = (typeof w === 'object') ? (w.message || w.warning || JSON.stringify(w)) : escHtml(w);
+                        html += '<tr><td>' + escHtml(String(line)) + '</td><td class="text-warning">' + escHtml(msg) + '</td></tr>';
+                    });
+                    html += '</tbody></table>';
+                }
+                html += '</div>';
+
+                html += '</div></div>';
+
+                Swal.fire({
+                    title: '<i class="fas fa-file-import me-2"></i>Importação #' + b.id,
+                    html: html,
+                    width: '750px',
+                    showCloseButton: true,
+                    showConfirmButton: false,
+                    customClass: { popup: 'text-start' }
+                });
+            })
+            .catch(function() {
+                Swal.close();
+                Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha ao carregar detalhes da importação.' });
+            });
     }
 
 });

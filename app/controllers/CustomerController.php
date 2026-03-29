@@ -1584,7 +1584,8 @@ class CustomerController {
         }
 
         // Marcar lote como desfeito
-        $this->importBatchModel->markUndone($batchId);
+        $userId = $_SESSION['user_id'] ?? 0;
+        $this->importBatchModel->markUndone($batchId, (int) $userId);
 
         // Log
         $userName = $_SESSION['user_name'] ?? 'Sistema';
@@ -1611,6 +1612,72 @@ class CustomerController {
         echo json_encode([
             'success'  => true,
             'batches'  => $batches,
+        ]);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  IMPORTAÇÃO: Detalhes de um lote
+    // ═══════════════════════════════════════════════
+
+    public function getImportDetails() {
+        header('Content-Type: application/json');
+
+        $batchId  = (int) ($_GET['batch_id'] ?? 0);
+        $tenantId = $_SESSION['tenant_id'] ?? 0;
+
+        if ($batchId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Lote inválido.']);
+            exit;
+        }
+
+        $batch = $this->importBatchModel->findById($batchId);
+        if (!$batch || (int) $batch['tenant_id'] !== (int) $tenantId) {
+            echo json_encode(['success' => false, 'message' => 'Lote não encontrado.']);
+            exit;
+        }
+
+        $items = $this->importBatchModel->getItemsWithEntity($batchId, $batch['entity_type'] ?? 'customers');
+
+        $created = [];
+        $updated = [];
+        foreach ($items as $item) {
+            $entry = [
+                'id'       => $item['entity_id'],
+                'name'     => $item['entity_name'] ?? '—',
+                'email'    => $item['entity_email'] ?? '',
+                'document' => $item['entity_document'] ?? '',
+                'line'     => $item['line_number'],
+            ];
+            if ($item['action'] === 'created') {
+                $created[] = $entry;
+            } elseif ($item['action'] === 'updated') {
+                $updated[] = $entry;
+            }
+        }
+
+        $errors   = !empty($batch['errors_json'])   ? json_decode($batch['errors_json'], true)   : [];
+        $warnings = !empty($batch['warnings_json']) ? json_decode($batch['warnings_json'], true) : [];
+
+        echo json_encode([
+            'success'  => true,
+            'batch'    => [
+                'id'             => $batch['id'],
+                'file_name'      => $batch['file_name'],
+                'import_mode'    => $batch['import_mode'],
+                'status'         => $batch['status'],
+                'total_rows'     => $batch['total_rows'],
+                'imported_count' => $batch['imported_count'],
+                'updated_count'  => $batch['updated_count'],
+                'skipped_count'  => $batch['skipped_count'],
+                'error_count'    => $batch['error_count'],
+                'warning_count'  => $batch['warning_count'],
+                'created_at'     => $batch['created_at'],
+            ],
+            'created'  => $created,
+            'updated'  => $updated,
+            'errors'   => $errors,
+            'warnings' => $warnings,
         ]);
         exit;
     }

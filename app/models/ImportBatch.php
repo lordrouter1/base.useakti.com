@@ -169,6 +169,38 @@ class ImportBatch
     }
 
     /**
+     * Busca itens de um lote com dados da entidade (join com customers).
+     */
+    public function getItemsWithEntity(int $batchId, string $entityType = 'customers', int $limit = 200, int $offset = 0): array
+    {
+        if ($entityType === 'customers') {
+            $stmt = $this->conn->prepare("
+                SELECT i.id, i.entity_id, i.action, i.line_number,
+                       c.name AS entity_name, c.email AS entity_email, c.document AS entity_document
+                FROM {$this->itemsTable} i
+                LEFT JOIN customers c ON c.id = i.entity_id
+                WHERE i.batch_id = :batch_id
+                ORDER BY i.line_number ASC
+                LIMIT :lim OFFSET :off
+            ");
+        } else {
+            $stmt = $this->conn->prepare("
+                SELECT i.id, i.entity_id, i.action, i.line_number,
+                       NULL AS entity_name, NULL AS entity_email, NULL AS entity_document
+                FROM {$this->itemsTable} i
+                WHERE i.batch_id = :batch_id
+                ORDER BY i.line_number ASC
+                LIMIT :lim OFFSET :off
+            ");
+        }
+        $stmt->bindValue(':batch_id', $batchId, PDO::PARAM_INT);
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Marca lote como desfeito.
      */
     public function markUndone(int $batchId, int $userId): void
