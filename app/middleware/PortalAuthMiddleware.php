@@ -187,21 +187,22 @@ class PortalAuthMiddleware
             $ua        = mb_substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500);
 
             // Remover sessão anterior com mesmo session_id (se existir)
-            $del = $db->prepare("DELETE FROM customer_portal_sessions WHERE session_id = :sid");
-            $del->execute([':sid' => $sessionId]);
+            $del = $db->prepare("DELETE FROM customer_portal_sessions WHERE session_id = :sid OR session_token = :token");
+            $del->execute([':sid' => $sessionId, ':token' => $sessionId]);
 
             // Inserir nova sessão
             $stmt = $db->prepare(
                 "INSERT INTO customer_portal_sessions
-                 (access_id, customer_id, session_id, ip_address, user_agent, last_activity, created_at, expires_at)
-                 VALUES (:aid, :cid, :sid, :ip, :ua, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 2 HOUR))"
+                 (access_id, customer_id, session_token, session_id, ip_address, user_agent, last_activity, created_at, expires_at)
+                 VALUES (:aid, :cid, :token, :sid, :ip, :ua, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 2 HOUR))"
             );
             $stmt->execute([
-                ':aid' => $accessId,
-                ':cid' => $customerId,
-                ':sid' => $sessionId,
-                ':ip'  => $ip,
-                ':ua'  => $ua,
+                ':aid'   => $accessId,
+                ':cid'   => $customerId,
+                ':token' => $sessionId,
+                ':sid'   => $sessionId,
+                ':ip'    => $ip,
+                ':ua'    => $ua,
             ]);
         } catch (\Throwable $e) {
             // Silenciar — sessão funciona sem a tabela
