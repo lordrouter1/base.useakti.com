@@ -69,6 +69,7 @@ return [
             'login'             => 'login',
             'loginMagic'        => 'loginMagic',
             'requestMagicLink'  => 'requestMagicLink',
+            'setupPassword'     => 'setupPassword',
             'logout'            => 'logout',
             'register'          => 'register',
             'forgotPassword'    => 'forgotPassword',

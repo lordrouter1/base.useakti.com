@@ -54,6 +54,14 @@ return [
     'forgot_success'      => 'Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha.',
     'forgot_back'         => 'Voltar ao login',
 
+    // ── Cadastrar senha (magic link) ──
+    'setup_password_title'         => 'Cadastre sua Senha',
+    'setup_password_subtitle'      => 'Para acessar o portal, defina uma senha segura.',
+    'setup_password_field'         => 'Criar senha',
+    'setup_password_confirm'       => 'Confirmar senha',
+    'setup_password_btn'           => 'Salvar e acessar',
+    'setup_password_token_expired' => 'Link de acesso expirado. Solicite um novo ao administrador.',
+
     // ── Redefinir senha ──
     'reset_title'         => 'Redefinir Senha',
     'reset_password'      => 'Nova senha',

@@ -1273,6 +1273,30 @@ class CustomerController {
             if (!empty($mapped['document'])) {
                 $docDigits = preg_replace('/\D/', '', $mapped['document']);
 
+                // ── 0. Recuperar zeros à esquerda perdidos pelo CSV/Excel ──
+                $docLen = strlen($docDigits);
+                if ($docLen > 0 && $docLen < 11) {
+                    // Tentar CPF (pad 11), senão tentar CNPJ (pad 14)
+                    $paddedCpf = str_pad($docDigits, 11, '0', STR_PAD_LEFT);
+                    if (Validator::isValidCpf($paddedCpf)) {
+                        $docDigits = $paddedCpf;
+                        $mapped['document'] = $paddedCpf;
+                    } else {
+                        $paddedCnpj = str_pad($docDigits, 14, '0', STR_PAD_LEFT);
+                        if (Validator::isValidCnpj($paddedCnpj)) {
+                            $docDigits = $paddedCnpj;
+                            $mapped['document'] = $paddedCnpj;
+                        }
+                    }
+                } elseif ($docLen > 11 && $docLen < 14) {
+                    // Pode ser CNPJ sem zeros à esquerda — tentar preencher para 14
+                    $padded = str_pad($docDigits, 14, '0', STR_PAD_LEFT);
+                    if (Validator::isValidCnpj($padded)) {
+                        $docDigits = $padded;
+                        $mapped['document'] = $padded;
+                    }
+                }
+
                 if (empty($mapped['person_type'])) {
                     if (strlen($docDigits) === 14) {
                         $mapped['person_type'] = 'PJ';
@@ -1336,7 +1360,7 @@ class CustomerController {
                     'F' => 'F', 'FEMININO' => 'F', 'FEM' => 'F', 'FEMALE' => 'F', 'MULHER' => 'F',
                     'O' => 'O', 'OUTRO' => 'O', 'OTHER' => 'O', 'NB' => 'O', 'NAO BINARIO' => 'O', 'NÃO BINÁRIO' => 'O',
                 ];
-                $mapped['gender'] = $gMap[$g] ?? $mapped['gender'];
+                $mapped['gender'] = $gMap[$g] ?? null;
             }
 
             // ── 7. Normalização de UF ──

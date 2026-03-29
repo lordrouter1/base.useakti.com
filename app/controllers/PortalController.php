@@ -141,6 +141,13 @@ class PortalController
                     $ip = PortalAuthMiddleware::getClientIp();
                     $this->portalAccess->registerSuccessfulLogin($access['id'], $ip);
 
+                    // ── Verificar se deve trocar senha temporária ──
+                    if (!empty($access['must_change_password'])) {
+                        $resetToken = $this->portalAccess->generateResetToken($access['id']);
+                        header('Location: ?page=portal&action=setupPassword&token=' . urlencode($resetToken));
+                        exit;
+                    }
+
                     // ── Prevenir session fixation ──
                     session_regenerate_id(true);
 
@@ -203,6 +210,8 @@ class PortalController
 
     /**
      * Login via link mágico.
+     * Se o usuário ainda não tem senha cadastrada, redireciona para a
+     * página de cadastro de senha (setupPassword).
      */
     public function loginMagic(): void
     {
@@ -224,6 +233,12 @@ class PortalController
             // Token inválido ou expirado
             $_SESSION['portal_login_error'] = 'Link de acesso inválido ou expirado.';
             header('Location: ?page=portal&action=login');
+            exit;
+        }
+
+        // Se o usuário ainda não tem senha, redirecionar para cadastro de senha
+        if (empty($access['password_hash']) || !empty($access['must_change_password'])) {
+            header('Location: ?page=portal&action=setupPassword&token=' . urlencode($token));
             exit;
         }
 
@@ -255,6 +270,100 @@ class PortalController
 
         header('Location: ?page=portal&action=dashboard');
         exit;
+    }
+
+    /**
+     * Página temporária para cadastrar senha (via magic link ou senha temporária).
+     * Aceita magic_token ou reset_token.
+     * GET: valida token e exibe formulário / POST: salva a senha e faz login.
+     */
+    public function setupPassword(): void
+    {
+        if (!$this->isPortalEnabled()) {
+            $this->renderDisabled();
+            return;
+        }
+
+        $error = '';
+        $successMsg = '';
+        $company = $this->company;
+        $token = Input::get('token') ?: Input::post('token');
+
+        if (empty($token)) {
+            header('Location: ?page=portal&action=login');
+            exit;
+        }
+
+        // Tentar validar como magic_token primeiro, depois como reset_token
+        $access = $this->portalAccess->validateMagicToken($token);
+        $tokenType = 'magic';
+
+        if (!$access) {
+            $access = $this->portalAccess->validateResetToken($token);
+            $tokenType = 'reset';
+        }
+
+        if (!$access) {
+            $_SESSION['portal_login_error'] = __p('setup_password_token_expired');
+            header('Location: ?page=portal&action=login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $newPassword = Input::post('password');
+            $confirmPassword = Input::post('password_confirm');
+
+            if (empty($newPassword) || empty($confirmPassword)) {
+                $error = __p('error_required');
+            } elseif ($newPassword !== $confirmPassword) {
+                $error = __p('register_password_mismatch');
+            } elseif (!$this->isPasswordStrong($newPassword)) {
+                $error = __p('profile_password_weak');
+            } else {
+                // Salvar a senha (resetPassword já limpa must_change_password)
+                $this->portalAccess->resetPassword($access['id'], $newPassword);
+
+                // Invalidar o token usado
+                if ($tokenType === 'magic') {
+                    $this->portalAccess->invalidateMagicToken($access['id']);
+                } else {
+                    $this->portalAccess->invalidateResetToken($access['id']);
+                }
+
+                // Fazer login automaticamente
+                $ip = PortalAuthMiddleware::getClientIp();
+                $this->portalAccess->registerSuccessfulLogin($access['id'], $ip);
+
+                session_regenerate_id(true);
+
+                $customer = (new Customer($this->db))->readOne($access['customer_id']);
+                $customerName = $customer ? $customer['name'] : 'Cliente';
+
+                PortalAuthMiddleware::login(
+                    $access['customer_id'],
+                    $access['id'],
+                    $customerName,
+                    $access['email'],
+                    $access['lang'] ?? 'pt-br'
+                );
+
+                EventDispatcher::dispatch('portal.customer.logged_in', new Event('portal.customer.logged_in', [
+                    'customer_id' => $access['customer_id'],
+                    'email'       => $access['email'],
+                    'ip'          => $ip,
+                    'method'      => 'password_setup',
+                ]));
+
+                header('Location: ?page=portal&action=dashboard');
+                exit;
+            }
+        }
+
+        // Renderizar formulário de cadastro de senha
+        $validToken = true;
+        require 'app/views/portal/layout/header_auth.php';
+        require 'app/views/portal/auth/set_password.php';
+        require 'app/views/portal/layout/footer_auth.php';
     }
 
     /**

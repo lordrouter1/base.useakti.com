@@ -53,6 +53,14 @@ return [
     'forgot_success'      => 'If this email is registered, you will receive a link to reset your password.',
     'forgot_back'         => 'Back to login',
 
+    // ── Setup Password (magic link) ──
+    'setup_password_title'         => 'Set Your Password',
+    'setup_password_subtitle'      => 'To access the portal, please create a secure password.',
+    'setup_password_field'         => 'Create password',
+    'setup_password_confirm'       => 'Confirm password',
+    'setup_password_btn'           => 'Save and access',
+    'setup_password_token_expired' => 'Access link expired. Please request a new one from the administrator.',
+
     // ── Reset Password ──
     'reset_title'         => 'Reset Password',
     'reset_password'      => 'New password',

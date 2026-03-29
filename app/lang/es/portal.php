@@ -53,6 +53,14 @@ return [
     'forgot_success'      => 'Si este correo está registrado, recibirás un enlace para restablecer tu contraseña.',
     'forgot_back'         => 'Volver al inicio de sesión',
 
+    // ── Configurar contraseña (enlace mágico) ──
+    'setup_password_title'         => 'Registre su Contraseña',
+    'setup_password_subtitle'      => 'Para acceder al portal, defina una contraseña segura.',
+    'setup_password_field'         => 'Crear contraseña',
+    'setup_password_confirm'       => 'Confirmar contraseña',
+    'setup_password_btn'           => 'Guardar y acceder',
+    'setup_password_token_expired' => 'Enlace de acceso expirado. Solicita uno nuevo al administrador.',
+
     // ── Restablecer contraseña ──
     'reset_title'         => 'Restablecer Contraseña',
     'reset_password'      => 'Nueva contraseña',

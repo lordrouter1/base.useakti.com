@@ -255,6 +255,7 @@ class PortalAdminController
         // Gerar nova senha temporária
         $tempPassword = $this->generateTempPassword();
         $this->portalAccess->update($accessId, ['password' => $tempPassword]);
+        $this->portalAccess->setMustChangePassword($accessId, true);
 
         EventDispatcher::dispatch('portal.admin.password_reset', new Event('portal.admin.password_reset', [
             'access_id'  => $accessId,

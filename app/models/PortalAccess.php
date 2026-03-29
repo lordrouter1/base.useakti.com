@@ -147,6 +147,10 @@ class PortalAccess
             $fields[] = 'lang = :lang';
             $params[':lang'] = $data['lang'];
         }
+        if (isset($data['must_change_password'])) {
+            $fields[] = 'must_change_password = :must_change_password';
+            $params[':must_change_password'] = (int) $data['must_change_password'];
+        }
 
         if (empty($fields)) {
             return false;
@@ -393,10 +397,26 @@ class PortalAccess
         $hash = password_hash($newPassword, PASSWORD_BCRYPT);
         $stmt = $this->conn->prepare(
             "UPDATE {$this->table}
-             SET password_hash = :hash, failed_attempts = 0, locked_until = NULL
+             SET password_hash = :hash, failed_attempts = 0, locked_until = NULL, must_change_password = 0
              WHERE id = :id"
         );
         return $stmt->execute([':hash' => $hash, ':id' => $accessId]);
+    }
+
+    /**
+     * Marca que o usuário deve trocar a senha no próximo login
+     * @param int $accessId
+     * @param bool $mustChange
+     * @return bool
+     */
+    public function setMustChangePassword(int $accessId, bool $mustChange = true): bool
+    {
+        $stmt = $this->conn->prepare(
+            "UPDATE {$this->table}
+             SET must_change_password = :flag
+             WHERE id = :id"
+        );
+        return $stmt->execute([':flag' => (int) $mustChange, ':id' => $accessId]);
     }
 
     // ══════════════════════════════════════════════
