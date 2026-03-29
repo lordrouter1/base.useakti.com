@@ -373,9 +373,16 @@ class PortalController
     {
         $customerId = PortalAuthMiddleware::getCustomerId();
         $email = $_SESSION['portal_email'] ?? '';
-        $this->logger->log('portal_logout', "E-mail: {$email} | IP: " . PortalAuthMiddleware::getClientIp(), $customerId);
 
+        // Logout primeiro — garante que a sessão seja encerrada mesmo se o log falhar
         PortalAuthMiddleware::logout();
+
+        try {
+            $this->logger->log('portal_logout', "Cliente ID: {$customerId} | E-mail: {$email} | IP: " . PortalAuthMiddleware::getClientIp());
+        } catch (\Throwable $e) {
+            // Não bloquear o logout se o log falhar
+        }
+
         header('Location: ?page=portal&action=login');
         exit;
     }
@@ -581,7 +588,7 @@ class PortalController
                 $passwordError = __p('profile_password_weak');
             } else {
                 $this->portalAccess->update($accessId, ['password' => $newPassword]);
-                $this->logger->log('portal_password_changed', "E-mail: " . ($_SESSION['portal_email'] ?? '') . " | IP: " . PortalAuthMiddleware::getClientIp(), $customerId);
+                $this->logger->log('portal_password_changed', "Cliente ID: {$customerId} | E-mail: " . ($_SESSION['portal_email'] ?? '') . " | IP: " . PortalAuthMiddleware::getClientIp());
             }
 
             if (isset($passwordError)) {
@@ -938,7 +945,7 @@ class PortalController
         $success = $this->portalAccess->updateApprovalStatus($orderId, $customerId, 'aprovado', $ip, $notes);
 
         if ($success) {
-            $this->logger->log('portal_order_approved', "Pedido #{$orderId} aprovado | IP: {$ip}", $customerId);
+            $this->logger->log('portal_order_approved', "Cliente ID: {$customerId} | Pedido #{$orderId} aprovado | IP: {$ip}");
             EventDispatcher::dispatch('portal.order.approved', new Event('portal.order.approved', [
                 'order_id'    => $orderId,
                 'customer_id' => $customerId,
@@ -991,7 +998,7 @@ class PortalController
         $success = $this->portalAccess->updateApprovalStatus($orderId, $customerId, 'recusado', $ip, $notes);
 
         if ($success) {
-            $this->logger->log('portal_order_rejected', "Pedido #{$orderId} recusado | IP: {$ip}", $customerId);
+            $this->logger->log('portal_order_rejected', "Cliente ID: {$customerId} | Pedido #{$orderId} recusado | IP: {$ip}");
             EventDispatcher::dispatch('portal.order.rejected', new Event('portal.order.rejected', [
                 'order_id'    => $orderId,
                 'customer_id' => $customerId,
@@ -1660,7 +1667,7 @@ class PortalController
                 $error = __p('2fa_invalid_code');
             } elseif ($this->portalAccess->validate2faCode($accessId, $code)) {
                 PortalAuthMiddleware::set2faVerified();
-                $this->logger->log('portal_2fa_verified', "2FA verificado | IP: " . PortalAuthMiddleware::getClientIp(), PortalAuthMiddleware::getCustomerId());
+                $this->logger->log('portal_2fa_verified', "Cliente ID: " . PortalAuthMiddleware::getCustomerId() . " | 2FA verificado | IP: " . PortalAuthMiddleware::getClientIp());
 
                 EventDispatcher::dispatch('portal.customer.logged_in', new Event('portal.customer.logged_in', [
                     'customer_id' => PortalAuthMiddleware::getCustomerId(),
@@ -1673,7 +1680,7 @@ class PortalController
                 exit;
             } else {
                 $error = __p('2fa_invalid_code');
-                $this->logger->log('portal_2fa_failed', "Código 2FA inválido | IP: " . PortalAuthMiddleware::getClientIp(), PortalAuthMiddleware::getCustomerId());
+                $this->logger->log('portal_2fa_failed', "Cliente ID: " . PortalAuthMiddleware::getCustomerId() . " | Código 2FA inválido | IP: " . PortalAuthMiddleware::getClientIp());
             }
         }
 
@@ -1718,7 +1725,7 @@ class PortalController
         $this->portalAccess->toggle2fa($accessId, $enable);
 
         $action = $enable ? 'ativou' : 'desativou';
-        $this->logger->log('portal_2fa_toggled', "2FA {$action} | IP: " . PortalAuthMiddleware::getClientIp(), PortalAuthMiddleware::getCustomerId());
+        $this->logger->log('portal_2fa_toggled', "Cliente ID: " . PortalAuthMiddleware::getCustomerId() . " | 2FA {$action} | IP: " . PortalAuthMiddleware::getClientIp());
 
         $this->jsonResponse(true, $enable ? __p('2fa_enabled') : __p('2fa_disabled'));
     }
@@ -1806,7 +1813,7 @@ class PortalController
 
         $this->portalAccess->updateAvatar($accessId, $destPath);
         $_SESSION['portal_customer_avatar'] = $destPath;
-        $this->logger->log('portal_avatar_uploaded', "Avatar atualizado | IP: " . PortalAuthMiddleware::getClientIp(), $customerId);
+        $this->logger->log('portal_avatar_uploaded', "Cliente ID: {$customerId} | Avatar atualizado | IP: " . PortalAuthMiddleware::getClientIp());
 
         if ($this->isAjax()) {
             $this->jsonResponse(true, __p('avatar_updated'), ['path' => $destPath]);
