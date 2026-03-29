@@ -329,7 +329,7 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                         </div>
                         <div>
                             <h5 class="mb-0" style="font-size:1rem;">Importar Clientes em Massa</h5>
-                            <p class="text-muted mb-0" style="font-size:.72rem;">Importe clientes de arquivos CSV, XLS ou XLSX com mapeamento dinâmico de colunas.</p>
+                            <p class="text-muted mb-0" style="font-size:.72rem;">Importe clientes de arquivos CSV, XLS ou XLSX com mapeamento dinâmico de colunas. Detecção automática de CPF/CNPJ, PF/PJ e validação de dados.</p>
                         </div>
                     </div>
                     <a href="?page=customers&action=downloadImportTemplate" class="btn btn-sm btn-outline-success">
@@ -366,6 +366,27 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                 <div class="import-step active" id="importStep1">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body p-4">
+                            <!-- Modo de importação -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small"><i class="fas fa-cog me-1 text-primary"></i>Modo de Importação</label>
+                                    <select class="form-select form-select-sm" id="importMode">
+                                        <option value="create" selected>Criar novos registros</option>
+                                        <option value="update">Apenas atualizar existentes</option>
+                                        <option value="create_or_update">Criar ou atualizar (merge)</option>
+                                    </select>
+                                    <div class="form-text" style="font-size:.68rem;" id="importModeHelp">Todos os registros serão criados como novos clientes.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small"><i class="fas fa-bookmark me-1 text-warning"></i>Perfil de Mapeamento</label>
+                                    <div class="input-group input-group-sm">
+                                        <select class="form-select form-select-sm" id="mappingProfileSelect">
+                                            <option value="">— Mapeamento automático —</option>
+                                        </select>
+                                        <button class="btn btn-outline-danger btn-sm" type="button" id="btnDeleteProfile" title="Excluir perfil" style="display:none;"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="import-dropzone" id="importDropzone">
                                 <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
                                 <h6 class="mb-1">Arraste o arquivo aqui</h6>
@@ -386,6 +407,16 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                             <div class="text-end mt-3">
                                 <button type="button" class="btn btn-primary" id="btnParseFile" disabled><i class="fas fa-cog me-1"></i>Analisar Arquivo</button>
                             </div>
+                        </div>
+                    </div>
+                    <!-- Histórico de Importações -->
+                    <div class="card border-0 shadow-sm mt-3">
+                        <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold small"><i class="fas fa-history me-2 text-info"></i>Histórico de Importações</h6>
+                            <button type="button" class="btn btn-sm btn-outline-info" id="btnRefreshHistory"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                        <div class="card-body p-0" id="importHistoryContainer">
+                            <div class="text-center py-3 text-muted small">Carregando...</div>
                         </div>
                     </div>
                 </div>
@@ -432,7 +463,27 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                     </div>
                     <div class="d-flex justify-content-between">
                         <button type="button" class="btn btn-outline-secondary" id="btnBackToStep1"><i class="fas fa-arrow-left me-1"></i>Voltar</button>
-                        <button type="button" class="btn btn-success btn-lg" id="btnDoImport" disabled><i class="fas fa-upload me-1"></i>Importar <span id="importCountLabel">0</span> Cliente(s)</button>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-warning btn-sm" id="btnSaveProfile" title="Salvar este mapeamento como perfil"><i class="fas fa-bookmark me-1"></i>Salvar Perfil</button>
+                            <button type="button" class="btn btn-success btn-lg" id="btnDoImport" disabled><i class="fas fa-upload me-1"></i>Importar <span id="importCountLabel">0</span> Cliente(s)</button>
+                        </div>
+                    </div>
+
+                    <!-- Barra de progresso (Rec 1) -->
+                    <div class="card border-0 shadow-sm mt-3" id="importProgressCard" style="display:none;">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold small"><i class="fas fa-spinner fa-spin me-1 text-primary"></i>Importando...</span>
+                                <span class="badge bg-primary" id="progressPercent">0%</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="importProgressBar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2 text-muted" style="font-size:.7rem;">
+                                <span id="progressDetail">0 de 0 processados</span>
+                                <span id="progressStats">Criados: 0 | Atualizados: 0 | Erros: 0</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -442,6 +493,7 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                         <div class="card-body p-4" id="importResultContent"></div>
                     </div>
                     <div class="text-center mt-3">
+                        <button type="button" class="btn btn-outline-danger me-2" id="btnUndoImport" style="display:none;" data-batch-id=""><i class="fas fa-undo me-1"></i>Desfazer Importação</button>
                         <button type="button" class="btn btn-outline-primary" id="btnNewImport"><i class="fas fa-redo me-1"></i>Nova Importação</button>
                         <a href="#" class="btn btn-primary ms-2 cst-go-overview"><i class="fas fa-users me-1"></i>Ver Clientes</a>
                     </div>
@@ -1210,12 +1262,182 @@ document.addEventListener('DOMContentLoaded', function() {
     var btnDoImport = document.getElementById('btnDoImport');
     var btnBackToStep1 = document.getElementById('btnBackToStep1');
     var btnNewImport = document.getElementById('btnNewImport');
+    var btnUndoImport = document.getElementById('btnUndoImport');
+    var btnSaveProfile = document.getElementById('btnSaveProfile');
+    var btnDeleteProfile = document.getElementById('btnDeleteProfile');
+    var btnRefreshHistory = document.getElementById('btnRefreshHistory');
+    var importModeSelect = document.getElementById('importMode');
+    var mappingProfileSelect = document.getElementById('mappingProfileSelect');
     var importData = null;
+    var progressInterval = null;
 
     if (!importDropzone) return;
 
-    importDropzone.addEventListener('click', function() { importFileInput.click(); });
+    // ── Modo de importação: textos de ajuda ──
+    var modeHelps = {
+        'create': 'Todos os registros serão criados como novos clientes.',
+        'update': 'Apenas clientes existentes (por CPF/CNPJ) serão atualizados. Novos serão ignorados.',
+        'create_or_update': 'Clientes existentes serão atualizados, novos serão criados automaticamente.'
+    };
+    if (importModeSelect) {
+        importModeSelect.addEventListener('change', function() {
+            var help = document.getElementById('importModeHelp');
+            if (help) help.textContent = modeHelps[this.value] || '';
+        });
+    }
 
+    // ── Perfis de mapeamento ──
+    function loadMappingProfiles() {
+        fetch('?page=customers&action=getMappingProfiles', { headers: { 'X-CSRF-TOKEN': csrfToken } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.success || !mappingProfileSelect) return;
+                var current = mappingProfileSelect.value;
+                mappingProfileSelect.innerHTML = '<option value="">— Mapeamento automático —</option>';
+                (data.profiles || []).forEach(function(p) {
+                    var opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = p.name + (p.is_default == 1 ? ' (padrão)' : '');
+                    opt.dataset.mapping = p.mapping_json || '{}';
+                    mappingProfileSelect.appendChild(opt);
+                });
+                if (current) mappingProfileSelect.value = current;
+            });
+    }
+    loadMappingProfiles();
+
+    if (mappingProfileSelect) {
+        mappingProfileSelect.addEventListener('change', function() {
+            if (btnDeleteProfile) btnDeleteProfile.style.display = this.value ? '' : 'none';
+            if (this.value && importData) {
+                var opt = this.options[this.selectedIndex];
+                var savedMapping = JSON.parse(opt.dataset.mapping || '{}');
+                applyProfileMapping(savedMapping);
+            }
+        });
+    }
+
+    function applyProfileMapping(savedMapping) {
+        document.querySelectorAll('#mappingTableBody .mapping-select').forEach(function(sel) {
+            var col = sel.dataset.col;
+            if (savedMapping[col]) {
+                sel.value = savedMapping[col];
+            } else {
+                sel.value = '_skip';
+            }
+        });
+        validateMapping();
+    }
+
+    if (btnSaveProfile) {
+        btnSaveProfile.addEventListener('click', function() {
+            var mapping = getMapping();
+            if (Object.keys(mapping).length === 0) {
+                Swal.fire({ icon: 'warning', title: 'Mapeamento vazio', text: 'Mapeie ao menos uma coluna antes de salvar.' });
+                return;
+            }
+            Swal.fire({
+                title: 'Salvar Perfil de Mapeamento',
+                html: '<input id="swal-profile-name" class="swal2-input" placeholder="Nome do perfil" style="font-size:.9rem;">' +
+                      '<label class="mt-2 small"><input type="checkbox" id="swal-profile-default"> Perfil padrão</label>',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-save me-1"></i>Salvar',
+                cancelButtonText: 'Cancelar',
+                preConfirm: function() {
+                    var name = document.getElementById('swal-profile-name').value.trim();
+                    if (!name) { Swal.showValidationMessage('Informe um nome'); return false; }
+                    return { name: name, isDefault: document.getElementById('swal-profile-default').checked ? 1 : 0 };
+                }
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+                var formData = new FormData();
+                formData.append('profile_name', result.value.name);
+                formData.append('mapping', JSON.stringify(mapping));
+                formData.append('is_default', result.value.isDefault);
+                fetch('?page=customers&action=saveMappingProfile', { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.success) {
+                            Swal.fire({ icon: 'success', title: data.message, timer: 1500, showConfirmButton: false });
+                            loadMappingProfiles();
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Erro', text: data.message });
+                        }
+                    });
+            });
+        });
+    }
+
+    if (btnDeleteProfile) {
+        btnDeleteProfile.addEventListener('click', function() {
+            var profileId = mappingProfileSelect.value;
+            if (!profileId) return;
+            Swal.fire({
+                title: 'Excluir perfil?', icon: 'warning', showCancelButton: true,
+                confirmButtonText: 'Sim, excluir', cancelButtonText: 'Cancelar', confirmButtonColor: '#d33'
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+                var formData = new FormData();
+                formData.append('profile_id', profileId);
+                fetch('?page=customers&action=deleteMappingProfile', { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.success) {
+                            loadMappingProfiles();
+                            btnDeleteProfile.style.display = 'none';
+                        }
+                        Swal.fire({ icon: data.success ? 'success' : 'error', title: data.message, timer: 1500, showConfirmButton: false });
+                    });
+            });
+        });
+    }
+
+    // ── Histórico de importações ──
+    function loadImportHistory() {
+        var container = document.getElementById('importHistoryContainer');
+        if (!container) return;
+        fetch('?page=customers&action=getImportHistory', { headers: { 'X-CSRF-TOKEN': csrfToken } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.success || !data.batches || data.batches.length === 0) {
+                    container.innerHTML = '<div class="text-center py-3 text-muted small"><i class="fas fa-inbox me-1"></i>Nenhuma importação realizada.</div>';
+                    return;
+                }
+                var html = '<table class="table table-sm table-hover mb-0" style="font-size:.75rem;">';
+                html += '<thead class="table-light"><tr><th>#</th><th>Data</th><th>Modo</th><th>Criados</th><th>Atualizados</th><th>Erros</th><th>Status</th><th></th></tr></thead><tbody>';
+                data.batches.forEach(function(b) {
+                    var statusBadge = '<span class="badge bg-success">OK</span>';
+                    if (b.status === 'undone') statusBadge = '<span class="badge bg-secondary">Desfeita</span>';
+                    else if (b.status === 'completed_with_errors') statusBadge = '<span class="badge bg-warning text-dark">Parcial</span>';
+                    else if (b.status === 'processing') statusBadge = '<span class="badge bg-info">Em andamento</span>';
+                    var undoBtn = (b.status !== 'undone' && b.status !== 'processing')
+                        ? '<button class="btn btn-outline-danger btn-sm py-0 px-1 hist-undo-btn" data-batch-id="' + b.id + '" title="Desfazer"><i class="fas fa-undo"></i></button>'
+                        : '';
+                    html += '<tr><td>' + b.id + '</td><td>' + escHtml(b.created_at || '') + '</td><td>' + escHtml(b.import_mode || 'create') + '</td>';
+                    html += '<td class="text-success fw-bold">' + (b.created_count || 0) + '</td>';
+                    html += '<td class="text-info fw-bold">' + (b.updated_count || 0) + '</td>';
+                    html += '<td class="text-danger fw-bold">' + (b.error_count || 0) + '</td>';
+                    html += '<td>' + statusBadge + '</td><td>' + undoBtn + '</td></tr>';
+                });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+                // Bind undo buttons
+                container.querySelectorAll('.hist-undo-btn').forEach(function(btn) {
+                    btn.addEventListener('click', function() { doUndoImport(this.dataset.batchId); });
+                });
+            })
+            .catch(function() {
+                container.innerHTML = '<div class="text-center py-3 text-muted small">Erro ao carregar histórico.</div>';
+            });
+    }
+    loadImportHistory();
+
+    if (btnRefreshHistory) {
+        btnRefreshHistory.addEventListener('click', function() { loadImportHistory(); });
+    }
+
+    // ── Upload e Drag & Drop ──
+    importDropzone.addEventListener('click', function() { importFileInput.click(); });
     importDropzone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
     importDropzone.addEventListener('dragleave', function() { this.classList.remove('dragover'); });
     importDropzone.addEventListener('drop', function(e) {
@@ -1289,6 +1511,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('importCountLabel').textContent = data.total_rows;
                     goToStep(2);
                     validateMapping();
+                    // Aplicar perfil padrão se selecionado
+                    if (mappingProfileSelect && mappingProfileSelect.value) {
+                        var opt = mappingProfileSelect.options[mappingProfileSelect.selectedIndex];
+                        var saved = JSON.parse(opt.dataset.mapping || '{}');
+                        applyProfileMapping(saved);
+                    }
                 })
                 .catch(function() {
                     btnParseFile.disabled = false;
@@ -1351,7 +1579,11 @@ document.addEventListener('DOMContentLoaded', function() {
         var mappedFields = Object.values(mapping).filter(function(v) { return v !== '_skip'; });
         var warnings = [];
         var errors = [];
+        var mode = importModeSelect ? importModeSelect.value : 'create';
         if (!mappedFields.includes('name')) errors.push('<i class="fas fa-times-circle text-danger me-1"></i><strong>Nome / Razão Social</strong> é obrigatório.');
+        if ((mode === 'update' || mode === 'create_or_update') && !mappedFields.includes('document')) {
+            errors.push('<i class="fas fa-times-circle text-danger me-1"></i><strong>CPF/CNPJ</strong> é obrigatório para modo de atualização.');
+        }
         var fieldCount = {};
         mappedFields.forEach(function(f) { fieldCount[f] = (fieldCount[f] || 0) + 1; });
         for (var f in fieldCount) {
@@ -1371,6 +1603,13 @@ document.addEventListener('DOMContentLoaded', function() {
             validationEl.style.display = '';
         }
         if (btnDoImport) btnDoImport.disabled = errors.length > 0;
+    }
+
+    // Re-validate on mode change
+    if (importModeSelect) {
+        importModeSelect.addEventListener('change', function() {
+            if (importData) validateMapping();
+        });
     }
 
     function getMapping() {
@@ -1401,16 +1640,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (btnBackToStep1) btnBackToStep1.addEventListener('click', function() { goToStep(1); });
 
+    // ── Progresso em tempo real (Rec 1) ──
+    function startProgressPolling() {
+        var progressCard = document.getElementById('importProgressCard');
+        if (progressCard) progressCard.style.display = '';
+        progressInterval = setInterval(function() {
+            fetch('?page=customers&action=getImportProgress', { headers: { 'X-CSRF-TOKEN': csrfToken } })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data.success || !data.progress) return;
+                    var p = data.progress;
+                    var pct = p.total > 0 ? Math.round((p.processed / p.total) * 100) : 0;
+                    var bar = document.getElementById('importProgressBar');
+                    var pctEl = document.getElementById('progressPercent');
+                    var detailEl = document.getElementById('progressDetail');
+                    var statsEl = document.getElementById('progressStats');
+                    if (bar) { bar.style.width = pct + '%'; bar.setAttribute('aria-valuenow', pct); }
+                    if (pctEl) pctEl.textContent = pct + '%';
+                    if (detailEl) detailEl.textContent = p.processed + ' de ' + p.total + ' processados';
+                    if (statsEl) statsEl.textContent = 'Criados: ' + (p.imported || 0) + ' | Atualizados: ' + (p.updated || 0) + ' | Erros: ' + (p.errors || 0);
+                    if (p.status === 'completed' || pct >= 100) {
+                        stopProgressPolling();
+                    }
+                });
+        }, 800);
+    }
+
+    function stopProgressPolling() {
+        if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
+    }
+
+    // ── Executar importação ──
     if (btnDoImport) {
         btnDoImport.addEventListener('click', function() {
             var mapping = getMapping();
+            var mode = importModeSelect ? importModeSelect.value : 'create';
             if (!Object.values(mapping).includes('name')) {
                 Swal.fire({ icon:'error', title:'Mapeamento incompleto', text:'O campo Nome é obrigatório.' });
                 return;
             }
+            var modeLabels = { 'create': 'criados', 'update': 'atualizados', 'create_or_update': 'criados/atualizados' };
             Swal.fire({
                 title: 'Confirmar importação?',
-                html: '<strong>' + (importData ? importData.total_rows : '?') + '</strong> cliente(s) serão importados.',
+                html: '<strong>' + (importData ? importData.total_rows : '?') + '</strong> cliente(s) serão ' + (modeLabels[mode] || 'processados') + '.<br><small class="text-muted">Modo: <strong>' + mode + '</strong></small>',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: '<i class="fas fa-upload me-1"></i>Importar',
@@ -1419,19 +1691,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!result.isConfirmed) return;
                 btnDoImport.disabled = true;
                 btnDoImport.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Importando...';
+                // Iniciar polling de progresso
+                startProgressPolling();
                 var formData = new FormData();
                 formData.append('mapping', JSON.stringify(mapping));
+                formData.append('import_mode', mode);
                 fetch('?page=customers&action=importCustomersMapped', { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken } })
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
+                        stopProgressPolling();
                         btnDoImport.disabled = false;
                         btnDoImport.innerHTML = '<i class="fas fa-upload me-1"></i>Importar';
+                        var progressCard = document.getElementById('importProgressCard');
+                        if (progressCard) progressCard.style.display = 'none';
                         showImportResult(data);
                         goToStep(3);
+                        loadImportHistory();
                     })
                     .catch(function() {
+                        stopProgressPolling();
                         btnDoImport.disabled = false;
                         btnDoImport.innerHTML = '<i class="fas fa-upload me-1"></i>Importar';
+                        var progressCard = document.getElementById('importProgressCard');
+                        if (progressCard) progressCard.style.display = 'none';
                         Swal.fire({ icon:'error', title:'Erro de comunicação' });
                     });
             });
@@ -1443,15 +1725,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!container) return;
         var html = '';
         if (data.success) {
-            if (data.imported > 0) {
+            var totalProcessed = (data.imported || 0) + (data.updated || 0);
+            if (totalProcessed > 0) {
                 html += '<div class="text-center mb-4"><div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(39,174,96,.1);"><i class="fas fa-check-circle fa-2x text-success"></i></div>';
-                html += '<h4 class="text-success">Importação Concluída!</h4><p class="text-muted"><strong>' + data.imported + '</strong> cliente(s) importado(s).</p></div>';
+                html += '<h4 class="text-success">Importação Concluída!</h4><p class="text-muted">';
+                if (data.imported > 0) html += '<strong>' + data.imported + '</strong> cliente(s) criado(s)';
+                if (data.imported > 0 && data.updated > 0) html += ', ';
+                if (data.updated > 0) html += '<strong>' + data.updated + '</strong> atualizado(s)';
+                if (data.skipped > 0) html += ', <strong>' + data.skipped + '</strong> ignorado(s)';
+                html += '.</p></div>';
             } else {
                 html += '<div class="text-center mb-4"><div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(243,156,18,.1);"><i class="fas fa-exclamation-triangle fa-2x text-warning"></i></div>';
-                html += '<h4 class="text-warning">Nenhum cliente importado</h4><p class="text-muted">Verifique os erros abaixo.</p></div>';
+                html += '<h4 class="text-warning">Nenhum cliente processado</h4><p class="text-muted">Verifique os erros abaixo.</p></div>';
             }
+            // Warnings
+            if (data.warnings && data.warnings.length > 0) {
+                html += '<div class="alert alert-info py-2 d-flex align-items-center mb-2"><i class="fas fa-info-circle me-2"></i><strong>' + data.warnings.length + '</strong>&nbsp;aviso(s) de validação:</div>';
+                html += '<div class="list-group mb-3" style="max-height:200px;overflow-y:auto;">';
+                data.warnings.forEach(function(w) {
+                    html += '<div class="list-group-item list-group-item-warning py-2 small"><i class="fas fa-exclamation-circle me-1"></i><strong>Linha ' + w.line + ':</strong> ' + escHtml(w.message) + '</div>';
+                });
+                html += '</div>';
+            }
+            // Errors
             if (data.errors && data.errors.length > 0) {
-                html += '<div class="alert alert-warning py-2 d-flex align-items-center"><i class="fas fa-exclamation-triangle me-2"></i><strong>' + data.errors.length + '</strong>&nbsp;linha(s) com erro:</div>';
+                html += '<div class="alert alert-danger py-2 d-flex align-items-center mb-2"><i class="fas fa-exclamation-triangle me-2"></i><strong>' + data.errors.length + '</strong>&nbsp;linha(s) com erro:</div>';
                 html += '<div class="list-group" style="max-height:250px;overflow-y:auto;">';
                 data.errors.forEach(function(err) {
                     html += '<div class="list-group-item list-group-item-danger py-2 small"><i class="fas fa-times-circle me-1"></i><strong>Linha ' + err.line + ':</strong> ' + escHtml(err.message) + '</div>';
@@ -1460,11 +1758,53 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             var countEl = document.querySelector('.cst-nav-item[data-section="overview"] .cst-nav-count');
             if (countEl && data.imported > 0) { var current = parseInt(countEl.textContent) || 0; countEl.textContent = current + data.imported; }
+            // Mostrar botão de desfazer
+            if (btnUndoImport && data.batch_id && data.imported > 0) {
+                btnUndoImport.style.display = '';
+                btnUndoImport.dataset.batchId = data.batch_id;
+            }
         } else {
             html += '<div class="text-center"><div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(192,57,43,.1);"><i class="fas fa-times-circle fa-2x text-danger"></i></div>';
             html += '<h4 class="text-danger">Erro na Importação</h4><p class="text-muted">' + escHtml(data.message || 'Erro desconhecido.') + '</p></div>';
         }
         container.innerHTML = html;
+    }
+
+    // ── Desfazer importação (Rec 3) ──
+    function doUndoImport(batchId) {
+        Swal.fire({
+            title: 'Desfazer importação?',
+            html: 'Todos os clientes <strong>criados</strong> neste lote serão removidos.<br><small class="text-danger">Esta ação não pode ser revertida facilmente.</small>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-undo me-1"></i>Desfazer',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#d33'
+        }).then(function(result) {
+            if (!result.isConfirmed) return;
+            var formData = new FormData();
+            formData.append('batch_id', batchId);
+            fetch('?page=customers&action=undoImport', { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken } })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        Swal.fire({ icon: 'success', title: 'Importação desfeita', text: data.message, timer: 2500 });
+                        loadImportHistory();
+                        if (btnUndoImport) btnUndoImport.style.display = 'none';
+                        // Atualizar contador
+                        var countEl = document.querySelector('.cst-nav-item[data-section="overview"] .cst-nav-count');
+                        if (countEl && data.deleted) { var current = parseInt(countEl.textContent) || 0; countEl.textContent = Math.max(0, current - data.deleted); }
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Erro', text: data.message });
+                    }
+                });
+        });
+    }
+
+    if (btnUndoImport) {
+        btnUndoImport.addEventListener('click', function() {
+            doUndoImport(this.dataset.batchId);
+        });
     }
 
     if (btnNewImport) {
@@ -1474,6 +1814,7 @@ document.addEventListener('DOMContentLoaded', function() {
             importDropzone.classList.remove('has-file');
             btnParseFile.disabled = true;
             importData = null;
+            if (btnUndoImport) btnUndoImport.style.display = 'none';
             goToStep(1);
         });
     }

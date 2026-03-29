@@ -101,7 +101,7 @@ class Customer {
             address, zipcode, address_street, address_number, address_complement,
             address_neighborhood, address_city, address_state, address_country, address_ibge,
             price_table_id, payment_term, credit_limit, discount_default, seller_id, origin, tags,
-            photo, observations, status, created_by, created_at
+            photo, observations, status, created_by, import_batch_id, created_at
         ) VALUES (
             ?, ?, ?, ?, ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
@@ -109,7 +109,7 @@ class Customer {
             ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?, ?, ?,
-            ?, ?, ?, ?, NOW()
+            ?, ?, ?, ?, ?, NOW()
         )";
 
         $stmt = $this->conn->prepare($query);
@@ -153,6 +153,7 @@ class Customer {
             $data['observations'] ?? null,
             $data['status'] ?? 'active',
             $data['created_by'] ?? null,
+            $data['import_batch_id'] ?? null,
         ]);
 
         $newId = $this->conn->lastInsertId();
@@ -794,7 +795,7 @@ class Customer {
             'document'             => $data['document'] ?? null,
             'rg_ie'                => $data['rg_ie'] ?? null,
             'im'                   => $data['im'] ?? null,
-            'birth_date'           => $data['birth_date'] ?? null,
+            'birth_date'           => !empty($data['birth_date']) ? $data['birth_date'] : null,
             'gender'               => $data['gender'] ?? null,
             'email'                => $data['email'] ?? null,
             'email_secondary'      => $data['email_secondary'] ?? null,
@@ -815,11 +816,15 @@ class Customer {
             'address_state'        => $data['address_state'] ?? null,
             'address_country'      => $data['address_country'] ?? 'Brasil',
             'address_ibge'         => $data['address_ibge'] ?? null,
+            'payment_term'         => $data['payment_term'] ?? null,
+            'credit_limit'         => isset($data['credit_limit']) && $data['credit_limit'] !== '' ? $data['credit_limit'] : null,
+            'discount_default'     => isset($data['discount_default']) && $data['discount_default'] !== '' ? $data['discount_default'] : null,
             'origin'               => $data['origin'] ?? 'Importação',
             'tags'                 => $data['tags'] ?? null,
             'observations'         => $data['observations'] ?? null,
             'status'               => $data['status'] ?? 'active',
             'created_by'           => $data['created_by'] ?? null,
+            'import_batch_id'      => $data['import_batch_id'] ?? null,
         ];
 
         $newId = $this->create($insertData);
@@ -828,5 +833,76 @@ class Customer {
             return $newId;
         }
         return false;
+    }
+
+    /**
+     * Atualiza um cliente existente a partir de dados importados.
+     * Usado pelos modos 'update' e 'create_or_update' da importação.
+     * Atualiza apenas campos que foram fornecidos (não vazios).
+     *
+     * @param array $data Dados mapeados (deve conter 'id')
+     * @return bool Sucesso ou falha
+     */
+    public function updateFromImport(array $data): bool
+    {
+        if (empty($data['id'])) {
+            return false;
+        }
+
+        // Campos atualizáveis via importação
+        $allowedFields = [
+            'person_type', 'name', 'fantasy_name', 'document', 'rg_ie', 'im',
+            'birth_date', 'gender', 'email', 'email_secondary',
+            'phone', 'cellphone', 'phone_commercial', 'website', 'instagram',
+            'contact_name', 'contact_role',
+            'zipcode', 'address_street', 'address_number', 'address_complement',
+            'address_neighborhood', 'address_city', 'address_state', 'address_country',
+            'payment_term', 'credit_limit', 'discount_default',
+            'origin', 'tags', 'observations', 'status',
+        ];
+
+        $sets = [];
+        $params = [];
+
+        foreach ($allowedFields as $field) {
+            if (isset($data[$field]) && $data[$field] !== '') {
+                // Sanitizar document
+                if ($field === 'document') {
+                    $data[$field] = preg_replace('/\D/', '', $data[$field]);
+                }
+                $sets[] = "{$field} = ?";
+                $params[] = $data[$field];
+            }
+        }
+
+        // Tratar campos compostos de endereço
+        if (empty($data['address_street']) && (!empty($data['address_type']) || !empty($data['address_name']))) {
+            $street = trim(($data['address_type'] ?? '') . ' ' . ($data['address_name'] ?? ''));
+            if (!empty($street)) {
+                $sets[] = "address_street = ?";
+                $params[] = $street;
+            }
+        }
+
+        if (empty($sets)) {
+            return false;
+        }
+
+        $sets[] = "updated_at = NOW()";
+        $params[] = (int) $data['id'];
+
+        $query = "UPDATE {$this->table_name} SET " . implode(', ', $sets) . " WHERE id = ? AND deleted_at IS NULL";
+        $stmt = $this->conn->prepare($query);
+        $result = $stmt->execute($params);
+
+        if ($result && $stmt->rowCount() > 0) {
+            EventDispatcher::dispatch('model.customer.updated', new Event('model.customer.updated', [
+                'id'    => $data['id'],
+                'name'  => $data['name'] ?? '',
+                'email' => $data['email'] ?? '',
+            ]));
+        }
+
+        return $result;
     }
 }

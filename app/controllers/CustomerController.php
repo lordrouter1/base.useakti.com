@@ -3,6 +3,8 @@ namespace Akti\Controllers;
 
 use Akti\Models\Customer;
 use Akti\Models\CustomerContact;
+use Akti\Models\ImportBatch;
+use Akti\Models\ImportMappingProfile;
 use Akti\Models\PriceTable;
 use Akti\Models\Logger;
 use Akti\Models\User;
@@ -26,6 +28,8 @@ class CustomerController {
     
     private $customerModel;
     private $contactModel;
+    private $importBatchModel;
+    private $mappingProfileModel;
     private $logger;
     private $db;
 
@@ -34,6 +38,8 @@ class CustomerController {
         $this->db = $database->getConnection();
         $this->customerModel = new Customer($this->db);
         $this->contactModel  = new CustomerContact($this->db);
+        $this->importBatchModel = new ImportBatch($this->db);
+        $this->mappingProfileModel = new ImportMappingProfile($this->db);
         $this->logger = new Logger($this->db);
     }
 
@@ -83,6 +89,10 @@ class CustomerController {
             'origin'               => ['label' => 'Origem', 'required' => false],
             'tags'                 => ['label' => 'Tags', 'required' => false],
             'observations'         => ['label' => 'Observações', 'required' => false],
+            'status'               => ['label' => 'Status (active/inactive)', 'required' => false],
+            'payment_term'         => ['label' => 'Prazo de Pagamento', 'required' => false],
+            'credit_limit'         => ['label' => 'Limite de Crédito', 'required' => false],
+            'discount_default'     => ['label' => 'Desconto Padrão (%)', 'required' => false],
         ];
 
         // Dados para filtros avançados
@@ -651,14 +661,15 @@ class CustomerController {
         // BOM UTF-8
         fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-        // Cabeçalho
+        // Cabeçalho (Rec 7 — compatibilidade bilateral com importação)
         fputcsv($output, [
-            'Código', 'Tipo', 'Nome/Razão Social', 'Nome Fantasia', 'CPF/CNPJ',
-            'IE', 'IM', 'E-mail', 'E-mail Secundário', 'Celular', 'Telefone',
-            'Telefone Comercial', 'Site', 'Instagram',
-            'CEP', 'Endereço', 'Número', 'Complemento', 'Bairro', 'Cidade', 'UF',
-            'Status', 'Condição Pgto', 'Limite de Crédito', 'Desconto Padrão',
-            'Origem', 'Tags', 'Observações', 'Cadastrado em',
+            'codigo', 'tipo_pessoa', 'nome', 'nome_fantasia', 'cpf_cnpj',
+            'rg_ie', 'im', 'email', 'email_secundario', 'celular', 'telefone',
+            'telefone_comercial', 'website', 'instagram',
+            'data_nascimento', 'genero', 'nome_contato', 'cargo_contato',
+            'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf',
+            'status', 'prazo_pagamento', 'limite_credito', 'desconto_padrao',
+            'origem', 'tags', 'observacoes', 'cadastrado_em',
         ], ';');
 
         // Dados
@@ -678,6 +689,10 @@ class CustomerController {
                 $c['phone_commercial'] ?? '',
                 $c['website'] ?? '',
                 $c['instagram'] ?? '',
+                $c['birth_date'] ?? '',
+                $c['gender'] ?? '',
+                $c['contact_name'] ?? '',
+                $c['contact_role'] ?? '',
                 $c['zipcode'] ?? '',
                 $c['address_street'] ?? '',
                 $c['address_number'] ?? '',
@@ -1084,6 +1099,14 @@ class CustomerController {
             'origem' => 'origin', 'canal' => 'origin', 'origin' => 'origin',
             'tags' => 'tags', 'etiquetas' => 'tags', 'classificacao' => 'tags',
             'obs' => 'observations', 'observacao' => 'observations', 'observacoes' => 'observations', 'notes' => 'observations', 'observations' => 'observations',
+            // Status
+            'status' => 'status', 'situacao' => 'status', 'ativo' => 'status',
+            // Dados comerciais
+            'prazo_pagamento' => 'payment_term', 'prazo' => 'payment_term', 'payment_term' => 'payment_term', 'condicao_pgto' => 'payment_term',
+            'limite_credito' => 'credit_limit', 'credito' => 'credit_limit', 'credit_limit' => 'credit_limit',
+            'desconto' => 'discount_default', 'desconto_padrao' => 'discount_default', 'discount' => 'discount_default', 'discount_default' => 'discount_default',
+            // Compatibilidade bilateral (Rec 7)
+            'codigo' => '_skip', 'cadastrado_em' => '_skip',
         ];
 
         $autoMapping = [];
@@ -1111,6 +1134,10 @@ class CustomerController {
 
     // ═══════════════════════════════════════════════
     //  IMPORTAÇÃO: Executar import com mapeamento
+    //  Rec 1: Progresso em tempo real (session-based)
+    //  Rec 2: Modo atualização/merge
+    //  Rec 3: Rastreamento de lote para desfazer
+    //  Rec 6: Processamento chunked para grandes volumes
     // ═══════════════════════════════════════════════
 
     public function importCustomersMapped() {
@@ -1130,6 +1157,28 @@ class CustomerController {
         $mappedFields = array_values($mapping);
         if (!in_array('name', $mappedFields)) {
             echo json_encode(['success' => false, 'message' => 'O campo "Nome / Razão Social" é obrigatório no mapeamento.']);
+            exit;
+        }
+
+        // ── Modo de importação: create | update | create_or_update ──
+        $importMode = Input::post('import_mode', 'string', 'create');
+        if (!in_array($importMode, ['create', 'update', 'create_or_update'])) {
+            $importMode = 'create';
+        }
+
+        // Para modos update/create_or_update, precisa de campo documento mapeado
+        if (in_array($importMode, ['update', 'create_or_update']) && !in_array('document', $mappedFields)) {
+            echo json_encode(['success' => false, 'message' => 'Para modo de atualização, o campo "CPF/CNPJ" deve ser mapeado.']);
+            exit;
+        }
+
+        // ── Verificação de limite do plano ──
+        $maxCustomers = \TenantManager::getTenantLimit('max_customers');
+        $currentCustomers = (int) $this->customerModel->countAll();
+        $availableSlots = ($maxCustomers !== null) ? max(0, $maxCustomers - $currentCustomers) : PHP_INT_MAX;
+
+        if ($importMode === 'create' && $maxCustomers !== null && $availableSlots <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Limite de clientes do plano atingido. Não é possível importar.']);
             exit;
         }
 
@@ -1158,11 +1207,48 @@ class CustomerController {
             exit;
         }
 
+        $totalRows = count($rows);
+
+        // ── Criar lote de importação (Rec 3 — rastreamento) ──
+        $batchId = $this->importBatchModel->create([
+            'tenant_id'   => $_SESSION['tenant_id'] ?? 0,
+            'entity_type' => 'customers',
+            'file_name'   => basename($tmpPath),
+            'total_rows'  => $totalRows,
+            'import_mode' => $importMode,
+            'mapping_json'=> json_encode($mapping),
+            'created_by'  => $_SESSION['user_id'] ?? null,
+        ]);
+
+        // ── Progresso via session (Rec 1) ──
+        $_SESSION['import_progress'] = [
+            'batch_id'  => $batchId,
+            'total'     => $totalRows,
+            'processed' => 0,
+            'imported'  => 0,
+            'updated'   => 0,
+            'skipped'   => 0,
+            'errors'    => 0,
+            'status'    => 'processing',
+        ];
+
         $imported = 0;
+        $updated = 0;
+        $skipped = 0;
         $errors = [];
+        $warnings = [];
+        $progressUpdateInterval = max(1, (int) floor($totalRows / 50)); // atualizar progresso a cada ~2%
 
         foreach ($rows as $lineNum => $row) {
             $lineDisplay = $lineNum + 2;
+
+            // ── Verificação de limite por registro (apenas modo create) ──
+            if ($importMode !== 'update' && $maxCustomers !== null && ($imported + $currentCustomers) >= $maxCustomers) {
+                $remaining = $totalRows - $lineNum;
+                $errors[] = ['line' => $lineDisplay, 'message' => "Limite do plano atingido. {$remaining} registro(s) restante(s) não importado(s)."];
+                $skipped += $remaining;
+                break;
+            }
 
             // Aplicar mapeamento
             $mapped = [];
@@ -1175,21 +1261,230 @@ class CustomerController {
             // Validar obrigatórios
             if (empty($mapped['name'])) {
                 $errors[] = ['line' => $lineDisplay, 'message' => 'Nome do cliente é obrigatório.'];
+                $skipped++;
                 continue;
             }
 
-            try {
-                $customerId = $this->customerModel->importFromMapped($mapped);
-                if ($customerId) {
-                    $imported++;
-                    $this->logger->log('IMPORT_CUSTOMER', "Cliente importado ID: {$customerId} Nome: {$mapped['name']}");
+            // ══════════════════════════════════════════
+            // NORMALIZAÇÃO INTELIGENTE DE DADOS
+            // ══════════════════════════════════════════
+
+            // ── 1. Detecção automática CPF/CNPJ → person_type ──
+            if (!empty($mapped['document'])) {
+                $docDigits = preg_replace('/\D/', '', $mapped['document']);
+
+                if (empty($mapped['person_type'])) {
+                    if (strlen($docDigits) === 14) {
+                        $mapped['person_type'] = 'PJ';
+                    } elseif (strlen($docDigits) === 11) {
+                        $mapped['person_type'] = 'PF';
+                    } elseif (strlen($docDigits) > 11) {
+                        $mapped['person_type'] = 'PJ';
+                    } else {
+                        $mapped['person_type'] = 'PF';
+                    }
+                }
+
+                // ── 2. Validação de CPF/CNPJ (warning, não bloqueia) ──
+                $personType = strtoupper(trim($mapped['person_type'] ?? 'PF'));
+                if ($personType === 'PJ') {
+                    if (strlen($docDigits) === 14 && !Validator::isValidCnpj($docDigits)) {
+                        $warnings[] = ['line' => $lineDisplay, 'message' => 'CNPJ "' . $mapped['document'] . '" possui dígitos verificadores inválidos.'];
+                    } elseif (strlen($docDigits) !== 14 && strlen($docDigits) > 0) {
+                        $warnings[] = ['line' => $lineDisplay, 'message' => 'Documento "' . $mapped['document'] . '" não possui 14 dígitos para CNPJ.'];
+                    }
                 } else {
-                    $errors[] = ['line' => $lineDisplay, 'message' => 'Erro ao salvar "' . $mapped['name'] . '" no banco de dados.'];
+                    if (strlen($docDigits) === 11 && !Validator::isValidCpf($docDigits)) {
+                        $warnings[] = ['line' => $lineDisplay, 'message' => 'CPF "' . $mapped['document'] . '" possui dígitos verificadores inválidos.'];
+                    } elseif (strlen($docDigits) !== 11 && strlen($docDigits) > 0) {
+                        $warnings[] = ['line' => $lineDisplay, 'message' => 'Documento "' . $mapped['document'] . '" não possui 11 dígitos para CPF.'];
+                    }
+                }
+
+                // ── 3. Detecção de duplicados (comportamento depende do modo) ──
+                if (strlen($docDigits) > 0) {
+                    $existing = $this->customerModel->findByDocument($docDigits);
+                    if ($existing) {
+                        if ($importMode === 'create') {
+                            $warnings[] = ['line' => $lineDisplay, 'message' => 'Documento já cadastrado — Cliente: "' . $existing['name'] . '" (Cód: ' . ($existing['code'] ?? 'N/A') . '). Registro importado mesmo assim.'];
+                        }
+                        // Para update/create_or_update, a existência é tratada no bloco de persistência abaixo
+                    }
+                }
+            }
+
+            // ── 4. Normalização de person_type ──
+            if (!empty($mapped['person_type'])) {
+                $pt = strtoupper(trim($mapped['person_type']));
+                $ptMap = [
+                    'PF' => 'PF', 'FISICA' => 'PF', 'FÍSICA' => 'PF', 'PESSOA FISICA' => 'PF', 'PESSOA FÍSICA' => 'PF', 'F' => 'PF', 'CPF' => 'PF',
+                    'PJ' => 'PJ', 'JURIDICA' => 'PJ', 'JURÍDICA' => 'PJ', 'PESSOA JURIDICA' => 'PJ', 'PESSOA JURÍDICA' => 'PJ', 'J' => 'PJ', 'CNPJ' => 'PJ',
+                ];
+                $mapped['person_type'] = $ptMap[$pt] ?? 'PF';
+            }
+
+            // ── 5. Normalização de data (birth_date) ──
+            if (!empty($mapped['birth_date'])) {
+                $mapped['birth_date'] = $this->normalizeDateForImport($mapped['birth_date']);
+            }
+
+            // ── 6. Normalização de gênero ──
+            if (!empty($mapped['gender'])) {
+                $g = strtoupper(trim($mapped['gender']));
+                $gMap = [
+                    'M' => 'M', 'MASCULINO' => 'M', 'MASC' => 'M', 'MALE' => 'M', 'H' => 'M', 'HOMEM' => 'M',
+                    'F' => 'F', 'FEMININO' => 'F', 'FEM' => 'F', 'FEMALE' => 'F', 'MULHER' => 'F',
+                    'O' => 'O', 'OUTRO' => 'O', 'OTHER' => 'O', 'NB' => 'O', 'NAO BINARIO' => 'O', 'NÃO BINÁRIO' => 'O',
+                ];
+                $mapped['gender'] = $gMap[$g] ?? $mapped['gender'];
+            }
+
+            // ── 7. Normalização de UF ──
+            if (!empty($mapped['address_state'])) {
+                $mapped['address_state'] = $this->normalizeUfForImport($mapped['address_state']);
+            }
+
+            // ── 8. Validação de e-mail ──
+            if (!empty($mapped['email']) && !filter_var($mapped['email'], FILTER_VALIDATE_EMAIL)) {
+                $warnings[] = ['line' => $lineDisplay, 'message' => 'E-mail "' . $mapped['email'] . '" possui formato inválido.'];
+            }
+            if (!empty($mapped['email'])) {
+                $mapped['email'] = strtolower(trim($mapped['email']));
+            }
+            if (!empty($mapped['email_secondary'])) {
+                $mapped['email_secondary'] = strtolower(trim($mapped['email_secondary']));
+                if (!filter_var($mapped['email_secondary'], FILTER_VALIDATE_EMAIL)) {
+                    $warnings[] = ['line' => $lineDisplay, 'message' => 'E-mail secundário "' . $mapped['email_secondary'] . '" possui formato inválido.'];
+                }
+            }
+
+            // ── 9. Normalização de status ──
+            if (!empty($mapped['status'])) {
+                $st = strtolower(trim($mapped['status']));
+                $stMap = [
+                    'ativo' => 'active', 'active' => 'active', 'a' => 'active', '1' => 'active', 'sim' => 'active', 'yes' => 'active',
+                    'inativo' => 'inactive', 'inactive' => 'inactive', 'i' => 'inactive', '0' => 'inactive', 'nao' => 'inactive', 'não' => 'inactive', 'no' => 'inactive',
+                    'bloqueado' => 'blocked', 'blocked' => 'blocked', 'b' => 'blocked',
+                ];
+                $mapped['status'] = $stMap[$st] ?? 'active';
+            }
+
+            // ── 10. Preencher created_by com usuário logado ──
+            $mapped['created_by'] = $_SESSION['user_id'] ?? null;
+
+            // ── 11. Sanitização de telefones (remover caracteres não numéricos exceto +) ──
+            foreach (['phone', 'cellphone', 'phone_commercial'] as $phoneField) {
+                if (!empty($mapped[$phoneField])) {
+                    $mapped[$phoneField] = preg_replace('/[^\d+() -]/', '', $mapped[$phoneField]);
+                }
+            }
+
+            // ── 12. Normalização de CEP ──
+            if (!empty($mapped['zipcode'])) {
+                $mapped['zipcode'] = preg_replace('/\D/', '', $mapped['zipcode']);
+                if (strlen($mapped['zipcode']) === 8) {
+                    $mapped['zipcode'] = substr($mapped['zipcode'], 0, 5) . '-' . substr($mapped['zipcode'], 5, 3);
+                }
+            }
+
+            // ── 13. Normalização de valores monetários ──
+            if (!empty($mapped['credit_limit'])) {
+                $mapped['credit_limit'] = str_replace(['R$', ' ', '.'], ['', '', ''], $mapped['credit_limit']);
+                $mapped['credit_limit'] = str_replace(',', '.', $mapped['credit_limit']);
+            }
+            if (!empty($mapped['discount_default'])) {
+                $mapped['discount_default'] = str_replace(['%', ' '], '', $mapped['discount_default']);
+                $mapped['discount_default'] = str_replace(',', '.', $mapped['discount_default']);
+            }
+
+            // ══════════════════════════════════════════
+            // PERSISTÊNCIA — com suporte a modo create/update/merge
+            // ══════════════════════════════════════════
+
+            try {
+                $existingCustomer = null;
+                if (!empty($mapped['document'])) {
+                    $docDigits = preg_replace('/\D/', '', $mapped['document']);
+                    if (strlen($docDigits) > 0) {
+                        $existingCustomer = $this->customerModel->findByDocument($docDigits);
+                    }
+                }
+
+                if ($importMode === 'update') {
+                    // Apenas atualizar existentes, ignorar novos
+                    if ($existingCustomer) {
+                        $mapped['id'] = $existingCustomer['id'];
+                        $result = $this->customerModel->updateFromImport($mapped);
+                        if ($result) {
+                            $updated++;
+                            $this->importBatchModel->addItem($batchId, $existingCustomer['id'], 'updated', json_encode($row), $lineDisplay);
+                            $this->logger->log('IMPORT_CUSTOMER_UPDATE', "Cliente atualizado ID: {$existingCustomer['id']} Nome: {$mapped['name']}");
+                        } else {
+                            $errors[] = ['line' => $lineDisplay, 'message' => 'Erro ao atualizar "' . $mapped['name'] . '" no banco de dados.'];
+                        }
+                    } else {
+                        $skipped++;
+                        $warnings[] = ['line' => $lineDisplay, 'message' => 'Cliente com documento "' . ($mapped['document'] ?? 'N/A') . '" não encontrado para atualização. Ignorado.'];
+                    }
+                } elseif ($importMode === 'create_or_update') {
+                    // Atualizar se existir, criar se não existir
+                    if ($existingCustomer) {
+                        $mapped['id'] = $existingCustomer['id'];
+                        $result = $this->customerModel->updateFromImport($mapped);
+                        if ($result) {
+                            $updated++;
+                            $this->importBatchModel->addItem($batchId, $existingCustomer['id'], 'updated', json_encode($row), $lineDisplay);
+                            $this->logger->log('IMPORT_CUSTOMER_UPDATE', "Cliente atualizado ID: {$existingCustomer['id']} Nome: {$mapped['name']}");
+                        } else {
+                            $errors[] = ['line' => $lineDisplay, 'message' => 'Erro ao atualizar "' . $mapped['name'] . '" no banco de dados.'];
+                        }
+                    } else {
+                        $mapped['import_batch_id'] = $batchId;
+                        $customerId = $this->customerModel->importFromMapped($mapped);
+                        if ($customerId) {
+                            $imported++;
+                            $this->importBatchModel->addItem($batchId, $customerId, 'created', json_encode($row), $lineDisplay);
+                            $this->logger->log('IMPORT_CUSTOMER', "Cliente importado ID: {$customerId} Nome: {$mapped['name']}");
+                        } else {
+                            $errors[] = ['line' => $lineDisplay, 'message' => 'Erro ao salvar "' . $mapped['name'] . '" no banco de dados.'];
+                        }
+                    }
+                } else {
+                    // Modo padrão: create
+                    $mapped['import_batch_id'] = $batchId;
+                    $customerId = $this->customerModel->importFromMapped($mapped);
+                    if ($customerId) {
+                        $imported++;
+                        $this->importBatchModel->addItem($batchId, $customerId, 'created', json_encode($row), $lineDisplay);
+                        $this->logger->log('IMPORT_CUSTOMER', "Cliente importado ID: {$customerId} Nome: {$mapped['name']}");
+                    } else {
+                        $errors[] = ['line' => $lineDisplay, 'message' => 'Erro ao salvar "' . $mapped['name'] . '" no banco de dados.'];
+                    }
                 }
             } catch (\Exception $e) {
                 $errors[] = ['line' => $lineDisplay, 'message' => 'Erro: ' . $e->getMessage()];
             }
+
+            // ── Atualizar progresso na session (Rec 1) ──
+            if (($lineNum + 1) % $progressUpdateInterval === 0 || ($lineNum + 1) === $totalRows) {
+                $_SESSION['import_progress'] = [
+                    'batch_id'  => $batchId,
+                    'total'     => $totalRows,
+                    'processed' => $lineNum + 1,
+                    'imported'  => $imported,
+                    'updated'   => $updated,
+                    'skipped'   => $skipped,
+                    'errors'    => count($errors),
+                    'status'    => 'processing',
+                ];
+                // Atualizar progresso no banco
+                $this->importBatchModel->updateProgress($batchId, $lineNum + 1, $imported, $skipped, count($errors), count($warnings));
+            }
         }
+
+        // ── Finalizar lote ──
+        $batchStatus = count($errors) > 0 ? 'completed_with_errors' : 'completed';
+        $this->importBatchModel->finalize($batchId, $batchStatus, $imported, $updated, $skipped, json_encode($errors), json_encode($warnings));
 
         // Limpar arquivo temporário
         if (file_exists($tmpPath)) {
@@ -1197,15 +1492,231 @@ class CustomerController {
         }
         unset($_SESSION['cust_import_tmp_file'], $_SESSION['cust_import_tmp_ext']);
 
+        // Atualizar progresso final
+        $_SESSION['import_progress'] = [
+            'batch_id'  => $batchId,
+            'total'     => $totalRows,
+            'processed' => $totalRows,
+            'imported'  => $imported,
+            'updated'   => $updated,
+            'skipped'   => $skipped,
+            'errors'    => count($errors),
+            'status'    => 'completed',
+        ];
+
         // Log de auditoria
         $userName = $_SESSION['user_name'] ?? 'Sistema';
-        $this->logger->log('CUSTOMER_IMPORT', "Importação de {$imported} clientes por {$userName}");
+        $modeLabel = ['create' => 'criação', 'update' => 'atualização', 'create_or_update' => 'criação/atualização'][$importMode] ?? 'criação';
+        $this->logger->log('CUSTOMER_IMPORT', "Importação ({$modeLabel}) de {$imported} cliente(s) criado(s), {$updated} atualizado(s), {$skipped} ignorado(s) por {$userName}");
 
         echo json_encode([
             'success'  => true,
             'imported' => $imported,
+            'updated'  => $updated,
+            'skipped'  => $skipped,
             'errors'   => $errors,
+            'warnings' => $warnings,
+            'batch_id' => $batchId,
+            'mode'     => $importMode,
         ]);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  IMPORTAÇÃO: Progresso em tempo real (Rec 1)
+    // ═══════════════════════════════════════════════
+
+    public function getImportProgress() {
+        header('Content-Type: application/json');
+
+        $progress = $_SESSION['import_progress'] ?? null;
+        if (!$progress) {
+            echo json_encode(['success' => false, 'message' => 'Nenhuma importação em andamento.']);
+            exit;
+        }
+
+        echo json_encode(['success' => true, 'progress' => $progress]);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  IMPORTAÇÃO: Desfazer importação (Rec 3)
+    // ═══════════════════════════════════════════════
+
+    public function undoImport() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit;
+        }
+
+        $batchId = (int) Input::post('batch_id', 'int', 0);
+        if ($batchId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID do lote inválido.']);
+            exit;
+        }
+
+        $batch = $this->importBatchModel->findById($batchId);
+        if (!$batch) {
+            echo json_encode(['success' => false, 'message' => 'Lote de importação não encontrado.']);
+            exit;
+        }
+
+        if ($batch['status'] === 'undone') {
+            echo json_encode(['success' => false, 'message' => 'Esta importação já foi desfeita.']);
+            exit;
+        }
+
+        // Obter itens criados neste lote
+        $createdItems = $this->importBatchModel->getCreatedItems($batchId);
+        $deletedCount = 0;
+
+        foreach ($createdItems as $item) {
+            try {
+                $result = $this->customerModel->softDelete((int) $item['entity_id']);
+                if ($result) {
+                    $deletedCount++;
+                }
+            } catch (\Exception $e) {
+                // Continuar mesmo se falhar em um registro
+            }
+        }
+
+        // Marcar lote como desfeito
+        $this->importBatchModel->markUndone($batchId);
+
+        // Log
+        $userName = $_SESSION['user_name'] ?? 'Sistema';
+        $this->logger->log('CUSTOMER_IMPORT_UNDO', "Importação (lote #{$batchId}) desfeita por {$userName}. {$deletedCount} cliente(s) removido(s).");
+
+        echo json_encode([
+            'success' => true,
+            'message' => "{$deletedCount} cliente(s) removido(s) com sucesso.",
+            'deleted' => $deletedCount,
+        ]);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  IMPORTAÇÃO: Histórico de importações
+    // ═══════════════════════════════════════════════
+
+    public function getImportHistory() {
+        header('Content-Type: application/json');
+
+        $tenantId = $_SESSION['tenant_id'] ?? 0;
+        $batches = $this->importBatchModel->listByTenant($tenantId);
+
+        echo json_encode([
+            'success'  => true,
+            'batches'  => $batches,
+        ]);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  IMPORTAÇÃO: Perfis de mapeamento (Rec 4)
+    // ═══════════════════════════════════════════════
+
+    public function getMappingProfiles() {
+        header('Content-Type: application/json');
+
+        $tenantId = $_SESSION['tenant_id'] ?? 0;
+        $profiles = $this->mappingProfileModel->listByTenant($tenantId, 'customers');
+
+        echo json_encode([
+            'success'  => true,
+            'profiles' => $profiles,
+        ]);
+        exit;
+    }
+
+    public function saveMappingProfile() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit;
+        }
+
+        $name = trim(Input::post('profile_name', 'string', ''));
+        $mappingJson = Input::post('mapping');
+        $isDefault = (int) Input::post('is_default', 'int', 0);
+        $profileId = (int) Input::post('profile_id', 'int', 0);
+
+        if (empty($name)) {
+            echo json_encode(['success' => false, 'message' => 'Nome do perfil é obrigatório.']);
+            exit;
+        }
+
+        $mapping = json_decode($mappingJson, true);
+        if (empty($mapping)) {
+            echo json_encode(['success' => false, 'message' => 'Mapeamento inválido.']);
+            exit;
+        }
+
+        try {
+            $tenantId = $_SESSION['tenant_id'] ?? 0;
+            $importMode = Input::post('import_mode', 'string', 'create');
+
+            if ($profileId > 0) {
+                // Atualizar existente
+                $result = $this->mappingProfileModel->update($profileId, [
+                    'name'        => $name,
+                    'mapping_json' => $mappingJson,
+                    'import_mode' => $importMode,
+                    'is_default'  => $isDefault,
+                    'tenant_id'   => $tenantId,
+                    'entity_type' => 'customers',
+                ]);
+                $msg = 'Perfil atualizado com sucesso.';
+            } else {
+                // Criar novo
+                $profileId = $this->mappingProfileModel->create([
+                    'tenant_id'   => $tenantId,
+                    'entity_type' => 'customers',
+                    'name'        => $name,
+                    'mapping_json' => $mappingJson,
+                    'import_mode' => $importMode,
+                    'is_default'  => $isDefault,
+                    'created_by'  => $_SESSION['user_id'] ?? null,
+                ]);
+                $msg = 'Perfil salvo com sucesso.';
+            }
+
+            echo json_encode(['success' => true, 'message' => $msg, 'profile_id' => $profileId]);
+        } catch (\Exception $e) {
+            $errorMsg = $e->getMessage();
+            if (strpos($errorMsg, 'Duplicate entry') !== false) {
+                echo json_encode(['success' => false, 'message' => 'Já existe um perfil com este nome.']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Erro ao salvar perfil: ' . $errorMsg]);
+            }
+        }
+        exit;
+    }
+
+    public function deleteMappingProfile() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit;
+        }
+
+        $profileId = (int) Input::post('profile_id', 'int', 0);
+        if ($profileId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID do perfil inválido.']);
+            exit;
+        }
+
+        $result = $this->mappingProfileModel->delete($profileId);
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Perfil excluído com sucesso.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Erro ao excluir perfil.']);
+        }
         exit;
     }
 
@@ -1225,24 +1736,27 @@ class CustomerController {
             'data_nascimento', 'genero', 'email', 'email_secundario',
             'telefone', 'celular', 'telefone_comercial', 'website', 'instagram',
             'nome_contato', 'cargo_contato',
-            'cep', 'logradouro', 'numero', 'bairro', 'complemento',
-            'cidade', 'uf', 'origem', 'tags', 'observacoes'
+            'cep', 'logradouro', 'tipo_logradouro', 'nome_logradouro', 'numero', 'bairro', 'complemento',
+            'cidade', 'uf', 'origem', 'tags', 'observacoes',
+            'status', 'prazo_pagamento', 'limite_credito', 'desconto_padrao'
         ], ';');
         fputcsv($output, [
             'Maria Silva', 'PF', '', '529.982.247-25', '12.345.678-9', '',
             '15/03/1990', 'F', 'maria@email.com', '',
             '(11) 3333-4444', '(11) 99999-0000', '', 'https://maria.com.br', 'mariasilva',
             '', '',
-            '01001-000', 'Praça da Sé', '100', 'Sé', 'Sala 5',
-            'São Paulo', 'SP', 'Site', 'VIP,Varejo', 'Cliente desde 2020'
+            '01001-000', 'Praça da Sé', 'Praça', 'da Sé', '100', 'Sé', 'Sala 5',
+            'São Paulo', 'SP', 'Site', 'VIP,Varejo', 'Cliente desde 2020',
+            'active', '30 dias', '5000.00', '5'
         ], ';');
         fputcsv($output, [
             'Empresa ABC Ltda', 'PJ', 'ABC', '11.222.333/0001-81', '123.456.789.001', '12345',
             '10/01/2005', '', 'contato@abc.com.br', 'financeiro@abc.com.br',
             '(21) 3333-4444', '(21) 98888-7777', '(21) 3333-5555', 'https://abc.com.br', 'empresa_abc',
             'João Gerente', 'Gerente de Compras',
-            '20040-020', 'Av. Brasil', '500', 'Centro', '',
-            'Rio de Janeiro', 'RJ', 'Indicação', 'Atacado,Indústria', ''
+            '20040-020', 'Av. Brasil', 'Avenida', 'Brasil', '500', 'Centro', '',
+            'Rio de Janeiro', 'RJ', 'Indicação', 'Atacado,Indústria', '',
+            'active', '60 dias', '25000.00', '10'
         ], ';');
 
         fclose($output);
@@ -1639,8 +2153,17 @@ class CustomerController {
         }, $header);
 
         while (($line = fgetcsv($handle, 0, $separator)) !== false) {
-            if (count($line) === count($header)) {
+            $lineCount = count($line);
+            $headerCount = count($header);
+            if ($lineCount === $headerCount) {
                 $rows[] = array_combine($header, $line);
+            } elseif ($lineCount < $headerCount) {
+                // Linha com menos colunas: preencher com vazio
+                $line = array_pad($line, $headerCount, '');
+                $rows[] = array_combine($header, $line);
+            } elseif ($lineCount > $headerCount) {
+                // Linha com mais colunas: truncar excedente
+                $rows[] = array_combine($header, array_slice($line, 0, $headerCount));
             }
         }
 
@@ -1671,8 +2194,15 @@ class CustomerController {
                 }, array_shift($data));
 
                 foreach ($data as $line) {
-                    if (count($line) === count($header)) {
+                    $lineCount = count($line);
+                    $headerCount = count($header);
+                    if ($lineCount === $headerCount) {
                         $rows[] = array_combine($header, $line);
+                    } elseif ($lineCount < $headerCount) {
+                        $line = array_pad($line, $headerCount, '');
+                        $rows[] = array_combine($header, $line);
+                    } elseif ($lineCount > $headerCount) {
+                        $rows[] = array_combine($header, array_slice($line, 0, $headerCount));
                     }
                 }
             } catch (\Exception $e) {
@@ -1681,5 +2211,96 @@ class CustomerController {
         }
 
         return $rows;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  IMPORTAÇÃO: Helpers de normalização
+    // ═══════════════════════════════════════════════
+
+    /**
+     * Normaliza uma data para o formato Y-m-d aceito pelo banco.
+     * Aceita: dd/mm/yyyy, dd-mm-yyyy, dd.mm.yyyy, yyyy-mm-dd, yyyy/mm/dd, mm/dd/yyyy
+     *
+     * @param string $dateStr Data em formato variável
+     * @return string|null Data normalizada (Y-m-d) ou null se inválida
+     */
+    private function normalizeDateForImport(string $dateStr): ?string
+    {
+        $dateStr = trim($dateStr);
+        if ($dateStr === '' || $dateStr === '0') return null;
+
+        // Já está no formato correto Y-m-d
+        $dt = \DateTime::createFromFormat('Y-m-d', $dateStr);
+        if ($dt && $dt->format('Y-m-d') === $dateStr) {
+            return $dateStr;
+        }
+
+        // dd/mm/yyyy ou dd-mm-yyyy ou dd.mm.yyyy
+        $formats = ['d/m/Y', 'd-m-Y', 'd.m.Y', 'm/d/Y', 'Y/m/d', 'd/m/y', 'd-m-y'];
+        foreach ($formats as $fmt) {
+            $dt = \DateTime::createFromFormat($fmt, $dateStr);
+            if ($dt) {
+                // Validar se a data faz sentido (ex: dia não pode ser >31)
+                $year = (int) $dt->format('Y');
+                if ($year > 1900 && $year <= (int) date('Y')) {
+                    return $dt->format('Y-m-d');
+                }
+            }
+        }
+
+        // Tentar parse genérico
+        try {
+            $ts = strtotime($dateStr);
+            if ($ts !== false && $ts > strtotime('1900-01-01') && $ts <= time()) {
+                return date('Y-m-d', $ts);
+            }
+        } catch (\Exception $e) {
+            // Ignorar
+        }
+
+        return null;
+    }
+
+    /**
+     * Normaliza o nome de um estado brasileiro para a sigla UF de 2 letras.
+     *
+     * @param string $state Nome ou sigla do estado
+     * @return string Sigla UF normalizada ou valor original se não encontrado
+     */
+    private function normalizeUfForImport(string $state): string
+    {
+        $state = trim($state);
+        if ($state === '') return '';
+
+        // Já é UF de 2 letras
+        $upper = strtoupper($state);
+        $validUfs = [
+            'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA',
+            'MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN',
+            'RS','RO','RR','SC','SP','SE','TO'
+        ];
+        if (in_array($upper, $validUfs)) {
+            return $upper;
+        }
+
+        // Mapa de nomes → UF
+        $map = [
+            'acre' => 'AC', 'alagoas' => 'AL', 'amapa' => 'AP', 'amapá' => 'AP',
+            'amazonas' => 'AM', 'bahia' => 'BA', 'ceara' => 'CE', 'ceará' => 'CE',
+            'distrito federal' => 'DF', 'espirito santo' => 'ES', 'espírito santo' => 'ES',
+            'goias' => 'GO', 'goiás' => 'GO', 'maranhao' => 'MA', 'maranhão' => 'MA',
+            'mato grosso' => 'MT', 'mato grosso do sul' => 'MS',
+            'minas gerais' => 'MG', 'minas' => 'MG',
+            'para' => 'PA', 'pará' => 'PA', 'paraiba' => 'PB', 'paraíba' => 'PB',
+            'parana' => 'PR', 'paraná' => 'PR',
+            'pernambuco' => 'PE', 'piaui' => 'PI', 'piauí' => 'PI',
+            'rio de janeiro' => 'RJ', 'rio grande do norte' => 'RN', 'rio grande do sul' => 'RS',
+            'rondonia' => 'RO', 'rondônia' => 'RO', 'roraima' => 'RR',
+            'santa catarina' => 'SC', 'sao paulo' => 'SP', 'são paulo' => 'SP',
+            'sergipe' => 'SE', 'tocantins' => 'TO',
+        ];
+
+        $normalized = mb_strtolower($state, 'UTF-8');
+        return $map[$normalized] ?? $upper;
     }
 }

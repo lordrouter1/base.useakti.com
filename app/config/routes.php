@@ -289,6 +289,12 @@ return [
             'parseImportFile'         => 'parseImportFile',
             'importCustomersMapped'   => 'importCustomersMapped',
             'downloadImportTemplate'  => 'downloadImportTemplate',
+            'getImportProgress'       => 'getImportProgress',
+            'undoImport'              => 'undoImport',
+            'getImportHistory'        => 'getImportHistory',
+            'getMappingProfiles'      => 'getMappingProfiles',
+            'saveMappingProfile'      => 'saveMappingProfile',
+            'deleteMappingProfile'    => 'deleteMappingProfile',
 
             // Tags e Histórico (Fase 4)
             'getTags'                 => 'getTags',
