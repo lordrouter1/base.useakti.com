@@ -25,8 +25,8 @@ $baseLabels = ['valor_venda' => 'Valor da Venda', 'margem_lucro' => 'Margem de L
 
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(39,174,96,.1);">
-                        <i class="fas fa-file-alt" style="color:#27ae60;font-size:.85rem;"></i>
+                    <div class="icon-circle icon-circle-green me-2">
+                        <i class="fas fa-file-alt text-green" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Formas de Comissão</h5>
@@ -41,7 +41,7 @@ $baseLabels = ['valor_venda' => 'Valor da Venda', 'margem_lucro' => 'Margem de L
                 <div class="col-xl-4 col-md-6">
                     <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
                         <div class="card-body d-flex align-items-center p-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:42px;height:42px;background:rgba(39,174,96,0.15);">
+                            <div class="icon-circle icon-circle-lg icon-circle-green me-3">
                                 <i class="fas fa-list text-success"></i>
                             </div>
                             <div>
@@ -54,7 +54,7 @@ $baseLabels = ['valor_venda' => 'Valor da Venda', 'margem_lucro' => 'Margem de L
                 <div class="col-xl-4 col-md-6">
                     <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
                         <div class="card-body d-flex align-items-center p-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:42px;height:42px;background:rgba(52,152,219,0.15);">
+                            <div class="icon-circle icon-circle-lg icon-circle-blue me-3">
                                 <i class="fas fa-check-circle text-primary"></i>
                             </div>
                             <div>
@@ -67,7 +67,7 @@ $baseLabels = ['valor_venda' => 'Valor da Venda', 'margem_lucro' => 'Margem de L
                 <div class="col-xl-4 col-md-6">
                     <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
                         <div class="card-body d-flex align-items-center p-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:42px;height:42px;background:rgba(23,162,184,0.15);">
+                            <div class="icon-circle icon-circle-lg icon-circle-info me-3">
                                 <i class="fas fa-layer-group text-info"></i>
                             </div>
                             <div>

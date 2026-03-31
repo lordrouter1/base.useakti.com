@@ -343,7 +343,7 @@
         <div class="card mb-4 shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center section-toggle" 
                  data-bs-toggle="collapse" data-bs-target="#collapseFiscal" aria-expanded="<?= $hasFiscal ? 'true' : 'false' ?>" role="button">
-                <h5 class="mb-0" style="color: #8e44ad;"><i class="fas fa-file-invoice me-2"></i>Informações Fiscais (NF-e)</h5>
+                <h5 class="mb-0 text-grape"><i class="fas fa-file-invoice me-2"></i>Informações Fiscais (NF-e)</h5>
                 <i class="fas fa-chevron-<?= $hasFiscal ? 'up' : 'down' ?> collapse-icon text-muted"></i>
             </div>
             <div class="collapse <?= $hasFiscal ? 'show' : '' ?>" id="collapseFiscal">
@@ -380,17 +380,7 @@
 <!-- SortableJS CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-<style>
-.section-toggle { cursor: pointer; transition: background 0.2s; }
-.section-toggle:hover { background-color: #f8f9fa !important; }
-.section-toggle .collapse-icon { transition: transform 0.3s ease; }
-[aria-expanded="true"] .collapse-icon { transform: rotate(180deg); }
-[aria-expanded="false"] .collapse-icon { transform: rotate(0deg); }
-.sticky-bottom { position: sticky; bottom: 0; z-index: 10; }
-/* Remover borda/shadow dos fieldsets dentro dos cards colapsáveis */
-.card .card-body fieldset { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
-.card .card-body fieldset > legend { display: none; }
-</style>
+<!-- Styles moved to assets/css/modules/products.css -->
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

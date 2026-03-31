@@ -1,7 +1,7 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2"><i class="fas fa-shopping-cart me-2"></i>Pedidos</h1>
     <div class="btn-toolbar mb-2 mb-md-0 gap-2">
-        <a href="?page=orders&action=agenda" class="btn btn-sm btn-outline-purple" style="border-color:#9b59b6;color:#9b59b6;">
+        <a href="?page=orders&action=agenda" class="btn btn-sm btn-outline-purple">
             <i class="fas fa-calendar-alt me-1"></i> Agenda
         </a>
         <a href="?page=pipeline" class="btn btn-sm btn-outline-info">
@@ -145,12 +145,17 @@
             <?php endforeach; ?>
             <?php else: ?>
             <tr>
-                <td colspan="8" class="text-center text-muted py-5">
-                    <i class="fas fa-shopping-cart fa-3x mb-3 d-block text-secondary"></i>
-                    Nenhum pedido encontrado.
-                    <div class="mt-3">
-                        <a href="?page=orders&action=create" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Criar Primeiro Pedido</a>
-                    </div>
+                <td colspan="8" class="p-0 border-0">
+                    <?php
+                    $emptyState = [
+                        'icon'       => 'no-orders',
+                        'title'      => 'Nenhum pedido encontrado',
+                        'message'    => 'Comece criando seu primeiro pedido de venda ou orçamento.',
+                        'action_url' => '?page=orders&action=create',
+                        'action_text'=> 'Criar Primeiro Pedido',
+                    ];
+                    require 'app/views/components/empty-state.php';
+                    ?>
                 </td>
             </tr>
             <?php endif; ?>
@@ -166,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.history.replaceState) { const url = new URL(window.location); url.searchParams.delete('status'); window.history.replaceState({}, '', url); }
     <?php endif; ?>
     <?php if(isset($_GET['status']) && $_GET['status'] == 'success'): ?>
-    Swal.fire({ icon: 'success', title: 'Sucesso!', text: 'Pedido salvo com sucesso!', timer: 2000, showConfirmButton: false });
+    if (window.AktiToast) AktiToast.success('Pedido salvo com sucesso!');
     <?php endif; ?>
 
     document.querySelectorAll('.btn-delete-order').forEach(btn => {

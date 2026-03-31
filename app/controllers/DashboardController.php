@@ -4,6 +4,7 @@ namespace Akti\Controllers;
 use Akti\Models\Pipeline;
 use Akti\Models\Order;
 use Akti\Models\Customer;
+use Akti\Core\Log;
 use Database;
 
 class DashboardController {
@@ -34,9 +35,13 @@ class DashboardController {
 
             $customerModel = new Customer($db);
             $totalCustomers = $customerModel->countAll();
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Se o pipeline ainda não foi migrado, não travar
-            error_log('Dashboard error: ' . $e->getMessage());
+            Log::channel('general')->warning('Dashboard error', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ]);
         }
 
         require 'app/views/layout/header.php';

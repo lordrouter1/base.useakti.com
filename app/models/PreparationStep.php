@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Models;
 
+use Akti\Core\Log;
+
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
@@ -17,21 +19,15 @@ class PreparationStep {
     }
 
     /**
-     * Cria a tabela se não existir
+     * Verifica se a tabela existe (DDL movida para /sql).
      */
     public function createTableIfNotExists() {
-        $sql = "CREATE TABLE IF NOT EXISTS preparation_steps (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            step_key VARCHAR(100) NOT NULL UNIQUE,
-            label VARCHAR(255) NOT NULL,
-            description VARCHAR(500) DEFAULT '',
-            icon VARCHAR(100) DEFAULT 'fas fa-check',
-            sort_order INT DEFAULT 0,
-            is_active TINYINT(1) DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-        $this->conn->exec($sql);
+        // DDL movida para sql/update_202603301000_extract_ddl_from_models.sql
+        try {
+            $this->conn->query("SELECT 1 FROM preparation_steps LIMIT 1");
+        } catch (\Exception $e) {
+            Log::warning('PreparationStep: Tabela preparation_steps não encontrada. Execute as migrations pendentes.');
+        }
     }
 
     /**

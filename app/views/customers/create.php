@@ -45,7 +45,7 @@
         <div class="cst-step-content active" id="cst-step-1">
             <div class="cst-form-section">
                 <div class="cst-form-section-title">
-                    <i class="fas fa-id-card" style="background:rgba(52,152,219,.1);color:#3498db;"></i>
+                    <i class="fas fa-id-card icon-circle-blue text-blue"></i>
                     Dados de Identificação
                 </div>
 
@@ -140,7 +140,7 @@
         <div class="cst-step-content" id="cst-step-2">
             <div class="cst-form-section">
                 <div class="cst-form-section-title">
-                    <i class="fas fa-address-book" style="background:rgba(39,174,96,.1);color:#27ae60;"></i>
+                    <i class="fas fa-address-book icon-circle-green text-green"></i>
                     Informações de Contato
                 </div>
                 <div class="row g-3">
@@ -220,7 +220,7 @@
         <div class="cst-step-content" id="cst-step-3">
             <div class="cst-form-section">
                 <div class="cst-form-section-title">
-                    <i class="fas fa-map-marker-alt" style="background:rgba(243,156,18,.1);color:#f39c12;"></i>
+                    <i class="fas fa-map-marker-alt icon-circle-orange text-orange"></i>
                     Endereço
                 </div>
                 <div class="row g-3">
@@ -281,7 +281,7 @@
         <div class="cst-step-content" id="cst-step-4">
             <div class="cst-form-section">
                 <div class="cst-form-section-title">
-                    <i class="fas fa-briefcase" style="background:rgba(155,89,182,.1);color:#9b59b6;"></i>
+                    <i class="fas fa-briefcase icon-circle-purple text-purple"></i>
                     Dados Comerciais
                 </div>
                 <div class="row g-3">

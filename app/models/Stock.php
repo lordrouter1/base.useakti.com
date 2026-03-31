@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Models;
 
+use Akti\Core\Log;
+
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
@@ -546,6 +548,89 @@ class Stock {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Listar movimentações com filtros e paginação server-side.
+     * Retorna { data: array, total: int, page: int, perPage: int, totalPages: int }
+     *
+     * @param array $filters Filtros (warehouse_id, product_id, type, date_from, date_to)
+     * @param int   $page    Página (1-based)
+     * @param int   $perPage Itens por página
+     * @return array
+     */
+    public function getMovementsPaginated(array $filters = [], int $page = 1, int $perPage = 25): array
+    {
+        $page = max(1, $page);
+        $perPage = min(max(1, $perPage), 100);
+        $offset = ($page - 1) * $perPage;
+
+        $where = ["1=1"];
+        $params = [];
+
+        if (!empty($filters['warehouse_id'])) {
+            $where[] = "sm.warehouse_id = :wid";
+            $params[':wid'] = $filters['warehouse_id'];
+        }
+        if (!empty($filters['product_id'])) {
+            $where[] = "sm.product_id = :pid";
+            $params[':pid'] = $filters['product_id'];
+        }
+        if (!empty($filters['type'])) {
+            $where[] = "sm.type = :type";
+            $params[':type'] = $filters['type'];
+        }
+        if (!empty($filters['date_from'])) {
+            $where[] = "sm.created_at >= :date_from";
+            $params[':date_from'] = $filters['date_from'] . ' 00:00:00';
+        }
+        if (!empty($filters['date_to'])) {
+            $where[] = "sm.created_at <= :date_to";
+            $params[':date_to'] = $filters['date_to'] . ' 23:59:59';
+        }
+
+        $whereStr = implode(' AND ', $where);
+
+        // Contar total
+        $countStmt = $this->conn->prepare("SELECT COUNT(*) FROM stock_movements sm WHERE {$whereStr}");
+        foreach ($params as $k => $v) {
+            $countStmt->bindValue($k, $v);
+        }
+        $countStmt->execute();
+        $total = (int) $countStmt->fetchColumn();
+
+        // Buscar página
+        $dataStmt = $this->conn->prepare("
+            SELECT sm.*, 
+                   p.name as product_name,
+                   pgc.combination_label,
+                   w.name as warehouse_name,
+                   dw.name as dest_warehouse_name,
+                   u.name as user_name
+            FROM stock_movements sm
+            JOIN products p ON sm.product_id = p.id
+            JOIN warehouses w ON sm.warehouse_id = w.id
+            LEFT JOIN product_grade_combinations pgc ON sm.combination_id = pgc.id
+            LEFT JOIN warehouses dw ON sm.destination_warehouse_id = dw.id
+            LEFT JOIN users u ON sm.user_id = u.id
+            WHERE {$whereStr}
+            ORDER BY sm.created_at DESC
+            LIMIT :lim OFFSET :off
+        ");
+        foreach ($params as $k => $v) {
+            $dataStmt->bindValue($k, $v);
+        }
+        $dataStmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
+        $dataStmt->bindValue(':off', $offset, PDO::PARAM_INT);
+        $dataStmt->execute();
+
+        return [
+            'data'       => $dataStmt->fetchAll(PDO::FETCH_ASSOC),
+            'total'      => $total,
+            'page'       => $page,
+            'perPage'    => $perPage,
+            'totalPages' => max(1, (int) ceil($total / $perPage)),
+        ];
+    }
+
     // ═══════════════════════════════════════════════
     //  DASHBOARD / RESUMOS
     // ═══════════════════════════════════════════════
@@ -759,49 +844,40 @@ class Stock {
     }
 
     /**
-     * Cria a tabela de deduções se não existir (auto-migrate)
+     * Garante que a tabela de deduções exista.
+     * (DDL movida para /sql — este método agora apenas verifica existência)
      */
     public function ensureDeductionsTable() {
-        $this->conn->exec("
-            CREATE TABLE IF NOT EXISTS `order_stock_deductions` (
-                `id` INT(11) NOT NULL AUTO_INCREMENT,
-                `order_id` INT(11) NOT NULL,
-                `order_item_id` INT(11) NOT NULL,
-                `warehouse_id` INT(11) NOT NULL,
-                `product_id` INT(11) NOT NULL,
-                `combination_id` INT(11) DEFAULT NULL,
-                `quantity` DECIMAL(12,2) NOT NULL,
-                `movement_id` INT(11) DEFAULT NULL,
-                `status` ENUM('deducted','reversed') NOT NULL DEFAULT 'deducted',
-                `deducted_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-                `reversed_at` DATETIME DEFAULT NULL,
-                `reversed_by` INT(11) DEFAULT NULL,
-                PRIMARY KEY (`id`),
-                KEY `idx_order` (`order_id`),
-                KEY `idx_status` (`status`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        ");
+        // DDL movida para sql/update_202603301000_extract_ddl_from_models.sql
+        // Mantém verificação para compatibilidade — se a tabela não existir, loga erro
+        try {
+            $this->conn->query("SELECT 1 FROM order_stock_deductions LIMIT 1");
+        } catch (\Exception $e) {
+            Log::warning('Stock: Tabela order_stock_deductions não encontrada. Execute as migrations pendentes.');
+        }
     }
 
     /**
-     * Garante que a coluna is_default exista na tabela warehouses (auto-migrate)
+     * Garante que a coluna is_default exista na tabela warehouses.
+     * (DDL movida para /sql)
      */
     public function ensureDefaultColumn() {
         try {
             $this->conn->query("SELECT is_default FROM warehouses LIMIT 1");
         } catch (\Exception $e) {
-            $this->conn->exec("ALTER TABLE warehouses ADD COLUMN is_default TINYINT(1) NOT NULL DEFAULT 0 AFTER is_active");
+            Log::warning('Stock: Coluna warehouses.is_default não encontrada. Execute as migrations pendentes.');
         }
     }
 
     /**
-     * Garante que a coluna stock_warehouse_id exista na tabela orders (auto-migrate)
+     * Garante que a coluna stock_warehouse_id exista na tabela orders.
+     * (DDL movida para /sql)
      */
     public function ensureOrderWarehouseColumn() {
         try {
             $this->conn->query("SELECT stock_warehouse_id FROM orders LIMIT 1");
         } catch (\Exception $e) {
-            $this->conn->exec("ALTER TABLE orders ADD COLUMN stock_warehouse_id INT(11) DEFAULT NULL AFTER tracking_code");
+            Log::warning('Stock: Coluna orders.stock_warehouse_id não encontrada. Execute as migrations pendentes.');
         }
     }
 }

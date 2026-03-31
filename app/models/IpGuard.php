@@ -3,6 +3,7 @@ namespace Akti\Models;
 
 use PDO;
 use PDOException;
+use Akti\Core\Log;
 
 /**
  * IpGuard — Detecção de flood 404 e blacklist automática de IPs.
@@ -51,8 +52,13 @@ class IpGuard
             $port    = (int) (getenv('AKTI_MASTER_DB_PORT') ?: getenv('AKTI_DB_PORT') ?: 3306);
             $dbName  = getenv('AKTI_MASTER_DB_NAME') ?: 'akti_master';
             $user    = getenv('AKTI_MASTER_DB_USER') ?: getenv('AKTI_DB_USER') ?: 'akti_sis_usr';
-            $pass    = getenv('AKTI_MASTER_DB_PASS') ?: getenv('AKTI_DB_PASS') ?: 'kP9!vR2@mX6#zL5$';
+            $pass    = getenv('AKTI_MASTER_DB_PASS') ?: getenv('AKTI_DB_PASS');
             $charset = getenv('AKTI_MASTER_DB_CHARSET') ?: 'utf8mb4';
+
+            if ($pass === false || $pass === '') {
+                Log::error('IpGuard: Variável AKTI_DB_PASS não configurada. Proteção IP Guard desativada.');
+                return null;
+            }
 
             $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $host, $port, $dbName, $charset);
 
@@ -65,7 +71,7 @@ class IpGuard
             return self::$conn;
         } catch (PDOException $e) {
             // Falha silenciosa — não pode impedir a exibição da página 404
-            error_log('[IpGuard] Falha ao conectar ao banco master: ' . $e->getMessage());
+            Log::error('IpGuard: Falha ao conectar ao banco master', ['exception' => $e->getMessage()]);
             return null;
         }
     }
@@ -145,7 +151,7 @@ class IpGuard
 
             return (bool) $stmt->fetchColumn();
         } catch (PDOException $e) {
-            error_log('[IpGuard] isBlacklisted error: ' . $e->getMessage());
+            Log::error('IpGuard: isBlacklisted', ['exception' => $e->getMessage()]);
             return false;
         }
     }
@@ -198,9 +204,9 @@ class IpGuard
                 self::blacklistIp($ip, $hitCount, '404_flood');
             }
         } catch (PDOException $e) {
-            error_log('[IpGuard] register404Hit error: ' . $e->getMessage());
+            Log::error('IpGuard: register404Hit', ['exception' => $e->getMessage()]);
         } catch (\Throwable $e) {
-            error_log('[IpGuard] register404Hit unexpected error: ' . $e->getMessage());
+            Log::error('IpGuard: register404Hit unexpected', ['exception' => $e->getMessage()]);
         }
     }
 
@@ -244,12 +250,12 @@ class IpGuard
             $stmt->bindValue(':expires', $expiresAt);
             $stmt->execute();
 
-            error_log(sprintf(
+            Log::info(sprintf(
                 '[IpGuard] IP bloqueado: %s | hits=%d | reason=%s | expires=%s',
                 $ip, $hits, $reason, $expiresAt ?? 'PERMANENTE'
             ));
         } catch (PDOException $e) {
-            error_log('[IpGuard] blacklistIp error: ' . $e->getMessage());
+            Log::error('IpGuard: blacklistIp', ['exception' => $e->getMessage()]);
         }
     }
 
@@ -275,11 +281,11 @@ class IpGuard
 
             $deleted = $stmt->rowCount();
             if ($deleted > 0) {
-                error_log("[IpGuard] Purged {$deleted} old 404 hit records (older than {$days} days).");
+                Log::info("IpGuard: Purged {$deleted} old 404 hit records (older than {$days} days).");
             }
             return $deleted;
         } catch (PDOException $e) {
-            error_log('[IpGuard] purgeOldHits error: ' . $e->getMessage());
+            Log::error('IpGuard: purgeOldHits', ['exception' => $e->getMessage()]);
             return 0;
         }
     }

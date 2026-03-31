@@ -9,8 +9,8 @@
 <div class="fin-section <?= $activeSection === 'payments' ? 'active' : '' ?>" id="fin-payments">
 
     <div class="d-flex align-items-center mb-3">
-        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(52,152,219,.1);">
-            <i class="fas fa-file-invoice-dollar" style="color:#3498db;font-size:.85rem;"></i>
+        <div class="icon-circle icon-circle-blue me-2">
+            <i class="fas fa-file-invoice-dollar text-blue" style="font-size:.85rem;"></i>
         </div>
         <div>
             <h5 class="mb-0" style="font-size:1rem;">Pagamentos</h5>
@@ -23,7 +23,7 @@
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
                 <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:42px;height:42px;background:rgba(52,152,219,0.15);">
+                    <div class="icon-circle icon-circle-lg icon-circle-primary me-3">
                         <i class="fas fa-list-ol text-primary"></i>
                     </div>
                     <div>
@@ -36,7 +36,7 @@
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
                 <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:42px;height:42px;background:rgba(243,156,18,0.15);">
+                    <div class="icon-circle icon-circle-lg icon-circle-warning me-3">
                         <i class="fas fa-clock text-warning"></i>
                     </div>
                     <div>
@@ -49,7 +49,7 @@
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
                 <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:42px;height:42px;background:rgba(39,174,96,0.15);">
+                    <div class="icon-circle icon-circle-lg icon-circle-success me-3">
                         <i class="fas fa-check-circle text-success"></i>
                     </div>
                     <div>
@@ -62,7 +62,7 @@
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
                 <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:42px;height:42px;background:rgba(23,162,184,0.15);">
+                    <div class="icon-circle icon-circle-lg icon-circle-info me-3">
                         <i class="fas fa-user-clock text-info"></i>
                     </div>
                     <div>

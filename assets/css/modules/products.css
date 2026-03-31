@@ -1,0 +1,182 @@
+/* ═══════════════════════════════════════════════════════════════
+   MODULE: Products
+   Extracted from app/views/products/index.php inline <style>
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar nav ── */
+.prd-sidebar .prd-nav-item {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .7rem 1rem;
+    border-radius: var(--ds-radius-md, 10px);
+    text-decoration: none;
+    color: var(--text-secondary, #555);
+    font-size: .82rem;
+    font-weight: var(--fw-medium, 500);
+    transition: all var(--ds-duration-fast, .15s) ease;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.prd-sidebar .prd-nav-item:hover {
+    background: var(--bg-tertiary, #f1f5f9);
+    color: var(--text-primary, #333);
+}
+
+.prd-sidebar .prd-nav-item.active {
+    background: var(--accent, #3498db);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(var(--accent-rgb, 52, 152, 219), .3);
+}
+
+.prd-sidebar .prd-nav-item.active .prd-nav-icon {
+    background: rgba(255, 255, 255, .2) !important;
+    color: #fff !important;
+}
+
+.prd-sidebar .prd-nav-item.active .prd-nav-count {
+    background: rgba(255, 255, 255, .25) !important;
+    color: #fff !important;
+}
+
+.prd-nav-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--ds-radius-md, 8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+    flex-shrink: 0;
+    transition: all var(--ds-duration-fast, .15s) ease;
+}
+
+.prd-nav-count {
+    font-size: .65rem;
+    padding: 2px 7px;
+    border-radius: var(--ds-radius-full, 10px);
+    font-weight: var(--fw-semi, 600);
+    margin-left: auto;
+}
+
+.prd-sidebar-label {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--text-muted, #aaa);
+    font-weight: 700;
+    padding: 0 1rem;
+    margin-bottom: .3rem;
+    margin-top: .6rem;
+}
+
+.prd-sidebar-divider {
+    height: 1px;
+    background: var(--border-light, #e9ecef);
+    margin: .5rem 1rem;
+}
+
+/* ── Section transition ── */
+.prd-section {
+    display: none;
+    animation: prdFadeIn .25s ease;
+}
+
+.prd-section.active {
+    display: block;
+}
+
+@keyframes prdFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Import styles ── */
+.prd-import-dropzone {
+    border: 2px dashed var(--border, #ccc);
+    border-radius: var(--ds-radius-lg, 12px);
+    padding: 2rem;
+    text-align: center;
+    transition: all .2s ease;
+    cursor: pointer;
+    background: var(--bg-secondary, #fafbfc);
+}
+
+.prd-import-dropzone:hover,
+.prd-import-dropzone.dragover {
+    border-color: var(--accent, #3498db);
+    background: rgba(var(--accent-rgb, 52, 152, 219), .05);
+}
+
+.prd-import-dropzone.has-file {
+    border-color: var(--success, #27ae60);
+    background: var(--success-light, rgba(39, 174, 96, .05));
+}
+
+/* ── Mobile sidebar ── */
+@media (max-width: 991.98px) {
+    .prd-sidebar-col { margin-bottom: 1rem; }
+    .prd-sidebar {
+        display: flex;
+        gap: .4rem;
+        overflow-x: auto;
+        padding-bottom: .5rem;
+        scrollbar-width: thin;
+    }
+    .prd-sidebar .prd-nav-item {
+        white-space: nowrap;
+        flex-shrink: 0;
+        padding: .5rem .85rem;
+        font-size: .75rem;
+    }
+    .prd-sidebar-label { display: none; }
+    .prd-sidebar-divider { display: none; }
+}
+
+/* ═══ Product Create/Edit Form ═══ */
+.section-toggle { cursor: pointer; transition: background 0.2s; }
+.section-toggle:hover { background-color: var(--bg-secondary, #f8f9fa) !important; }
+.section-toggle .collapse-icon { transition: transform 0.3s ease; }
+[aria-expanded="true"] .collapse-icon { transform: rotate(180deg); }
+[aria-expanded="false"] .collapse-icon { transform: rotate(0deg); }
+.sticky-bottom { position: sticky; bottom: 0; z-index: 10; }
+.card .card-body fieldset { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+.card .card-body fieldset > legend { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — Products
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .prd-sidebar .prd-nav-item {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .prd-sidebar .prd-nav-item:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .prd-sidebar-divider {
+    background: var(--border);
+}
+
+[data-theme="dark"] .prd-import-dropzone {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .prd-import-dropzone:hover,
+[data-theme="dark"] .prd-import-dropzone.dragover {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.08);
+}
+
+[data-theme="dark"] .prd-import-dropzone.has-file {
+    border-color: var(--success);
+    background: rgba(81, 207, 102, 0.08);
+}
+
+[data-theme="dark"] .section-toggle:hover {
+    background-color: var(--bg-tertiary) !important;
+}

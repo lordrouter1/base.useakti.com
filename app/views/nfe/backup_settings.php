@@ -37,7 +37,7 @@ $backupConfig = $backupConfig ?? [];
 
             <!-- Backup Manual -->
             <div class="card border-0 shadow-sm mb-4" style="border-radius:12px;">
-                <div class="card-header py-2" style="background:linear-gradient(135deg,#1a73e8 0%,#4285f4 100%);">
+                <div class="card-header py-2 card-header-nfe-blue">
                     <h6 class="mb-0 text-white" style="font-size:.85rem;">
                         <i class="fas fa-download me-2"></i>Executar Backup Manual
                     </h6>
@@ -73,7 +73,7 @@ $backupConfig = $backupConfig ?? [];
 
             <!-- Configurações de Backup Automático -->
             <div class="card border-0 shadow-sm" style="border-radius:12px;">
-                <div class="card-header py-2" style="background:linear-gradient(135deg,#343a40 0%,#495057 100%);">
+                <div class="card-header py-2 card-header-nfe-dark">
                     <h6 class="mb-0 text-white" style="font-size:.85rem;">
                         <i class="fas fa-cog me-2"></i>Configurações de Backup Automático
                     </h6>
@@ -265,7 +265,7 @@ $backupConfig = $backupConfig ?? [];
 
             <!-- Info Card -->
             <div class="card border-0 shadow-sm mt-4" style="border-radius:12px;">
-                <div class="card-body p-3" style="font-size:.82rem;color:#555;">
+                <div class="card-body p-3 text-muted" style="font-size:.82rem;">
                     <h6 class="fw-bold small mb-2"><i class="fas fa-info-circle me-2 text-info"></i>Sobre o Backup de XMLs</h6>
                     <div class="row g-3">
                         <div class="col-md-4">

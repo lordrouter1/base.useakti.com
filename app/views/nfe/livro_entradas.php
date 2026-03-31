@@ -62,7 +62,7 @@ $isAjax = $isAjax ?? false;
     <?php if (!empty($items)): ?>
     <div class="row g-3 mb-4">
         <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background:linear-gradient(135deg,#e8f5e9 0%,#c8e6c9 100%);border-radius:12px;">
+            <div class="card border-0 shadow-sm h-100 kpi-green" style="border-radius:12px;">
                 <div class="card-body text-center py-3">
                     <i class="fas fa-file-invoice fa-lg text-success opacity-75"></i>
                     <h3 class="mb-0 mt-1"><?= (int)($totalGeral['qtd'] ?? 0) ?></h3>
@@ -71,7 +71,7 @@ $isAjax = $isAjax ?? false;
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background:linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%);border-radius:12px;">
+            <div class="card border-0 shadow-sm h-100 kpi-blue" style="border-radius:12px;">
                 <div class="card-body text-center py-3">
                     <i class="fas fa-coins fa-lg text-primary opacity-75"></i>
                     <h3 class="mb-0 mt-1 fs-5">R$ <?= number_format($totalGeral['valor_total'] ?? 0, 0, ',', '.') ?></h3>
@@ -80,7 +80,7 @@ $isAjax = $isAjax ?? false;
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background:linear-gradient(135deg,#fff3e0 0%,#ffe0b2 100%);border-radius:12px;">
+            <div class="card border-0 shadow-sm h-100 kpi-orange" style="border-radius:12px;">
                 <div class="card-body text-center py-3">
                     <i class="fas fa-percentage fa-lg text-warning opacity-75"></i>
                     <h3 class="mb-0 mt-1 fs-5">R$ <?= number_format($totalGeral['icms'] ?? 0, 0, ',', '.') ?></h3>
@@ -89,7 +89,7 @@ $isAjax = $isAjax ?? false;
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background:linear-gradient(135deg,#fce4ec 0%,#f8bbd0 100%);border-radius:12px;">
+            <div class="card border-0 shadow-sm h-100 kpi-red" style="border-radius:12px;">
                 <div class="card-body text-center py-3">
                     <i class="fas fa-industry fa-lg text-danger opacity-75"></i>
                     <h3 class="mb-0 mt-1 fs-5">R$ <?= number_format($totalGeral['ipi'] ?? 0, 0, ',', '.') ?></h3>

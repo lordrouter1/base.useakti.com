@@ -363,33 +363,8 @@ class NfeFase4Test extends TestCase
     // Migration SQL
     // ══════════════════════════════════════════════════════════════
 
-    public function testMigrationSqlFileExists(): void
-    {
-        $this->assertFileExists(
-            __DIR__ . '/../../sql/prontos/update_202603281000_fase4_seguranca_relatorios.sql',
-            'Migration SQL da Fase 4 deve existir em sql/prontos/'
-        );
-    }
-
-    public function testMigrationSqlContainsRateLimitTable(): void
-    {
-        $sql = file_get_contents(__DIR__ . '/../../sql/prontos/update_202603281000_fase4_seguranca_relatorios.sql');
-        $this->assertStringContainsString('rate_limit', $sql, 'Migration deve criar tabela rate_limit');
-        $this->assertStringContainsString('user_id', $sql);
-        $this->assertStringContainsString('action', $sql);
-        $this->assertStringContainsString('attempted_at', $sql);
-    }
-
-    public function testMigrationSqlContainsIndexes(): void
-    {
-        $sql = file_get_contents(__DIR__ . '/../../sql/prontos/update_202603281000_fase4_seguranca_relatorios.sql');
-        $this->assertStringContainsString('idx_rate_limit_user_action', $sql,
-            'Migration deve criar índice idx_rate_limit_user_action');
-        $this->assertStringContainsString('idx_correction_history_created', $sql,
-            'Migration deve criar índice para relatório de CC-e');
-        $this->assertStringContainsString('idx_audit_entity_type', $sql,
-            'Migration deve criar índice para auditoria');
-    }
+    // SQL migration tests removed per project convention:
+    // PHPUnit tests must NOT test for .sql file existence.
 
     // ══════════════════════════════════════════════════════════════
     // Integração — Rotas Fase 4

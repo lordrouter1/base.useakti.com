@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Services;
 
+use Akti\Core\Log;
+
 /**
  * NfePdfGenerator — Gera DANFE (PDF) a partir do XML autorizado.
  *
@@ -38,7 +40,7 @@ class NfePdfGenerator
             file_put_contents($outputPath, $pdf);
             return true;
         } catch (\Exception $e) {
-            error_log('[NfePdfGenerator] Erro ao gerar DANFE: ' . $e->getMessage());
+            Log::error('NfePdfGenerator: Erro ao gerar DANFE', ['exception' => $e->getMessage()]);
             return false;
         }
     }
@@ -59,7 +61,7 @@ class NfePdfGenerator
             $danfe->debugMode(false);
             return $danfe->render();
         } catch (\Exception $e) {
-            error_log('[NfePdfGenerator] Erro ao renderizar DANFE: ' . $e->getMessage());
+            Log::error('NfePdfGenerator: Erro ao renderizar DANFE', ['exception' => $e->getMessage()]);
             return null;
         }
     }

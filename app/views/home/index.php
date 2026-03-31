@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
         position: 'center-end',
         html: '<small><b><?= count($delayedOrders) ?></b> pedido(s) estão <strong class="text-light">atrasados</strong>!</small>',
         showCancelButton: false,
-        confirmButtonText: '<span style="color:#ef4444"><i class="fas fa-stream me-1"></i> Ir para Pipeline</span>',
+        confirmButtonText: '<span class="text-red"><i class="fas fa-stream me-1"></i> Ir para Pipeline</span>',
         confirmButtonColor: '#ffffff',
         background: '#ef4444',
         color:'#ffffff',
@@ -220,7 +220,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <?php endif; ?>
 
-<style>
-.pipeline-mini-card { transition: transform 0.15s ease; }
-.pipeline-mini-card:hover { transform: translateY(-2px); }
-</style>
+<!-- Styles moved to assets/css/modules/home.css -->

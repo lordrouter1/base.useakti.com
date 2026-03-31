@@ -7,7 +7,7 @@
 <div class="col-md-6" id="home-agenda">
     <div class="card border-0 shadow-sm h-100">
         <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 fw-bold" style="color:#9b59b6;"><i class="fas fa-calendar-check me-2"></i>Próximos Contatos</h6>
+            <h6 class="mb-0 fw-bold text-purple"><i class="fas fa-calendar-check me-2"></i>Próximos Contatos</h6>
             <a href="?page=agenda" class="btn btn-sm btn-outline-secondary">Ver Agenda</a>
         </div>
         <div class="card-body p-0">

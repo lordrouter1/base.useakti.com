@@ -10,8 +10,8 @@
 
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div class="d-flex align-items-center">
-            <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(23,162,184,.1);">
-                <i class="fas fa-file-import" style="color:#17a2b8;font-size:.85rem;"></i>
+            <div class="icon-circle icon-circle-info me-2">
+                <i class="fas fa-file-import text-info-alt" style="font-size:.85rem;"></i>
             </div>
             <div>
                 <h5 class="mb-0" style="font-size:1rem;">Importação de Arquivos</h5>

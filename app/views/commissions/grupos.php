@@ -25,8 +25,8 @@ $formas = $aux['formas'] ?? [];
 
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(142,68,173,.1);">
-                        <i class="fas fa-users" style="color:#8e44ad;font-size:.85rem;"></i>
+                    <div class="icon-circle icon-circle-grape me-2">
+                        <i class="fas fa-users text-grape" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Regras por Grupo</h5>
@@ -67,7 +67,7 @@ $formas = $aux['formas'] ?? [];
 
             <?php if (empty($grupoFormas)): ?>
             <div class="text-center text-muted py-5">
-                <i class="fas fa-link fa-3x d-block mb-3 opacity-50" style="color:#8e44ad;"></i>
+                <i class="fas fa-link fa-3x d-block mb-3 opacity-50 text-grape"></i>
                 <p class="mb-2">Nenhum vínculo grupo ↔ forma cadastrado.</p>
                 <button class="btn btn-success btn-sm" onclick="openLinkGrupoModal()"><i class="fas fa-plus me-1"></i>Vincular Primeiro Grupo</button>
             </div>

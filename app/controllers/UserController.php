@@ -10,6 +10,7 @@ use Akti\Models\Logger;
 use Akti\Models\PortalAccess;
 use Akti\Models\Customer;
 use Akti\Middleware\PortalAuthMiddleware;
+use Akti\Services\AuthService;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
 use Database;
@@ -22,6 +23,7 @@ class UserController {
     private $groupModel;
     private $logger;
     private $loginAttempt;
+    private AuthService $authService;
 
     public function __construct() {
         $database = new Database();
@@ -30,6 +32,7 @@ class UserController {
         $this->groupModel = new UserGroup($db);
         $this->loginAttempt = new LoginAttempt($db);
         $this->logger = new Logger($db);
+        $this->authService = new AuthService($db, $this->userModel, $this->loginAttempt, $this->logger);
     }
 
     public function index() {
@@ -74,7 +77,7 @@ class UserController {
                ->required('email', $email, 'E-mail')
                ->email('email', $email, 'E-mail')
                ->required('password', $password, 'Senha')
-               ->minLength('password', $password, 6, 'Senha');
+               ->passwordStrength('password', $password, 'Senha');
 
              if ($v->fails()) {
                  $_SESSION['errors'] = $v->errors();
@@ -148,6 +151,11 @@ class UserController {
               ->maxLength('name', $name, 191, 'Nome')
               ->required('email', $email, 'E-mail')
               ->email('email', $email, 'E-mail');
+
+            // Validar força da senha apenas se fornecida (edição)
+            if (!empty($password)) {
+                $v->passwordStrength('password', $password, 'Senha');
+            }
 
             if ($v->fails()) {
                 $_SESSION['errors'] = $v->errors();
@@ -302,6 +310,11 @@ class UserController {
                ->required('email', $email, 'E-mail')
                ->email('email', $email, 'E-mail');
 
+             // Validar força da senha apenas se fornecida (troca de senha)
+             if (!empty($password)) {
+                 $v->passwordStrength('password', $password, 'Senha');
+             }
+
              if ($v->fails()) {
                  $_SESSION['errors'] = $v->errors();
                  header('Location: ?page=profile');
@@ -356,148 +369,32 @@ class UserController {
         $lockout = null;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-             $email    = Input::post('email', 'email');
-             $password = Input::postRaw('password');
-             $postedTenant   = Input::post('tenant_key');
-             $resolvedTenant = $_SESSION['tenant']['key'] ?? '';
+            $email          = Input::post('email', 'email');
+            $password        = Input::postRaw('password');
+            $postedTenant    = Input::post('tenant_key');
+            $resolvedTenant  = $_SESSION['tenant']['key'] ?? '';
+            $captchaResponse = Input::postRaw('g-recaptcha-response') ?? '';
 
-             // ── Validação de tenant ──
-             if ($postedTenant !== $resolvedTenant) {
-                 $this->logger->log('LOGIN_FAIL', 'Tentativa de login com tenant divergente.');
-                 $error = 'Validação de cliente inválida. Atualize a página e tente novamente.';
-                 require 'app/views/auth/login.php';
-                 return;
-             }
+            $result = $this->authService->attemptLogin(
+                $email,
+                $password,
+                $ip,
+                $postedTenant,
+                $resolvedTenant,
+                $captchaResponse ?: null
+            );
 
-             // ── Verificar bloqueio (>= 5 falhas em 10 min) ──
-             $lockout = $this->loginAttempt->checkLockout($ip, $email);
-             if ($lockout['blocked']) {
-                 $this->logger->log('LOGIN_BLOCKED', "IP bloqueado por força bruta: $ip / $email");
-                 $remaining = $lockout['remaining_minutes'];
-                 $error = "Muitas tentativas de login. Aguarde {$remaining} minuto" . ($remaining > 1 ? 's' : '') . " e tente novamente.";
-                 // Manter captcha visível caso desbloqueie
-                 $showCaptcha = $this->loginAttempt->requiresCaptcha($ip, $email);
-                 require 'app/views/auth/login.php';
-                 return;
-             }
+            if ($result['success']) {
+                header('Location: ' . $result['redirect']);
+                exit;
+            }
 
-             // ── Verificar reCAPTCHA (>= 3 falhas) ──
-             $showCaptcha = $this->loginAttempt->requiresCaptcha($ip, $email);
-             if ($showCaptcha) {
-                 $captchaResponse = Input::postRaw('g-recaptcha-response') ?? '';
-                 if (empty($captchaResponse) || !$this->loginAttempt->validateCaptcha($captchaResponse, $ip)) {
-                     $this->logger->log('LOGIN_CAPTCHA_FAIL', "reCAPTCHA inválido: $ip / $email");
-                     $error = 'Por favor, confirme que você não é um robô.';
-                     require 'app/views/auth/login.php';
-                     return;
-                 }
-             }
-
-             // ── Tentativa de login ──
-             if ($this->userModel->login($email, $password)) {
-                 // Sucesso — registrar e limpar
-                 $this->loginAttempt->record($ip, $email, true);
-                 $this->loginAttempt->clearFailures($ip, $email);
-                 $this->loginAttempt->purgeOld();
-
-                 // ── Prevenir session fixation: regenerar ID da sessão ──
-                 session_regenerate_id(true);
-
-                 $_SESSION['user_id']   = $this->userModel->id;
-                 $_SESSION['user_name'] = $this->userModel->name;
-                 $_SESSION['user_role'] = $this->userModel->role;
-                 $_SESSION['group_id']  = $this->userModel->group_id;
-                 $_SESSION['user_tenant_key'] = $_SESSION['tenant']['key'] ?? null;
-
-                 // ── Inicializar timestamp de atividade para controle de timeout ──
-                 $_SESSION['last_activity'] = time();
-
-                 $this->logger->log('LOGIN', 'User logged in: ' . $email, $this->userModel->id);
-                 
-                 EventDispatcher::dispatch('controller.user.login', new Event('controller.user.login', [
-                     'user_id' => $this->userModel->id,
-                     'email' => $email,
-                     'ip' => $ip,
-                 ]));
-
-                 header('Location: ?');
-                 exit;
-             } else {
-                 // Falha — registrar tentativa
-                 $this->loginAttempt->record($ip, $email, false);
-                 $this->logger->log('LOGIN_FAIL', 'Failed login attempt for: ' . $email);
-
-                 EventDispatcher::dispatch('controller.user.login_failed', new Event('controller.user.login_failed', [
-                     'email' => $email,
-                     'ip' => $ip,
-                 ]));
-
-                 // ── Login Unificado: tentar como cliente do portal ──
-                 try {
-                     $db = (new Database())->getConnection();
-                     $portalAccess = new PortalAccess($db);
-                     $portalAccount = $portalAccess->findByEmail($email);
-
-                     if (
-                         $portalAccount
-                         && $portalAccount['is_active']
-                         && !$portalAccess->isLocked($portalAccount)
-                         && !empty($portalAccount['password_hash'])
-                         && $portalAccess->verifyPassword($password, $portalAccount['password_hash'])
-                     ) {
-                         // Login como cliente do portal bem-sucedido
-                         $portalAccess->registerSuccessfulLogin($portalAccount['id'], $ip);
-                         $this->loginAttempt->clearFailures($ip, $email);
-
-                         session_regenerate_id(true);
-
-                         $customerModel = new Customer($db);
-                         $customer = $customerModel->readOne($portalAccount['customer_id']);
-                         $customerName = $customer ? $customer['name'] : 'Cliente';
-
-                         PortalAuthMiddleware::login(
-                             $portalAccount['customer_id'],
-                             $portalAccount['id'],
-                             $customerName,
-                             $portalAccount['email'],
-                             $portalAccount['lang'] ?? 'pt-br'
-                         );
-
-                         EventDispatcher::dispatch('portal.customer.logged_in', new Event('portal.customer.logged_in', [
-                             'customer_id' => $portalAccount['customer_id'],
-                             'email'       => $portalAccount['email'],
-                             'ip'          => $ip,
-                             'method'      => 'unified_login',
-                         ]));
-
-                         header('Location: ?page=portal&action=dashboard');
-                         exit;
-                     } elseif ($portalAccount && !empty($portalAccount['password_hash'])) {
-                         // Senha errada no portal — registrar tentativa falha
-                         $portalAccess->registerFailedAttempt($portalAccount['id']);
-                     }
-                 } catch (\Exception $e) {
-                     // Silenciar erros do portal para não interferir no fluxo admin
-                 }
-
-                 // Recalcular estado após registrar a falha
-                 $lockout = $this->loginAttempt->checkLockout($ip, $email);
-                 $showCaptcha = $this->loginAttempt->requiresCaptcha($ip, $email);
-
-                 if ($lockout['blocked']) {
-                     $remaining = $lockout['remaining_minutes'];
-                     $error = "Muitas tentativas de login. Aguarde {$remaining} minuto" . ($remaining > 1 ? 's' : '') . " e tente novamente.";
-                 } else {
-                     // Mensagem genérica — nunca vazar se o email existe
-                     $error = 'Credenciais inválidas. Verifique seu e-mail e senha.';
-                 }
-
-                 require 'app/views/auth/login.php';
-             }
+            // Login falhou
+            $error = $result['error'];
+            $showCaptcha = $result['show_captcha'];
+            require 'app/views/auth/login.php';
         } else {
-             // GET — verificar se precisa de captcha (por IP genérico ou email em sessão)
-             // Na abertura da página não temos email, então captcha só aparece após falha
-             require 'app/views/auth/login.php';
+            require 'app/views/auth/login.php';
         }
     }
 

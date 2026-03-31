@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Models;
 
+use Akti\Core\Log;
+
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
@@ -274,7 +276,7 @@ class NfeCredential
         $tenantDb = $_SESSION['tenant']['db_name'] ?? 'akti_default';
         $salt = 'akti_nfe_cert_v1';
 
-        error_log('[NfeCredential] AVISO DE SEGURANÇA: APP_KEY não definida. '
+        Log::warning('NfeCredential: APP_KEY não definida. '
             . 'A chave de criptografia do certificado está usando fallback inseguro. '
             . 'Defina APP_KEY na variável de ambiente ou no arquivo .env para maior segurança.');
 

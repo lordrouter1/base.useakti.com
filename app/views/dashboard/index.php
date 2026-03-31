@@ -21,7 +21,7 @@
     <div class="col-xl-3 col-md-6">
         <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
             <div class="card-body d-flex align-items-center p-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(52,152,219,0.15);">
+                <div class="icon-circle icon-circle-xxl icon-circle-primary me-3">
                     <i class="fas fa-shopping-cart fa-lg text-primary"></i>
                 </div>
                 <div>
@@ -34,7 +34,7 @@
     <div class="col-xl-3 col-md-6">
         <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
             <div class="card-body d-flex align-items-center p-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(39,174,96,0.15);">
+                <div class="icon-circle icon-circle-xxl icon-circle-green me-3">
                     <i class="fas fa-users fa-lg text-success"></i>
                 </div>
                 <div>
@@ -47,7 +47,7 @@
     <div class="col-xl-3 col-md-6">
         <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
             <div class="card-body d-flex align-items-center p-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(243,156,18,0.15);">
+                <div class="icon-circle icon-circle-xxl icon-circle-warning me-3">
                     <i class="fas fa-tasks fa-lg text-warning"></i>
                 </div>
                 <div>
@@ -60,7 +60,7 @@
     <div class="col-xl-3 col-md-6">
         <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
             <div class="card-body d-flex align-items-center p-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(192,57,43,0.15);">
+                <div class="icon-circle icon-circle-xxl icon-circle-danger me-3">
                     <i class="fas fa-exclamation-circle fa-lg text-danger"></i>
                 </div>
                 <div>
@@ -263,36 +263,12 @@
 <?php if(!empty($delayedOrders)): ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Alerta de pedidos atrasados ao carregar o dashboard
-    Swal.fire({
-        icon: 'warning',
-        title: 'Atenção!',
-        html: '<b><?= count($delayedOrders) ?></b> pedido(s) estão <strong class="text-danger">atrasados</strong> na linha de produção!',
-        showCancelButton: true,
-        confirmButtonText: '<i class="fas fa-stream me-1"></i> Ir para Produção',
-        cancelButtonText: 'Depois',
-        confirmButtonColor: '#c0392b'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = '?page=pipeline';
-        }
-    });
+    // Toast de alerta para pedidos atrasados
+    if (window.AktiToast) {
+        AktiToast.warning('<?= count($delayedOrders) ?> pedido(s) atrasados na produção! <a href="?page=pipeline" class="text-decoration-underline fw-bold">Ver Pipeline →</a>', 6000);
+    }
 });
 </script>
 <?php endif; ?>
 
-<style>
-.hover-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.hover-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
-}
-.pipeline-mini-card {
-    transition: transform 0.15s ease;
-}
-.pipeline-mini-card:hover {
-    transform: translateY(-2px);
-}
-</style>
+<!-- Dashboard styles loaded from assets/css/modules/dashboard.css via header.php -->

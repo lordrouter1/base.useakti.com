@@ -157,7 +157,7 @@
 <div class="modal fade" id="modalGatewayCharge" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header border-0" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);">
+            <div class="modal-header border-0 gradient-indigo-purple">
                 <h5 class="modal-title text-white"><i class="fas fa-bolt me-2"></i>Cobrar via Gateway</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -211,7 +211,7 @@
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fechar</button>
                 <?php if (!empty($activeGateways)): ?>
-                <button type="button" class="btn text-white" id="btnCreateGwCharge" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);">
+                <button type="button" class="btn text-white gradient-indigo-purple" id="btnCreateGwCharge">
                     <i class="fas fa-bolt me-1"></i>Gerar Cobrança
                 </button>
                 <?php endif; ?>

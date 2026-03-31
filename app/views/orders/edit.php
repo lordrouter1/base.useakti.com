@@ -466,7 +466,7 @@
     <div class="row mt-4">
         <div class="col-md-8 mx-auto">
             <div class="card border-success border-opacity-50 shadow-sm">
-                <div class="card-header py-2 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">
+                <div class="card-header py-2 d-flex align-items-center justify-content-between card-header-green-alt">
                     <h6 class="mb-0 text-white fw-bold">
                         <i class="fas fa-file-invoice me-2"></i>Nota de Pedido
                     </h6>

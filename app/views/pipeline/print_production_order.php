@@ -477,8 +477,8 @@ $prioMap = [
          ══════════════════════════════════════ -->
     <?php if (!$__isPrep && !empty($orderItemLogs)): ?>
     <div class="card border-0 shadow-sm mb-2">
-        <div class="card-header py-1" style="background: #e8f5e9;">
-            <h6 class="mb-0 fw-bold" style="color: #27ae60; font-size:0.85rem;">
+        <div class="card-header py-1 card-header-mint">
+            <h6 class="mb-0 fw-bold icon-green" style="font-size:0.85rem;">
                 <i class="fas fa-clipboard-list me-1"></i>Registro
                 <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">
                     <?= count($orderItemLogs) ?> registros
@@ -520,8 +520,8 @@ $prioMap = [
         $totalPrepItems = count($preparoItems);
     ?>
     <div class="card border-0 shadow-sm mb-2" style="border-left: 4px solid #1abc9c !important;">
-        <div class="card-header py-1" style="background: #e0f7f1;">
-            <h6 class="mb-0 fw-bold" style="color: #1abc9c; font-size:0.85rem;">
+        <div class="card-header py-1 card-header-mint">
+            <h6 class="mb-0 fw-bold icon-mint" style="font-size:0.85rem;">
                 <i class="fas fa-boxes-packing me-1"></i>Preparo
                 <span class="badge ms-1" style="font-size:0.65rem;background:#1abc9c;color:#fff;">
                     <?= $checkedCount ?>/<?= $totalPrepItems ?>

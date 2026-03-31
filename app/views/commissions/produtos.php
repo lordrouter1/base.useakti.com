@@ -22,8 +22,8 @@
 
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(22,160,133,.1);">
-                        <i class="fas fa-box" style="color:#16a085;font-size:.85rem;"></i>
+                    <div class="icon-circle icon-circle-teal me-2">
+                        <i class="fas fa-box text-teal" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Regras por Produto / Categoria</h5>
@@ -67,7 +67,7 @@
             <!-- Tabela de regras -->
             <?php if (empty($regras)): ?>
             <div class="text-center text-muted py-4">
-                <i class="fas fa-box fa-2x d-block mb-2 opacity-50" style="color:#16a085;"></i>
+                <i class="fas fa-box fa-2x d-block mb-2 opacity-50 text-teal"></i>
                 <small>Nenhuma regra por produto cadastrada. Clique em <strong>Nova Regra</strong> para criar a primeira.</small>
             </div>
             <?php else: ?>

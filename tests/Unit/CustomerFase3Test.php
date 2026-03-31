@@ -870,7 +870,7 @@ class CustomerFase3Test extends TestCase
     public function testIndexViewIncludesCssFile(): void
     {
         $html = file_get_contents(__DIR__ . '/../../app/views/customers/index.php');
-        $this->assertStringContainsString('assets/css/customers.css', $html, 'Listagem: deve incluir CSS do módulo');
+        $this->assertStringContainsString('assets/css/modules/customers.css', $html, 'Listagem: deve incluir CSS do módulo');
     }
 
     public function testIndexViewHasPagination(): void

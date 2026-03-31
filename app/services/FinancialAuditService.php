@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Services;
 
+use Akti\Core\Log;
+
 use PDO;
 
 /**
@@ -92,7 +94,7 @@ class FinancialAuditService
             return $stmt->execute($params);
         } catch (\PDOException $e) {
             // Auditoria não deve quebrar o fluxo principal
-            error_log('[FinancialAudit] Erro ao gravar log: ' . $e->getMessage());
+            Log::error('FinancialAudit: Erro ao gravar log', ['exception' => $e->getMessage()]);
             return false;
         }
     }
@@ -159,7 +161,7 @@ class FinancialAuditService
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            error_log('[FinancialAudit] Erro ao consultar histórico: ' . $e->getMessage());
+            Log::error('FinancialAudit: Erro ao consultar histórico', ['exception' => $e->getMessage()]);
             return [];
         }
     }
@@ -199,7 +201,7 @@ class FinancialAuditService
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            error_log('[FinancialAudit] Erro ao consultar recentes: ' . $e->getMessage());
+            Log::error('FinancialAudit: Erro ao consultar recentes', ['exception' => $e->getMessage()]);
             return [];
         }
     }
@@ -297,7 +299,7 @@ class FinancialAuditService
                 'totalPages' => $totalPages,
             ];
         } catch (\PDOException $e) {
-            error_log('[FinancialAudit] Erro ao consultar paginado: ' . $e->getMessage());
+            Log::error('FinancialAudit: Erro ao consultar paginado', ['exception' => $e->getMessage()]);
             return $empty;
         }
     }

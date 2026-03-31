@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Services;
 
+use Akti\Core\Log;
+
 /**
  * NfeStorageService — Salva XMLs e DANFEs em disco, organizados por tenant/ano/mês.
  *
@@ -55,7 +57,7 @@ class NfeStorageService
             // Retornar path relativo ao basePath
             return str_replace($this->basePath, '', $fullPath);
         } catch (\Exception $e) {
-            error_log('[NfeStorageService] Erro ao salvar XML: ' . $e->getMessage());
+            Log::error('NfeStorageService: Erro ao salvar XML', ['exception' => $e->getMessage()]);
             return null;
         }
     }
@@ -88,7 +90,7 @@ class NfeStorageService
 
             return str_replace($this->basePath, '', $fullPath);
         } catch (\Exception $e) {
-            error_log('[NfeStorageService] Erro ao salvar DANFE: ' . $e->getMessage());
+            Log::error('NfeStorageService: Erro ao salvar DANFE', ['exception' => $e->getMessage()]);
             return null;
         }
     }

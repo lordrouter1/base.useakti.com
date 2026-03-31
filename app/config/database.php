@@ -2,7 +2,23 @@
 
 require_once __DIR__ . '/tenant.php';
 
+/**
+ * Database — Singleton com cache por tenant (DSN).
+ *
+ * Cada tenant possui sua própria conexão PDO, mas reutilizada
+ * durante todo o request (evita múltiplas conexões ao mesmo banco).
+ *
+ * Uso:
+ *   $pdo = Database::getInstance();          // tenant atual
+ *   $pdo = Database::getInstance('outro_db'); // banco específico
+ *   $pdo = (new Database())->getConnection(); // compatibilidade legada
+ *
+ * @see ROADMAP Fase 2 — Item 3.1
+ */
 class Database {
+    /** @var PDO[] Cache de instâncias PDO indexadas pelo DSN */
+    private static $instances = [];
+
     private $host;
     private $port;
     private $db_name;
@@ -13,32 +29,112 @@ class Database {
 
     public function __construct() {
         $tenantConfig = TenantManager::getTenantConfig();
-        $this->host = $tenantConfig['host'];
-        $this->port = $tenantConfig['port'];
-        $this->db_name = $tenantConfig['db_name'];
+        $this->host     = $tenantConfig['host'];
+        $this->port     = $tenantConfig['port'];
+        $this->db_name  = $tenantConfig['db_name'];
         $this->username = $tenantConfig['username'];
         $this->password = $tenantConfig['password'];
-        $this->charset = $tenantConfig['charset'];
+        $this->charset  = $tenantConfig['charset'];
     }
 
-    public function getConnection() {
-        $this->conn = null;
+    /**
+     * Retorna uma conexão PDO via singleton (cached por DSN).
+     *
+     * @param string|null $tenantDb  Nome do banco de dados (null = tenant atual)
+     * @return PDO
+     * @throws \RuntimeException Se a conexão falhar
+     */
+    public static function getInstance(?string $tenantDb = null): PDO
+    {
+        $tenantConfig = TenantManager::getTenantConfig();
+
+        $host    = $tenantConfig['host'];
+        $port    = $tenantConfig['port'];
+        $dbName  = $tenantDb ?? $tenantConfig['db_name'];
+        $user    = $tenantConfig['username'];
+        $pass    = $tenantConfig['password'];
+        $charset = $tenantConfig['charset'];
+
+        $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $host, $port, $dbName, $charset);
+
+        if (isset(self::$instances[$dsn]) && self::$instances[$dsn] instanceof PDO) {
+            return self::$instances[$dsn];
+        }
 
         try {
-            $dsn = sprintf(
-                'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-                $this->host,
-                $this->port,
-                $this->db_name,
-                $this->charset
-            );
+            $pdo = new PDO($dsn, $user, $pass);
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            self::$instances[$dsn] = $pdo;
+            return $pdo;
+        } catch (PDOException $exception) {
+            error_log('[Database] Connection failed: ' . $exception->getMessage());
+            throw new \RuntimeException('Falha na conexão com o banco de dados.');
+        }
+    }
 
+    /**
+     * Wrapper de compatibilidade — retorna conexão PDO via singleton.
+     *
+     * Código legado que usa `(new Database())->getConnection()` continuará
+     * funcionando, mas agora reaproveita a mesma conexão por DSN.
+     *
+     * @return PDO
+     */
+    public function getConnection(): PDO
+    {
+        $dsn = sprintf(
+            'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+            $this->host,
+            $this->port,
+            $this->db_name,
+            $this->charset
+        );
+
+        if (isset(self::$instances[$dsn]) && self::$instances[$dsn] instanceof PDO) {
+            $this->conn = self::$instances[$dsn];
+            return $this->conn;
+        }
+
+        try {
             $this->conn = new PDO($dsn, $this->username, $this->password);
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch(PDOException $exception) {
-            echo 'Erro na conexão: ' . $exception->getMessage();
+            self::$instances[$dsn] = $this->conn;
+        } catch (PDOException $exception) {
+            error_log('[Database] Connection failed: ' . $exception->getMessage());
+            throw new \RuntimeException('Falha na conexão com o banco de dados.');
         }
 
         return $this->conn;
+    }
+
+    /**
+     * Remove todas as instâncias em cache. Útil para testes unitários.
+     */
+    public static function resetInstances(): void
+    {
+        self::$instances = [];
+    }
+
+    /**
+     * Remove a instância de um DSN específico.
+     *
+     * @param string|null $tenantDb  Nome do banco (null = todos)
+     */
+    public static function resetInstance(?string $tenantDb = null): void
+    {
+        if ($tenantDb === null) {
+            self::$instances = [];
+            return;
+        }
+
+        $tenantConfig = TenantManager::getTenantConfig();
+        $dsn = sprintf(
+            'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+            $tenantConfig['host'],
+            $tenantConfig['port'],
+            $tenantDb,
+            $tenantConfig['charset']
+        );
+        unset(self::$instances[$dsn]);
     }
 }

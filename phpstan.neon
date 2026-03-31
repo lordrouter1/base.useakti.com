@@ -1,0 +1,16 @@
+includes:
+parameters:
+    level: 3
+    paths:
+        - app/
+    excludePaths:
+        - app/views/
+        - vendor/
+    ignoreErrors:
+        - '#Undefined variable: \$db#'
+        - '#Undefined variable: \$conn#'
+        - '#Function checkAdmin not found#'
+        - '#Access to an undefined property#'
+        - '#Call to an undefined method#'
+    reportUnmatchedIgnoredErrors: false
+    treatPhpDocTypesAsCertain: false

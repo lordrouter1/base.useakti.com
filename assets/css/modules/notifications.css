@@ -1,0 +1,52 @@
+/* ═══════════════════════════════════════════════════════════════
+   MODULE: Notifications
+   Styles for notification list and filter tabs
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Notification item ── */
+.notif-item {
+    transition: background var(--ds-duration-fast, .15s) ease;
+}
+
+.notif-item:hover {
+    background: var(--bg-tertiary, #f1f5f9) !important;
+}
+
+.notif-unread {
+    font-weight: var(--fw-semibold, 600);
+}
+
+/* ── Filter pills ── */
+#notifFilterTabs .nav-link {
+    font-size: .82rem;
+    border-radius: var(--ds-radius-md, 8px);
+    padding: .4rem .85rem;
+    transition: all var(--ds-duration-fast, .15s) ease;
+}
+
+#notifFilterTabs .nav-link:not(.active) {
+    background: transparent;
+    color: var(--text-secondary, #6c757d);
+}
+
+#notifFilterTabs .nav-link:not(.active):hover {
+    background: var(--bg-tertiary, #f1f5f9);
+}
+
+/* ── Dark mode overrides ── */
+[data-theme="dark"] .notif-item:hover {
+    background: var(--bg-tertiary) !important;
+}
+
+[data-theme="dark"] .notif-unread {
+    background: rgba(52, 152, 219, .08) !important;
+}
+
+[data-theme="dark"] #notifFilterTabs .nav-link:not(.active) {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] #notifFilterTabs .nav-link:not(.active):hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}

@@ -1,0 +1,129 @@
+/* ═══════════════════════════════════════════════════════════
+   Module CSS: Home — Landing / Welcome page
+   Design System compliant — Akti
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Hero section ── */
+.home-hero {
+    text-align: center;
+    padding: 60px 20px;
+    background: linear-gradient(135deg, var(--bg-primary, #fff) 0%, var(--bg-secondary, #f8f9fa) 100%);
+    border-radius: var(--radius-lg, 12px);
+    margin-bottom: var(--space-xl, 32px);
+}
+
+.home-hero h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary, #1e293b);
+    margin-bottom: var(--space-sm, 8px);
+}
+
+.home-hero p {
+    font-size: 1rem;
+    color: var(--text-secondary, #64748b);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* ── Quick action cards ── */
+.home-action-card {
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: var(--radius-md, 8px);
+    background: var(--bg-primary, #fff);
+    padding: var(--space-lg, 24px);
+    text-align: center;
+    transition: all 200ms ease;
+    text-decoration: none;
+    display: block;
+    height: 100%;
+}
+
+.home-action-card:hover {
+    border-color: var(--accent, #3498db);
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.1));
+    transform: translateY(-2px);
+}
+
+.home-action-card .action-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-md, 16px);
+    font-size: 1.5rem;
+}
+
+.home-action-card h5 {
+    color: var(--text-primary, #1e293b);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.home-action-card p {
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.78rem;
+    margin: 0;
+}
+
+/* ── Stats row ── */
+.home-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-md, 16px);
+    margin-bottom: var(--space-xl, 32px);
+}
+
+.home-stat-card {
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-md, 16px);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.home-stat-card .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.home-stat-card .stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-primary, #1e293b);
+    line-height: 1;
+}
+
+.home-stat-card .stat-label {
+    font-size: 0.72rem;
+    color: var(--text-muted, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ═══ Pipeline Mini Cards on Home ═══ */
+.pipeline-mini-card { transition: transform 0.15s ease; }
+.pipeline-mini-card:hover { transform: translateY(-2px); }
+
+/* ── Dark mode ── */
+[data-theme="dark"] .home-hero {
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+}
+
+[data-theme="dark"] .home-action-card {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .home-action-card:hover {
+    border-color: var(--accent);
+}

@@ -257,15 +257,15 @@
                                         $cardApproval = $order['customer_approval_status'] ?? null;
                                         if ($cardApproval === 'aprovado'):
                                     ?>
-                                    <span class="pipeline-card-chip chip-approved" style="background:#d4edda;color:#155724;">
+                                    <span class="pipeline-card-chip chip-approved">
                                         <i class="fas fa-user-check"></i> Aprovado
                                     </span>
                                     <?php elseif ($cardApproval === 'pendente'): ?>
-                                    <span class="pipeline-card-chip" style="background:#fff3cd;color:#856404;">
+                                    <span class="pipeline-card-chip chip-pending">
                                         <i class="fas fa-hourglass-half"></i> Aguard. Aprov.
                                     </span>
                                     <?php elseif ($cardApproval === 'recusado'): ?>
-                                    <span class="pipeline-card-chip" style="background:#f8d7da;color:#721c24;">
+                                    <span class="pipeline-card-chip chip-rejected">
                                         <i class="fas fa-user-times"></i> Recusado
                                     </span>
                                     <?php endif; ?>
@@ -323,7 +323,7 @@
 <div class="modal fade" id="delayedModal" tabindex="-1" aria-labelledby="delayedModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header" style="background: linear-gradient(135deg, #ef4444, #dc2626); color:#fff;">
+            <div class="modal-header card-header-nfe-danger">
                 <h5 class="modal-title" id="delayedModalLabel">
                     <i class="fas fa-exclamation-triangle me-2"></i>Pedidos Atrasados (<?= count($delayedOrders) ?>)
                 </h5>
@@ -400,7 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
         position: 'bottom-end',
         html: '<small><b><?= count($delayedOrders) ?></b> pedido(s) estão <strong class="text-light">atrasados</strong>!</small>',
         showCancelButton: false,
-        confirmButtonText: '<span style="color:#ef4444"><i class="fas fa-eye me-1"></i> Ver Detalhes</span>',
+        confirmButtonText: '<span class="text-red"><i class="fas fa-eye me-1"></i> Ver Detalhes</span>',
         confirmButtonColor: '#ffffff',
         background: '#ef4444',
         color:'#ffffff',

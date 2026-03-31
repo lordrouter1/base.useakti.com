@@ -43,3 +43,78 @@
     --radius-md: 0.5rem;
     --radius-lg: 0.75rem;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — Override de variáveis do tema
+   Resolve: Problema #1 (variáveis sem dark), #2 (headings), #10 (tabelas)
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+    /* ── Cores Primárias (ajustadas para legibilidade sobre fundo escuro) ── */
+    --primary-color: #94a3b8;       /* Slate 400 — legível sobre fundo escuro */
+    --primary-light: #64748b;       /* Slate 500 — hover backgrounds */
+    --primary-dark: #cbd5e1;        /* Slate 300 — contraste alto */
+    --secondary-color: #64748b;     /* Slate 500 */
+    --accent-color: #60a5fa;        /* Blue 400 */
+    --accent-light: #93c5fd;        /* Blue 300 */
+    --accent-dark: #3b82f6;         /* Blue 500 */
+
+    /* ── Cores Semânticas ── */
+    --success-color: #51CF66;
+    --warning-color: #FFD43B;
+    --danger-color: #FF6B6B;
+    --info-color: #66D9E8;
+
+    /* ── RGB variants ── */
+    --primary-color-rgb: 148, 163, 184;
+    --primary-light-rgb: 100, 116, 139;
+    --primary-dark-rgb: 203, 213, 225;
+    --secondary-color-rgb: 100, 116, 139;
+    --accent-color-rgb: 96, 165, 250;
+    --accent-light-rgb: 147, 197, 253;
+    --accent-dark-rgb: 59, 130, 246;
+    --success-color-rgb: 81, 207, 102;
+    --warning-color-rgb: 255, 212, 59;
+    --danger-color-rgb: 255, 107, 107;
+    --info-color-rgb: 102, 217, 232;
+
+    /* ── Backgrounds ── */
+    --bg-body: #1A1A2E;             /* Alinha com --bg-primary dark */
+    --bg-card: #16213E;             /* Alinha com --bg-secondary dark */
+
+    /* ── Textos ── */
+    --text-main: #E8E8E8;           /* Alinha com --text-primary dark */
+    --text-muted: #94a3b8;          /* Legível sobre fundo escuro */
+
+    /* ── Bordas ── */
+    --border-color: #2C3E50;        /* Alinha com --border dark */
+    --border-light: #243447;
+
+    /* ── Sombras (mais pronunciadas no dark) ── */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.4);
+
+    /* ── Variáveis para Ícones Inline (Fase 5) ── */
+    --icon-blue:    #5dade2;
+    --icon-green:   #58d68d;
+    --icon-orange:  #f7dc6f;
+    --icon-purple:  #bb8fce;
+    --icon-teal:    #76d7c4;
+    --icon-red:     #f1948a;
+    --icon-mint:    #76d7c4;
+    --icon-grape:   #c39bd3;
+    --icon-carrot:  #f0b27a;
+}
+
+/* ── Variáveis de Ícones — Light mode ── */
+:root {
+    --icon-blue:    #3498db;
+    --icon-green:   #27ae60;
+    --icon-orange:  #f39c12;
+    --icon-purple:  #9b59b6;
+    --icon-teal:    #17a2b8;
+    --icon-red:     #e74c3c;
+    --icon-mint:    #1abc9c;
+    --icon-grape:   #8e44ad;
+    --icon-carrot:  #e67e22;
+}

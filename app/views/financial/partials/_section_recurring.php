@@ -11,8 +11,8 @@
 
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div class="d-flex align-items-center">
-            <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(241,196,15,.1);">
-                <i class="fas fa-redo-alt" style="color:#f1c40f;font-size:.85rem;"></i>
+            <div class="rounded-circle d-flex align-items-center justify-content-center me-2 nav-icon-orange" style="width:34px;height:34px;">
+                <i class="fas fa-redo-alt" style="font-size:.85rem;"></i>
             </div>
             <div>
                 <h5 class="mb-0" style="font-size:1rem;">Transações Recorrentes</h5>
@@ -32,7 +32,7 @@
     <!-- Lista de recorrências -->
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 fw-bold" style="color:#f1c40f;"><i class="fas fa-redo-alt me-2"></i>Recorrências Ativas</h6>
+            <h6 class="mb-0 fw-bold legend-orange"><i class="fas fa-redo-alt me-2"></i>Recorrências Ativas</h6>
             <span class="badge bg-secondary" id="recurringTotalBadge">—</span>
         </div>
         <div class="card-body p-0">
@@ -93,7 +93,7 @@
 <div class="modal fade" id="modalRecurring" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-            <div class="modal-header border-0" style="background:#f1c40f;">
+            <div class="modal-header border-0 card-header-amber">
                 <h5 class="modal-title text-dark"><i class="fas fa-redo-alt me-2"></i><span id="recurringModalTitle">Nova Recorrência</span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>

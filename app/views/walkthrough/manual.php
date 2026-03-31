@@ -82,7 +82,7 @@
                         </div>
                         <div class="col-md-6">
                             <div class="border rounded p-3 h-100">
-                                <h6 class="fw-bold"><i class="fas fa-calendar-check me-1" style="color:#9b59b6;"></i> Próximos Contatos</h6>
+                                <h6 class="fw-bold"><i class="fas fa-calendar-check me-1 icon-purple"></i> Próximos Contatos</h6>
                                 <p class="small text-muted mb-0">Agenda de follow-ups agendados com clientes. Contatos de hoje ficam em destaque.</p>
                             </div>
                         </div>
@@ -295,7 +295,7 @@
             <!-- Categorias -->
             <!-- ══════════════════════════════════════ -->
             <div class="card border-0 shadow-sm mb-4" id="sec-categorias">
-                <div class="card-header" style="background:#6366f1;color:white;">
+                <div class="card-header card-header-indigo">
                     <h5 class="mb-0"><i class="fas fa-folder-open me-2"></i>Categorias e Subcategorias</h5>
                 </div>
                 <div class="card-body">
@@ -415,14 +415,14 @@
             <!-- FISCAL — Seção completa e detalhada -->
             <!-- ══════════════════════════════════════ -->
             <div class="card border-0 shadow-sm mb-4" id="sec-fiscal">
-                <div class="card-header" style="background:#f59e0b;color:white;">
+                <div class="card-header card-header-amber">
                     <h5 class="mb-0"><i class="fas fa-coins me-2"></i>Fiscal / Financeiro</h5>
                 </div>
                 <div class="card-body">
                     <p>O módulo <strong>Fiscal</strong> centraliza todo o controle financeiro do sistema. Ele é acessível pelo menu <strong>Fiscal</strong> na barra de navegação e contém duas áreas principais:</p>
 
                     <!-- Pagamentos -->
-                    <div class="border rounded p-3 mb-3" style="background:#f0fdf4;">
+                    <div class="border rounded p-3 mb-3 bg-section-green">
                         <h6 class="fw-bold text-success"><i class="fas fa-file-invoice-dollar me-2"></i>Pagamentos (Parcelas)</h6>
                         <p class="mb-2">Gerencie <strong>todas as parcelas</strong> de todos os pedidos do sistema. Aqui você acompanha recebimentos, confirma pagamentos e cobra inadimplentes.</p>
 
@@ -464,7 +464,7 @@
                     </div>
 
                     <!-- Entradas e Saídas -->
-                    <div class="border rounded p-3 mb-3" style="background:#eff6ff;">
+                    <div class="border rounded p-3 mb-3 bg-section-blue">
                         <h6 class="fw-bold text-primary"><i class="fas fa-exchange-alt me-2"></i>Entradas e Saídas (Livro Caixa)</h6>
                         <p class="mb-2">O <strong>livro caixa</strong> registra todas as movimentações financeiras da empresa, separando entradas e saídas.</p>
 
@@ -525,8 +525,8 @@
                     </div>
 
                     <!-- Resumo na Página Inicial -->
-                    <div class="border rounded p-3 mb-3" style="background:#fefce8;">
-                        <h6 class="fw-bold" style="color:#b45309;"><i class="fas fa-home me-2"></i>Resumo Financeiro na Página Inicial</h6>
+                    <div class="border rounded p-3 mb-3 bg-section-yellow">
+                        <h6 class="fw-bold text-amber"><i class="fas fa-home me-2"></i>Resumo Financeiro na Página Inicial</h6>
                         <p class="mb-2">A Página Inicial exibe um <strong>resumo financeiro</strong> do mês corrente com quatro indicadores:</p>
                         <ul class="mb-0">
                             <li><strong>Recebido</strong> — total de parcelas pagas e confirmadas no mês</li>
@@ -537,7 +537,7 @@
                     </div>
 
                     <!-- Boletos -->
-                    <div class="border rounded p-3 mb-3" style="background:#fdf2f8;">
+                    <div class="border rounded p-3 mb-3 bg-section-pink">
                         <h6 class="fw-bold text-danger"><i class="fas fa-barcode me-2"></i>Boletos Bancários</h6>
                         <p class="mb-2">O sistema gera boletos no padrão <strong>CNAB 400 / FEBRABAN</strong> com:</p>
                         <ul>
@@ -551,7 +551,7 @@
                     </div>
 
                     <!-- Dados Fiscais nos Produtos -->
-                    <div class="border rounded p-3" style="background:#f0f9ff;">
+                    <div class="border rounded p-3 bg-section-cyan">
                         <h6 class="fw-bold text-info"><i class="fas fa-file-alt me-2"></i>Dados Fiscais nos Produtos (NF-e)</h6>
                         <p class="mb-2">Cada produto pode conter dados fiscais completos para emissão de Nota Fiscal Eletrônica:</p>
 
@@ -586,7 +586,7 @@
             <!-- Configurações -->
             <!-- ══════════════════════════════════════ -->
             <div class="card border-0 shadow-sm mb-4" id="sec-config">
-                <div class="card-header" style="background: #475569; color: white;">
+                <div class="card-header card-header-slate">
                     <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Configurações</h5>
                 </div>
                 <div class="card-body">
@@ -722,7 +722,7 @@
             <!-- Atalhos e Dicas -->
             <!-- ══════════════════════════════════════ -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header" style="background: #1e293b; color: white;">
+                <div class="card-header card-header-slate-d">
                     <h5 class="mb-0"><i class="fas fa-keyboard me-2"></i>Atalhos e Dicas</h5>
                 </div>
                 <div class="card-body">

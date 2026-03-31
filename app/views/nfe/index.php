@@ -43,45 +43,9 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
 ?>
 
 <!-- ── Flash messages ── -->
-<?php if (!empty($_SESSION['flash_error'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'error',title:'Erro',html:'<?= addslashes($_SESSION['flash_error']) ?>',confirmButtonColor:'#3498db'}));</script>
-<?php unset($_SESSION['flash_error']); endif; ?>
-<?php if (!empty($_SESSION['flash_success'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2500,timerProgressBar:true}).fire({icon:'success',title:'<?= addslashes($_SESSION['flash_success']) ?>'}));</script>
-<?php unset($_SESSION['flash_success']); endif; ?>
+<?php require 'app/views/components/flash-messages.php'; ?>
 
-<style>
-    /* ── Sidebar nav (idêntico a Relatórios) ── */
-    .nfe-sidebar .nfe-nav-item{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;border-radius:10px;text-decoration:none;color:#555;font-size:.82rem;font-weight:500;transition:all .15s ease;margin-bottom:2px;border:1px solid transparent}
-    .nfe-sidebar .nfe-nav-item:hover{background:#f1f5f9;color:#333}
-    .nfe-sidebar .nfe-nav-item.active{background:var(--bs-primary,#3498db);color:#fff;box-shadow:0 2px 8px rgba(52,152,219,.3)}
-    .nfe-sidebar .nfe-nav-item.active .nfe-nav-icon{background:rgba(255,255,255,.2);color:#fff}
-    .nfe-sidebar .nfe-nav-item.active .nfe-nav-count{background:rgba(255,255,255,.25);color:#fff}
-    .nfe-nav-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:all .15s ease}
-    .nfe-nav-count{font-size:.65rem;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:auto}
-    .nfe-sidebar-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;padding:0 1rem;margin-bottom:.3rem;margin-top:.6rem}
-
-    /* ── Section transitions ── */
-    .nfe-section{display:none;animation:nfeFadeIn .25s ease}
-    .nfe-section.active{display:block}
-    @keyframes nfeFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-    /* ── Cards e tabelas ── */
-    .nfe-kpi-card{border-radius:12px;overflow:hidden;transition:transform .15s,box-shadow .15s}
-    .nfe-kpi-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.08)!important}
-    .nfe-table th{font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:#999}
-    .nfe-table td{font-size:.85rem}
-    .nfe-badge{font-size:.68rem;border-radius:6px}
-
-    /* ── Mobile sidebar ── */
-    @media(max-width:991.98px){
-        .nfe-sidebar-col{margin-bottom:1rem}
-        .nfe-sidebar{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:thin}
-        .nfe-sidebar .nfe-nav-item{white-space:nowrap;flex-shrink:0;padding:.5rem .85rem;font-size:.75rem}
-        .nfe-sidebar-label{display:none}
-        .nfe-nav-count{display:none}
-    }
-</style>
+<!-- Styles loaded from assets/css/modules/nfe.css via header.php -->
 
 <div class="container-fluid py-3">
 
@@ -106,35 +70,35 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                         <div class="nfe-sidebar-label">Documentos</div>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'notas' ? 'active' : '' ?>" data-sec="notas">
-                            <span class="nfe-nav-icon" style="background:rgba(52,152,219,.1);color:#3498db;">
+                            <span class="nfe-nav-icon nav-icon-blue">
                                 <i class="fas fa-file-invoice"></i>
                             </span>
                             <span>Notas Fiscais</span>
-                            <span class="nfe-nav-count" style="background:rgba(52,152,219,.1);color:#3498db;"><?= $totalAll ?></span>
+                            <span class="nfe-nav-count nav-icon-blue"><?= $totalAll ?></span>
                         </a>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'fila' ? 'active' : '' ?>" data-sec="fila">
-                            <span class="nfe-nav-icon" style="background:rgba(23,162,184,.1);color:#17a2b8;">
+                            <span class="nfe-nav-icon nav-icon-info">
                                 <i class="fas fa-layer-group"></i>
                             </span>
                             <span>Fila de Emissão</span>
                             <?php if ($queuePending > 0): ?>
-                            <span class="nfe-nav-count" style="background:rgba(255,193,7,.15);color:#e67e22;"><?= $queuePending ?></span>
+                            <span class="nfe-nav-count nav-icon-amber"><?= $queuePending ?></span>
                             <?php endif; ?>
                         </a>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'recebidos' ? 'active' : '' ?>" data-sec="recebidos">
-                            <span class="nfe-nav-icon" style="background:rgba(40,167,69,.1);color:#28a745;">
+                            <span class="nfe-nav-icon nav-icon-success">
                                 <i class="fas fa-inbox"></i>
                             </span>
                             <span>Recebidos (DistDFe)</span>
                             <?php if ($receivedPending > 0): ?>
-                            <span class="nfe-nav-count" style="background:rgba(220,53,69,.1);color:#dc3545;"><?= $receivedPending ?></span>
+                            <span class="nfe-nav-count nav-icon-danger"><?= $receivedPending ?></span>
                             <?php endif; ?>
                         </a>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'inutilizar' ? 'active' : '' ?>" data-sec="inutilizar">
-                            <span class="nfe-nav-icon" style="background:rgba(52,58,64,.1);color:#343a40;">
+                            <span class="nfe-nav-icon nav-icon-dark">
                                 <i class="fas fa-slash"></i>
                             </span>
                             <span>Inutilizar Nº</span>
@@ -143,14 +107,14 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                         <div class="nfe-sidebar-label">Análises</div>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'dashboard' ? 'active' : '' ?>" data-sec="dashboard">
-                            <span class="nfe-nav-icon" style="background:rgba(155,89,182,.1);color:#9b59b6;">
+                            <span class="nfe-nav-icon nav-icon-purple">
                                 <i class="fas fa-chart-bar"></i>
                             </span>
                             <span>Dashboard Fiscal</span>
                         </a>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'auditoria' ? 'active' : '' ?>" data-sec="auditoria">
-                            <span class="nfe-nav-icon" style="background:rgba(231,76,60,.1);color:#e74c3c;">
+                            <span class="nfe-nav-icon nav-icon-red">
                                 <i class="fas fa-shield-alt"></i>
                             </span>
                             <span>Auditoria</span>
@@ -159,14 +123,14 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                         <div class="nfe-sidebar-label">Relatórios Fiscais</div>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'livros' ? 'active' : '' ?>" data-sec="livros">
-                            <span class="nfe-nav-icon" style="background:rgba(0,150,136,.1);color:#009688;">
+                            <span class="nfe-nav-icon nav-icon-teal-alt">
                                 <i class="fas fa-book"></i>
                             </span>
                             <span>Livros de Registro</span>
                         </a>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'exportacoes' ? 'active' : '' ?>" data-sec="exportacoes">
-                            <span class="nfe-nav-icon" style="background:rgba(76,175,80,.1);color:#4caf50;">
+                            <span class="nfe-nav-icon nav-icon-green-alt">
                                 <i class="fas fa-file-export"></i>
                             </span>
                             <span>SPED / SINTEGRA</span>
@@ -175,38 +139,38 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                         <div class="nfe-sidebar-label">Configurações</div>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'contingencia' ? 'active' : '' ?>" data-sec="contingencia">
-                            <span class="nfe-nav-icon" style="background:rgba(255,152,0,.1);color:#ff9800;">
+                            <span class="nfe-nav-icon nav-icon-orange-alt">
                                 <i class="fas fa-exclamation-triangle"></i>
                             </span>
                             <span>Contingência</span>
                         </a>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'backup' ? 'active' : '' ?>" data-sec="backup">
-                            <span class="nfe-nav-icon" style="background:rgba(33,150,243,.1);color:#2196f3;">
+                            <span class="nfe-nav-icon nav-icon-blue-alt">
                                 <i class="fas fa-cloud-upload-alt"></i>
                             </span>
                             <span>Backup XMLs</span>
                         </a>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'credenciais' ? 'active' : '' ?>" data-sec="credenciais">
-                            <span class="nfe-nav-icon" style="background:rgba(40,167,69,.1);color:#198754;">
+                            <span class="nfe-nav-icon nav-icon-success-alt">
                                 <i class="fas fa-certificate"></i>
                             </span>
                             <span>Credenciais SEFAZ</span>
                             <?php if (!$validation['valid']): ?>
-                            <span class="nfe-nav-count" style="background:rgba(220,53,69,.1);color:#dc3545;">!</span>
+                            <span class="nfe-nav-count nav-icon-danger">!</span>
                             <?php endif; ?>
                         </a>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'webhooks' ? 'active' : '' ?>" data-sec="webhooks">
-                            <span class="nfe-nav-icon" style="background:rgba(243,156,18,.1);color:#f39c12;">
+                            <span class="nfe-nav-icon nav-icon-gold">
                                 <i class="fas fa-plug"></i>
                             </span>
                             <span>Webhooks</span>
                         </a>
 
                         <a href="#" class="nfe-nav-item <?= $activeSection === 'danfe' ? 'active' : '' ?>" data-sec="danfe">
-                            <span class="nfe-nav-icon" style="background:rgba(142,68,173,.1);color:#8e44ad;">
+                            <span class="nfe-nav-icon nav-icon-grape-alt">
                                 <i class="fas fa-palette"></i>
                             </span>
                             <span>DANFE Personalizado</span>
@@ -219,23 +183,23 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- Status card (apenas desktop) -->
             <div class="card border-0 shadow-sm mt-3 d-none d-lg-block" style="border-radius:12px;">
                 <div class="card-body p-3">
-                    <h6 class="mb-2 fw-bold" style="font-size:.78rem;color:#17a2b8;">
+                    <h6 class="mb-2 fw-bold text-info-alt" style="font-size:.78rem;">
                         <i class="fas fa-heartbeat me-1"></i>Status do Módulo
                     </h6>
                     <div class="d-flex align-items-center mb-2">
-                        <span class="badge me-2 px-2 py-1" style="font-size:.62rem;background:<?= $validation['valid'] ? 'rgba(25,135,84,.1);color:#198754' : 'rgba(220,53,69,.1);color:#dc3545' ?>;">
+                        <span class="badge me-2 px-2 py-1 <?= $validation['valid'] ? 'badge-success-light' : 'badge-danger-light' ?>" style="font-size:.62rem;">
                             <i class="fas fa-<?= $validation['valid'] ? 'check-circle' : 'times-circle' ?> me-1"></i><?= $validation['valid'] ? 'Ativo' : 'Pendente' ?>
                         </span>
                         <span class="text-muted" style="font-size:.7rem;">Credenciais</span>
                     </div>
                     <div class="d-flex align-items-center mb-2">
-                        <span class="badge me-2 px-2 py-1" style="font-size:.62rem;background:rgba(52,152,219,.1);color:#3498db;">
+                        <span class="badge me-2 px-2 py-1 badge-blue-light" style="font-size:.62rem;">
                             <i class="fas fa-file-invoice me-1"></i><?= $countThisMonth ?>
                         </span>
                         <span class="text-muted" style="font-size:.7rem;">NF-e este mês</span>
                     </div>
                     <div class="d-flex align-items-center">
-                        <span class="badge me-2 px-2 py-1" style="font-size:.62rem;background:rgba(40,167,69,.1);color:#198754;">
+                        <span class="badge me-2 px-2 py-1 badge-success-light" style="font-size:.62rem;">
                             <i class="fas fa-coins me-1"></i>R$<?= number_format($sumAuthorized, 0, ',', '.') ?>
                         </span>
                         <span class="text-muted" style="font-size:.7rem;">Valor autorizado/mês</span>
@@ -247,7 +211,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <?php if (!empty($alerts)): ?>
             <div class="card border-0 shadow-sm mt-3 d-none d-lg-block" style="border-radius:12px;">
                 <div class="card-body p-3">
-                    <h6 class="mb-2 fw-bold" style="font-size:.78rem;color:#e74c3c;">
+                    <h6 class="mb-2 fw-bold text-red" style="font-size:.78rem;">
                         <i class="fas fa-exclamation-triangle me-1"></i>Alertas
                     </h6>
                     <?php foreach ($alerts as $alert): ?>
@@ -272,8 +236,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <div class="nfe-section <?= $activeSection === 'notas' ? 'active' : '' ?>" id="sec-notas">
 
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(52,152,219,.1);width:34px;height:34px;">
-                        <i class="fas fa-file-invoice" style="color:#3498db;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 nav-icon-blue" style="width:34px;height:34px;">
+                        <i class="fas fa-file-invoice" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Notas Fiscais</h5>
@@ -293,7 +257,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                 <!-- KPIs -->
                 <div class="row g-3 mb-4">
                     <div class="col-6 col-md">
-                        <div class="card border-0 shadow-sm h-100 nfe-kpi-card" style="background:linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%);">
+                        <div class="card border-0 shadow-sm h-100 nfe-kpi-card kpi-blue">
                             <div class="card-body text-center py-3">
                                 <i class="fas fa-file-invoice fa-lg text-primary opacity-75"></i>
                                 <h3 class="mb-0 mt-1"><?= $totalAll ?></h3>
@@ -302,7 +266,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                         </div>
                     </div>
                     <div class="col-6 col-md">
-                        <div class="card border-0 shadow-sm h-100 nfe-kpi-card" style="background:linear-gradient(135deg,#e8f5e9 0%,#c8e6c9 100%);">
+                        <div class="card border-0 shadow-sm h-100 nfe-kpi-card kpi-green">
                             <div class="card-body text-center py-3">
                                 <i class="fas fa-check-circle fa-lg text-success opacity-75"></i>
                                 <h3 class="mb-0 mt-1"><?= $statusCounts['autorizada'] ?? 0 ?></h3>
@@ -311,7 +275,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                         </div>
                     </div>
                     <div class="col-6 col-md">
-                        <div class="card border-0 shadow-sm h-100 nfe-kpi-card" style="background:linear-gradient(135deg,#fce4ec 0%,#f8bbd0 100%);">
+                        <div class="card border-0 shadow-sm h-100 nfe-kpi-card kpi-red">
                             <div class="card-body text-center py-3">
                                 <i class="fas fa-times-circle fa-lg text-danger opacity-75"></i>
                                 <h3 class="mb-0 mt-1"><?= $totalRejCanc ?></h3>
@@ -320,7 +284,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                         </div>
                     </div>
                     <div class="col-6 col-md">
-                        <div class="card border-0 shadow-sm h-100 nfe-kpi-card" style="background:linear-gradient(135deg,#e3f2fd 0%,#90caf9 100%);">
+                        <div class="card border-0 shadow-sm h-100 nfe-kpi-card kpi-blue-alt">
                             <div class="card-body text-center py-3">
                                 <i class="fas fa-calendar-alt fa-lg text-primary opacity-75"></i>
                                 <h3 class="mb-0 mt-1"><?= $countThisMonth ?></h3>
@@ -329,7 +293,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                         </div>
                     </div>
                     <div class="col-6 col-md">
-                        <div class="card border-0 shadow-sm h-100 nfe-kpi-card" style="background:linear-gradient(135deg,#fff3e0 0%,#ffe0b2 100%);">
+                        <div class="card border-0 shadow-sm h-100 nfe-kpi-card kpi-orange">
                             <div class="card-body text-center py-3">
                                 <i class="fas fa-coins fa-lg text-warning opacity-75"></i>
                                 <h3 class="mb-0 mt-1 fs-5">R$<?= number_format($sumAuthorized, 0, ',', '.') ?></h3>
@@ -535,8 +499,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- ══════════════════════════════════════ -->
             <div class="nfe-section <?= $activeSection === 'dashboard' ? 'active' : '' ?>" id="sec-dashboard">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(155,89,182,.1);width:34px;height:34px;">
-                        <i class="fas fa-chart-bar" style="color:#9b59b6;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 nav-icon-purple" style="width:34px;height:34px;">
+                        <i class="fas fa-chart-bar" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Dashboard Fiscal</h5>
@@ -556,8 +520,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- ══════════════════════════════════════ -->
             <div class="nfe-section <?= $activeSection === 'fila' ? 'active' : '' ?>" id="sec-fila">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(23,162,184,.1);width:34px;height:34px;">
-                        <i class="fas fa-layer-group" style="color:#17a2b8;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 nav-icon-teal" style="width:34px;height:34px;">
+                        <i class="fas fa-layer-group" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Fila de Emissão</h5>
@@ -577,8 +541,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- ══════════════════════════════════════ -->
             <div class="nfe-section <?= $activeSection === 'recebidos' ? 'active' : '' ?>" id="sec-recebidos">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(40,167,69,.1);width:34px;height:34px;">
-                        <i class="fas fa-inbox" style="color:#28a745;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 nav-icon-success" style="width:34px;height:34px;">
+                        <i class="fas fa-inbox" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Documentos Recebidos</h5>
@@ -598,8 +562,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- ══════════════════════════════════════ -->
             <div class="nfe-section <?= $activeSection === 'inutilizar' ? 'active' : '' ?>" id="sec-inutilizar">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(52,58,64,.1);width:34px;height:34px;">
-                        <i class="fas fa-slash" style="color:#343a40;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 icon-circle-gray" style="width:34px;height:34px;">
+                        <i class="fas fa-slash icon-dark" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Inutilizar Numeração</h5>
@@ -609,7 +573,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                 <div class="row g-3">
                     <div class="col-xl-6">
                         <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
-                            <div class="card-header py-2" style="background:linear-gradient(135deg,#343a40 0%,#495057 100%);">
+                            <div class="card-header py-2 card-header-nfe-dark">
                                 <h6 class="mb-0 text-white" style="font-size:.85rem;">
                                     <i class="fas fa-slash me-2"></i>Inutilizar Faixa Numérica
                                 </h6>
@@ -657,7 +621,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                             <div class="card-header py-2 bg-light">
                                 <h6 class="mb-0" style="font-size:.85rem;"><i class="fas fa-info-circle me-2 text-info"></i>Sobre a Inutilização</h6>
                             </div>
-                            <div class="card-body p-3" style="font-size:.82rem;color:#555;">
+                            <div class="card-body p-3 text-secondary" style="font-size:.82rem;">
                                 <p class="mb-2"><i class="fas fa-check text-success me-2"></i>Obrigatória para números pulados (gaps na sequência de numeração).</p>
                                 <p class="mb-2"><i class="fas fa-check text-success me-2"></i>Deve ser feita antes do primeiro dia útil do mês seguinte.</p>
                                 <p class="mb-2"><i class="fas fa-times text-danger me-2"></i>Ação irreversível — não pode ser desfeita.</p>
@@ -674,8 +638,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- ══════════════════════════════════════ -->
             <div class="nfe-section <?= $activeSection === 'auditoria' ? 'active' : '' ?>" id="sec-auditoria">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(231,76,60,.1);width:34px;height:34px;">
-                        <i class="fas fa-shield-alt" style="color:#e74c3c;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 nav-icon-red" style="width:34px;height:34px;">
+                        <i class="fas fa-shield-alt" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Auditoria</h5>
@@ -695,8 +659,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- ══════════════════════════════════════ -->
             <div class="nfe-section <?= $activeSection === 'credenciais' ? 'active' : '' ?>" id="sec-credenciais">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(40,167,69,.1);width:34px;height:34px;">
-                        <i class="fas fa-certificate" style="color:#198754;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 nav-icon-success" style="width:34px;height:34px;">
+                        <i class="fas fa-certificate" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Credenciais SEFAZ</h5>
@@ -716,8 +680,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- ══════════════════════════════════════ -->
             <div class="nfe-section <?= $activeSection === 'webhooks' ? 'active' : '' ?>" id="sec-webhooks">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(243,156,18,.1);width:34px;height:34px;">
-                        <i class="fas fa-plug" style="color:#f39c12;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 nav-icon-orange" style="width:34px;height:34px;">
+                        <i class="fas fa-plug" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Webhooks</h5>
@@ -737,8 +701,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- ══════════════════════════════════════ -->
             <div class="nfe-section <?= $activeSection === 'danfe' ? 'active' : '' ?>" id="sec-danfe">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(142,68,173,.1);width:34px;height:34px;">
-                        <i class="fas fa-palette" style="color:#8e44ad;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 nav-icon-grape" style="width:34px;height:34px;">
+                        <i class="fas fa-palette" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">DANFE Personalizado</h5>
@@ -758,8 +722,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- ══════════════════════════════════════ -->
             <div class="nfe-section <?= $activeSection === 'contingencia' ? 'active' : '' ?>" id="sec-contingencia">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(255,152,0,.1);width:34px;height:34px;">
-                        <i class="fas fa-exclamation-triangle" style="color:#ff9800;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 icon-circle-orange" style="width:34px;height:34px;">
+                        <i class="fas fa-exclamation-triangle icon-warning" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Contingência NF-e</h5>
@@ -771,7 +735,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
-                            <div class="card-header py-2" style="background:linear-gradient(135deg,#ff9800 0%,#ffc107 100%);">
+                            <div class="card-header py-2 card-header-nfe-orange">
                                 <h6 class="mb-0 text-white" style="font-size:.85rem;">
                                     <i class="fas fa-heartbeat me-2"></i>Status Atual
                                 </h6>
@@ -836,8 +800,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- ══════════════════════════════════════ -->
             <div class="nfe-section <?= $activeSection === 'livros' ? 'active' : '' ?>" id="sec-livros">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(0,150,136,.1);width:34px;height:34px;">
-                        <i class="fas fa-book" style="color:#009688;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 nav-icon-teal" style="width:34px;height:34px;">
+                        <i class="fas fa-book" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Livros de Registro</h5>
@@ -857,8 +821,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- ══════════════════════════════════════ -->
             <div class="nfe-section <?= $activeSection === 'exportacoes' ? 'active' : '' ?>" id="sec-exportacoes">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(76,175,80,.1);width:34px;height:34px;">
-                        <i class="fas fa-file-export" style="color:#4caf50;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 nav-icon-green" style="width:34px;height:34px;">
+                        <i class="fas fa-file-export" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Exportações Fiscais</h5>
@@ -870,7 +834,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                     <!-- SPED Fiscal -->
                     <div class="col-md-4">
                         <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
-                            <div class="card-header py-2" style="background:linear-gradient(135deg,#4caf50 0%,#66bb6a 100%);">
+                            <div class="card-header py-2 card-header-nfe-green">
                                 <h6 class="mb-0 text-white" style="font-size:.85rem;">
                                     <i class="fas fa-file-invoice me-2"></i>SPED Fiscal (EFD)
                                 </h6>
@@ -897,7 +861,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                     <!-- SINTEGRA -->
                     <div class="col-md-4">
                         <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
-                            <div class="card-header py-2" style="background:linear-gradient(135deg,#2196f3 0%,#42a5f5 100%);">
+                            <div class="card-header py-2 card-header-nfe-blue">
                                 <h6 class="mb-0 text-white" style="font-size:.85rem;">
                                     <i class="fas fa-file-alt me-2"></i>SINTEGRA
                                 </h6>
@@ -924,7 +888,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                     <!-- Download em Lote (ZIP) -->
                     <div class="col-md-4">
                         <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
-                            <div class="card-header py-2" style="background:linear-gradient(135deg,#9c27b0 0%,#ab47bc 100%);">
+                            <div class="card-header py-2 card-header-nfe-purple">
                                 <h6 class="mb-0 text-white" style="font-size:.85rem;">
                                     <i class="fas fa-file-archive me-2"></i>Download XML (Lote)
                                 </h6>
@@ -956,8 +920,8 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
             <!-- ══════════════════════════════════════ -->
             <div class="nfe-section <?= $activeSection === 'backup' ? 'active' : '' ?>" id="sec-backup">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="nfe-nav-icon me-2" style="background:rgba(33,150,243,.1);width:34px;height:34px;">
-                        <i class="fas fa-cloud-upload-alt" style="color:#2196f3;font-size:.85rem;"></i>
+                    <div class="nfe-nav-icon me-2 nav-icon-blue" style="width:34px;height:34px;">
+                        <i class="fas fa-cloud-upload-alt" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Backup de XMLs</h5>

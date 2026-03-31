@@ -75,6 +75,20 @@ class Customer {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Busca um cliente pelo e-mail.
+     *
+     * @param string $email
+     * @return array|null Dados do cliente ou null
+     */
+    public function findByEmail(string $email): ?array
+    {
+        $stmt = $this->conn->prepare("SELECT * FROM {$this->table_name} WHERE email = :email LIMIT 1");
+        $stmt->execute([':email' => $email]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
     // ──────────────────────────────────────────────
     // CRUD — Criação
     // ──────────────────────────────────────────────
@@ -511,6 +525,63 @@ class Customer {
         $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Busca paginada de clientes — para dropdowns AJAX com paginação (Select2).
+     *
+     * @param string $query   Termo de busca (nome, email, documento, código)
+     * @param int    $page    Página (1-based)
+     * @param int    $perPage Itens por página
+     * @return array{data: array, total: int, hasMore: bool}
+     */
+    public function searchPaginated(string $query = '', int $page = 1, int $perPage = 20): array
+    {
+        $page = max(1, $page);
+        $perPage = min(max(1, $perPage), 100);
+        $offset = ($page - 1) * $perPage;
+
+        $where = "WHERE deleted_at IS NULL";
+        $params = [];
+
+        if ($query !== '') {
+            $like = "%{$query}%";
+            $where .= " AND (name LIKE :s1 OR email LIKE :s2 OR phone LIKE :s3 OR document LIKE :s4 OR code LIKE :s5)";
+            $params[':s1'] = $like;
+            $params[':s2'] = $like;
+            $params[':s3'] = $like;
+            $params[':s4'] = $like;
+            $params[':s5'] = $like;
+        }
+
+        // Contar total
+        $countSql = "SELECT COUNT(*) FROM {$this->table_name} {$where}";
+        $countStmt = $this->conn->prepare($countSql);
+        foreach ($params as $k => $v) {
+            $countStmt->bindValue($k, $v);
+        }
+        $countStmt->execute();
+        $total = (int) $countStmt->fetchColumn();
+
+        // Buscar página
+        $dataSql = "SELECT id, name, email, phone, document, code, person_type
+                    FROM {$this->table_name}
+                    {$where}
+                    ORDER BY name ASC
+                    LIMIT :lim OFFSET :off";
+        $dataStmt = $this->conn->prepare($dataSql);
+        foreach ($params as $k => $v) {
+            $dataStmt->bindValue($k, $v);
+        }
+        $dataStmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
+        $dataStmt->bindValue(':off', $offset, PDO::PARAM_INT);
+        $dataStmt->execute();
+
+        return [
+            'data'    => $dataStmt->fetchAll(PDO::FETCH_ASSOC),
+            'total'   => $total,
+            'hasMore' => ($offset + $perPage) < $total,
+        ];
     }
 
     // ──────────────────────────────────────────────

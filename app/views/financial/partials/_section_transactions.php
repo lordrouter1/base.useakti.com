@@ -12,8 +12,8 @@ $mn = $mn ?? ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','No
 
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div class="d-flex align-items-center">
-            <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(39,174,96,.1);">
-                <i class="fas fa-exchange-alt" style="color:#27ae60;font-size:.85rem;"></i>
+            <div class="icon-circle icon-circle-green me-2">
+                <i class="fas fa-exchange-alt text-green" style="font-size:.85rem;"></i>
             </div>
             <div>
                 <h5 class="mb-0" style="font-size:1rem;">Visão Geral — Entradas e Saídas</h5>
@@ -30,7 +30,7 @@ $mn = $mn ?? ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','No
         <div class="col-xl-4 col-md-4">
             <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
                 <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(39,174,96,0.15);">
+                    <div class="icon-circle icon-circle-xl icon-circle-success me-3">
                         <i class="fas fa-arrow-down fa-lg text-success"></i>
                     </div>
                     <div>
@@ -43,7 +43,7 @@ $mn = $mn ?? ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','No
         <div class="col-xl-4 col-md-4">
             <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
                 <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(192,57,43,0.15);">
+                    <div class="icon-circle icon-circle-xl icon-circle-danger me-3">
                         <i class="fas fa-arrow-up fa-lg text-danger"></i>
                     </div>
                     <div>
@@ -56,7 +56,7 @@ $mn = $mn ?? ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','No
         <div class="col-xl-4 col-md-4">
             <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
                 <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:44px;height:44px;background:rgba(52,152,219,0.15);">
+                    <div class="icon-circle icon-circle-xl icon-circle-primary me-3">
                         <i class="fas fa-balance-scale fa-lg text-primary"></i>
                     </div>
                     <div>

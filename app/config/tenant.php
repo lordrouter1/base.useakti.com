@@ -59,12 +59,20 @@ class TenantManager
 
     private static function getDefaultTenantConfig(): array
     {
+        $dbPass = getenv('AKTI_DB_PASS');
+        if ($dbPass === false) {
+            throw new \RuntimeException(
+                'Variável de ambiente AKTI_DB_PASS não configurada. '
+                . 'Defina-a no arquivo .env ou nas variáveis do servidor.'
+            );
+        }
+
         return [
             'host' => getenv('AKTI_DB_HOST') ?: 'localhost',
             'port' => (int) (getenv('AKTI_DB_PORT') ?: 3306),
             'db_name' => getenv('AKTI_DB_NAME') ?: 'akti_teste',
             'username' => getenv('AKTI_DB_USER') ?: 'akti_sis_usr',
-            'password' => getenv('AKTI_DB_PASS') ?: 'kP9!vR2@mX6#zL5$',
+            'password' => $dbPass,
             'charset' => getenv('AKTI_DB_CHARSET') ?: 'utf8mb4',
             'max_users' => null,
             'max_products' => null,
@@ -77,12 +85,20 @@ class TenantManager
 
     private static function getMasterConfig(): array
     {
+        $masterPass = getenv('AKTI_MASTER_DB_PASS') ?: getenv('AKTI_DB_PASS');
+        if ($masterPass === false) {
+            throw new \RuntimeException(
+                'Variável de ambiente AKTI_MASTER_DB_PASS (ou AKTI_DB_PASS) não configurada. '
+                . 'Defina-a no arquivo .env ou nas variáveis do servidor.'
+            );
+        }
+
         return [
             'host' => getenv('AKTI_MASTER_DB_HOST') ?: getenv('AKTI_DB_HOST') ?: 'localhost',
             'port' => (int) (getenv('AKTI_MASTER_DB_PORT') ?: getenv('AKTI_DB_PORT') ?: 3306),
             'db_name' => getenv('AKTI_MASTER_DB_NAME') ?: 'akti_master',
             'username' => getenv('AKTI_MASTER_DB_USER') ?: getenv('AKTI_DB_USER') ?: 'akti_sis_usr',
-            'password' => getenv('AKTI_MASTER_DB_PASS') ?: getenv('AKTI_DB_PASS') ?: 'kP9!vR2@mX6#zL5$',
+            'password' => $masterPass,
             'charset' => getenv('AKTI_MASTER_DB_CHARSET') ?: 'utf8mb4',
         ];
     }

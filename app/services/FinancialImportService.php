@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Services;
 
+use Akti\Core\Log;
+
 use Akti\Models\Financial;
 use PDO;
 
@@ -490,7 +492,7 @@ class FinancialImportService
                 ':tx_id'  => $transactionId,
             ]);
         } catch (\PDOException $e) {
-            error_log('[FinancialImport] Erro ao registrar FITID: ' . $e->getMessage());
+            Log::error('FinancialImport: Erro ao registrar FITID', ['exception' => $e->getMessage()]);
         }
     }
 

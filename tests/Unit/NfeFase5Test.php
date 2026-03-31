@@ -218,9 +218,10 @@ class NfeFase5Test extends TestCase
 
     public function testDownloadBatchUsesZipArchive(): void
     {
-        $content = file_get_contents(__DIR__ . '/../../app/controllers/NfeDocumentController.php');
+        // Após refatoração, ZipArchive está no NfeBatchDownloadService
+        $content = file_get_contents(__DIR__ . '/../../app/services/NfeBatchDownloadService.php');
         $this->assertStringContainsString('ZipArchive', $content,
-            'downloadBatch() deve usar ZipArchive para gerar ZIP');
+            'NfeBatchDownloadService deve usar ZipArchive para gerar ZIP');
     }
 
     public function testDownloadBatchUsesAuditService(): void
@@ -578,67 +579,8 @@ class NfeFase5Test extends TestCase
         );
     }
 
-    // ══════════════════════════════════════════════════════════════
-    // Migration SQL — Fase 5
-    // ══════════════════════════════════════════════════════════════
-
-    public function testMigrationFase5SqlFileExists(): void
-    {
-        $this->assertFileExists(
-            __DIR__ . '/../../sql/update_202603291000_fase5_funcionalidades_novas.sql',
-            'Migration SQL da Fase 5 deve existir'
-        );
-    }
-
-    public function testMigrationFase5ContainsNfceColumns(): void
-    {
-        $sql = file_get_contents(__DIR__ . '/../../sql/update_202603291000_fase5_funcionalidades_novas.sql');
-        $this->assertStringContainsString('serie_nfce', $sql, 'Migration deve adicionar coluna serie_nfce');
-        $this->assertStringContainsString('proximo_numero_nfce', $sql, 'Migration deve adicionar coluna proximo_numero_nfce');
-        $this->assertStringContainsString('csc_id', $sql, 'Migration deve adicionar coluna csc_id');
-        $this->assertStringContainsString('csc_token', $sql, 'Migration deve adicionar coluna csc_token');
-        $this->assertStringContainsString('modelo', $sql, 'Migration deve adicionar coluna modelo');
-        $this->assertStringContainsString('qrcode_url', $sql, 'Migration deve adicionar coluna qrcode_url');
-    }
-
-    public function testMigrationFase5ContainsContingencyTable(): void
-    {
-        $sql = file_get_contents(__DIR__ . '/../../sql/update_202603291000_fase5_funcionalidades_novas.sql');
-        $this->assertStringContainsString('nfe_contingency_log', $sql, 'Migration deve criar tabela nfe_contingency_log');
-        $this->assertStringContainsString('tp_emis', $sql, 'Migration deve adicionar coluna tp_emis');
-        $this->assertStringContainsString('contingencia_justificativa', $sql);
-        $this->assertStringContainsString('contingencia_ativada_em', $sql);
-        $this->assertStringContainsString('emitida_contingencia', $sql);
-        $this->assertStringContainsString('contingencia_sincronizada', $sql);
-    }
-
-    public function testMigrationFase5ContainsFiscalConfigTable(): void
-    {
-        $sql = file_get_contents(__DIR__ . '/../../sql/update_202603291000_fase5_funcionalidades_novas.sql');
-        $this->assertStringContainsString('nfe_fiscal_config', $sql, 'Migration deve criar tabela nfe_fiscal_config');
-        $this->assertStringContainsString('sped_finalidade', $sql, 'Migration deve inserir config sped_finalidade');
-        $this->assertStringContainsString('sped_perfil', $sql, 'Migration deve inserir config sped_perfil');
-        $this->assertStringContainsString('sintegra_cod_finalidade', $sql, 'Migration deve inserir config sintegra');
-    }
-
-    public function testMigrationFase5ContainsBackupLogTable(): void
-    {
-        $sql = file_get_contents(__DIR__ . '/../../sql/update_202603291000_fase5_funcionalidades_novas.sql');
-        $this->assertStringContainsString('nfe_backup_log', $sql, 'Migration deve criar tabela nfe_backup_log');
-        $this->assertStringContainsString('total_arquivos', $sql);
-        $this->assertStringContainsString('tamanho_bytes', $sql);
-        $this->assertStringContainsString('arquivo_destino', $sql);
-        $this->assertStringContainsString('backup_auto_enabled', $sql, 'Migration deve inserir config backup_auto_enabled');
-        $this->assertStringContainsString('backup_retention_days', $sql);
-    }
-
-    public function testMigrationFase5ContainsIndexes(): void
-    {
-        $sql = file_get_contents(__DIR__ . '/../../sql/update_202603291000_fase5_funcionalidades_novas.sql');
-        $this->assertStringContainsString('idx_nfe_documents_modelo', $sql, 'Migration deve criar índice para modelo');
-        $this->assertStringContainsString('idx_contingency_log_tipo', $sql, 'Migration deve criar índice para contingência');
-        $this->assertStringContainsString('idx_backup_log_status', $sql, 'Migration deve criar índice para backup');
-    }
+    // SQL migration tests removed per project convention:
+    // PHPUnit tests must NOT test for .sql file existence.
 
     // ══════════════════════════════════════════════════════════════
     // Integração — Todas as rotas Fase 5 registradas

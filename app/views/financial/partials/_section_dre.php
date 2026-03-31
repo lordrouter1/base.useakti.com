@@ -10,8 +10,8 @@
 
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div class="d-flex align-items-center">
-            <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(230,126,34,.1);">
-                <i class="fas fa-chart-pie" style="color:#e67e22;font-size:.85rem;"></i>
+            <div class="icon-circle icon-circle-carrot me-2">
+                <i class="fas fa-chart-pie text-carrot" style="font-size:.85rem;"></i>
             </div>
             <div>
                 <h5 class="mb-0" style="font-size:1rem;">DRE — Demonstrativo de Resultado</h5>

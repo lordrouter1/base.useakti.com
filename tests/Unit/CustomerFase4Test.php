@@ -435,16 +435,17 @@ class CustomerFase4Test extends TestCase
 
     public function testControllerImportHasAutoMapping(): void
     {
-        $controller = file_get_contents(__DIR__ . '/../../app/controllers/CustomerController.php');
+        // Após refatoração, o auto-mapeamento está no CustomerImportService
+        $service = file_get_contents(__DIR__ . '/../../app/services/CustomerImportService.php');
         // Auto-mapeamento: nomes alternativos
         $autoMapTerms = [
             'tipo_pessoa', 'fantasia', 'celular', 'whatsapp',
-            'cidade', 'estado', 'nascimento', 'observacao'
+            'cidade', 'estado', 'nascimento', 'observacoes'
         ];
         foreach ($autoMapTerms as $term) {
             $this->assertStringContainsString(
                 $term,
-                $controller,
+                $service,
                 "Import: deve incluir auto-mapeamento para '$term'"
             );
         }

@@ -8,6 +8,7 @@ use Akti\Models\ProductGrade;
 use Akti\Models\CategoryGrade;
 use Akti\Models\Logger;
 use Akti\Models\Product;
+use Akti\Services\CategoryService;
 use Akti\Utils\Input;
 use Database;
 
@@ -19,6 +20,7 @@ class CategoryController {
     private $gradeModel;
     private $categoryGradeModel;
     private $logger;
+    private CategoryService $categoryService;
 
     public function __construct() {
         $db = (new Database())->getConnection();
@@ -28,6 +30,7 @@ class CategoryController {
         $this->gradeModel = new ProductGrade($db);
         $this->categoryGradeModel = new CategoryGrade($db);
         $this->logger = new Logger($db);
+        $this->categoryService = new CategoryService($db, $this->categoryGradeModel, $this->sectorModel);
     }
 
     public function index() {
@@ -124,7 +127,7 @@ class CategoryController {
             // Salvar estado de combinações (ativo/inativo)
             $categoryCombinations = Input::postArray('category_combinations');
             if (!empty($categoryCombinations)) {
-                $this->saveCategoryCombinationsState($id, $categoryCombinations);
+                $this->categoryService->saveCategoryCombinationsState($id, $categoryCombinations);
             }
         }
         header('Location: ?page=categories&status=success');
@@ -177,7 +180,7 @@ class CategoryController {
             // Salvar estado de combinações (ativo/inativo)
             $subcategoryCombinations = Input::postArray('subcategory_combinations');
             if (!empty($subcategoryCombinations)) {
-                $this->saveSubcategoryCombinationsState($id, $subcategoryCombinations);
+                $this->categoryService->saveSubcategoryCombinationsState($id, $subcategoryCombinations);
             }
         }
         header('Location: ?page=categories&tab=subcategories&status=success');
@@ -192,36 +195,6 @@ class CategoryController {
         }
         header('Location: ?page=categories&tab=subcategories&status=success');
         exit;
-    }
-
-    // ─────────────────────────────────────────────────────
-    // Helper: save combination is_active state from form
-    // ─────────────────────────────────────────────────────
-
-    private function saveCategoryCombinationsState($categoryId, $combosData) {
-        $db = (new Database())->getConnection();
-        foreach ($combosData as $key => $data) {
-            $isActive = isset($data['is_active']) ? (int)$data['is_active'] : 1;
-            $stmt = $db->prepare("
-                UPDATE category_grade_combinations 
-                SET is_active = :active 
-                WHERE category_id = :cid AND combination_key = :ckey
-            ");
-            $stmt->execute([':active' => $isActive, ':cid' => $categoryId, ':ckey' => $key]);
-        }
-    }
-
-    private function saveSubcategoryCombinationsState($subcategoryId, $combosData) {
-        $db = (new Database())->getConnection();
-        foreach ($combosData as $key => $data) {
-            $isActive = isset($data['is_active']) ? (int)$data['is_active'] : 1;
-            $stmt = $db->prepare("
-                UPDATE subcategory_grade_combinations 
-                SET is_active = :active 
-                WHERE subcategory_id = :sid AND combination_key = :ckey
-            ");
-            $stmt->execute([':active' => $isActive, ':sid' => $subcategoryId, ':ckey' => $key]);
-        }
     }
 
     // ─────────────────────────────────────────────────────
@@ -297,26 +270,15 @@ class CategoryController {
                 $products = $productModel->getBySubcategory($id);
             }
 
-            // Get source grades/sectors info
-            $hasGrades = false;
-            $hasSectors = false;
-            if ($type === 'category') {
-                $hasGrades = $this->categoryGradeModel->categoryHasGrades($id);
-                $sectors = $this->sectorModel->getCategorySectors($id);
-                $hasSectors = !empty($sectors);
-            } else {
-                $hasGrades = $this->categoryGradeModel->subcategoryHasGrades($id);
-                $sectors = $this->sectorModel->getSubcategorySectors($id);
-                $hasSectors = !empty($sectors);
-            }
+            $exportInfo = $this->categoryService->getSourceExportInfo($type, $id);
 
             echo json_encode([
                 'success' => true,
                 'products' => $products,
-                'has_grades' => $hasGrades,
-                'has_sectors' => $hasSectors
+                'has_grades' => $exportInfo['has_grades'],
+                'has_sectors' => $exportInfo['has_sectors']
             ]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             echo json_encode([
                 'success' => false,
                 'message' => 'Erro ao buscar produtos: ' . $e->getMessage(),
@@ -353,51 +315,7 @@ class CategoryController {
             exit;
         }
 
-        $db = (new Database())->getConnection();
-        $gradeModel = new ProductGrade($db);
-        $sectorModel = new ProductionSector($db);
-        $logger = new Logger($db);
-
-        $results = ['grades_applied' => 0, 'sectors_applied' => 0, 'errors' => []];
-
-        // Get source grades if exporting grades
-        $sourceGrades = [];
-        if ($exportGrades) {
-            if ($type === 'category') {
-                $inheritedRaw = $this->categoryGradeModel->getCategoryGradesWithValues($sourceId);
-            } else {
-                $inheritedRaw = $this->categoryGradeModel->getSubcategoryGradesWithValues($sourceId);
-            }
-            $sourceGrades = $this->categoryGradeModel->convertInheritedToProductFormat($inheritedRaw);
-        }
-
-        // Get source sectors if exporting sectors
-        $sourceSectorIds = [];
-        if ($exportSectors) {
-            if ($type === 'category') {
-                $sectors = $sectorModel->getCategorySectors($sourceId);
-            } else {
-                $sectors = $sectorModel->getSubcategorySectors($sourceId);
-            }
-            $sourceSectorIds = array_column($sectors, 'sector_id');
-        }
-
-        foreach ($productIds as $productId) {
-            $productId = (int)$productId;
-            try {
-                if ($exportGrades && !empty($sourceGrades)) {
-                    $gradeModel->saveProductGrades($productId, $sourceGrades);
-                    $results['grades_applied']++;
-                }
-                if ($exportSectors && !empty($sourceSectorIds)) {
-                    $sectorModel->saveProductSectors($productId, $sourceSectorIds);
-                    $results['sectors_applied']++;
-                }
-                $logger->log('EXPORT_TO_PRODUCT', "Exported {$type} #{$sourceId} grades/sectors to product #{$productId}");
-            } catch (Exception $e) {
-                $results['errors'][] = "Produto #{$productId}: " . $e->getMessage();
-            }
-        }
+        $results = $this->categoryService->exportToProducts($type, $sourceId, $productIds, $exportGrades, $exportSectors);
 
         echo json_encode([
             'success' => true,

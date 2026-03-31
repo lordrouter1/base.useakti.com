@@ -94,7 +94,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
         <!-- Classificação Fiscal -->
         <div class="card border-0 bg-light mb-3">
             <div class="card-header bg-transparent border-bottom py-2">
-                <h6 class="mb-0 fw-bold small" style="color: #8e44ad;"><i class="fas fa-barcode me-2"></i>Classificação Fiscal</h6>
+                <h6 class="mb-0 fw-bold small text-grape"><i class="fas fa-barcode me-2"></i>Classificação Fiscal</h6>
             </div>
             <div class="card-body py-3">
                 <div class="row g-3">
@@ -136,7 +136,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
         <!-- Origem e Unidade -->
         <div class="card border-0 bg-light mb-3">
             <div class="card-header bg-transparent border-bottom py-2">
-                <h6 class="mb-0 fw-bold small" style="color: #8e44ad;"><i class="fas fa-globe me-2"></i>Origem e Unidade</h6>
+                <h6 class="mb-0 fw-bold small text-grape"><i class="fas fa-globe me-2"></i>Origem e Unidade</h6>
             </div>
             <div class="card-body py-3">
                 <div class="row g-3">
@@ -169,7 +169,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
         <!-- Tributação ICMS -->
         <div class="card border-0 bg-light mb-3">
             <div class="card-header bg-transparent border-bottom py-2">
-                <h6 class="mb-0 fw-bold small" style="color: #8e44ad;"><i class="fas fa-percentage me-2"></i>Tributação ICMS</h6>
+                <h6 class="mb-0 fw-bold small text-grape"><i class="fas fa-percentage me-2"></i>Tributação ICMS</h6>
             </div>
             <div class="card-body py-3">
                 <div class="row g-3">
@@ -206,7 +206,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
         <!-- Tributação PIS / COFINS / IPI -->
         <div class="card border-0 bg-light mb-3">
             <div class="card-header bg-transparent border-bottom py-2">
-                <h6 class="mb-0 fw-bold small" style="color: #8e44ad;"><i class="fas fa-calculator me-2"></i>PIS / COFINS / IPI</h6>
+                <h6 class="mb-0 fw-bold small text-grape"><i class="fas fa-calculator me-2"></i>PIS / COFINS / IPI</h6>
             </div>
             <div class="card-body py-3">
                 <div class="row g-3">
@@ -265,7 +265,7 @@ $unidades = ['UN', 'KG', 'MT', 'M2', 'M3', 'LT', 'PC', 'CX', 'DZ', 'PR', 'CT', '
         <!-- Informações Adicionais -->
         <div class="card border-0 bg-light mb-3">
             <div class="card-header bg-transparent border-bottom py-2">
-                <h6 class="mb-0 fw-bold small" style="color: #8e44ad;"><i class="fas fa-sticky-note me-2"></i>Informações Adicionais</h6>
+                <h6 class="mb-0 fw-bold small text-grape"><i class="fas fa-sticky-note me-2"></i>Informações Adicionais</h6>
             </div>
             <div class="card-body py-3">
                 <div class="row g-3">

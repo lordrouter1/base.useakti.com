@@ -216,11 +216,11 @@ $prioLabels = ['urgente'=>'URGENTE','alta'=>'Alta','normal'=>'Normal','baixa'=>'
                 <div class="label">Total de Contatos</div>
             </div>
             <div class="summary-item">
-                <div class="number" style="color:#e74c3c;"><?= $urgentes ?></div>
+                <div class="number text-red"><?= $urgentes ?></div>
                 <div class="label">Urgentes</div>
             </div>
             <div class="summary-item">
-                <div class="number" style="color:#f39c12;"><?= $altas ?></div>
+                <div class="number text-orange"><?= $altas ?></div>
                 <div class="label">Alta Prioridade</div>
             </div>
         </div>
@@ -266,7 +266,7 @@ $prioLabels = ['urgente'=>'URGENTE','alta'=>'Alta','normal'=>'Normal','baixa'=>'
                         <?php if (!empty($c['notes'])): ?>
                             <div class="contact-notes"><?= nl2br(e($c['notes'])) ?></div>
                         <?php else: ?>
-                            <span style="color:#ccc;">—</span>
+                            <span class="text-muted">—</span>
                         <?php endif; ?>
                     </td>
                 </tr>

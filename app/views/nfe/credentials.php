@@ -20,34 +20,7 @@ if ($step2Complete) $completePct += 33;
 if ($step3Complete) $completePct += 33;
 ?>
 
-<style>
-    .wizard-progress { display: flex; justify-content: center; gap: 0; margin-bottom: 2rem; }
-    .wizard-step { display: flex; align-items: center; gap: 0; }
-    .wizard-step-circle {
-        width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-        font-weight: 700; font-size: 1.1rem; border: 3px solid #dee2e6; background: #fff; color: #6c757d;
-        transition: all 0.3s; cursor: pointer; position: relative; z-index: 2;
-    }
-    .wizard-step-circle.active { border-color: #0d6efd; color: #0d6efd; box-shadow: 0 0 0 4px rgba(13,110,253,0.15); }
-    .wizard-step-circle.completed { border-color: #198754; background: #198754; color: #fff; }
-    .wizard-step-circle.error { border-color: #dc3545; background: #dc3545; color: #fff; }
-    .wizard-step-label { font-size: 0.78rem; text-align: center; margin-top: 0.5rem; color: #6c757d; font-weight: 500; }
-    .wizard-step-label.active { color: #0d6efd; font-weight: 700; }
-    .wizard-step-label.completed { color: #198754; }
-    .wizard-connector { width: 80px; height: 3px; background: #dee2e6; margin-top: -1.5rem; }
-    .wizard-connector.completed { background: #198754; }
-    .wizard-panel { display: none; animation: fadeInPanel 0.3s ease; }
-    .wizard-panel.active { display: block; }
-    @keyframes fadeInPanel { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .credential-status-bar { border-radius: 1rem; overflow: hidden; }
-    .cert-status-card { border-radius: 0.75rem; transition: all 0.2s; }
-    .cert-status-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .info-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; margin-bottom: 2px; }
-    @media (max-width: 768px) {
-        .wizard-connector { width: 30px; }
-        .wizard-step-circle { width: 40px; height: 40px; font-size: 0.95rem; }
-    }
-</style>
+<!-- Styles moved to assets/css/modules/nfe.css -->
 
 <?php $isAjax = $isAjax ?? false; ?>
 

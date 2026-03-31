@@ -13,8 +13,8 @@
 
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div class="d-flex align-items-center">
-            <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(142,68,173,.1);">
-                <i class="fas fa-shield-alt" style="color:#8e44ad;font-size:.85rem;"></i>
+            <div class="icon-circle icon-circle-grape me-2">
+                <i class="fas fa-shield-alt text-grape" style="font-size:.85rem;"></i>
             </div>
             <div>
                 <h5 class="mb-0" style="font-size:1rem;">Auditoria Financeira</h5>
@@ -70,7 +70,7 @@
     <!-- Tabela de Auditoria -->
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 fw-bold" style="color:#8e44ad;"><i class="fas fa-shield-alt me-2"></i>Registro de Auditoria</h6>
+            <h6 class="mb-0 fw-bold text-grape"><i class="fas fa-shield-alt me-2"></i>Registro de Auditoria</h6>
             <span class="badge bg-secondary" id="auditTotalBadge">—</span>
         </div>
         <div class="card-body p-0">

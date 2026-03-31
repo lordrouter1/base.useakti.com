@@ -33,7 +33,14 @@
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <!-- Script global do sistema (CSRF, atalhos, máscaras) -->
-<script src="assets/js/script.js"></script>
+<script src="<?= asset('assets/js/script.js') ?>"></script>
+<!-- Design System Components -->
+<script src="<?= asset('assets/js/components/toast.js') ?>"></script>
+<script src="<?= asset('assets/js/components/skeleton.js') ?>"></script>
+<script src="<?= asset('assets/js/components/shortcuts.js') ?>"></script>
+<script src="<?= asset('assets/js/components/command-palette.js') ?>"></script>
+<script src="<?= asset('assets/js/components/notification-bell.js') ?>"></script>
+<script src="<?= asset('assets/js/components/dashboard-widgets.js') ?>"></script>
 
 <?php
 // ── Session Timeout: injetar dados JS para modal de aviso ──
@@ -88,7 +95,7 @@ if (isset($_SESSION['user_id'])) {
             title: '<i class="fas fa-hourglass-half text-warning me-2"></i>Sessão Expirando',
             html: '<div style="font-size:0.95rem;">' +
                   '<p class="mb-2">Sua sessão será encerrada por inatividade em:</p>' +
-                  '<div id="swal-session-countdown" style="font-size:2.2rem;font-weight:700;color:#e74c3c;font-family:monospace;">' +
+                  '<div id="swal-session-countdown" class="text-red" style="font-size:2.2rem;font-weight:700;font-family:monospace;">' +
                   formatTime(remaining) + '</div>' +
                   '<p class="text-muted small mt-2 mb-0">Clique em <strong>Continuar</strong> para manter sua sessão ativa.</p>' +
                   '</div>',

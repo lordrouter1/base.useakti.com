@@ -10,6 +10,12 @@ use Akti\Models\Logger;
 use Akti\Models\User;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
+use Akti\Services\CustomerImportService;
+use Akti\Services\CustomerExportService;
+use Akti\Services\CustomerFormService;
+use Akti\Services\ExternalApiService;
+use Akti\Services\CustomerOrderHistoryService;
+use Akti\Services\CustomerContactService;
 use Database;
 use PDO;
 use TenantManager;
@@ -32,6 +38,10 @@ class CustomerController {
     private $mappingProfileModel;
     private $logger;
     private $db;
+    private $importService;
+    private $exportService;
+    private $formService;
+    private $externalApiService;
 
     public function __construct() {
         $database = new Database();
@@ -41,6 +51,10 @@ class CustomerController {
         $this->importBatchModel = new ImportBatch($this->db);
         $this->mappingProfileModel = new ImportMappingProfile($this->db);
         $this->logger = new Logger($this->db);
+        $this->importService = new CustomerImportService($this->db, $this->customerModel, $this->importBatchModel, $this->logger);
+        $this->exportService = new CustomerExportService($this->customerModel, $this->logger);
+        $this->formService = new CustomerFormService();
+        $this->externalApiService = new ExternalApiService();
     }
 
     // ═══════════════════════════════════════════════
@@ -143,10 +157,10 @@ class CustomerController {
         }
 
         // Capturar e sanitizar TODOS os campos
-        $data = $this->captureFormData();
+        $data = $this->formService->captureFormData();
 
         // Validação server-side completa
-        $v = $this->validateCustomerData($data);
+        $v = $this->formService->validateCustomerData($data);
 
         // Verificar duplicidade de documento
         if (!empty($data['document'])) {
@@ -170,14 +184,7 @@ class CustomerController {
         $data['created_by'] = $_SESSION['user_id'] ?? null;
 
         // Manter campo address JSON para retrocompatibilidade
-        $data['address'] = json_encode([
-            'zipcode'        => $data['zipcode'] ?? '',
-            'address_type'   => '',
-            'address_name'   => $data['address_street'] ?? '',
-            'address_number' => $data['address_number'] ?? '',
-            'neighborhood'   => $data['address_neighborhood'] ?? '',
-            'complement'     => $data['address_complement'] ?? '',
-        ]);
+        $data['address'] = $this->formService->buildAddressJson($data);
 
         // Criar o cliente
         $newId = $this->customerModel->create($data);
@@ -632,87 +639,15 @@ class CustomerController {
     // ═══════════════════════════════════════════════
 
     public function export() {
-        $format = Input::get('format', 'string', 'csv');
         $filters = $this->captureFilters();
 
-        // Se recebeu IDs específicos (exportação de selecionados), filtrar apenas esses
         $idsParam = Input::get('ids');
+        $ids = null;
         if (!empty($idsParam)) {
             $ids = array_filter(array_map('intval', explode(',', $idsParam)));
-            if (!empty($ids)) {
-                $filters['ids'] = $ids;
-            }
         }
 
-        $customers = $this->customerModel->exportAll($filters);
-
-        // Log de auditoria
-        $count = count($customers);
-        $userName = $_SESSION['user_name'] ?? 'Sistema';
-        $this->logger->log('CUSTOMER_EXPORT', "Exportação de {$count} clientes por {$userName}");
-
-        // Gerar CSV
-        $filename = 'clientes_' . date('Ymd_His') . '.csv';
-
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-
-        $output = fopen('php://output', 'w');
-        // BOM UTF-8
-        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
-
-        // Cabeçalho (Rec 7 — compatibilidade bilateral com importação)
-        fputcsv($output, [
-            'codigo', 'tipo_pessoa', 'nome', 'nome_fantasia', 'cpf_cnpj',
-            'rg_ie', 'im', 'email', 'email_secundario', 'celular', 'telefone',
-            'telefone_comercial', 'website', 'instagram',
-            'data_nascimento', 'genero', 'nome_contato', 'cargo_contato',
-            'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf',
-            'status', 'prazo_pagamento', 'limite_credito', 'desconto_padrao',
-            'origem', 'tags', 'observacoes', 'cadastrado_em',
-        ], ';');
-
-        // Dados
-        foreach ($customers as $c) {
-            fputcsv($output, [
-                $c['code'] ?? '',
-                $c['person_type'] ?? 'PF',
-                $c['name'] ?? '',
-                $c['fantasy_name'] ?? '',
-                $c['document'] ?? '',
-                $c['rg_ie'] ?? '',
-                $c['im'] ?? '',
-                $c['email'] ?? '',
-                $c['email_secondary'] ?? '',
-                $c['cellphone'] ?? '',
-                $c['phone'] ?? '',
-                $c['phone_commercial'] ?? '',
-                $c['website'] ?? '',
-                $c['instagram'] ?? '',
-                $c['birth_date'] ?? '',
-                $c['gender'] ?? '',
-                $c['contact_name'] ?? '',
-                $c['contact_role'] ?? '',
-                $c['zipcode'] ?? '',
-                $c['address_street'] ?? '',
-                $c['address_number'] ?? '',
-                $c['address_complement'] ?? '',
-                $c['address_neighborhood'] ?? '',
-                $c['address_city'] ?? '',
-                $c['address_state'] ?? '',
-                $c['status'] ?? 'active',
-                $c['payment_term'] ?? '',
-                $c['credit_limit'] ?? '',
-                $c['discount_default'] ?? '',
-                $c['origin'] ?? '',
-                $c['tags'] ?? '',
-                $c['observations'] ?? '',
-                $c['created_at'] ?? '',
-            ], ';');
-        }
-
-        fclose($output);
-        exit;
+        $this->exportService->exportCsv($filters, $ids);
     }
 
     // ═══════════════════════════════════════════════
@@ -759,47 +694,10 @@ class CustomerController {
             exit;
         }
 
-        $offset = ($pageNum - 1) * $perPage;
+        $historyService = new CustomerOrderHistoryService($this->db);
+        $result = $historyService->getOrderHistoryPaginated($customerId, $pageNum, $perPage);
 
-        // Contar total de pedidos
-        $countQuery = "SELECT COUNT(*) as total FROM orders WHERE customer_id = :cid";
-        $countStmt = $this->db->prepare($countQuery);
-        $countStmt->bindValue(':cid', $customerId, PDO::PARAM_INT);
-        $countStmt->execute();
-        $total = (int) $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        // Buscar pedidos paginados
-        $query = "SELECT o.id, o.total_amount, o.status, o.created_at
-                  FROM orders o
-                  WHERE o.customer_id = :cid
-                  ORDER BY o.created_at DESC
-                  LIMIT :lim OFFSET :off";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindValue(':cid', $customerId, PDO::PARAM_INT);
-        $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
-        $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
-        $stmt->execute();
-        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Formatar dados
-        $formatted = [];
-        foreach ($orders as $order) {
-            $formatted[] = [
-                'id'           => (int) $order['id'],
-                'total_amount' => number_format($order['total_amount'] ?? 0, 2, ',', '.'),
-                'status'       => $order['status'] ?? '',
-                'created_at'   => !empty($order['created_at']) ? date('d/m/Y', strtotime($order['created_at'])) : '—',
-            ];
-        }
-
-        echo json_encode([
-            'success'    => true,
-            'orders'     => $formatted,
-            'total'      => $total,
-            'page'       => $pageNum,
-            'per_page'   => $perPage,
-            'total_pages' => (int) ceil($total / $perPage),
-        ]);
+        echo json_encode(array_merge(['success' => true], $result));
         exit;
     }
 
@@ -874,7 +772,8 @@ class CustomerController {
             exit;
         }
 
-        $contacts = $this->contactModel->readByCustomer($customerId);
+        $contactService = new CustomerContactService($this->db, $this->contactModel);
+        $contacts = $contactService->listByCustomer($customerId);
 
         echo json_encode(['success' => true, 'data' => $contacts]);
         exit;
@@ -891,42 +790,24 @@ class CustomerController {
             exit;
         }
 
-        $contactId   = Input::post('contact_id', 'int');
-        $customerId  = Input::post('customer_id', 'int');
-        $name        = Input::post('name');
-        $role        = Input::post('role');
-        $email       = Input::post('email', 'email');
-        $phone       = Input::post('phone', 'phone');
-        $isPrimary   = Input::post('is_primary', 'int', 0);
-        $notes       = Input::post('notes');
+        $contactService = new CustomerContactService($this->db, $this->contactModel);
+        $result = $contactService->save([
+            'contact_id'  => Input::post('contact_id', 'int'),
+            'customer_id' => Input::post('customer_id', 'int'),
+            'name'        => Input::post('name'),
+            'role'        => Input::post('role'),
+            'email'       => Input::post('email', 'email'),
+            'phone'       => Input::post('phone', 'phone'),
+            'is_primary'  => Input::post('is_primary', 'int', 0),
+            'notes'       => Input::post('notes'),
+        ]);
 
-        if (!$customerId || !$name) {
-            echo json_encode(['success' => false, 'message' => 'Cliente e nome do contato são obrigatórios.']);
-            exit;
+        if ($result['success']) {
+            $action = (Input::post('contact_id', 'int')) ? 'atualizado' : 'criado';
+            $this->logger->log('CUSTOMER_UPDATE', "Contato #{$result['id']} {$action} para cliente #" . Input::post('customer_id', 'int'));
         }
 
-        $data = [
-            'customer_id' => $customerId,
-            'name'        => $name,
-            'role'        => $role,
-            'email'       => $email,
-            'phone'       => preg_replace('/\D/', '', $phone ?? ''),
-            'is_primary'  => $isPrimary,
-            'notes'       => $notes,
-        ];
-
-        if ($contactId) {
-            // Atualizar
-            $data['id'] = $contactId;
-            $this->contactModel->update($data);
-            $this->logger->log('CUSTOMER_UPDATE', "Contato #{$contactId} atualizado para cliente #{$customerId}");
-            echo json_encode(['success' => true, 'message' => 'Contato atualizado.', 'id' => $contactId]);
-        } else {
-            // Criar
-            $newId = $this->contactModel->create($data);
-            $this->logger->log('CUSTOMER_UPDATE', "Contato #{$newId} criado para cliente #{$customerId}");
-            echo json_encode(['success' => true, 'message' => 'Contato adicionado.', 'id' => $newId]);
-        }
+        echo json_encode($result);
         exit;
     }
 
@@ -942,15 +823,15 @@ class CustomerController {
         }
 
         $contactId = Input::post('contact_id', 'int');
-        if (!$contactId) {
-            echo json_encode(['success' => false, 'message' => 'ID do contato é obrigatório.']);
-            exit;
+
+        $contactService = new CustomerContactService($this->db, $this->contactModel);
+        $result = $contactService->delete($contactId);
+
+        if ($result['success']) {
+            $this->logger->log('CUSTOMER_UPDATE', "Contato #{$contactId} removido");
         }
 
-        $this->contactModel->delete($contactId);
-        $this->logger->log('CUSTOMER_UPDATE', "Contato #{$contactId} removido");
-
-        echo json_encode(['success' => true, 'message' => 'Contato removido.']);
+        echo json_encode($result);
         exit;
     }
 
@@ -1003,6 +884,34 @@ class CustomerController {
     }
 
     // ═══════════════════════════════════════════════
+    //  AJAX: Busca paginada de clientes (Select2 com scroll infinito)
+    //  GET ?page=customers&action=searchAjax&q=termo&page=1&per_page=20
+    // ═══════════════════════════════════════════════
+
+    /**
+     * Busca paginada para dropdowns com AJAX e scroll infinito (Select2).
+     * Retorna JSON: { success, data, total, hasMore }
+     */
+    public function searchAjax(): void
+    {
+        header('Content-Type: application/json');
+
+        $q       = Input::get('q') ?? '';
+        $page    = Input::get('page', 'int', 1);
+        $perPage = Input::get('per_page', 'int', 20);
+
+        $result = $this->customerModel->searchPaginated($q, $page, $perPage);
+
+        echo json_encode([
+            'success' => true,
+            'data'    => $result['data'],
+            'total'   => $result['total'],
+            'hasMore' => $result['hasMore'],
+        ]);
+        exit;
+    }
+
+    // ═══════════════════════════════════════════════
     //  IMPORTAÇÃO: Parse do arquivo (Step 1 → Step 2)
     // ═══════════════════════════════════════════════
 
@@ -1014,121 +923,8 @@ class CustomerController {
             exit;
         }
 
-        $file = $_FILES['import_file'];
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            echo json_encode(['success' => false, 'message' => 'Erro no upload do arquivo.']);
-            exit;
-        }
-
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, ['csv', 'xls', 'xlsx', 'txt'])) {
-            echo json_encode(['success' => false, 'message' => 'Formato não suportado. Use CSV, XLS ou XLSX.']);
-            exit;
-        }
-
-        $rows = [];
-        if (in_array($ext, ['csv', 'txt'])) {
-            $rows = $this->parseCsvFile($file['tmp_name']);
-        } elseif (in_array($ext, ['xls', 'xlsx'])) {
-            if (class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
-                $rows = $this->parseExcelFile($file['tmp_name']);
-            } else {
-                $rows = $this->parseCsvFile($file['tmp_name']);
-            }
-        }
-
-        if (empty($rows)) {
-            echo json_encode(['success' => false, 'message' => 'Arquivo vazio ou não foi possível ler os dados.']);
-            exit;
-        }
-
-        // Salvar temporariamente
-        $tmpDir = sys_get_temp_dir() . '/akti_imports/';
-        if (!is_dir($tmpDir)) mkdir($tmpDir, 0755, true);
-        $tmpName = 'cust_import_' . session_id() . '_' . time() . '.' . $ext;
-        $tmpPath = $tmpDir . $tmpName;
-        move_uploaded_file($file['tmp_name'], $tmpPath);
-        $_SESSION['cust_import_tmp_file'] = $tmpPath;
-        $_SESSION['cust_import_tmp_ext'] = $ext;
-
-        $columns = !empty($rows) ? array_keys($rows[0]) : [];
-        $preview = array_slice($rows, 0, 10);
-        $totalRows = count($rows);
-
-        // Auto-mapeamento por nome de coluna (Fase 4 — expandido com todos os novos campos)
-        $colMap = [
-            // Nome
-            'nome' => 'name', 'name' => 'name', 'razao_social' => 'name', 'razao social' => 'name', 'cliente' => 'name',
-            // Tipo pessoa
-            'tipo' => 'person_type', 'tipo_pessoa' => 'person_type', 'type' => 'person_type', 'person_type' => 'person_type', 'tipo pessoa' => 'person_type',
-            // Fantasia
-            'fantasia' => 'fantasy_name', 'nome_fantasia' => 'fantasy_name', 'fantasy' => 'fantasy_name', 'nome fantasia' => 'fantasy_name', 'fantasy_name' => 'fantasy_name',
-            // Documento
-            'cpf' => 'document', 'cnpj' => 'document', 'cpf/cnpj' => 'document', 'cpf_cnpj' => 'document', 'documento' => 'document', 'document' => 'document',
-            // RG/IE
-            'rg' => 'rg_ie', 'ie' => 'rg_ie', 'inscricao_estadual' => 'rg_ie', 'inscricao estadual' => 'rg_ie', 'rg_ie' => 'rg_ie',
-            // IM
-            'im' => 'im', 'inscricao_municipal' => 'im', 'inscricao municipal' => 'im',
-            // E-mail
-            'email' => 'email', 'e-mail' => 'email', 'e_mail' => 'email',
-            'email_secundario' => 'email_secondary', 'email secundario' => 'email_secondary', 'email_secondary' => 'email_secondary',
-            // Telefones
-            'telefone' => 'phone', 'phone' => 'phone', 'fone' => 'phone', 'tel' => 'phone',
-            'celular' => 'cellphone', 'whatsapp' => 'cellphone', 'mobile' => 'cellphone', 'cellphone' => 'cellphone', 'cel' => 'cellphone',
-            'telefone_comercial' => 'phone_commercial', 'tel_comercial' => 'phone_commercial', 'phone_commercial' => 'phone_commercial',
-            // Web/Social
-            'website' => 'website', 'site' => 'website', 'url' => 'website',
-            'instagram' => 'instagram', 'insta' => 'instagram',
-            // Contato PJ
-            'nome_contato' => 'contact_name', 'contato' => 'contact_name', 'contact_name' => 'contact_name',
-            'cargo' => 'contact_role', 'funcao' => 'contact_role', 'contact_role' => 'contact_role',
-            // Endereço
-            'cep' => 'zipcode', 'zip' => 'zipcode', 'zipcode' => 'zipcode', 'zip_code' => 'zipcode',
-            'tipo_logradouro' => 'address_type', 'tipo logradouro' => 'address_type',
-            'logradouro' => 'address_street', 'endereco' => 'address_street', 'rua' => 'address_street', 'address' => 'address_street', 'address_street' => 'address_street',
-            'numero' => 'address_number', 'num' => 'address_number', 'nro' => 'address_number', 'address_number' => 'address_number',
-            'bairro' => 'address_neighborhood', 'neighborhood' => 'address_neighborhood', 'address_neighborhood' => 'address_neighborhood',
-            'complemento' => 'address_complement', 'complement' => 'address_complement', 'comp' => 'address_complement', 'address_complement' => 'address_complement',
-            'cidade' => 'address_city', 'city' => 'address_city', 'municipio' => 'address_city', 'address_city' => 'address_city',
-            'estado' => 'address_state', 'uf' => 'address_state', 'state' => 'address_state', 'address_state' => 'address_state',
-            // Data
-            'nascimento' => 'birth_date', 'fundacao' => 'birth_date', 'birth' => 'birth_date', 'birth_date' => 'birth_date', 'data_nascimento' => 'birth_date',
-            // Gênero
-            'genero' => 'gender', 'sexo' => 'gender', 'gender' => 'gender',
-            // Outros
-            'origem' => 'origin', 'canal' => 'origin', 'origin' => 'origin',
-            'tags' => 'tags', 'etiquetas' => 'tags', 'classificacao' => 'tags',
-            'obs' => 'observations', 'observacao' => 'observations', 'observacoes' => 'observations', 'notes' => 'observations', 'observations' => 'observations',
-            // Status
-            'status' => 'status', 'situacao' => 'status', 'ativo' => 'status',
-            // Dados comerciais
-            'prazo_pagamento' => 'payment_term', 'prazo' => 'payment_term', 'payment_term' => 'payment_term', 'condicao_pgto' => 'payment_term',
-            'limite_credito' => 'credit_limit', 'credito' => 'credit_limit', 'credit_limit' => 'credit_limit',
-            'desconto' => 'discount_default', 'desconto_padrao' => 'discount_default', 'discount' => 'discount_default', 'discount_default' => 'discount_default',
-            // Compatibilidade bilateral (Rec 7)
-            'codigo' => '_skip', 'cadastrado_em' => '_skip',
-        ];
-
-        $autoMapping = [];
-        foreach ($columns as $col) {
-            $normalized = mb_strtolower(trim($col));
-            $normalized = str_replace([' ', '-', 'ç', 'ã', 'á', 'é', 'ó', 'ú', 'ê', 'í'], ['_', '_', 'c', 'a', 'a', 'e', 'o', 'u', 'e', 'i'], $normalized);
-            if (isset($colMap[$normalized])) {
-                $autoMapping[$col] = $colMap[$normalized];
-            }
-            // Fallback: nome original direto
-            if (!isset($autoMapping[$col]) && isset($colMap[mb_strtolower(trim($col))])) {
-                $autoMapping[$col] = $colMap[mb_strtolower(trim($col))];
-            }
-        }
-
-        echo json_encode([
-            'success'      => true,
-            'columns'      => $columns,
-            'preview'      => $preview,
-            'total_rows'   => $totalRows,
-            'auto_mapping' => $autoMapping,
-        ]);
+        $result = $this->importService->parseFile($_FILES['import_file']);
+        echo json_encode($result);
         exit;
     }
 
@@ -1154,395 +950,16 @@ class CustomerController {
             exit;
         }
 
-        $mappedFields = array_values($mapping);
-        if (!in_array('name', $mappedFields)) {
-            echo json_encode(['success' => false, 'message' => 'O campo "Nome / Razão Social" é obrigatório no mapeamento.']);
-            exit;
-        }
-
-        // ── Modo de importação: create | update | create_or_update ──
         $importMode = Input::post('import_mode', 'string', 'create');
         if (!in_array($importMode, ['create', 'update', 'create_or_update'])) {
             $importMode = 'create';
         }
 
-        // Para modos update/create_or_update, precisa de campo documento mapeado
-        if (in_array($importMode, ['update', 'create_or_update']) && !in_array('document', $mappedFields)) {
-            echo json_encode(['success' => false, 'message' => 'Para modo de atualização, o campo "CPF/CNPJ" deve ser mapeado.']);
-            exit;
-        }
+        $userId = $_SESSION['user_id'] ?? 0;
+        $tenantId = $_SESSION['tenant_id'] ?? 0;
 
-        // ── Verificação de limite do plano ──
-        $maxCustomers = \TenantManager::getTenantLimit('max_customers');
-        $currentCustomers = (int) $this->customerModel->countAll();
-        $availableSlots = ($maxCustomers !== null) ? max(0, $maxCustomers - $currentCustomers) : PHP_INT_MAX;
-
-        if ($importMode === 'create' && $maxCustomers !== null && $availableSlots <= 0) {
-            echo json_encode(['success' => false, 'message' => 'Limite de clientes do plano atingido. Não é possível importar.']);
-            exit;
-        }
-
-        // Recuperar arquivo temporário
-        $tmpPath = $_SESSION['cust_import_tmp_file'] ?? null;
-        $ext = $_SESSION['cust_import_tmp_ext'] ?? 'csv';
-        if (!$tmpPath || !file_exists($tmpPath)) {
-            echo json_encode(['success' => false, 'message' => 'Arquivo temporário não encontrado. Faça o upload novamente.']);
-            exit;
-        }
-
-        // Ler arquivo
-        $rows = [];
-        if (in_array($ext, ['csv', 'txt'])) {
-            $rows = $this->parseCsvFile($tmpPath);
-        } else {
-            if (class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
-                $rows = $this->parseExcelFile($tmpPath);
-            } else {
-                $rows = $this->parseCsvFile($tmpPath);
-            }
-        }
-
-        if (empty($rows)) {
-            echo json_encode(['success' => false, 'message' => 'Arquivo vazio ou não foi possível reler os dados.']);
-            exit;
-        }
-
-        $totalRows = count($rows);
-
-        // ── Criar lote de importação (Rec 3 — rastreamento) ──
-        $batchId = $this->importBatchModel->create([
-            'tenant_id'   => $_SESSION['tenant_id'] ?? 0,
-            'entity_type' => 'customers',
-            'file_name'   => basename($tmpPath),
-            'total_rows'  => $totalRows,
-            'import_mode' => $importMode,
-            'mapping_json'=> json_encode($mapping),
-            'created_by'  => $_SESSION['user_id'] ?? null,
-        ]);
-
-        // ── Progresso via session (Rec 1) ──
-        $_SESSION['import_progress'] = [
-            'batch_id'  => $batchId,
-            'total'     => $totalRows,
-            'processed' => 0,
-            'imported'  => 0,
-            'updated'   => 0,
-            'skipped'   => 0,
-            'errors'    => 0,
-            'status'    => 'processing',
-        ];
-
-        $imported = 0;
-        $updated = 0;
-        $skipped = 0;
-        $errors = [];
-        $warnings = [];
-        $progressUpdateInterval = max(1, (int) floor($totalRows / 50)); // atualizar progresso a cada ~2%
-
-        foreach ($rows as $lineNum => $row) {
-            $lineDisplay = $lineNum + 2;
-
-            // ── Verificação de limite por registro (apenas modo create) ──
-            if ($importMode !== 'update' && $maxCustomers !== null && ($imported + $currentCustomers) >= $maxCustomers) {
-                $remaining = $totalRows - $lineNum;
-                $errors[] = ['line' => $lineDisplay, 'message' => "Limite do plano atingido. {$remaining} registro(s) restante(s) não importado(s)."];
-                $skipped += $remaining;
-                break;
-            }
-
-            // Aplicar mapeamento
-            $mapped = [];
-            foreach ($mapping as $fileCol => $sysField) {
-                if (!empty($sysField) && $sysField !== '_skip' && isset($row[$fileCol])) {
-                    $mapped[$sysField] = trim($row[$fileCol]);
-                }
-            }
-
-            // Validar obrigatórios
-            if (empty($mapped['name'])) {
-                $errors[] = ['line' => $lineDisplay, 'message' => 'Nome do cliente é obrigatório.'];
-                $skipped++;
-                continue;
-            }
-
-            // ══════════════════════════════════════════
-            // NORMALIZAÇÃO INTELIGENTE DE DADOS
-            // ══════════════════════════════════════════
-
-            // ── 1. Detecção automática CPF/CNPJ → person_type ──
-            if (!empty($mapped['document'])) {
-                $docDigits = preg_replace('/\D/', '', $mapped['document']);
-
-                // ── 0. Recuperar zeros à esquerda perdidos pelo CSV/Excel ──
-                $docLen = strlen($docDigits);
-                if ($docLen > 0 && $docLen < 11) {
-                    // Tentar CPF (pad 11), senão tentar CNPJ (pad 14)
-                    $paddedCpf = str_pad($docDigits, 11, '0', STR_PAD_LEFT);
-                    if (Validator::isValidCpf($paddedCpf)) {
-                        $docDigits = $paddedCpf;
-                        $mapped['document'] = $paddedCpf;
-                    } else {
-                        $paddedCnpj = str_pad($docDigits, 14, '0', STR_PAD_LEFT);
-                        if (Validator::isValidCnpj($paddedCnpj)) {
-                            $docDigits = $paddedCnpj;
-                            $mapped['document'] = $paddedCnpj;
-                        }
-                    }
-                } elseif ($docLen > 11 && $docLen < 14) {
-                    // Pode ser CNPJ sem zeros à esquerda — tentar preencher para 14
-                    $padded = str_pad($docDigits, 14, '0', STR_PAD_LEFT);
-                    if (Validator::isValidCnpj($padded)) {
-                        $docDigits = $padded;
-                        $mapped['document'] = $padded;
-                    }
-                }
-
-                if (empty($mapped['person_type'])) {
-                    if (strlen($docDigits) === 14) {
-                        $mapped['person_type'] = 'PJ';
-                    } elseif (strlen($docDigits) === 11) {
-                        $mapped['person_type'] = 'PF';
-                    } elseif (strlen($docDigits) > 11) {
-                        $mapped['person_type'] = 'PJ';
-                    } else {
-                        $mapped['person_type'] = 'PF';
-                    }
-                }
-
-                // ── 2. Validação de CPF/CNPJ (warning, não bloqueia) ──
-                $personType = strtoupper(trim($mapped['person_type'] ?? 'PF'));
-                if ($personType === 'PJ') {
-                    if (strlen($docDigits) === 14 && !Validator::isValidCnpj($docDigits)) {
-                        $warnings[] = ['line' => $lineDisplay, 'message' => 'CNPJ "' . $mapped['document'] . '" possui dígitos verificadores inválidos.'];
-                    } elseif (strlen($docDigits) !== 14 && strlen($docDigits) > 0) {
-                        $warnings[] = ['line' => $lineDisplay, 'message' => 'Documento "' . $mapped['document'] . '" não possui 14 dígitos para CNPJ.'];
-                    }
-                } else {
-                    if (strlen($docDigits) === 11 && !Validator::isValidCpf($docDigits)) {
-                        $warnings[] = ['line' => $lineDisplay, 'message' => 'CPF "' . $mapped['document'] . '" possui dígitos verificadores inválidos.'];
-                    } elseif (strlen($docDigits) !== 11 && strlen($docDigits) > 0) {
-                        $warnings[] = ['line' => $lineDisplay, 'message' => 'Documento "' . $mapped['document'] . '" não possui 11 dígitos para CPF.'];
-                    }
-                }
-
-                // ── 3. Detecção de duplicados (comportamento depende do modo) ──
-                if (strlen($docDigits) > 0) {
-                    $existing = $this->customerModel->findByDocument($docDigits);
-                    if ($existing) {
-                        if ($importMode === 'create') {
-                            $warnings[] = ['line' => $lineDisplay, 'message' => 'Documento já cadastrado — Cliente: "' . $existing['name'] . '" (Cód: ' . ($existing['code'] ?? 'N/A') . '). Registro importado mesmo assim.'];
-                        }
-                        // Para update/create_or_update, a existência é tratada no bloco de persistência abaixo
-                    }
-                }
-            }
-
-            // ── 4. Normalização de person_type ──
-            if (!empty($mapped['person_type'])) {
-                $pt = strtoupper(trim($mapped['person_type']));
-                $ptMap = [
-                    'PF' => 'PF', 'FISICA' => 'PF', 'FÍSICA' => 'PF', 'PESSOA FISICA' => 'PF', 'PESSOA FÍSICA' => 'PF', 'F' => 'PF', 'CPF' => 'PF',
-                    'PJ' => 'PJ', 'JURIDICA' => 'PJ', 'JURÍDICA' => 'PJ', 'PESSOA JURIDICA' => 'PJ', 'PESSOA JURÍDICA' => 'PJ', 'J' => 'PJ', 'CNPJ' => 'PJ',
-                ];
-                $mapped['person_type'] = $ptMap[$pt] ?? 'PF';
-            }
-
-            // ── 5. Normalização de data (birth_date) ──
-            if (!empty($mapped['birth_date'])) {
-                $mapped['birth_date'] = $this->normalizeDateForImport($mapped['birth_date']);
-            }
-
-            // ── 6. Normalização de gênero ──
-            if (!empty($mapped['gender'])) {
-                $g = strtoupper(trim($mapped['gender']));
-                $gMap = [
-                    'M' => 'M', 'MASCULINO' => 'M', 'MASC' => 'M', 'MALE' => 'M', 'H' => 'M', 'HOMEM' => 'M',
-                    'F' => 'F', 'FEMININO' => 'F', 'FEM' => 'F', 'FEMALE' => 'F', 'MULHER' => 'F',
-                    'O' => 'O', 'OUTRO' => 'O', 'OTHER' => 'O', 'NB' => 'O', 'NAO BINARIO' => 'O', 'NÃO BINÁRIO' => 'O',
-                ];
-                $mapped['gender'] = $gMap[$g] ?? null;
-            }
-
-            // ── 7. Normalização de UF ──
-            if (!empty($mapped['address_state'])) {
-                $mapped['address_state'] = $this->normalizeUfForImport($mapped['address_state']);
-            }
-
-            // ── 8. Validação de e-mail ──
-            if (!empty($mapped['email']) && !filter_var($mapped['email'], FILTER_VALIDATE_EMAIL)) {
-                $warnings[] = ['line' => $lineDisplay, 'message' => 'E-mail "' . $mapped['email'] . '" possui formato inválido.'];
-            }
-            if (!empty($mapped['email'])) {
-                $mapped['email'] = strtolower(trim($mapped['email']));
-            }
-            if (!empty($mapped['email_secondary'])) {
-                $mapped['email_secondary'] = strtolower(trim($mapped['email_secondary']));
-                if (!filter_var($mapped['email_secondary'], FILTER_VALIDATE_EMAIL)) {
-                    $warnings[] = ['line' => $lineDisplay, 'message' => 'E-mail secundário "' . $mapped['email_secondary'] . '" possui formato inválido.'];
-                }
-            }
-
-            // ── 9. Normalização de status ──
-            if (!empty($mapped['status'])) {
-                $st = strtolower(trim($mapped['status']));
-                $stMap = [
-                    'ativo' => 'active', 'active' => 'active', 'a' => 'active', '1' => 'active', 'sim' => 'active', 'yes' => 'active',
-                    'inativo' => 'inactive', 'inactive' => 'inactive', 'i' => 'inactive', '0' => 'inactive', 'nao' => 'inactive', 'não' => 'inactive', 'no' => 'inactive',
-                    'bloqueado' => 'blocked', 'blocked' => 'blocked', 'b' => 'blocked',
-                ];
-                $mapped['status'] = $stMap[$st] ?? 'active';
-            }
-
-            // ── 10. Preencher created_by com usuário logado ──
-            $mapped['created_by'] = $_SESSION['user_id'] ?? null;
-
-            // ── 11. Sanitização de telefones (remover caracteres não numéricos exceto +) ──
-            foreach (['phone', 'cellphone', 'phone_commercial'] as $phoneField) {
-                if (!empty($mapped[$phoneField])) {
-                    $mapped[$phoneField] = preg_replace('/[^\d+() -]/', '', $mapped[$phoneField]);
-                }
-            }
-
-            // ── 12. Normalização de CEP ──
-            if (!empty($mapped['zipcode'])) {
-                $mapped['zipcode'] = preg_replace('/\D/', '', $mapped['zipcode']);
-                if (strlen($mapped['zipcode']) === 8) {
-                    $mapped['zipcode'] = substr($mapped['zipcode'], 0, 5) . '-' . substr($mapped['zipcode'], 5, 3);
-                }
-            }
-
-            // ── 13. Normalização de valores monetários ──
-            if (!empty($mapped['credit_limit'])) {
-                $mapped['credit_limit'] = str_replace(['R$', ' ', '.'], ['', '', ''], $mapped['credit_limit']);
-                $mapped['credit_limit'] = str_replace(',', '.', $mapped['credit_limit']);
-            }
-            if (!empty($mapped['discount_default'])) {
-                $mapped['discount_default'] = str_replace(['%', ' '], '', $mapped['discount_default']);
-                $mapped['discount_default'] = str_replace(',', '.', $mapped['discount_default']);
-            }
-
-            // ══════════════════════════════════════════
-            // PERSISTÊNCIA — com suporte a modo create/update/merge
-            // ══════════════════════════════════════════
-
-            try {
-                $existingCustomer = null;
-                if (!empty($mapped['document'])) {
-                    $docDigits = preg_replace('/\D/', '', $mapped['document']);
-                    if (strlen($docDigits) > 0) {
-                        $existingCustomer = $this->customerModel->findByDocument($docDigits);
-                    }
-                }
-
-                if ($importMode === 'update') {
-                    // Apenas atualizar existentes, ignorar novos
-                    if ($existingCustomer) {
-                        $mapped['id'] = $existingCustomer['id'];
-                        $result = $this->customerModel->updateFromImport($mapped);
-                        if ($result) {
-                            $updated++;
-                            $this->importBatchModel->addItem($batchId, $existingCustomer['id'], 'updated', json_encode($row), $lineDisplay);
-                            $this->logger->log('IMPORT_CUSTOMER_UPDATE', "Cliente atualizado ID: {$existingCustomer['id']} Nome: {$mapped['name']}");
-                        } else {
-                            $errors[] = ['line' => $lineDisplay, 'message' => 'Erro ao atualizar "' . $mapped['name'] . '" no banco de dados.'];
-                        }
-                    } else {
-                        $skipped++;
-                        $warnings[] = ['line' => $lineDisplay, 'message' => 'Cliente com documento "' . ($mapped['document'] ?? 'N/A') . '" não encontrado para atualização. Ignorado.'];
-                    }
-                } elseif ($importMode === 'create_or_update') {
-                    // Atualizar se existir, criar se não existir
-                    if ($existingCustomer) {
-                        $mapped['id'] = $existingCustomer['id'];
-                        $result = $this->customerModel->updateFromImport($mapped);
-                        if ($result) {
-                            $updated++;
-                            $this->importBatchModel->addItem($batchId, $existingCustomer['id'], 'updated', json_encode($row), $lineDisplay);
-                            $this->logger->log('IMPORT_CUSTOMER_UPDATE', "Cliente atualizado ID: {$existingCustomer['id']} Nome: {$mapped['name']}");
-                        } else {
-                            $errors[] = ['line' => $lineDisplay, 'message' => 'Erro ao atualizar "' . $mapped['name'] . '" no banco de dados.'];
-                        }
-                    } else {
-                        $mapped['import_batch_id'] = $batchId;
-                        $customerId = $this->customerModel->importFromMapped($mapped);
-                        if ($customerId) {
-                            $imported++;
-                            $this->importBatchModel->addItem($batchId, $customerId, 'created', json_encode($row), $lineDisplay);
-                            $this->logger->log('IMPORT_CUSTOMER', "Cliente importado ID: {$customerId} Nome: {$mapped['name']}");
-                        } else {
-                            $errors[] = ['line' => $lineDisplay, 'message' => 'Erro ao salvar "' . $mapped['name'] . '" no banco de dados.'];
-                        }
-                    }
-                } else {
-                    // Modo padrão: create
-                    $mapped['import_batch_id'] = $batchId;
-                    $customerId = $this->customerModel->importFromMapped($mapped);
-                    if ($customerId) {
-                        $imported++;
-                        $this->importBatchModel->addItem($batchId, $customerId, 'created', json_encode($row), $lineDisplay);
-                        $this->logger->log('IMPORT_CUSTOMER', "Cliente importado ID: {$customerId} Nome: {$mapped['name']}");
-                    } else {
-                        $errors[] = ['line' => $lineDisplay, 'message' => 'Erro ao salvar "' . $mapped['name'] . '" no banco de dados.'];
-                    }
-                }
-            } catch (\Exception $e) {
-                $errors[] = ['line' => $lineDisplay, 'message' => 'Erro: ' . $e->getMessage()];
-            }
-
-            // ── Atualizar progresso na session (Rec 1) ──
-            if (($lineNum + 1) % $progressUpdateInterval === 0 || ($lineNum + 1) === $totalRows) {
-                $_SESSION['import_progress'] = [
-                    'batch_id'  => $batchId,
-                    'total'     => $totalRows,
-                    'processed' => $lineNum + 1,
-                    'imported'  => $imported,
-                    'updated'   => $updated,
-                    'skipped'   => $skipped,
-                    'errors'    => count($errors),
-                    'status'    => 'processing',
-                ];
-                // Atualizar progresso no banco
-                $this->importBatchModel->updateProgress($batchId, $lineNum + 1, $imported, $skipped, count($errors), count($warnings));
-            }
-        }
-
-        // ── Finalizar lote ──
-        $batchStatus = count($errors) > 0 ? 'completed_with_errors' : 'completed';
-        $this->importBatchModel->finalize($batchId, $batchStatus, $imported, $updated, $skipped, json_encode($errors), json_encode($warnings));
-
-        // Limpar arquivo temporário
-        if (file_exists($tmpPath)) {
-            unlink($tmpPath);
-        }
-        unset($_SESSION['cust_import_tmp_file'], $_SESSION['cust_import_tmp_ext']);
-
-        // Atualizar progresso final
-        $_SESSION['import_progress'] = [
-            'batch_id'  => $batchId,
-            'total'     => $totalRows,
-            'processed' => $totalRows,
-            'imported'  => $imported,
-            'updated'   => $updated,
-            'skipped'   => $skipped,
-            'errors'    => count($errors),
-            'status'    => 'completed',
-        ];
-
-        // Log de auditoria
-        $userName = $_SESSION['user_name'] ?? 'Sistema';
-        $modeLabel = ['create' => 'criação', 'update' => 'atualização', 'create_or_update' => 'criação/atualização'][$importMode] ?? 'criação';
-        $this->logger->log('CUSTOMER_IMPORT', "Importação ({$modeLabel}) de {$imported} cliente(s) criado(s), {$updated} atualizado(s), {$skipped} ignorado(s) por {$userName}");
-
-        echo json_encode([
-            'success'  => true,
-            'imported' => $imported,
-            'updated'  => $updated,
-            'skipped'  => $skipped,
-            'errors'   => $errors,
-            'warnings' => $warnings,
-            'batch_id' => $batchId,
-            'mode'     => $importMode,
-        ]);
+        $result = $this->importService->executeImport($mapping, $importMode, $userId, $tenantId);
+        echo json_encode($result);
         exit;
     }
 
@@ -1815,43 +1232,12 @@ class CustomerController {
     //  Download modelo de importação CSV
     // ═══════════════════════════════════════════════
 
+    /**
+     * Download modelo de importação CSV.
+     * Delegado ao CustomerImportService.
+     */
     public function downloadImportTemplate() {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="modelo_importacao_clientes.csv"');
-
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM UTF-8
-
-        fputcsv($output, [
-            'nome', 'tipo_pessoa', 'nome_fantasia', 'cpf_cnpj', 'rg_ie', 'im',
-            'data_nascimento', 'genero', 'email', 'email_secundario',
-            'telefone', 'celular', 'telefone_comercial', 'website', 'instagram',
-            'nome_contato', 'cargo_contato',
-            'cep', 'logradouro', 'tipo_logradouro', 'nome_logradouro', 'numero', 'bairro', 'complemento',
-            'cidade', 'uf', 'origem', 'tags', 'observacoes',
-            'status', 'prazo_pagamento', 'limite_credito', 'desconto_padrao'
-        ], ';');
-        fputcsv($output, [
-            'Maria Silva', 'PF', '', '529.982.247-25', '12.345.678-9', '',
-            '15/03/1990', 'F', 'maria@email.com', '',
-            '(11) 3333-4444', '(11) 99999-0000', '', 'https://maria.com.br', 'mariasilva',
-            '', '',
-            '01001-000', 'Praça da Sé', 'Praça', 'da Sé', '100', 'Sé', 'Sala 5',
-            'São Paulo', 'SP', 'Site', 'VIP,Varejo', 'Cliente desde 2020',
-            'active', '30 dias', '5000.00', '5'
-        ], ';');
-        fputcsv($output, [
-            'Empresa ABC Ltda', 'PJ', 'ABC', '11.222.333/0001-81', '123.456.789.001', '12345',
-            '10/01/2005', '', 'contato@abc.com.br', 'financeiro@abc.com.br',
-            '(21) 3333-4444', '(21) 98888-7777', '(21) 3333-5555', 'https://abc.com.br', 'empresa_abc',
-            'João Gerente', 'Gerente de Compras',
-            '20040-020', 'Av. Brasil', 'Avenida', 'Brasil', '500', 'Centro', '',
-            'Rio de Janeiro', 'RJ', 'Indicação', 'Atacado,Indústria', '',
-            'active', '60 dias', '25000.00', '10'
-        ], ';');
-
-        fclose($output);
-        exit;
+        $this->importService->generateTemplate();
     }
 
     // ═══════════════════════════════════════════════
@@ -2140,16 +1526,8 @@ class CustomerController {
      */
     private function getRecentOrders(int $customerId, int $limit = 5): array
     {
-        $query = "SELECT o.id, o.total_amount, o.status, o.created_at
-                  FROM orders o
-                  WHERE o.customer_id = :cid
-                  ORDER BY o.created_at DESC
-                  LIMIT :lim";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindValue(':cid', $customerId, PDO::PARAM_INT);
-        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $historyService = new CustomerOrderHistoryService($this->db);
+        return $historyService->getRecentOrders($customerId, $limit);
     }
 
     /**
@@ -2208,190 +1586,22 @@ class CustomerController {
     }
 
     // ═══════════════════════════════════════════════
-    //  Helpers de parse CSV / Excel
+    //  Helpers de parse CSV / Excel — delegados ao CustomerImportService
     // ═══════════════════════════════════════════════
 
     private function parseCsvFile($filePath) {
-        $rows = [];
-        $handle = fopen($filePath, 'r');
-        if (!$handle) return $rows;
-
-        // Detect BOM
-        $bom = fread($handle, 3);
-        if ($bom !== chr(0xEF) . chr(0xBB) . chr(0xBF)) {
-            rewind($handle);
-        }
-
-        // Detect separator
-        $firstLine = fgets($handle);
-        rewind($handle);
-        $bom = fread($handle, 3);
-        if ($bom !== chr(0xEF) . chr(0xBB) . chr(0xBF)) {
-            rewind($handle);
-        }
-
-        $separator = (substr_count($firstLine, ';') >= substr_count($firstLine, ',')) ? ';' : ',';
-
-        $header = fgetcsv($handle, 0, $separator);
-        if (!$header) {
-            fclose($handle);
-            return $rows;
-        }
-
-        // Normalize header keys
-        $header = array_map(function ($h) {
-            return trim(mb_strtolower($h));
-        }, $header);
-
-        while (($line = fgetcsv($handle, 0, $separator)) !== false) {
-            $lineCount = count($line);
-            $headerCount = count($header);
-            if ($lineCount === $headerCount) {
-                $rows[] = array_combine($header, $line);
-            } elseif ($lineCount < $headerCount) {
-                // Linha com menos colunas: preencher com vazio
-                $line = array_pad($line, $headerCount, '');
-                $rows[] = array_combine($header, $line);
-            } elseif ($lineCount > $headerCount) {
-                // Linha com mais colunas: truncar excedente
-                $rows[] = array_combine($header, array_slice($line, 0, $headerCount));
-            }
-        }
-
-        fclose($handle);
-        return $rows;
+        return $this->importService->parseCsvFile($filePath);
     }
 
-    /**
-     * Faz parse de arquivo Excel (.xlsx) e retorna array de linhas.
-     *
-     * @param string $filePath Caminho do arquivo
-     * @return array Linhas parseadas como arrays associativos
-     */
     private function parseExcelFile($filePath) {
-        $rows = [];
-
-        // Se PhpSpreadsheet estiver disponível
-        if (class_exists('\\PhpOffice\\PhpSpreadsheet\\IOFactory')) {
-            try {
-                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
-                $worksheet = $spreadsheet->getActiveSheet();
-                $data = $worksheet->toArray();
-
-                if (empty($data)) return $rows;
-
-                $header = array_map(function ($h) {
-                    return trim(mb_strtolower($h ?? ''));
-                }, array_shift($data));
-
-                foreach ($data as $line) {
-                    $lineCount = count($line);
-                    $headerCount = count($header);
-                    if ($lineCount === $headerCount) {
-                        $rows[] = array_combine($header, $line);
-                    } elseif ($lineCount < $headerCount) {
-                        $line = array_pad($line, $headerCount, '');
-                        $rows[] = array_combine($header, $line);
-                    } elseif ($lineCount > $headerCount) {
-                        $rows[] = array_combine($header, array_slice($line, 0, $headerCount));
-                    }
-                }
-            } catch (\Exception $e) {
-                // Falha ao ler o Excel, retorna vazio
-            }
-        }
-
-        return $rows;
+        return $this->importService->parseExcelFile($filePath);
     }
 
-    // ═══════════════════════════════════════════════
-    //  IMPORTAÇÃO: Helpers de normalização
-    // ═══════════════════════════════════════════════
-
-    /**
-     * Normaliza uma data para o formato Y-m-d aceito pelo banco.
-     * Aceita: dd/mm/yyyy, dd-mm-yyyy, dd.mm.yyyy, yyyy-mm-dd, yyyy/mm/dd, mm/dd/yyyy
-     *
-     * @param string $dateStr Data em formato variável
-     * @return string|null Data normalizada (Y-m-d) ou null se inválida
-     */
-    private function normalizeDateForImport(string $dateStr): ?string
-    {
-        $dateStr = trim($dateStr);
-        if ($dateStr === '' || $dateStr === '0') return null;
-
-        // Já está no formato correto Y-m-d
-        $dt = \DateTime::createFromFormat('Y-m-d', $dateStr);
-        if ($dt && $dt->format('Y-m-d') === $dateStr) {
-            return $dateStr;
-        }
-
-        // dd/mm/yyyy ou dd-mm-yyyy ou dd.mm.yyyy
-        $formats = ['d/m/Y', 'd-m-Y', 'd.m.Y', 'm/d/Y', 'Y/m/d', 'd/m/y', 'd-m-y'];
-        foreach ($formats as $fmt) {
-            $dt = \DateTime::createFromFormat($fmt, $dateStr);
-            if ($dt) {
-                // Validar se a data faz sentido (ex: dia não pode ser >31)
-                $year = (int) $dt->format('Y');
-                if ($year > 1900 && $year <= (int) date('Y')) {
-                    return $dt->format('Y-m-d');
-                }
-            }
-        }
-
-        // Tentar parse genérico
-        try {
-            $ts = strtotime($dateStr);
-            if ($ts !== false && $ts > strtotime('1900-01-01') && $ts <= time()) {
-                return date('Y-m-d', $ts);
-            }
-        } catch (\Exception $e) {
-            // Ignorar
-        }
-
-        return null;
+    private function normalizeDateForImport(string $dateStr): ?string {
+        return $this->importService->normalizeDateForImport($dateStr);
     }
 
-    /**
-     * Normaliza o nome de um estado brasileiro para a sigla UF de 2 letras.
-     *
-     * @param string $state Nome ou sigla do estado
-     * @return string Sigla UF normalizada ou valor original se não encontrado
-     */
-    private function normalizeUfForImport(string $state): string
-    {
-        $state = trim($state);
-        if ($state === '') return '';
-
-        // Já é UF de 2 letras
-        $upper = strtoupper($state);
-        $validUfs = [
-            'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA',
-            'MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN',
-            'RS','RO','RR','SC','SP','SE','TO'
-        ];
-        if (in_array($upper, $validUfs)) {
-            return $upper;
-        }
-
-        // Mapa de nomes → UF
-        $map = [
-            'acre' => 'AC', 'alagoas' => 'AL', 'amapa' => 'AP', 'amapá' => 'AP',
-            'amazonas' => 'AM', 'bahia' => 'BA', 'ceara' => 'CE', 'ceará' => 'CE',
-            'distrito federal' => 'DF', 'espirito santo' => 'ES', 'espírito santo' => 'ES',
-            'goias' => 'GO', 'goiás' => 'GO', 'maranhao' => 'MA', 'maranhão' => 'MA',
-            'mato grosso' => 'MT', 'mato grosso do sul' => 'MS',
-            'minas gerais' => 'MG', 'minas' => 'MG',
-            'para' => 'PA', 'pará' => 'PA', 'paraiba' => 'PB', 'paraíba' => 'PB',
-            'parana' => 'PR', 'paraná' => 'PR',
-            'pernambuco' => 'PE', 'piaui' => 'PI', 'piauí' => 'PI',
-            'rio de janeiro' => 'RJ', 'rio grande do norte' => 'RN', 'rio grande do sul' => 'RS',
-            'rondonia' => 'RO', 'rondônia' => 'RO', 'roraima' => 'RR',
-            'santa catarina' => 'SC', 'sao paulo' => 'SP', 'são paulo' => 'SP',
-            'sergipe' => 'SE', 'tocantins' => 'TO',
-        ];
-
-        $normalized = mb_strtolower($state, 'UTF-8');
-        return $map[$normalized] ?? $upper;
+    private function normalizeUfForImport(string $state): string {
+        return $this->importService->normalizeUfForImport($state);
     }
 }

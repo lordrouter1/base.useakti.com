@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         verbose="true"
+         stopOnFailure="false"
+         failOnWarning="true">
+
+    <testsuites>
+        <!-- Suíte principal: testa todas as rotas do sistema -->
+        <testsuite name="Pages">
+            <directory>tests/Pages</directory>
+        </testsuite>
+
+        <!-- Suíte unitária: testa componentes internos (EventDispatcher, etc.) -->
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+
+        <!-- Suíte de segurança: testa proteções CSRF, XSS, etc. -->
+        <testsuite name="Security">
+            <directory>tests/Security</directory>
+        </testsuite>
+
+        <!-- Suíte de integração: testa fluxos completos -->
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+    </testsuites>
+
+    <php>
+        <!-- URL base do sistema (alterar conforme ambiente) -->
+        <env name="AKTI_TEST_BASE_URL" value="http://localhost/teste.akti.com" />
+
+        <!-- Credenciais de login para testes autenticados -->
+        <!-- COPIE este arquivo como phpunit.xml e preencha com credenciais do ambiente -->
+        <env name="AKTI_TEST_USER_EMAIL" value="SEU_EMAIL_AQUI" />
+        <env name="AKTI_TEST_USER_PASSWORD" value="SUA_SENHA_AQUI" />
+
+        <!-- Timeout em segundos para requisições HTTP -->
+        <env name="AKTI_TEST_TIMEOUT" value="30" />
+    </php>
+
+</phpunit>

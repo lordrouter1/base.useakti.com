@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" fill="none">
+  <rect x="35" y="25" width="50" height="70" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="75" y="35" width="50" height="70" rx="6" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="115" y="45" width="50" height="70" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="45" y="40" width="30" height="4" rx="2" fill="#94a3b8"/>
+  <rect x="45" y="50" width="20" height="4" rx="2" fill="#cbd5e1"/>
+  <rect x="85" y="50" width="30" height="4" rx="2" fill="#94a3b8"/>
+  <rect x="85" y="60" width="20" height="4" rx="2" fill="#cbd5e1"/>
+  <rect x="125" y="60" width="30" height="4" rx="2" fill="#94a3b8"/>
+  <rect x="125" y="70" width="20" height="4" rx="2" fill="#cbd5e1"/>
+  <circle cx="55" cy="75" r="8" fill="#bfdbfe" stroke="#60a5fa" stroke-width="1"/>
+  <circle cx="95" cy="85" r="8" fill="#fde68a" stroke="#f59e0b" stroke-width="1"/>
+  <circle cx="135" cy="95" r="8" fill="#bbf7d0" stroke="#22c55e" stroke-width="1"/>
+  <text x="100" y="145" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="sans-serif">Nenhum item no estoque</text>
+</svg>

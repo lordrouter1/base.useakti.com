@@ -81,7 +81,7 @@ $isAjax = $isAjax ?? false;
     <!-- ═══ KPIs Principais — Mês Atual ═══ -->
     <div class="row g-3 mb-4">
         <div class="col-md-2 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+            <div class="card border-0 shadow-sm h-100 kpi-blue">
                 <div class="card-body text-center py-3">
                     <div class="text-primary mb-1"><i class="fas fa-file-invoice fa-2x"></i></div>
                     <h3 class="mb-0"><?= (int)($kpisMonth['total_emitidas'] ?? 0) ?></h3>
@@ -90,7 +90,7 @@ $isAjax = $isAjax ?? false;
             </div>
         </div>
         <div class="col-md-2 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);">
+            <div class="card border-0 shadow-sm h-100 kpi-green">
                 <div class="card-body text-center py-3">
                     <div class="text-success mb-1"><i class="fas fa-check-circle fa-2x"></i></div>
                     <h3 class="mb-0"><?= (int)($kpisMonth['autorizadas'] ?? 0) ?></h3>
@@ -99,7 +99,7 @@ $isAjax = $isAjax ?? false;
             </div>
         </div>
         <div class="col-md-2 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);">
+            <div class="card border-0 shadow-sm h-100 kpi-orange">
                 <div class="card-body text-center py-3">
                     <div class="text-warning mb-1"><i class="fas fa-coins fa-2x"></i></div>
                     <h3 class="mb-0 fs-5">R$ <?= number_format((float)($kpisMonth['valor_autorizado'] ?? 0), 0, ',', '.') ?></h3>
@@ -108,7 +108,7 @@ $isAjax = $isAjax ?? false;
             </div>
         </div>
         <div class="col-md-2 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%);">
+            <div class="card border-0 shadow-sm h-100 kpi-red">
                 <div class="card-body text-center py-3">
                     <div class="text-danger mb-1"><i class="fas fa-times-circle fa-2x"></i></div>
                     <h3 class="mb-0"><?= (int)($kpisMonth['rejeitadas'] ?? 0) + (int)($kpisMonth['canceladas'] ?? 0) ?></h3>
@@ -117,16 +117,16 @@ $isAjax = $isAjax ?? false;
             </div>
         </div>
         <div class="col-md-2 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);">
+            <div class="card border-0 shadow-sm h-100 kpi-purple">
                 <div class="card-body text-center py-3">
-                    <div class="text-purple mb-1" style="color: #7b1fa2;"><i class="fas fa-calculator fa-2x"></i></div>
+                    <div class="text-grape mb-1"><i class="fas fa-calculator fa-2x"></i></div>
                     <h3 class="mb-0 fs-5">R$ <?= number_format((float)($kpisMonth['ticket_medio'] ?? 0), 0, ',', '.') ?></h3>
                     <small class="text-muted" style="font-size: 0.7rem;">Ticket Médio</small>
                 </div>
             </div>
         </div>
         <div class="col-md-2 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, <?= $taxaRejeicao >= 10 ? '#fce4ec' : '#e8f5e9' ?> 0%, <?= $taxaRejeicao >= 10 ? '#f8bbd0' : '#c8e6c9' ?> 100%);">
+            <div class="card border-0 shadow-sm h-100 <?= $taxaRejeicao >= 10 ? 'kpi-red' : 'kpi-green' ?>">
                 <div class="card-body text-center py-3">
                     <div class="<?= $taxaRejeicao >= 10 ? 'text-danger' : 'text-success' ?> mb-1"><i class="fas fa-chart-pie fa-2x"></i></div>
                     <h3 class="mb-0"><?= $taxaRejeicao ?>%</h3>

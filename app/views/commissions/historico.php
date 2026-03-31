@@ -32,8 +32,8 @@ $statusMap = [
 
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(192,57,43,.1);">
-                        <i class="fas fa-check-double" style="color:#c0392b;font-size:.85rem;"></i>
+                    <div class="icon-circle icon-circle-crimson me-2">
+                        <i class="fas fa-check-double text-crimson" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Aprovação de Comissões</h5>

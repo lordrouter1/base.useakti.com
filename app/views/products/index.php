@@ -17,54 +17,9 @@ $validSections = ['overview', 'create', 'import'];
 if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
 ?>
 
-<!-- ══════ Flash messages ══════ -->
-<?php if (!empty($_SESSION['flash_error'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'error',title:'Erro',html:'<?= addslashes($_SESSION['flash_error']) ?>',confirmButtonColor:'#3498db'}));</script>
-<?php unset($_SESSION['flash_error']); endif; ?>
-<?php if (!empty($_SESSION['flash_success'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2500,timerProgressBar:true}).fire({icon:'success',title:'<?= addslashes($_SESSION['flash_success']) ?>'}));</script>
-<?php unset($_SESSION['flash_success']); endif; ?>
+<?php require 'app/views/components/flash-messages.php'; ?>
 
-<style>
-    /* ── Sidebar nav ── */
-    .prd-sidebar .prd-nav-item{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;border-radius:10px;text-decoration:none;color:#555;font-size:.82rem;font-weight:500;transition:all .15s ease;margin-bottom:2px;border:1px solid transparent;cursor:pointer}
-    .prd-sidebar .prd-nav-item:hover{background:#f1f5f9;color:#333}
-    .prd-sidebar .prd-nav-item.active{background:var(--bs-primary,#3498db);color:#fff;box-shadow:0 2px 8px rgba(52,152,219,.3)}
-    .prd-sidebar .prd-nav-item.active .prd-nav-icon{background:rgba(255,255,255,.2) !important;color:#fff !important}
-    .prd-sidebar .prd-nav-item.active .prd-nav-count{background:rgba(255,255,255,.25) !important;color:#fff !important}
-    .prd-nav-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:all .15s ease}
-    .prd-nav-count{font-size:.65rem;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:auto}
-    .prd-sidebar-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;padding:0 1rem;margin-bottom:.3rem;margin-top:.6rem}
-    .prd-sidebar-divider{height:1px;background:#e9ecef;margin:.5rem 1rem}
-
-    /* ── Section transition ── */
-    .prd-section{display:none;animation:prdFadeIn .25s ease}
-    .prd-section.active{display:block}
-    @keyframes prdFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-    /* ── Import styles ── */
-    .import-dropzone{border:2px dashed #ccc;border-radius:12px;padding:2rem;text-align:center;transition:all .2s ease;cursor:pointer;background:#fafbfc}
-    .import-dropzone:hover,.import-dropzone.dragover{border-color:#3498db;background:rgba(52,152,219,.05)}
-    .import-dropzone.has-file{border-color:#27ae60;background:rgba(39,174,96,.05)}
-
-    .mapping-select{font-size:.78rem;padding:.25rem .5rem}
-
-    .preview-table{font-size:.72rem;max-height:300px;overflow:auto}
-    .preview-table th{position:sticky;top:0;z-index:2;background:#e9ecef}
-    .preview-table td{white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
-
-    .import-step{display:none}
-    .import-step.active{display:block}
-
-    /* ── Mobile sidebar ── */
-    @media(max-width:991.98px){
-        .prd-sidebar-col{margin-bottom:1rem}
-        .prd-sidebar{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:thin}
-        .prd-sidebar .prd-nav-item{white-space:nowrap;flex-shrink:0;padding:.5rem .85rem;font-size:.75rem}
-        .prd-sidebar-label{display:none}
-        .prd-sidebar-divider{display:none}
-    }
-</style>
+<!-- Styles loaded from assets/css/modules/products.css via header.php -->
 
 <div class="container-fluid py-3">
 
@@ -99,24 +54,24 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                         <div class="prd-sidebar-label">Produtos</div>
 
                         <a href="#" class="prd-nav-item <?= $activeSection === 'overview' ? 'active' : '' ?>" data-section="overview">
-                            <span class="prd-nav-icon" style="background:rgba(52,152,219,.1);color:#3498db;">
+                            <span class="prd-nav-icon nav-icon-blue">
                                 <i class="fas fa-boxes-stacked"></i>
                             </span>
                             <span>Visão Geral</span>
-                            <span class="prd-nav-count" style="background:rgba(52,152,219,.1);color:#3498db;"><?= $totalItems ?></span>
+                            <span class="prd-nav-count nav-icon-blue"><?= $totalItems ?></span>
                         </a>
 
                         <div class="prd-sidebar-divider"></div>
 
                         <a href="#" class="prd-nav-item <?= $activeSection === 'create' ? 'active' : '' ?>" data-section="create">
-                            <span class="prd-nav-icon" style="background:rgba(39,174,96,.1);color:#27ae60;">
+                            <span class="prd-nav-icon nav-icon-green">
                                 <i class="fas fa-plus-circle"></i>
                             </span>
                             <span>Novo Produto</span>
                         </a>
 
                         <a href="#" class="prd-nav-item <?= $activeSection === 'import' ? 'active' : '' ?>" data-section="import">
-                            <span class="prd-nav-icon" style="background:rgba(243,156,18,.1);color:#f39c12;">
+                            <span class="prd-nav-icon nav-icon-orange">
                                 <i class="fas fa-file-import"></i>
                             </span>
                             <span>Importar Produtos</span>
@@ -129,13 +84,13 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
             <!-- Mini-dica -->
             <div class="card border-0 shadow-sm mt-3 d-none d-lg-block" style="border-radius:12px;">
                 <div class="card-body p-3">
-                    <h6 class="mb-2 fw-bold" style="font-size:.78rem;color:#17a2b8;">
+                    <h6 class="mb-2 fw-bold text-info-alt" style="font-size:.78rem;">
                         <i class="fas fa-lightbulb me-1"></i>Dica
                     </h6>
                     <p class="mb-0 text-muted" style="font-size:.72rem;line-height:1.55;">
                         Use a <span class="fw-bold text-primary">Visão Geral</span> para buscar e gerenciar seus produtos,
                         <span class="fw-bold text-success">Novo Produto</span> para cadastrar rapidamente
-                        e <span class="fw-bold" style="color:#f39c12;">Importar</span> para adicionar produtos em massa via planilha.
+                        e <span class="fw-bold legend-orange">Importar</span> para adicionar produtos em massa via planilha.
                     </p>
                 </div>
             </div>
@@ -153,8 +108,8 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
 
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(52,152,219,.1);">
-                            <i class="fas fa-boxes-stacked" style="color:#3498db;font-size:.85rem;"></i>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2 nav-icon-blue" style="width:34px;height:34px;">
+                            <i class="fas fa-boxes-stacked" style="font-size:.85rem;"></i>
                         </div>
                         <div>
                             <h5 class="mb-0" style="font-size:1rem;">Produtos Cadastrados</h5>
@@ -230,8 +185,8 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
             <div class="prd-section <?= $activeSection === 'create' ? 'active' : '' ?>" id="prd-create">
 
                 <div class="d-flex align-items-center mb-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(39,174,96,.1);">
-                        <i class="fas fa-plus-circle" style="color:#27ae60;font-size:.85rem;"></i>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 nav-icon-green" style="width:34px;height:34px;">
+                        <i class="fas fa-plus-circle" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Cadastrar Novo Produto</h5>
@@ -251,7 +206,7 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                 <div class="card border-0 shadow-sm">
                     <div class="card-body text-center py-5">
                         <div class="mb-4">
-                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto" style="width:80px;height:80px;background:rgba(39,174,96,.1);">
+                            <div class="icon-circle icon-circle-80 icon-circle-green d-inline-flex mx-auto">
                                 <i class="fas fa-box-open fa-2x text-success"></i>
                             </div>
                         </div>
@@ -274,8 +229,8 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
 
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(243,156,18,.1);">
-                            <i class="fas fa-file-import" style="color:#f39c12;font-size:.85rem;"></i>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2 nav-icon-orange" style="width:34px;height:34px;">
+                            <i class="fas fa-file-import" style="font-size:.85rem;"></i>
                         </div>
                         <div>
                             <h5 class="mb-0" style="font-size:1rem;">Importar Produtos em Massa</h5>
@@ -1055,12 +1010,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Success summary
             html += '<div class="text-center mb-4">';
             if (data.imported > 0) {
-                html += '<div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(39,174,96,.1);">' +
+                html += '<div class="icon-circle icon-circle-80 icon-circle-green d-inline-flex mx-auto mb-3">' +
                     '<i class="fas fa-check-circle fa-2x text-success"></i></div>';
                 html += '<h4 class="text-success">Importação Concluída!</h4>';
                 html += '<p class="text-muted"><strong>' + data.imported + '</strong> produto(s) importado(s) com sucesso.</p>';
             } else {
-                html += '<div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(243,156,18,.1);">' +
+                html += '<div class="icon-circle icon-circle-80 icon-circle-warning d-inline-flex mx-auto mb-3">' +
                     '<i class="fas fa-exclamation-triangle fa-2x text-warning"></i></div>';
                 html += '<h4 class="text-warning">Nenhum produto importado</h4>';
                 html += '<p class="text-muted">Verifique os erros abaixo.</p>';
@@ -1089,7 +1044,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             html += '<div class="text-center">' +
-                '<div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(192,57,43,.1);">' +
+                '<div class="icon-circle icon-circle-80 icon-circle-danger d-inline-flex mx-auto mb-3">' +
                 '<i class="fas fa-times-circle fa-2x text-danger"></i></div>' +
                 '<h4 class="text-danger">Erro na Importação</h4>' +
                 '<p class="text-muted">' + escHtml(data.message || 'Erro desconhecido.') + '</p></div>';

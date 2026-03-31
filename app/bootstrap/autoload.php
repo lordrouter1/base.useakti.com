@@ -79,6 +79,10 @@ spl_autoload_register(function (string $class): void {
     // para permitir que outros autoloaders tentem (ex: Composer no futuro)
 });
 
+// ── Carregar .env — ANTES de qualquer config que dependa de getenv() ──
+require_once AKTI_BASE_PATH . 'app/utils/env_loader.php';
+akti_load_env(AKTI_BASE_PATH . '.env');
+
 // ── Carregar configurações que definem classes globais (sem namespace) ──
 // session.php define SessionGuard (procedural + classe, deve rodar ANTES de session_start)
 require_once AKTI_BASE_PATH . 'app/config/session.php';
@@ -99,6 +103,9 @@ require_once AKTI_BASE_PATH . 'app/utils/escape_helper.php';
 // ── Carregar bootstrap de eventos (registro de listeners) ──
 // events.php registra listeners globais e futuramente inclui listeners de módulos
 require_once AKTI_BASE_PATH . 'app/bootstrap/events.php';
+
+// asset_helper.php define asset() para cache busting de CSS/JS/imagens
+require_once AKTI_BASE_PATH . 'app/utils/asset_helper.php';
 
 // ── Carregar helpers do Portal do Cliente ──
 // portal_helper.php define __p(), portal_money(), portal_date() etc.

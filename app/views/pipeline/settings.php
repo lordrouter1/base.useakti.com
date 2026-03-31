@@ -21,7 +21,7 @@
                         <?= csrf_field() ?>
                         <?php foreach ($stages as $stageKey => $stageInfo): ?>
                         <?php $currentGoal = isset($goals[$stageKey]) ? (int)$goals[$stageKey]['max_hours'] : 24; ?>
-                        <div class="row align-items-center mb-3 py-2 px-3 rounded" style="background: rgba(0,0,0,0.02);">
+                        <div class="row align-items-center mb-3 py-2 px-3 rounded bg-light bg-opacity-50">
                             <div class="col-md-1 text-center">
                                 <div class="rounded-circle d-inline-flex align-items-center justify-content-center" 
                                      style="width:36px;height:36px;background:<?= $stageInfo['color'] ?>;color:#fff;">

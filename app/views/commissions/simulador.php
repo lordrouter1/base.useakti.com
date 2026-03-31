@@ -23,8 +23,8 @@ $users = $aux['users'] ?? [];
         <div class="col-lg-9">
 
             <div class="d-flex align-items-center mb-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(41,128,185,.1);">
-                    <i class="fas fa-calculator" style="color:#2980b9;font-size:.85rem;"></i>
+                <div class="icon-circle icon-circle-blue me-2">
+                    <i class="fas fa-calculator text-navy" style="font-size:.85rem;"></i>
                 </div>
                 <div>
                     <h5 class="mb-0" style="font-size:1rem;">Simulador de Comissão</h5>

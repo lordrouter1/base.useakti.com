@@ -5,6 +5,7 @@ use Akti\Models\Stock;
 use Akti\Models\Product;
 use Akti\Models\Logger;
 use Akti\Models\Order;
+use Akti\Services\StockMovementService;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
 use Akti\Utils\Sanitizer;
@@ -17,6 +18,7 @@ class StockController {
     private $productModel;
     private $logger;
     private $db;
+    private StockMovementService $movementService;
 
     public function __construct() {
         $database = new Database();
@@ -24,6 +26,7 @@ class StockController {
         $this->stockModel = new Stock($this->db);
         $this->productModel = new Product($this->db);
         $this->logger = new Logger($this->db);
+        $this->movementService = new StockMovementService($this->db, $this->stockModel, $this->logger);
 
         // Auto-migrate: garantir colunas e tabelas novas
         $this->stockModel->ensureDefaultColumn();
@@ -241,61 +244,15 @@ class StockController {
             exit;
         }
 
-        $warehouseId = Input::post('warehouse_id', 'int', 0);
-        $type = Input::post('type', 'enum', 'entrada', ['entrada', 'saida', 'ajuste', 'transferencia']);
-        $reason = Input::post('reason');
-        $items = Input::postArray('items');
-        $destWarehouseId = Input::post('destination_warehouse_id', 'int', 0);
+        $result = $this->movementService->processMovement(
+            Input::post('warehouse_id', 'int', 0),
+            Input::post('type', 'enum', 'entrada', ['entrada', 'saida', 'ajuste', 'transferencia']),
+            Input::post('reason'),
+            Input::postArray('items') ?: [],
+            Input::post('destination_warehouse_id', 'int', 0)
+        );
 
-        if (!$warehouseId || empty($items)) {
-            echo json_encode(['success' => false, 'message' => 'Selecione um armazém e pelo menos um produto.']);
-            exit;
-        }
-
-        if ($type === 'transferencia' && !$destWarehouseId) {
-            echo json_encode(['success' => false, 'message' => 'Selecione o armazém de destino para transferência.']);
-            exit;
-        }
-
-        $processed = 0;
-        $errors = [];
-
-        foreach ($items as $i => $item) {
-            $productId = Sanitizer::int($item['product_id'] ?? 0, 0);
-            $combinationId = !empty($item['combination_id']) ? Sanitizer::int($item['combination_id']) : null;
-            $quantity = Sanitizer::float($item['quantity'] ?? 0, 0);
-
-            if (!$productId || $quantity <= 0) {
-                $errors[] = "Item #" . ($i + 1) . ": produto ou quantidade inválida.";
-                continue;
-            }
-
-            try {
-                $this->stockModel->addMovement([
-                    'warehouse_id' => $warehouseId,
-                    'product_id' => $productId,
-                    'combination_id' => $combinationId,
-                    'type' => $type,
-                    'quantity' => $quantity,
-                    'reason' => $reason,
-                    'reference_type' => 'manual',
-                    'destination_warehouse_id' => $type === 'transferencia' ? $destWarehouseId : null,
-                ]);
-                $processed++;
-            } catch (Exception $e) {
-                $errors[] = "Item #" . ($i + 1) . ": " . $e->getMessage();
-            }
-        }
-
-        $typeLabels = ['entrada' => 'Entrada', 'saida' => 'Saída', 'ajuste' => 'Ajuste', 'transferencia' => 'Transferência'];
-        $this->logger->log('STOCK_MOVEMENT', "{$typeLabels[$type]}: $processed item(s) processado(s) no armazém #$warehouseId");
-
-        echo json_encode([
-            'success' => true,
-            'processed' => $processed,
-            'errors' => $errors,
-            'message' => "$processed item(s) processado(s) com sucesso."
-        ]);
+        echo json_encode($result);
         exit;
     }
 
@@ -336,32 +293,14 @@ class StockController {
             exit;
         }
 
-        // Não permitir edição de movimentações automáticas (pedidos, reversões)
-        $autoTypes = ['order', 'order_reversal', 'transfer'];
-        if (in_array($movement['reference_type'], $autoTypes)) {
-            echo json_encode(['success' => false, 'message' => 'Movimentações automáticas não podem ser editadas.']);
-            exit;
-        }
-
         $data = [
             'type'     => Input::post('type', 'enum', $movement['type'], ['entrada', 'saida', 'ajuste']),
             'quantity' => Input::post('quantity', 'float', $movement['quantity']),
             'reason'   => Input::post('reason'),
         ];
 
-        if ($data['quantity'] <= 0) {
-            echo json_encode(['success' => false, 'message' => 'Quantidade deve ser maior que zero.']);
-            exit;
-        }
-
-        $result = $this->stockModel->updateMovement($id, $data);
-        if ($result) {
-            $typeLabels = ['entrada' => 'Entrada', 'saida' => 'Saída', 'ajuste' => 'Ajuste'];
-            $this->logger->log('STOCK_MOVEMENT_UPDATE', "Movimentação #{$id} atualizada: {$typeLabels[$data['type']]} — Qtd: {$data['quantity']} — Produto: {$movement['product_name']}");
-            echo json_encode(['success' => true, 'message' => 'Movimentação atualizada com sucesso.']);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Erro ao atualizar movimentação.']);
-        }
+        $result = $this->movementService->updateMovement($id, $data);
+        echo json_encode($result);
         exit;
     }
 
@@ -379,27 +318,8 @@ class StockController {
             exit;
         }
 
-        $movement = $this->stockModel->getMovement($id);
-        if (!$movement) {
-            echo json_encode(['success' => false, 'message' => 'Movimentação não encontrada.']);
-            exit;
-        }
-
-        // Não permitir exclusão de movimentações automáticas
-        $autoTypes = ['order', 'order_reversal', 'transfer'];
-        if (in_array($movement['reference_type'], $autoTypes)) {
-            echo json_encode(['success' => false, 'message' => 'Movimentações automáticas não podem ser excluídas.']);
-            exit;
-        }
-
-        $result = $this->stockModel->deleteMovement($id);
-        if ($result) {
-            $typeLabels = ['entrada' => 'Entrada', 'saida' => 'Saída', 'ajuste' => 'Ajuste', 'transferencia' => 'Transferência'];
-            $this->logger->log('STOCK_MOVEMENT_DELETE', "Movimentação #{$id} excluída: {$typeLabels[$movement['type']]} — Qtd: {$movement['quantity']} — Produto: {$movement['product_name']}");
-            echo json_encode(['success' => true, 'message' => 'Movimentação excluída com sucesso. Saldo revertido.']);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Erro ao excluir movimentação.']);
-        }
+        $result = $this->movementService->deleteMovement($id);
+        echo json_encode($result);
         exit;
     }
 

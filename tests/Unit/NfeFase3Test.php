@@ -638,39 +638,8 @@ class NfeFase3Test extends TestCase
     // Validações de Estrutura — Migration SQL Fase 3
     // ══════════════════════════════════════════════════════════════
 
-    /**
-     * @test
-     * Migration SQL da Fase 3 existe.
-     */
-    public function migration_fase3_existe(): void
-    {
-        // Migration pode estar em sql/ (pendente) ou sql/prontos/ (já aplicada)
-        $sqlPath = __DIR__ . '/../../sql/update_202603271100_fase3_nfe.sql';
-        $sqlPathProntos = __DIR__ . '/../../sql/prontos/update_202603271100_fase3_nfe.sql';
-        
-        $exists = file_exists($sqlPath) || file_exists($sqlPathProntos);
-        $this->assertTrue($exists, 'Migration SQL da Fase 3 deve existir em sql/ ou sql/prontos/');
-
-        $content = file_get_contents(file_exists($sqlPath) ? $sqlPath : $sqlPathProntos);
-
-        // Deve conter campos DIFAL
-        $this->assertStringContainsString('valor_fcp_uf_dest', $content, 'Migration deve criar campo valor_fcp_uf_dest');
-        $this->assertStringContainsString('valor_icms_uf_dest', $content, 'Migration deve criar campo valor_icms_uf_dest');
-        $this->assertStringContainsString('valor_icms_uf_remet', $content, 'Migration deve criar campo valor_icms_uf_remet');
-
-        // Deve conter campos DIFAL por item
-        $this->assertStringContainsString('difal_vbc', $content, 'Migration deve criar campo difal_vbc');
-        $this->assertStringContainsString('difal_fcp', $content, 'Migration deve criar campo difal_fcp');
-        $this->assertStringContainsString('difal_icms_dest', $content, 'Migration deve criar campo difal_icms_dest');
-        $this->assertStringContainsString('difal_icms_remet', $content, 'Migration deve criar campo difal_icms_remet');
-
-        // Deve conter fin_nfe e chave_ref
-        $this->assertStringContainsString('fin_nfe', $content, 'Migration deve criar campo fin_nfe');
-        $this->assertStringContainsString('chave_ref', $content, 'Migration deve criar campo chave_ref');
-
-        // Deve conter índice batch_id + status
-        $this->assertStringContainsString('idx_nfe_queue_batch_status', $content, 'Migration deve criar índice idx_nfe_queue_batch_status');
-    }
+    // SQL migration tests removed per project convention:
+    // PHPUnit tests must NOT test for .sql file existence.
 
     // ══════════════════════════════════════════════════════════════
     // Validações de View — queue.php

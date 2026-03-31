@@ -454,15 +454,15 @@ $approvalContext = $approvalContext ?? false;
     <!-- ═══ Link de Catálogo / Orçamento ═══ -->
     <?php if (!empty($catalogUrl)): ?>
         <div class="portal-card mb-3">
-            <div class="portal-card-header" style="background:linear-gradient(135deg, #17a2b810 0%, #0dcaf015 100%);">
-                <h5><i class="fas fa-file-invoice-dollar me-2" style="color:#17a2b8;"></i><?= __p('catalog_link_title') ?></h5>
+            <div class="portal-card-header card-header-info-light">
+                <h5><i class="fas fa-file-invoice-dollar me-2 icon-teal"></i><?= __p('catalog_link_title') ?></h5>
             </div>
             <div class="portal-card-body text-center">
                 <p class="text-muted mb-3" style="font-size:0.85rem;">
                     <?= __p('catalog_link_description') ?>
                 </p>
                 <a href="<?= e($catalogUrl) ?>" target="_blank" rel="noopener noreferrer"
-                   class="btn btn-lg px-5 py-2 shadow-sm" style="background:#17a2b8;color:#fff;">
+                   class="btn btn-teal btn-lg px-5 py-2 shadow-sm">
                     <i class="fas fa-external-link-alt me-2"></i>
                     <?= __p('catalog_link_btn') ?>
                 </a>
@@ -473,7 +473,7 @@ $approvalContext = $approvalContext ?? false;
     <!-- ═══ Link de Pagamento ═══ -->
     <?php if (!empty($order['payment_link_url'])): ?>
         <div class="portal-card mb-3">
-            <div class="portal-card-header" style="background:linear-gradient(135deg, #27ae6010 0%, #2ecc7108 100%);">
+            <div class="portal-card-header card-header-green-light">
                 <h5><i class="fas fa-credit-card me-2 text-success"></i><?= __p('payment_link_title') ?></h5>
             </div>
             <div class="portal-card-body text-center">

@@ -25,8 +25,8 @@ $formas = $aux['formas'] ?? [];
 
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(230,126,34,.1);">
-                        <i class="fas fa-user-tag" style="color:#e67e22;font-size:.85rem;"></i>
+                    <div class="icon-circle icon-circle-carrot me-2">
+                        <i class="fas fa-user-tag text-carrot" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Regras por Usuário</h5>
@@ -140,15 +140,15 @@ $formas = $aux['formas'] ?? [];
 
             <!-- Vínculos individuais -->
             <div class="d-flex align-items-center mb-2">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:28px;height:28px;background:rgba(230,126,34,.1);">
-                    <i class="fas fa-link" style="color:#e67e22;font-size:.7rem;"></i>
+                <div class="icon-circle icon-circle-sm icon-circle-carrot me-2">
+                    <i class="fas fa-link text-carrot" style="font-size:.7rem;"></i>
                 </div>
                 <h6 class="mb-0" style="font-size:.9rem;">Vínculos Individuais</h6>
             </div>
 
             <?php if (empty($usuarioFormas)): ?>
             <div class="text-center text-muted py-4">
-                <i class="fas fa-link fa-2x d-block mb-2 opacity-50" style="color:#e67e22;"></i>
+                <i class="fas fa-link fa-2x d-block mb-2 opacity-50 text-carrot"></i>
                 <small>Nenhum vínculo individual. Todos usam a regra de grupo ou padrão.</small>
             </div>
             <?php else: ?>

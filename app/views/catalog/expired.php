@@ -35,7 +35,7 @@
         <div class="expired-icon">
             <i class="fas fa-link-slash"></i>
         </div>
-        <h2 class="fw-bold mb-3" style="color: #2c3e50;">Link Indisponível</h2>
+        <h2 class="fw-bold mb-3 text-dark-alt">Link Indisponível</h2>
         <p class="text-muted mb-4">
             Este link de catálogo não é válido, já expirou ou foi desativado.<br>
             Por favor, solicite um novo link ao profissional responsável.

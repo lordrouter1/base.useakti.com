@@ -37,8 +37,8 @@ $pipelineStages = [
         <div class="col-lg-9">
 
             <div class="d-flex align-items-center mb-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(127,140,141,.1);">
-                    <i class="fas fa-cog" style="color:#7f8c8d;font-size:.85rem;"></i>
+                <div class="icon-circle icon-circle-gray me-2">
+                    <i class="fas fa-cog text-gray" style="font-size:.85rem;"></i>
                 </div>
                 <div>
                     <h5 class="mb-0" style="font-size:1rem;">Configurações do Módulo</h5>
@@ -55,8 +55,8 @@ $pipelineStages = [
                             <!-- Regra Padrão -->
                             <div class="col-md-6">
                                 <div class="d-flex align-items-center mb-3">
-                                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:28px;height:28px;background:rgba(52,152,219,.1);">
-                                        <i class="fas fa-percentage" style="color:#3498db;font-size:.7rem;"></i>
+                                    <div class="icon-circle icon-circle-sm icon-circle-blue me-2">
+                                        <i class="fas fa-percentage text-blue" style="font-size:.7rem;"></i>
                                     </div>
                                     <h6 class="mb-0 fw-bold" style="font-size:.88rem;">Regra Padrão</h6>
                                 </div>
@@ -81,8 +81,8 @@ $pipelineStages = [
                             <!-- Comportamento -->
                             <div class="col-md-6">
                                 <div class="d-flex align-items-center mb-3">
-                                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:28px;height:28px;background:rgba(39,174,96,.1);">
-                                        <i class="fas fa-sliders-h" style="color:#27ae60;font-size:.7rem;"></i>
+                                    <div class="icon-circle icon-circle-sm icon-circle-green me-2">
+                                        <i class="fas fa-sliders-h text-green" style="font-size:.7rem;"></i>
                                     </div>
                                     <h6 class="mb-0 fw-bold" style="font-size:.88rem;">Comportamento</h6>
                                 </div>
@@ -147,8 +147,8 @@ $pipelineStages = [
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-3">
                     <div class="d-flex align-items-start gap-2">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:28px;height:28px;background:rgba(23,162,184,.1);">
-                            <i class="fas fa-info-circle" style="color:#17a2b8;font-size:.7rem;"></i>
+                        <div class="icon-circle icon-circle-sm icon-circle-info flex-shrink-0">
+                            <i class="fas fa-info-circle text-info-alt" style="font-size:.7rem;"></i>
                         </div>
                         <div>
                             <h6 class="fw-bold mb-1" style="font-size:.82rem;">Sobre o Motor de Comissões</h6>

@@ -523,9 +523,9 @@ class CommissionController
     private function parseFaixasFromPost(): array
     {
         $faixas = [];
-        $mins = $_POST['faixa_min'] ?? [];
-        $maxs = $_POST['faixa_max'] ?? [];
-        $pcts = $_POST['faixa_pct'] ?? [];
+        $mins = Input::postArray('faixa_min');
+        $maxs = Input::postArray('faixa_max');
+        $pcts = Input::postArray('faixa_pct');
 
         if (is_array($mins)) {
             for ($i = 0; $i < count($mins); $i++) {

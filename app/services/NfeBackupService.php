@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Services;
 
+use Akti\Core\Log;
+
 use Akti\Services\NfeStorageService;
 use Akti\Services\NfeAuditService;
 use PDO;
@@ -90,7 +92,7 @@ class NfeBackupService
             ];
         } catch (\Throwable $e) {
             $this->logFinish($backupId, 'erro', 0, 0, null, $e->getMessage());
-            error_log('[NfeBackupService] Erro no backup: ' . $e->getMessage());
+            Log::error('NfeBackupService: Erro no backup', ['exception' => $e->getMessage()]);
 
             return [
                 'success'   => false,

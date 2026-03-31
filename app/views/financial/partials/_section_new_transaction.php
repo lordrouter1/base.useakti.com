@@ -10,8 +10,8 @@
 <div class="fin-section <?= $activeSection === 'new' ? 'active' : '' ?>" id="fin-new">
 
     <div class="d-flex align-items-center mb-3">
-        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(155,89,182,.1);">
-            <i class="fas fa-plus-circle" style="color:#9b59b6;font-size:.85rem;"></i>
+        <div class="icon-circle icon-circle-purple me-2">
+            <i class="fas fa-plus-circle text-purple" style="font-size:.85rem;"></i>
         </div>
         <div>
             <h5 class="mb-0" style="font-size:1rem;">Nova Transação</h5>

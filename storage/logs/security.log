@@ -115,3 +115,11 @@
 [2026-03-20 19:39:37] CSRF validation failed | IP: ::1 | Route: ?page=financial&action=parseImportFile | Method: POST | Token: (empty) | User: 1
 [2026-03-20 19:39:48] CSRF validation failed | IP: ::1 | Route: ?page=financial&action=parseImportFile | Method: POST | Token: (empty) | User: 1
 [2026-03-20 19:44:17] CSRF validation failed | IP: ::1 | Route: ?page=financial&action=parseImportFile | Method: POST | Token: (empty) | User: 1
+[2026-03-31 22:19:47] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
+[2026-03-31 22:19:47] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
+[2026-03-31 22:19:55] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
+[2026-03-31 22:19:55] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
+[2026-03-31 22:20:22] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
+[2026-03-31 22:20:22] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
+[2026-03-31 22:21:35] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
+[2026-03-31 22:21:35] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous

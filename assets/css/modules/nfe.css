@@ -1,0 +1,285 @@
+/* ═══════════════════════════════════════════════════════════════
+   MODULE: NF-e
+   Common styles for fiscal/invoice views
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar nav ── */
+.nfe-sidebar .nfe-nav-item {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .7rem 1rem;
+    border-radius: var(--ds-radius-md, 10px);
+    text-decoration: none;
+    color: var(--text-secondary, #555);
+    font-size: .82rem;
+    font-weight: var(--fw-medium, 500);
+    transition: all var(--ds-duration-fast, .15s) ease;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.nfe-sidebar .nfe-nav-item:hover {
+    background: var(--bg-tertiary, #f1f5f9);
+    color: var(--text-primary, #333);
+}
+
+.nfe-sidebar .nfe-nav-item.active {
+    background: var(--accent, #3498db);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, .3);
+}
+
+.nfe-sidebar .nfe-nav-item.active .nfe-nav-icon {
+    background: rgba(255, 255, 255, .2) !important;
+    color: #fff !important;
+}
+
+.nfe-sidebar .nfe-nav-item.active .nfe-nav-count {
+    background: rgba(255, 255, 255, .25) !important;
+    color: #fff !important;
+}
+
+.nfe-nav-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--ds-radius-md, 8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+    flex-shrink: 0;
+    transition: all var(--ds-duration-fast, .15s) ease;
+}
+
+.nfe-nav-count {
+    font-size: .65rem;
+    padding: 2px 7px;
+    border-radius: var(--ds-radius-full, 10px);
+    font-weight: var(--fw-semi, 600);
+    margin-left: auto;
+}
+
+.nfe-sidebar-label {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--text-muted, #aaa);
+    font-weight: 700;
+    padding: 0 1rem;
+    margin-bottom: .3rem;
+    margin-top: .6rem;
+}
+
+.nfe-sidebar-divider {
+    height: 1px;
+    background: var(--border-light, #e9ecef);
+    margin: .5rem 1rem;
+}
+
+/* ── Section transition ── */
+.nfe-section {
+    display: none;
+    animation: nfeFadeIn .25s ease;
+}
+
+.nfe-section.active {
+    display: block;
+}
+
+@keyframes nfeFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Status badges ── */
+.nfe-status-badge {
+    font-size: .7rem;
+    padding: 2px 8px;
+    border-radius: var(--ds-radius-sm, 4px);
+    font-weight: var(--fw-semi, 600);
+}
+
+.nfe-badge-authorized { background: var(--success-light); color: var(--success); }
+.nfe-badge-pending    { background: var(--warning-light); color: #b45309; }
+.nfe-badge-cancelled  { background: var(--danger-light); color: var(--danger); }
+.nfe-badge-denied     { background: var(--danger-light); color: var(--danger); }
+
+.nfe-card {
+    border-radius: var(--ds-radius-md, 8px);
+    border: 1px solid var(--border, #dee2e6);
+    background: var(--bg-primary, #fff);
+    padding: var(--space-md, 16px);
+    transition: box-shadow var(--ds-duration-fast, .15s) ease;
+}
+
+.nfe-card:hover {
+    box-shadow: var(--ds-shadow-md, 0 4px 12px rgba(0,0,0,.08));
+}
+
+/* ═══ NF-e Credential Wizard ═══ */
+.wizard-progress { display: flex; justify-content: center; gap: 0; margin-bottom: 2rem; }
+.wizard-step { display: flex; align-items: center; gap: 0; }
+.wizard-step-circle {
+    width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1.1rem; border: 3px solid var(--border, #dee2e6); background: var(--bg-primary, #fff); color: var(--text-muted, #6c757d);
+    transition: all 0.3s; cursor: pointer; position: relative; z-index: 2;
+}
+.wizard-step-circle.active { border-color: var(--accent, #0d6efd); color: var(--accent, #0d6efd); box-shadow: 0 0 0 4px rgba(13,110,253,0.15); }
+.wizard-step-circle.completed { border-color: var(--success, #198754); background: var(--success, #198754); color: #fff; }
+.wizard-step-circle.error { border-color: var(--danger, #dc3545); background: var(--danger, #dc3545); color: #fff; }
+.wizard-step-label { font-size: 0.78rem; text-align: center; margin-top: 0.5rem; color: var(--text-muted, #6c757d); font-weight: 500; }
+.wizard-step-label.active { color: var(--accent, #0d6efd); font-weight: 700; }
+.wizard-step-label.completed { color: var(--success, #198754); }
+.wizard-connector { width: 80px; height: 3px; background: var(--border, #dee2e6); margin-top: -1.5rem; }
+.wizard-connector.completed { background: var(--success, #198754); }
+.wizard-panel { display: none; animation: fadeInPanel 0.3s ease; }
+.wizard-panel.active { display: block; }
+@keyframes fadeInPanel { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.credential-status-bar { border-radius: 1rem; overflow: hidden; }
+.cert-status-card { border-radius: 0.75rem; transition: all 0.2s; }
+.cert-status-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.info-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted, #6c757d); margin-bottom: 2px; }
+@media (max-width: 768px) {
+    .wizard-connector { width: 30px; }
+    .wizard-step-circle { width: 40px; height: 40px; font-size: 0.95rem; }
+}
+
+/* ═══ NF-e Detail Page ═══ */
+.nfe-detail-header { background: linear-gradient(135deg, var(--bg-secondary, #f8f9fa) 0%, var(--bg-tertiary, #e9ecef) 100%); border-radius: 1rem; }
+.nfe-detail-header .status-badge { font-size: 0.85rem; padding: 0.4em 1em; border-radius: 2rem; }
+.nfe-key-box { background: var(--bg-secondary, #f8f9fa); border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.78rem; letter-spacing: 0.5px; word-break: break-all; padding: 0.75rem 1rem; border: 1px solid var(--border, #dee2e6); }
+.nfe-tab-nav .nav-link { color: var(--text-muted, #6c757d); font-weight: 500; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 0.75rem 1.25rem; transition: all 0.2s; }
+.nfe-tab-nav .nav-link:hover { color: var(--accent, #0d6efd); border-bottom-color: var(--border, #dee2e6); }
+.nfe-tab-nav .nav-link.active { color: var(--accent, #0d6efd); border-bottom-color: var(--accent, #0d6efd); background: transparent; }
+.info-value { font-weight: 600; font-size: 0.92rem; }
+.timeline-item { position: relative; padding-left: 2rem; padding-bottom: 1.25rem; border-left: 2px solid var(--border, #dee2e6); }
+.timeline-item:last-child { border-left-color: transparent; padding-bottom: 0; }
+.timeline-item::before { content: ''; position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; }
+.timeline-item.tl-success::before { background: var(--success, #198754); }
+.timeline-item.tl-danger::before  { background: var(--danger, #dc3545); }
+.timeline-item.tl-warning::before { background: var(--warning, #ffc107); }
+.timeline-item.tl-info::before    { background: #0dcaf0; }
+.timeline-item.tl-secondary::before { background: var(--text-muted, #6c757d); }
+.download-card { transition: all 0.2s; border-radius: 0.75rem; }
+.download-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.action-btn-group .btn { border-radius: 0.5rem; padding: 0.5rem 1rem; font-weight: 500; }
+@media (max-width: 768px) {
+    .nfe-tab-nav .nav-link { padding: 0.5rem 0.75rem; font-size: 0.85rem; }
+    .nfe-detail-header { padding: 1rem !important; }
+}
+
+/* ── Mobile sidebar ── */
+@media (max-width: 991.98px) {
+    .nfe-sidebar-col { margin-bottom: 1rem; }
+    .nfe-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: .3rem;
+    }
+    .nfe-sidebar .nfe-nav-item {
+        padding: .5rem .85rem;
+        font-size: .75rem;
+    }
+    .nfe-sidebar-label {
+        font-size: .6rem;
+        margin-top: .4rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .nfe-sidebar-col { margin-bottom: 1rem; }
+    .nfe-sidebar {
+        display: flex;
+        flex-direction: row;
+        gap: .4rem;
+        overflow-x: auto;
+        padding-bottom: .5rem;
+        scrollbar-width: thin;
+        flex-wrap: nowrap;
+    }
+    .nfe-sidebar .nfe-nav-item {
+        white-space: nowrap;
+        flex-shrink: 0;
+        padding: .5rem .85rem;
+        font-size: .75rem;
+    }
+    .nfe-sidebar-label { display: none; }
+    .nfe-sidebar-divider { display: none; }
+}
+
+/* ── Dark mode ── */
+[data-theme="dark"] .nfe-sidebar .nfe-nav-item {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .nfe-sidebar .nfe-nav-item:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .nfe-sidebar-divider {
+    background: var(--border);
+}
+
+[data-theme="dark"] .nfe-key-box {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .nfe-card {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .nfe-badge-pending {
+    color: var(--warning);
+}
+
+[data-theme="dark"] .nfe-detail-header {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+}
+
+[data-theme="dark"] .nfe-tab-nav .nav-link {
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .nfe-tab-nav .nav-link:hover {
+    color: var(--accent);
+    border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] .nfe-tab-nav .nav-link.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+[data-theme="dark"] .wizard-step-circle {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .wizard-connector {
+    background: var(--border);
+}
+
+[data-theme="dark"] .download-card {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .cert-status-card {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .timeline-item {
+    border-left-color: var(--border);
+}
+
+[data-theme="dark"] .timeline-item::before {
+    border-color: var(--bg-primary);
+}

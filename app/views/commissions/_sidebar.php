@@ -9,17 +9,17 @@
 $currentAction = $_GET['action'] ?? 'index';
 
 $commissionSections = [
-    ['action' => 'index',          'icon' => 'fas fa-tachometer-alt',  'label' => 'Dashboard',           'color' => '#3498db', 'bg' => 'rgba(52,152,219,.1)'],
-    ['action' => 'formas',         'icon' => 'fas fa-file-alt',        'label' => 'Formas de Comissão',   'color' => '#27ae60', 'bg' => 'rgba(39,174,96,.1)'],
+    ['action' => 'index',          'icon' => 'fas fa-tachometer-alt',  'label' => 'Dashboard',           'navClass' => 'nav-icon-blue'],
+    ['action' => 'formas',         'icon' => 'fas fa-file-alt',        'label' => 'Formas de Comissão',   'navClass' => 'nav-icon-green'],
     ['divider' => true],
-    ['action' => 'grupos',         'icon' => 'fas fa-users',           'label' => 'Regras por Grupo',     'color' => '#8e44ad', 'bg' => 'rgba(142,68,173,.1)'],
-    ['action' => 'usuarios',       'icon' => 'fas fa-user-tag',        'label' => 'Regras por Usuário',   'color' => '#e67e22', 'bg' => 'rgba(230,126,34,.1)'],
-    ['action' => 'produtos',       'icon' => 'fas fa-box',             'label' => 'Regras por Produto',   'color' => '#16a085', 'bg' => 'rgba(22,160,133,.1)'],
+    ['action' => 'grupos',         'icon' => 'fas fa-users',           'label' => 'Regras por Grupo',     'navClass' => 'nav-icon-grape'],
+    ['action' => 'usuarios',       'icon' => 'fas fa-user-tag',        'label' => 'Regras por Usuário',   'navClass' => 'nav-icon-carrot'],
+    ['action' => 'produtos',       'icon' => 'fas fa-box',             'label' => 'Regras por Produto',   'navClass' => 'nav-icon-teal'],
     ['divider' => true],
-    ['action' => 'simulador',      'icon' => 'fas fa-calculator',      'label' => 'Simulador',            'color' => '#2980b9', 'bg' => 'rgba(41,128,185,.1)'],
-    ['action' => 'historico',      'icon' => 'fas fa-check-double',   'label' => 'Aprovação',            'color' => '#c0392b', 'bg' => 'rgba(192,57,43,.1)'],
+    ['action' => 'simulador',      'icon' => 'fas fa-calculator',      'label' => 'Simulador',            'navClass' => 'nav-icon-navy'],
+    ['action' => 'historico',      'icon' => 'fas fa-check-double',   'label' => 'Aprovação',            'navClass' => 'nav-icon-red'],
     ['divider' => true],
-    ['action' => 'configuracoes',  'icon' => 'fas fa-cog',             'label' => 'Configurações',        'color' => '#7f8c8d', 'bg' => 'rgba(127,140,141,.1)'],
+    ['action' => 'configuracoes',  'icon' => 'fas fa-cog',             'label' => 'Configurações',        'navClass' => 'nav-icon-dark'],
 ];
 
 // Dicas contextuais por seção
@@ -36,26 +36,7 @@ $_tips = [
 $_currentTip = $_tips[$currentAction] ?? $_tips['index'];
 ?>
 
-<style>
-    /* ── Sidebar nav (padrão Financeiro) ── */
-    .com-sidebar .com-nav-item{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;border-radius:10px;text-decoration:none;color:#555;font-size:.82rem;font-weight:500;transition:all .15s ease;margin-bottom:2px;border:1px solid transparent;cursor:pointer}
-    .com-sidebar .com-nav-item:hover{background:#f1f5f9;color:#333}
-    .com-sidebar .com-nav-item.active{background:var(--bs-primary,#3498db);color:#fff;box-shadow:0 2px 8px rgba(52,152,219,.3)}
-    .com-sidebar .com-nav-item.active .com-nav-icon{background:rgba(255,255,255,.2) !important;color:#fff !important}
-    .com-nav-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:all .15s ease}
-    .com-sidebar-divider{height:1px;background:#e9ecef;margin:.5rem 1rem}
-    .com-sidebar-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;padding:0 1rem;margin-bottom:.3rem;margin-top:.6rem}
-
-    /* ── Mobile sidebar ── */
-    @media(max-width:991.98px){
-        .com-sidebar-col{margin-bottom:1rem}
-        .com-sidebar{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:thin}
-        .com-sidebar .com-nav-item{white-space:nowrap;flex-shrink:0;padding:.5rem .85rem;font-size:.75rem}
-        .com-sidebar-divider{display:none}
-        .com-sidebar-label{display:none}
-        .com-tip-card{display:none !important}
-    }
-</style>
+<!-- Styles loaded from assets/css/modules/commissions.css via header.php -->
 
 <div class="col-lg-3 com-sidebar-col">
     <!-- Card Sidebar -->
@@ -69,7 +50,7 @@ $_currentTip = $_tips[$currentAction] ?? $_tips['index'];
                     <?php else: ?>
                         <a href="?page=commissions&action=<?= e($sec['action']) ?>"
                            class="com-nav-item <?= $currentAction === $sec['action'] ? 'active' : '' ?>">
-                            <span class="com-nav-icon" style="background:<?= $sec['bg'] ?>;color:<?= $sec['color'] ?>">
+                            <span class="com-nav-icon <?= $sec['navClass'] ?>">
                                 <i class="<?= $sec['icon'] ?>"></i>
                             </span>
                             <span><?= e($sec['label']) ?></span>
@@ -83,7 +64,7 @@ $_currentTip = $_tips[$currentAction] ?? $_tips['index'];
     <!-- Card Dica Contextual -->
     <div class="card border-0 shadow-sm mt-3 com-tip-card" style="border-radius:12px;">
         <div class="card-body p-3">
-            <h6 class="mb-2 fw-bold" style="font-size:.78rem;color:#17a2b8;">
+            <h6 class="mb-2 fw-bold text-info-alt" style="font-size:.78rem;">
                 <i class="fas fa-lightbulb me-1"></i>Dica
             </h6>
             <p class="mb-0 text-muted" style="font-size:.72rem;line-height:1.55;">
@@ -95,10 +76,10 @@ $_currentTip = $_tips[$currentAction] ?? $_tips['index'];
     <!-- Card Hierarquia de Regras -->
     <div class="card border-0 shadow-sm mt-3 com-tip-card" style="border-radius:12px;">
         <div class="card-body p-3">
-            <h6 class="mb-2 fw-bold" style="font-size:.78rem;color:#8e44ad;">
+            <h6 class="mb-2 fw-bold text-grape" style="font-size:.78rem;">
                 <i class="fas fa-sitemap me-1"></i>Hierarquia de Regras
             </h6>
-            <div style="font-size:.70rem;line-height:1.7;color:#666;">
+            <div class="text-muted" style="font-size:.70rem;line-height:1.7;">
                 <div><span class="badge bg-primary me-1" style="font-size:.6rem;width:18px;">1</span> Regra do Usuário</div>
                 <div><span class="badge bg-info me-1" style="font-size:.6rem;width:18px;">2</span> Regra do Grupo</div>
                 <div><span class="badge bg-secondary me-1" style="font-size:.6rem;width:18px;">3</span> Produto / Categoria</div>

@@ -119,8 +119,9 @@ class User {
         
         $stmt = $this->conn->prepare($query);
 
-        $this->name = htmlspecialchars(strip_tags($this->name));
-        $this->email = htmlspecialchars(strip_tags($this->email));
+        // Sanitização de entrada é feita no Controller (via Input/Sanitizer).
+        // Escape de saída é feito na View (via e()). 
+        // O Model NÃO deve aplicar htmlspecialchars — isso corrompe dados no banco.
         $this->password = password_hash($this->password, PASSWORD_BCRYPT);
         
         $stmt->bindParam(':name', $this->name);
@@ -193,8 +194,9 @@ class User {
         
         $stmt = $this->conn->prepare($query);
 
-        $this->name = htmlspecialchars(strip_tags($this->name));
-        $this->email = htmlspecialchars(strip_tags($this->email));
+        // Sanitização de entrada é feita no Controller (via Input/Sanitizer).
+        // Escape de saída é feito na View (via e()). 
+        // O Model NÃO deve aplicar htmlspecialchars — isso corrompe dados no banco.
         
         $stmt->bindParam(':name', $this->name);
         $stmt->bindParam(':email', $this->email);

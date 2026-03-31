@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Services;
 
+use Akti\Core\Log;
+
 use Akti\Models\NfeAuditLog;
 use PDO;
 
@@ -76,7 +78,7 @@ class NfeAuditService
                 'extra_data'  => !empty($extraData) ? $extraData : null,
             ]);
         } catch (\Throwable $e) {
-            error_log('[NfeAuditService] Erro ao registrar auditoria: ' . $e->getMessage());
+            Log::error('NfeAuditService: Erro ao registrar auditoria', ['exception' => $e->getMessage()]);
             return null;
         }
     }

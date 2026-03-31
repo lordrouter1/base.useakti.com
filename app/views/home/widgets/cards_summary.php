@@ -9,7 +9,7 @@
         <a href="?page=pipeline" class="text-decoration-none">
             <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
                 <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(52,152,219,0.15);">
+                    <div class="icon-circle icon-circle-xxl icon-circle-primary me-3">
                         <i class="fas fa-tasks fa-lg text-primary"></i>
                     </div>
                     <div>
@@ -24,7 +24,7 @@
         <a href="?page=orders" class="text-decoration-none">
             <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
                 <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(23,162,184,0.15);">
+                    <div class="icon-circle icon-circle-xxl icon-circle-info me-3">
                         <i class="fas fa-calendar-day fa-lg text-info"></i>
                     </div>
                     <div>
@@ -39,7 +39,7 @@
         <a href="?page=pipeline" class="text-decoration-none">
             <div class="card border-0 shadow-sm h-100 border-start border-4 <?= $atrasados > 0 ? 'border-danger' : 'border-success' ?>">
                 <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:<?= $atrasados > 0 ? 'rgba(192,57,43,0.15)' : 'rgba(39,174,96,0.15)' ?>;">
+                    <div class="icon-circle icon-circle-xxl <?= $atrasados > 0 ? 'icon-circle-danger' : 'icon-circle-green' ?> me-3">
                         <i class="fas fa-exclamation-triangle fa-lg <?= $atrasados > 0 ? 'text-danger' : 'text-success' ?>"></i>
                     </div>
                     <div>
@@ -54,7 +54,7 @@
         <a href="?page=orders" class="text-decoration-none">
             <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
                 <div class="card-body d-flex align-items-center p-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(39,174,96,0.15);">
+                    <div class="icon-circle icon-circle-xxl icon-circle-green me-3">
                         <i class="fas fa-check-double fa-lg text-success"></i>
                     </div>
                     <div>

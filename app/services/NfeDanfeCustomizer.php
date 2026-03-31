@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Services;
 
+use Akti\Core\Log;
+
 use Akti\Models\CompanySettings;
 use PDO;
 
@@ -65,7 +67,7 @@ class NfeDanfeCustomizer
             return $danfe->render();
 
         } catch (\Exception $e) {
-            error_log('[NfeDanfeCustomizer] Erro ao gerar DANFE customizado: ' . $e->getMessage());
+            Log::error('NfeDanfeCustomizer: Erro ao gerar DANFE customizado', ['exception' => $e->getMessage()]);
             // Fallback para geração padrão
             return NfePdfGenerator::renderToString($xmlAutorizado);
         }

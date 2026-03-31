@@ -28,6 +28,27 @@
     --cst-transition: 0.25s ease;
 }
 
+/* ── Dark Mode Variables ── */
+[data-theme="dark"] {
+    --cst-primary: #4DABF7;
+    --cst-primary-rgb: 77, 171, 247;
+    --cst-success: #51CF66;
+    --cst-success-rgb: 81, 207, 102;
+    --cst-danger: #FF6B6B;
+    --cst-danger-rgb: 255, 107, 107;
+    --cst-warning: #FFD43B;
+    --cst-warning-rgb: 255, 212, 59;
+    --cst-info: #66D9E8;
+    --cst-bg: #1A1A2E;
+    --cst-card: #16213E;
+    --cst-text: #E8E8E8;
+    --cst-muted: #ADB5BD;
+    --cst-border: #2C3E50;
+    --cst-focus: rgba(77, 171, 247, 0.25);
+    --cst-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    --cst-shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
 /* ═══════════════════════════════════════════════
    STEPPER — Wizard Multi-Step
    ═══════════════════════════════════════════════ */
@@ -692,6 +713,17 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
 
+/* ── Dark Mode — View Toggle ── */
+[data-theme="dark"] .cst-view-toggle {
+    background: var(--bg-tertiary, #0F3460);
+}
+
+[data-theme="dark"] .cst-view-toggle .btn.active {
+    background: var(--bg-secondary, #16213E);
+    color: var(--cst-primary);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
 /* ═══════════════════════════════════════════════
    FORM SECTIONS — Cards limpos
    ═══════════════════════════════════════════════ */
@@ -777,6 +809,103 @@
    ═══════════════════════════════════════════════ */
 
 /* Tablet */
+/* ═══════════════════════════════════════════════════════
+   DARK MODE — Customers Module
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Person type toggle ── */
+[data-theme="dark"] .cst-person-toggle {
+    background: var(--bg-tertiary, #0F3460);
+    border-color: var(--cst-border);
+}
+
+[data-theme="dark"] .cst-person-toggle .cst-toggle-option.active {
+    background: var(--cst-primary);
+}
+
+/* ── Card hover ── */
+[data-theme="dark"] .cst-customer-card:hover {
+    border-color: rgba(var(--cst-primary-rgb), 0.4);
+}
+
+/* ── Avatar border ── */
+[data-theme="dark"] .cst-profile-avatar,
+[data-theme="dark"] .cst-profile-avatar-placeholder {
+    border-color: var(--cst-border);
+}
+
+/* ── Card avatar placeholder ── */
+[data-theme="dark"] .cst-card-avatar-placeholder {
+    background: rgba(var(--cst-primary-rgb), 0.2);
+}
+
+/* ── Badge PF (hardcoded gray) ── */
+[data-theme="dark"] .cst-badge-pf {
+    background: rgba(173, 181, 189, 0.15);
+    color: #ADB5BD;
+}
+
+/* ── API-filled field ── */
+[data-theme="dark"] .cst-api-filled {
+    background-color: rgba(81, 207, 102, 0.1) !important;
+    border-color: rgba(81, 207, 102, 0.4) !important;
+}
+
+[data-theme="dark"] .cst-api-filled:focus {
+    background-color: var(--bg-tertiary) !important;
+}
+
+/* ── Form label muted ── */
+[data-theme="dark"] .cst-form-section .form-label {
+    color: var(--cst-muted);
+}
+
+/* ── Table in index: bg-white and bg-light overrides ── */
+[data-theme="dark"] .cst-table-wrap .bg-white {
+    background-color: var(--bg-secondary) !important;
+}
+
+[data-theme="dark"] .cst-table-wrap .bg-light {
+    background-color: var(--bg-tertiary) !important;
+}
+
+/* ── Import history card-header ── */
+[data-theme="dark"] .card-header.bg-white {
+    background-color: var(--bg-secondary) !important;
+}
+
+/* ── Tag input, suggestions, offcanvas ── */
+[data-theme="dark"] .cst-tag-input-wrapper {
+    background: var(--bg-tertiary, #0F3460);
+    border-color: var(--cst-border);
+}
+
+[data-theme="dark"] .cst-tag-input {
+    color: var(--cst-text);
+}
+
+[data-theme="dark"] .cst-tag-suggestions {
+    background: var(--bg-secondary, #16213E);
+    border-color: var(--cst-border);
+}
+
+[data-theme="dark"] .cst-tag-suggestions .cst-tag-suggestion:hover {
+    background: rgba(var(--cst-primary-rgb), 0.12);
+}
+
+[data-theme="dark"] .cst-filter-drawer {
+    background: var(--bg-primary, #1A1A2E);
+    color: var(--cst-text);
+}
+
+[data-theme="dark"] .cst-filter-drawer .offcanvas-header {
+    border-color: var(--cst-border);
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE OVERRIDES
+   ═══════════════════════════════════════════════ */
+
 @media (max-width: 991.98px) {
     .cst-stepper {
         gap: 0;

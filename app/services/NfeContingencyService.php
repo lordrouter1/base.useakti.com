@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Services;
 
+use Akti\Core\Log;
+
 use Akti\Models\NfeCredential;
 use Akti\Models\NfeDocument;
 use PDO;
@@ -254,7 +256,7 @@ class NfeContingencyService
                 }
             } catch (\Throwable $e) {
                 $failed++;
-                error_log("[NfeContingencyService] Sync error for NF-e #{$nfeId}: " . $e->getMessage());
+                Log::error('NfeContingencyService: Sync error for NF-e #{$nfeId}', ['detail' => $e->getMessage()]);
             }
         }
 
@@ -315,7 +317,7 @@ class NfeContingencyService
                 ':user_id'        => $_SESSION['user_id'] ?? null,
             ]);
         } catch (\Throwable $e) {
-            error_log('[NfeContingencyService] Log error: ' . $e->getMessage());
+            Log::error('NfeContingencyService: Log error', ['exception' => $e->getMessage()]);
         }
     }
 

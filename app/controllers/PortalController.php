@@ -9,6 +9,11 @@ use Akti\Models\CatalogLink;
 use Akti\Models\Logger;
 use Akti\Middleware\PortalAuthMiddleware;
 use Akti\Services\PortalLang;
+use Akti\Services\PortalCartService;
+use Akti\Services\PortalAuthService;
+use Akti\Services\PortalAvatarService;
+use Akti\Services\PortalOrderService;
+use Akti\Services\Portal2faService;
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use Akti\Core\Security;
@@ -85,7 +90,6 @@ class PortalController
             return;
         }
 
-        // Se já está logado, vai pro dashboard
         if (PortalAuthMiddleware::isAuthenticated()) {
             header('Location: ?page=portal&action=dashboard');
             exit;
@@ -106,7 +110,7 @@ class PortalController
             $successMsg = __p('reset_success');
         }
 
-        // POST — processar login
+        // POST — processar login via service
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email    = Input::post('email', 'email');
             $password = Input::post('password');
@@ -114,87 +118,19 @@ class PortalController
             if (empty($email)) {
                 $error = __p('error_required');
             } else {
-                $access = $this->portalAccess->findByEmail($email);
+                $authService = new PortalAuthService($this->db, $this->portalAccess, $this->logger);
+                $result = $authService->loginWithPassword($email, $password, $config);
 
-                // Ler config require_password
-                $requirePassword = ($config['require_password'] ?? '0') === '1';
-
-                if (!$access) {
-                    $error = __p('login_error');
-                } elseif (!$access['is_active']) {
-                    $error = __p('login_inactive');
-                } elseif ($this->portalAccess->isLocked($access)) {
-                    $remainingMin = max(1, (int) ceil((strtotime($access['locked_until']) - time()) / 60));
-                    $error = __p('login_locked', ['minutes' => $remainingMin]);
-                } elseif (empty($access['password_hash']) && !$requirePassword) {
-                    // Conta sem senha e senha não obrigatória — sugerir magic link
-                    $error = __p('login_use_magic_link');
-                } elseif (empty($access['password_hash']) && $requirePassword) {
-                    // Conta sem senha mas senha obrigatória — erro genérico
-                    $error = __p('login_error');
-                } elseif (!$this->portalAccess->verifyPassword($password, $access['password_hash'])) {
-                    $this->portalAccess->registerFailedAttempt($access['id']);
-                    $this->logger->log('portal_login_failed', "E-mail: {$email} | IP: " . PortalAuthMiddleware::getClientIp());
-                    $error = __p('login_error');
-                } else {
-                    // Login bem-sucedido
-                    $ip = PortalAuthMiddleware::getClientIp();
-                    $this->portalAccess->registerSuccessfulLogin($access['id'], $ip);
-
-                    // ── Verificar se deve trocar senha temporária ──
-                    if (!empty($access['must_change_password'])) {
-                        $resetToken = $this->portalAccess->generateResetToken($access['id']);
-                        header('Location: ?page=portal&action=setupPassword&token=' . urlencode($resetToken));
-                        exit;
-                    }
-
-                    // ── Prevenir session fixation ──
-                    session_regenerate_id(true);
-
-                    // Buscar dados do cliente
-                    $customer = (new Customer($this->db))->readOne($access['customer_id']);
-                    $customerName = $customer ? $customer['name'] : 'Cliente';
-
-                    PortalAuthMiddleware::login(
-                        $access['customer_id'],
-                        $access['id'],
-                        $customerName,
-                        $access['email'],
-                        $access['lang'] ?? 'pt-br'
-                    );
-
-                    // Guardar avatar na sessão para exibição no topbar
-                    $_SESSION['portal_customer_avatar'] = $access['avatar'] ?? '';
-
-                    $this->logger->log('portal_login', "Cliente ID: {$access['customer_id']} | Nome: {$customerName} | E-mail: {$email} | IP: {$ip}");
-
-                    // ── Verificar 2FA ──
-                    $config = $this->portalAccess->getAllConfig();
-                    $global2fa = ($config['enable_2fa'] ?? '0') === '1';
-                    if ($global2fa && $this->portalAccess->is2faEnabled($access['id'])) {
-                        $code = $this->portalAccess->generate2faCode($access['id']);
-                        PortalAuthMiddleware::set2faPending(true);
-
-                        // TODO: Enviar e-mail com o código 2FA
-                        // mail($access['email'], 'Código de Verificação', "Seu código: {$code}");
-
-                        EventDispatcher::dispatch('portal.customer.2fa_requested', new Event('portal.customer.2fa_requested', [
-                            'customer_id' => $access['customer_id'],
-                            'email'       => $access['email'],
-                        ]));
-
-                        header('Location: ?page=portal&action=verify2fa');
-                        exit;
-                    }
-
-                    EventDispatcher::dispatch('portal.customer.logged_in', new Event('portal.customer.logged_in', [
-                        'customer_id' => $access['customer_id'],
-                        'email'       => $access['email'],
-                        'ip'          => $ip,
-                    ]));
-
-                    header('Location: ?page=portal&action=dashboard');
+                if ($result['success']) {
+                    header('Location: ' . $result['redirect']);
                     exit;
+                } else {
+                    $errorKey = $result['error'];
+                    if ($errorKey === 'login_locked') {
+                        $error = __p('login_locked', ['minutes' => $result['minutes']]);
+                    } else {
+                        $error = __p($errorKey);
+                    }
                 }
             }
         }
@@ -227,48 +163,16 @@ class PortalController
             exit;
         }
 
-        $access = $this->portalAccess->validateMagicToken($token);
+        $authService = new PortalAuthService($this->db, $this->portalAccess, $this->logger);
+        $result = $authService->loginWithMagicLink($token);
 
-        if (!$access) {
-            // Token inválido ou expirado
-            $_SESSION['portal_login_error'] = 'Link de acesso inválido ou expirado.';
+        if (!$result['success']) {
+            $_SESSION['portal_login_error'] = $result['error'];
             header('Location: ?page=portal&action=login');
             exit;
         }
 
-        // Se o usuário ainda não tem senha, redirecionar para cadastro de senha
-        if (empty($access['password_hash']) || !empty($access['must_change_password'])) {
-            header('Location: ?page=portal&action=setupPassword&token=' . urlencode($token));
-            exit;
-        }
-
-        // Login bem-sucedido via link mágico
-        $ip = PortalAuthMiddleware::getClientIp();
-        $this->portalAccess->registerSuccessfulLogin($access['id'], $ip);
-        $this->portalAccess->invalidateMagicToken($access['id']); // Uso único
-
-        // ── Prevenir session fixation ──
-        session_regenerate_id(true);
-
-        $customer = (new Customer($this->db))->readOne($access['customer_id']);
-        $customerName = $customer ? $customer['name'] : 'Cliente';
-
-        PortalAuthMiddleware::login(
-            $access['customer_id'],
-            $access['id'],
-            $customerName,
-            $access['email'],
-            $access['lang'] ?? 'pt-br'
-        );
-
-        EventDispatcher::dispatch('portal.customer.logged_in', new Event('portal.customer.logged_in', [
-            'customer_id' => $access['customer_id'],
-            'email'       => $access['email'],
-            'ip'          => $ip,
-            'method'      => 'magic_link',
-        ]));
-
-        header('Location: ?page=portal&action=dashboard');
+        header('Location: ' . $result['redirect']);
         exit;
     }
 
@@ -294,15 +198,10 @@ class PortalController
             exit;
         }
 
-        // Tentar validar como magic_token primeiro, depois como reset_token
-        $access = $this->portalAccess->validateMagicToken($token);
-        $tokenType = 'magic';
+        $authService = new PortalAuthService($this->db, $this->portalAccess, $this->logger);
 
-        if (!$access) {
-            $access = $this->portalAccess->validateResetToken($token);
-            $tokenType = 'reset';
-        }
-
+        // Validar token
+        $access = $authService->validateToken($token);
         if (!$access) {
             $_SESSION['portal_login_error'] = __p('setup_password_token_expired');
             header('Location: ?page=portal&action=login');
@@ -310,53 +209,18 @@ class PortalController
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $newPassword = Input::post('password');
-            $confirmPassword = Input::post('password_confirm');
+            $result = $authService->setupNewPassword(
+                $token,
+                Input::post('password'),
+                Input::post('password_confirm')
+            );
 
-            if (empty($newPassword) || empty($confirmPassword)) {
-                $error = __p('error_required');
-            } elseif ($newPassword !== $confirmPassword) {
-                $error = __p('register_password_mismatch');
-            } elseif (!$this->isPasswordStrong($newPassword)) {
-                $error = __p('profile_password_weak');
-            } else {
-                // Salvar a senha (resetPassword já limpa must_change_password)
-                $this->portalAccess->resetPassword($access['id'], $newPassword);
-
-                // Invalidar o token usado
-                if ($tokenType === 'magic') {
-                    $this->portalAccess->invalidateMagicToken($access['id']);
-                } else {
-                    $this->portalAccess->invalidateResetToken($access['id']);
-                }
-
-                // Fazer login automaticamente
-                $ip = PortalAuthMiddleware::getClientIp();
-                $this->portalAccess->registerSuccessfulLogin($access['id'], $ip);
-
-                session_regenerate_id(true);
-
-                $customer = (new Customer($this->db))->readOne($access['customer_id']);
-                $customerName = $customer ? $customer['name'] : 'Cliente';
-
-                PortalAuthMiddleware::login(
-                    $access['customer_id'],
-                    $access['id'],
-                    $customerName,
-                    $access['email'],
-                    $access['lang'] ?? 'pt-br'
-                );
-
-                EventDispatcher::dispatch('portal.customer.logged_in', new Event('portal.customer.logged_in', [
-                    'customer_id' => $access['customer_id'],
-                    'email'       => $access['email'],
-                    'ip'          => $ip,
-                    'method'      => 'password_setup',
-                ]));
-
-                header('Location: ?page=portal&action=dashboard');
+            if ($result['success']) {
+                header('Location: ' . $result['redirect']);
                 exit;
             }
+
+            $error = __p($result['error']);
         }
 
         // Renderizar formulário de cadastro de senha
@@ -415,52 +279,23 @@ class PortalController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $formData = [
-                'name'     => Input::post('name'),
-                'email'    => Input::post('email', 'email'),
-                'phone'    => Input::post('phone'),
-                'document' => Input::post('document'),
-                'password' => Input::post('password'),
+                'name'             => Input::post('name'),
+                'email'            => Input::post('email', 'email'),
+                'phone'            => Input::post('phone'),
+                'document'         => Input::post('document'),
+                'password'         => Input::post('password'),
                 'password_confirm' => Input::post('password_confirm'),
             ];
 
-            // Validação
-            if (empty($formData['name']) || empty($formData['email']) || empty($formData['password'])) {
-                $error = __p('error_required');
-            } elseif ($formData['password'] !== $formData['password_confirm']) {
-                $error = __p('register_password_mismatch');
-            } elseif ($this->portalAccess->emailExists($formData['email'])) {
-                $error = __p('register_email_exists');
-            } else {
-                // Verificar se já existe um cliente com este e-mail
-                $customerModel = new Customer($this->db);
-                $existingCustomer = $this->findCustomerByEmail($formData['email']);
+            $authService = new PortalAuthService($this->db, $this->portalAccess, $this->logger);
+            $result = $authService->register($formData);
 
-                if ($existingCustomer) {
-                    // Vincular ao cliente existente
-                    $customerId = $existingCustomer['id'];
-                } else {
-                    // Criar novo cliente
-                    $customerId = $customerModel->create([
-                        'name'     => $formData['name'],
-                        'email'    => $formData['email'],
-                        'phone'    => $formData['phone'],
-                        'document' => $formData['document'],
-                        'address'  => '',
-                        'photo'    => '',
-                    ]);
-                }
-
-                // Criar acesso ao portal
-                $this->portalAccess->create([
-                    'customer_id' => $customerId,
-                    'email'       => $formData['email'],
-                    'password'    => $formData['password'],
-                    'lang'        => 'pt-br',
-                ]);
-
+            if ($result['success']) {
                 header('Location: ?page=portal&action=login&registered=1');
                 exit;
             }
+
+            $error = __p($result['error']);
         }
 
         $allowSelfRegister = true;
@@ -808,24 +643,17 @@ class PortalController
         $customerId = PortalAuthMiddleware::getCustomerId();
         $filter     = Input::get('filter') ?: 'all';
         $page       = max(1, (int) (Input::get('p') ?: 1));
-        $perPage    = 10;
-        $offset     = ($page - 1) * $perPage;
 
-        // Validar filtro
-        $validFilters = ['all', 'open', 'approval', 'done'];
-        if (!in_array($filter, $validFilters)) {
-            $filter = 'all';
-        }
+        $orderService = new PortalOrderService($this->db, $this->portalAccess);
+        $data = $orderService->listOrders($customerId, $filter, $page);
 
-        $orders     = $this->portalAccess->getOrdersByCustomer($customerId, $filter, $perPage, $offset);
-        $totalCount = $this->portalAccess->countOrdersByCustomer($customerId, $filter);
-        $totalPages = max(1, (int) ceil($totalCount / $perPage));
-
-        // Contadores para badges nas tabs
-        $countAll      = $this->portalAccess->countOrdersByCustomer($customerId, 'all');
-        $countOpen     = $this->portalAccess->countOrdersByCustomer($customerId, 'open');
-        $countApproval = $this->portalAccess->countOrdersByCustomer($customerId, 'approval');
-        $countDone     = $this->portalAccess->countOrdersByCustomer($customerId, 'done');
+        $orders     = $data['orders'];
+        $totalCount = $data['totalCount'];
+        $totalPages = $data['totalPages'];
+        $countAll      = $data['countAll'];
+        $countOpen     = $data['countOpen'];
+        $countApproval = $data['countApproval'];
+        $countDone     = $data['countDone'];
 
         $company = $this->company;
 
@@ -850,34 +678,21 @@ class PortalController
             exit;
         }
 
-        // Buscar pedido (valida pertence ao cliente no Model via WHERE customer_id)
-        $order = $this->portalAccess->getOrderDetail($orderId, $customerId);
+        $orderService = new PortalOrderService($this->db, $this->portalAccess);
+        $detail = $orderService->getOrderDetail($orderId, $customerId);
 
-        if (!$order) {
+        if (!$detail) {
             header('Location: ?page=portal&action=orders');
             exit;
         }
 
-        // Dados complementares
-        $items        = $this->portalAccess->getOrderItems($orderId);
-        $installments = $this->portalAccess->getOrderInstallments($orderId);
-        $extraCosts   = $this->portalAccess->getOrderExtraCosts($orderId);
-        $timeline     = $this->portalAccess->getOrderTimeline($order);
-
-        // Buscar link de catálogo ativo (para pedidos em fase de orçamento)
-        $catalogUrl = null;
-        try {
-            $catalogModel = new CatalogLink($this->db);
-            $activeLink = $catalogModel->findActiveByOrder($orderId);
-            if ($activeLink) {
-                $catalogUrl = CatalogLink::buildUrl($activeLink['token']);
-            }
-        } catch (\Exception $e) {
-            // Tabela pode não existir — ignorar
-        }
-
-        // Config de aprovação
-        $allowApproval = $this->portalAccess->getConfig('allow_order_approval', '1') === '1';
+        $order         = $detail['order'];
+        $items         = $detail['items'];
+        $installments  = $detail['installments'];
+        $extraCosts    = $detail['extraCosts'];
+        $timeline      = $detail['timeline'];
+        $catalogUrl    = $detail['catalogUrl'];
+        $allowApproval = $detail['allowApproval'];
 
         // Contexto focado de aprovação (vindo da aba Aprovação)
         $approvalContext = (Input::get('context') === 'approval')
@@ -888,11 +703,11 @@ class PortalController
         $successMsg = '';
         if (isset($_GET['approved'])) {
             $successMsg = __p('approval_success');
-            $approvalContext = false; // Já aprovou, mostrar view completa
+            $approvalContext = false;
         }
         if (isset($_GET['rejected'])) {
             $successMsg = __p('approval_rejected');
-            $approvalContext = false; // Já recusou, mostrar view completa
+            $approvalContext = false;
         }
         if (isset($_GET['cancelled'])) {
             $successMsg = __p('approval_cancelled');
@@ -923,28 +738,23 @@ class PortalController
         $notes      = Input::post('notes');
         $ip         = PortalAuthMiddleware::getClientIp();
 
-        // Validar config
-        if ($this->portalAccess->getConfig('allow_order_approval', '1') !== '1') {
+        $orderService = new PortalOrderService($this->db, $this->portalAccess);
+        $result = $orderService->approveOrder($orderId, $customerId, $ip, $notes);
+
+        if ($result['message'] === 'disabled') {
             header('Location: ?page=portal&action=orderDetail&id=' . $orderId . '&error=disabled');
             exit;
         }
-
-        // Verificar que o pedido pertence ao cliente e está pendente
-        $order = $this->portalAccess->getOrderDetail($orderId, $customerId);
-        if (!$order) {
+        if ($result['message'] === 'not_found') {
             header('Location: ?page=portal&action=orders');
             exit;
         }
-
-        $approvalStatus = $order['customer_approval_status'] ?? null;
-        if ($approvalStatus !== 'pendente') {
+        if ($result['message'] === 'not_pending') {
             header('Location: ?page=portal&action=orderDetail&id=' . $orderId);
             exit;
         }
 
-        $success = $this->portalAccess->updateApprovalStatus($orderId, $customerId, 'aprovado', $ip, $notes);
-
-        if ($success) {
+        if ($result['success']) {
             $this->logger->log('portal_order_approved', "Cliente ID: {$customerId} | Pedido #{$orderId} aprovado | IP: {$ip}");
             EventDispatcher::dispatch('portal.order.approved', new Event('portal.order.approved', [
                 'order_id'    => $orderId,
@@ -976,28 +786,23 @@ class PortalController
         $notes      = Input::post('notes');
         $ip         = PortalAuthMiddleware::getClientIp();
 
-        // Validar config
-        if ($this->portalAccess->getConfig('allow_order_approval', '1') !== '1') {
+        $orderService = new PortalOrderService($this->db, $this->portalAccess);
+        $result = $orderService->rejectOrder($orderId, $customerId, $ip, $notes);
+
+        if ($result['message'] === 'disabled') {
             header('Location: ?page=portal&action=orderDetail&id=' . $orderId . '&error=disabled');
             exit;
         }
-
-        // Verificar que o pedido pertence ao cliente e está pendente
-        $order = $this->portalAccess->getOrderDetail($orderId, $customerId);
-        if (!$order) {
+        if ($result['message'] === 'not_found') {
             header('Location: ?page=portal&action=orders');
             exit;
         }
-
-        $approvalStatus = $order['customer_approval_status'] ?? null;
-        if ($approvalStatus !== 'pendente') {
+        if ($result['message'] === 'not_pending') {
             header('Location: ?page=portal&action=orderDetail&id=' . $orderId);
             exit;
         }
 
-        $success = $this->portalAccess->updateApprovalStatus($orderId, $customerId, 'recusado', $ip, $notes);
-
-        if ($success) {
+        if ($result['success']) {
             $this->logger->log('portal_order_rejected', "Cliente ID: {$customerId} | Pedido #{$orderId} recusado | IP: {$ip}");
             EventDispatcher::dispatch('portal.order.rejected', new Event('portal.order.rejected', [
                 'order_id'    => $orderId,
@@ -1028,33 +833,28 @@ class PortalController
         $orderId    = (int) Input::post('id');
         $ip         = PortalAuthMiddleware::getClientIp();
 
-        // Validar config
-        if ($this->portalAccess->getConfig('allow_order_approval', '1') !== '1') {
+        $orderService = new PortalOrderService($this->db, $this->portalAccess);
+        $result = $orderService->cancelApproval($orderId, $customerId, $ip);
+
+        if ($result['message'] === 'disabled') {
             header('Location: ?page=portal&action=orderDetail&id=' . $orderId . '&error=disabled');
             exit;
         }
-
-        // Verificar que o pedido pertence ao cliente e está aprovado ou recusado
-        $order = $this->portalAccess->getOrderDetail($orderId, $customerId);
-        if (!$order) {
+        if ($result['message'] === 'not_found') {
             header('Location: ?page=portal&action=orders');
             exit;
         }
-
-        $approvalStatus = $order['customer_approval_status'] ?? null;
-        if (!in_array($approvalStatus, ['aprovado', 'recusado'])) {
+        if ($result['message'] === 'not_applicable') {
             header('Location: ?page=portal&action=orderDetail&id=' . $orderId);
             exit;
         }
 
-        $success = $this->portalAccess->cancelApprovalStatus($orderId, $customerId, $ip);
-
-        if ($success) {
+        if ($result['success']) {
             EventDispatcher::dispatch('portal.order.approval_cancelled', new Event('portal.order.approval_cancelled', [
-                'order_id'       => $orderId,
-                'customer_id'    => $customerId,
-                'ip'             => $ip,
-                'previous_status' => $approvalStatus,
+                'order_id'        => $orderId,
+                'customer_id'     => $customerId,
+                'ip'              => $ip,
+                'previous_status' => $result['previous_status'],
             ]));
         }
 
@@ -1099,9 +899,11 @@ class PortalController
         $totalPages = max(1, (int) ceil($totalCount / $perPage));
         $categories = $this->portalAccess->getCategories();
 
-        // Carrinho da sessão
-        $cart = $_SESSION['portal_cart'] ?? [];
-        $cartCount = array_sum(array_column($cart, 'quantity'));
+        // Carrinho via service
+        $cartService = new PortalCartService($this->portalAccess);
+        $cartSummary = $cartService->getCartSummary();
+        $cart      = $cartSummary['cart'];
+        $cartCount = $cartSummary['cartCount'];
 
         $orderNotes = $this->portalAccess->getConfig('new_order_notes', '');
         $company    = $this->company;
@@ -1158,53 +960,17 @@ class PortalController
         $productId = (int) Input::post('product_id');
         $quantity  = max(1, (int) (Input::post('quantity') ?: 1));
 
-        if ($productId <= 0) {
-            $this->jsonResponse(false, 'Produto inválido.');
-        }
+        $cartService = new PortalCartService($this->portalAccess);
+        $result = $cartService->addItem($productId, $quantity);
 
-        // Buscar dados do produto
-        $product = $this->portalAccess->getProductById($productId);
-        if (!$product) {
-            $this->jsonResponse(false, 'Produto não encontrado.');
-        }
-
-        // Inicializar carrinho
-        if (!isset($_SESSION['portal_cart'])) {
-            $_SESSION['portal_cart'] = [];
-        }
-
-        // Verificar se o produto já está no carrinho
-        $found = false;
-        foreach ($_SESSION['portal_cart'] as &$item) {
-            if ((int) $item['product_id'] === $productId) {
-                $item['quantity'] += $quantity;
-                $found = true;
-                break;
-            }
-        }
-        unset($item);
-
-        if (!$found) {
-            $_SESSION['portal_cart'][] = [
-                'product_id' => $productId,
-                'name'       => $product['name'],
-                'price'      => (float) $product['price'],
-                'quantity'   => $quantity,
-                'image'      => $product['main_image_path'] ?? null,
-            ];
-        }
-
-        $cart = $_SESSION['portal_cart'];
-        $cartCount = array_sum(array_column($cart, 'quantity'));
-        $cartTotal = 0;
-        foreach ($cart as $ci) {
-            $cartTotal += $ci['price'] * $ci['quantity'];
+        if (!$result['success']) {
+            $this->jsonResponse(false, $result['message']);
         }
 
         $this->jsonResponse(true, __p('cart_item_added'), [
-            'cart'      => $cart,
-            'cartCount' => $cartCount,
-            'cartTotal' => $cartTotal,
+            'cart'      => $result['cart'],
+            'cartCount' => $result['cartCount'],
+            'cartTotal' => $result['cartTotal'],
         ]);
     }
 
@@ -1222,25 +988,10 @@ class PortalController
 
         $productId = (int) Input::post('product_id');
 
-        if (isset($_SESSION['portal_cart'])) {
-            $_SESSION['portal_cart'] = array_values(array_filter(
-                $_SESSION['portal_cart'],
-                fn($item) => (int) $item['product_id'] !== $productId
-            ));
-        }
+        $cartService = new PortalCartService($this->portalAccess);
+        $summary = $cartService->removeItem($productId);
 
-        $cart = $_SESSION['portal_cart'] ?? [];
-        $cartCount = array_sum(array_column($cart, 'quantity'));
-        $cartTotal = 0;
-        foreach ($cart as $ci) {
-            $cartTotal += $ci['price'] * $ci['quantity'];
-        }
-
-        $this->jsonResponse(true, __p('cart_item_removed'), [
-            'cart'      => $cart,
-            'cartCount' => $cartCount,
-            'cartTotal' => $cartTotal,
-        ]);
+        $this->jsonResponse(true, __p('cart_item_removed'), $summary);
     }
 
     /**
@@ -1258,36 +1009,10 @@ class PortalController
         $productId = (int) Input::post('product_id');
         $quantity  = max(0, (int) Input::post('quantity'));
 
-        if (isset($_SESSION['portal_cart'])) {
-            if ($quantity <= 0) {
-                // Remover
-                $_SESSION['portal_cart'] = array_values(array_filter(
-                    $_SESSION['portal_cart'],
-                    fn($item) => (int) $item['product_id'] !== $productId
-                ));
-            } else {
-                foreach ($_SESSION['portal_cart'] as &$item) {
-                    if ((int) $item['product_id'] === $productId) {
-                        $item['quantity'] = $quantity;
-                        break;
-                    }
-                }
-                unset($item);
-            }
-        }
+        $cartService = new PortalCartService($this->portalAccess);
+        $summary = $cartService->updateItemQuantity($productId, $quantity);
 
-        $cart = $_SESSION['portal_cart'] ?? [];
-        $cartCount = array_sum(array_column($cart, 'quantity'));
-        $cartTotal = 0;
-        foreach ($cart as $ci) {
-            $cartTotal += $ci['price'] * $ci['quantity'];
-        }
-
-        $this->jsonResponse(true, 'OK', [
-            'cart'      => $cart,
-            'cartCount' => $cartCount,
-            'cartTotal' => $cartTotal,
-        ]);
+        $this->jsonResponse(true, 'OK', $summary);
     }
 
     /**
@@ -1298,20 +1023,11 @@ class PortalController
     {
         PortalAuthMiddleware::check();
 
-        $cart = $_SESSION['portal_cart'] ?? [];
-        $cartCount = array_sum(array_column($cart, 'quantity'));
-        $cartTotal = 0;
-        foreach ($cart as $ci) {
-            $cartTotal += $ci['price'] * $ci['quantity'];
-        }
+        $cartService = new PortalCartService($this->portalAccess);
+        $summary = $cartService->getCartSummary();
 
         header('Content-Type: application/json');
-        echo json_encode([
-            'success'   => true,
-            'cart'      => $cart,
-            'cartCount' => $cartCount,
-            'cartTotal' => $cartTotal,
-        ]);
+        echo json_encode(array_merge(['success' => true], $summary));
         exit;
     }
 
@@ -1328,7 +1044,6 @@ class PortalController
             exit;
         }
 
-        // Verificar se a funcionalidade está habilitada
         if ($this->portalAccess->getConfig('allow_new_order', '1') !== '1') {
             header('Location: ?page=portal&action=dashboard');
             exit;
@@ -1338,15 +1053,16 @@ class PortalController
         $notes      = Input::post('notes');
         $cart       = $_SESSION['portal_cart'] ?? [];
 
-        if (empty($cart)) {
+        $orderService = new PortalOrderService($this->db, $this->portalAccess);
+        $orderId = $orderService->submitOrder($customerId, $cart, $notes);
+
+        if ($orderId === null) {
             if ($this->isAjax()) {
                 $this->jsonResponse(false, __p('cart_empty'));
             }
             header('Location: ?page=portal&action=newOrder&error=empty');
             exit;
         }
-
-        $orderId = $this->portalAccess->createPortalOrder($customerId, $cart, $notes);
 
         // Limpar carrinho
         $_SESSION['portal_cart'] = [];
@@ -1650,7 +1366,6 @@ class PortalController
             exit;
         }
 
-        // Se 2FA não está pendente, ir para dashboard
         if (!PortalAuthMiddleware::is2faPending()) {
             header('Location: ?page=portal&action=dashboard');
             exit;
@@ -1663,9 +1378,9 @@ class PortalController
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $code = Input::post('code');
 
-            if (empty($code) || strlen($code) !== 6) {
-                $error = __p('2fa_invalid_code');
-            } elseif ($this->portalAccess->validate2faCode($accessId, $code)) {
+            $twoFaService = new Portal2faService($this->db, $this->portalAccess);
+
+            if ($twoFaService->validateCode($accessId, $code)) {
                 PortalAuthMiddleware::set2faVerified();
                 $this->logger->log('portal_2fa_verified', "Cliente ID: " . PortalAuthMiddleware::getCustomerId() . " | 2FA verificado | IP: " . PortalAuthMiddleware::getClientIp());
 
@@ -1699,11 +1414,10 @@ class PortalController
         }
 
         $accessId = PortalAuthMiddleware::getAccessId();
-        $code = $this->portalAccess->generate2faCode($accessId);
+        $twoFaService = new Portal2faService($this->db, $this->portalAccess);
+        $twoFaService->resendCode($accessId);
 
         // TODO: Enviar e-mail com o novo código
-        // $email = $_SESSION['portal_email'] ?? '';
-        // mail($email, 'Novo código de verificação', "Seu código: {$code}");
 
         $this->jsonResponse(true, __p('2fa_code_resent'));
     }
@@ -1722,7 +1436,8 @@ class PortalController
         $accessId = PortalAuthMiddleware::getAccessId();
         $enable = Input::post('enable') === '1';
 
-        $this->portalAccess->toggle2fa($accessId, $enable);
+        $twoFaService = new Portal2faService($this->db, $this->portalAccess);
+        $twoFaService->toggle($accessId, $enable);
 
         $action = $enable ? 'ativou' : 'desativou';
         $this->logger->log('portal_2fa_toggled', "Cliente ID: " . PortalAuthMiddleware::getCustomerId() . " | 2FA {$action} | IP: " . PortalAuthMiddleware::getClientIp());
@@ -1749,77 +1464,19 @@ class PortalController
         $accessId   = PortalAuthMiddleware::getAccessId();
         $customerId = PortalAuthMiddleware::getCustomerId();
 
-        if (empty($_FILES['avatar']) || $_FILES['avatar']['error'] !== UPLOAD_ERR_OK) {
-            if ($this->isAjax()) {
-                $this->jsonResponse(false, __p('avatar_upload_error'));
-            }
-            header('Location: ?page=portal&action=profile&avatar_error=1');
-            exit;
-        }
-
-        $file = $_FILES['avatar'];
-
-        // Validar tipo e tamanho (máx. 2MB, apenas imagens)
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        $maxSize = 2 * 1024 * 1024; // 2MB
-
-        if (!in_array($file['type'], $allowedTypes)) {
-            if ($this->isAjax()) {
-                $this->jsonResponse(false, __p('avatar_invalid_type'));
-            }
-            header('Location: ?page=portal&action=profile&avatar_error=type');
-            exit;
-        }
-
-        if ($file['size'] > $maxSize) {
-            if ($this->isAjax()) {
-                $this->jsonResponse(false, __p('avatar_too_large'));
-            }
-            header('Location: ?page=portal&action=profile&avatar_error=size');
-            exit;
-        }
-
-        // Determinar extensão
-        $ext = match ($file['type']) {
-            'image/jpeg' => 'jpg',
-            'image/png'  => 'png',
-            'image/webp' => 'webp',
-            default      => 'jpg',
-        };
-
-        // Gerar nome único
-        $filename = 'portal_avatar_' . $customerId . '_' . time() . '.' . $ext;
-        $destDir  = 'assets/uploads/portal/avatars/';
-
-        if (!is_dir($destDir)) {
-            mkdir($destDir, 0755, true);
-        }
-
-        $destPath = $destDir . $filename;
-
-        if (!move_uploaded_file($file['tmp_name'], $destPath)) {
-            if ($this->isAjax()) {
-                $this->jsonResponse(false, __p('avatar_upload_error'));
-            }
-            header('Location: ?page=portal&action=profile&avatar_error=1');
-            exit;
-        }
-
-        // Remover avatar antigo
-        $oldAvatar = $this->portalAccess->getAvatar($accessId);
-        if ($oldAvatar && file_exists($oldAvatar)) {
-            @unlink($oldAvatar);
-        }
-
-        $this->portalAccess->updateAvatar($accessId, $destPath);
-        $_SESSION['portal_customer_avatar'] = $destPath;
-        $this->logger->log('portal_avatar_uploaded', "Cliente ID: {$customerId} | Avatar atualizado | IP: " . PortalAuthMiddleware::getClientIp());
+        $avatarService = new PortalAvatarService($this->portalAccess, $this->logger);
+        $result = $avatarService->upload($_FILES['avatar'] ?? [], $accessId, $customerId);
 
         if ($this->isAjax()) {
-            $this->jsonResponse(true, __p('avatar_updated'), ['path' => $destPath]);
+            $message = __p($result['message']);
+            $this->jsonResponse($result['success'], $message, $result['path'] ? ['path' => $result['path']] : []);
         }
 
-        header('Location: ?page=portal&action=profile&avatar_updated=1');
+        if ($result['success']) {
+            header('Location: ?page=portal&action=profile&avatar_updated=1');
+        } else {
+            header('Location: ?page=portal&action=profile&avatar_error=1');
+        }
         exit;
     }
 
@@ -1915,28 +1572,16 @@ class PortalController
      */
     private function findCustomerByEmail(string $email): ?array
     {
-        $stmt = $this->db->prepare("SELECT * FROM customers WHERE email = :email LIMIT 1");
-        $stmt->execute([':email' => $email]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+        $customerModel = new Customer($this->db);
+        return $customerModel->findByEmail($email);
     }
 
     /**
      * Valida força da senha (mín. 8 chars, letras + números).
-     *
-     * @param string $password
-     * @return bool
      */
     private function isPasswordStrong(string $password): bool
     {
-        if (strlen($password) < 8) {
-            return false;
-        }
-        // Deve conter pelo menos uma letra e pelo menos um número
-        if (!preg_match('/[a-zA-Z]/', $password) || !preg_match('/[0-9]/', $password)) {
-            return false;
-        }
-        return true;
+        return (new PortalAuthService($this->db, $this->portalAccess, $this->logger))->isPasswordStrong($password);
     }
 
     /**

@@ -17,6 +17,16 @@
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
         </testsuite>
+
+        <!-- Suíte de segurança: testes de CSRF, XSS, session fixation -->
+        <testsuite name="Security">
+            <directory>tests/Security</directory>
+        </testsuite>
+
+        <!-- Suíte de integração: testes de fluxo completo com HTTP -->
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
     </testsuites>
 
     <php>

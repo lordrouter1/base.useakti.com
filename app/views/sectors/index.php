@@ -17,7 +17,7 @@
         <!-- Form -->
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm border-0 sticky-top" style="top: 90px;">
-                <div class="card-header text-white p-3" style="background: #e67e22;">
+                <div class="card-header text-white p-3 card-header-carrot">
                     <h6 class="mb-0">
                         <?php if(isset($editSector)): ?>
                             <i class="fas fa-edit me-2"></i>Editar Setor
@@ -95,7 +95,7 @@
                             <?php endif; ?>
                         </div>
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn text-white" style="background: #e67e22;">
+                            <button type="submit" class="btn btn-carrot text-white">
                                 <i class="fas fa-save me-1"></i><?= isset($editSector) ? 'Salvar Alterações' : 'Criar Setor' ?>
                             </button>
                             <?php if(isset($editSector)): ?>

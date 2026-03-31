@@ -1,0 +1,164 @@
+/* ═══════════════════════════════════════════════════════════════
+   MODULE: Orders
+   Common styles for order views
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Order Status Badges ── */
+.badge-order-pending    { background: var(--warning-light); color: #b45309; }
+.badge-order-approved   { background: var(--success-light); color: var(--success); }
+.badge-order-production { background: rgba(52, 152, 219, .12); color: #3498db; }
+.badge-order-delivered  { background: var(--success-light); color: var(--success); }
+.badge-order-cancelled  { background: var(--danger-light); color: var(--danger); }
+
+/* ── Order Card ── */
+.order-card {
+    border-radius: var(--ds-radius-md, 8px);
+    border: 1px solid var(--border, #dee2e6);
+    background: var(--bg-primary, #fff);
+    padding: var(--space-md, 16px);
+    transition: transform var(--ds-duration-fast, .15s) ease,
+                box-shadow var(--ds-duration-fast, .15s) ease;
+}
+
+.order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ds-shadow-md, 0 4px 12px rgba(0,0,0,.1));
+}
+
+/* ── Priority colors ── */
+.priority-urgente { border-left: 3px solid var(--danger, #dc3545); }
+.priority-alta    { border-left: 3px solid var(--warning, #ffc107); }
+.priority-normal  { border-left: 3px solid var(--accent, #0d6efd); }
+.priority-baixa   { border-left: 3px solid var(--success, #198754); }
+
+/* ── Dropzone (shared with import) ── */
+.import-dropzone {
+    border: 2px dashed var(--border, #ccc);
+    border-radius: var(--ds-radius-lg, 12px);
+    padding: 2rem;
+    text-align: center;
+    transition: all .2s ease;
+    cursor: pointer;
+    background: var(--bg-secondary, #fafbfc);
+}
+
+.import-dropzone:hover,
+.import-dropzone.dragover {
+    border-color: var(--accent, #3498db);
+    background: rgba(var(--accent-rgb, 52, 152, 219), .05);
+}
+
+.import-dropzone.has-file {
+    border-color: var(--success, #27ae60);
+    background: var(--success-light, rgba(39, 174, 96, .05));
+}
+
+/* ── Import steps ── */
+.import-step { display: none; }
+.import-step.active { display: block; }
+
+.mapping-select {
+    font-size: .78rem;
+    padding: .25rem .5rem;
+}
+
+.preview-table {
+    font-size: .72rem;
+    max-height: 300px;
+    overflow: auto;
+}
+
+.preview-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg-tertiary, #e9ecef);
+}
+
+.preview-table td {
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ═══ Order Create Page ═══ */
+.btn-check:checked + .btn-outline-purple {
+    background-color: #9b59b6;
+    border-color: #9b59b6;
+    color: #fff;
+}
+.btn-outline-purple:hover {
+    background-color: rgba(155,89,182,0.1);
+}
+.agenda-calendar td { transition: background 0.2s; }
+.agenda-calendar td:hover { background-color: rgba(52,152,219,0.08) !important; }
+
+/* Select2 dentro da tabela de itens */
+#orderItemsTable .select2-container { width: 100% !important; }
+#orderItemsTable .select2-container .select2-selection--single { min-height: 36px; font-size: 0.875rem; }
+
+/* ═══ Products form (create/edit) ═══ */
+.section-toggle { cursor: pointer; transition: background 0.2s; }
+.section-toggle:hover { background-color: var(--bg-secondary, #f8f9fa) !important; }
+.section-toggle .collapse-icon { transition: transform 0.3s ease; }
+[aria-expanded="true"] .collapse-icon { transform: rotate(180deg); }
+[aria-expanded="false"] .collapse-icon { transform: rotate(0deg); }
+.sticky-bottom { position: sticky; bottom: 0; z-index: 10; }
+.card .card-body fieldset { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+.card .card-body fieldset > legend { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — Orders
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .order-card {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .order-card:hover {
+    box-shadow: var(--ds-shadow-md);
+}
+
+[data-theme="dark"] .badge-order-pending {
+    background: rgba(255, 212, 59, 0.15);
+    color: #FFD43B;
+}
+
+[data-theme="dark"] .badge-order-approved {
+    background: rgba(81, 207, 102, 0.15);
+    color: #51CF66;
+}
+
+[data-theme="dark"] .badge-order-production {
+    background: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+}
+
+[data-theme="dark"] .badge-order-delivered {
+    background: rgba(81, 207, 102, 0.15);
+    color: #51CF66;
+}
+
+[data-theme="dark"] .badge-order-cancelled {
+    background: rgba(255, 107, 107, 0.15);
+    color: #FF6B6B;
+}
+
+[data-theme="dark"] .preview-table th {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .agenda-calendar td:hover {
+    background-color: rgba(96, 165, 250, 0.1) !important;
+}
+
+[data-theme="dark"] .import-dropzone {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .section-toggle:hover {
+    background-color: var(--bg-tertiary) !important;
+}

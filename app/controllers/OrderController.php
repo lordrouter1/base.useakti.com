@@ -9,6 +9,7 @@ use Akti\Models\Logger;
 use Akti\Models\PriceTable;
 use Akti\Models\CompanySettings;
 use Akti\Models\Financial;
+use Akti\Services\OrderItemService;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
 use Database;
@@ -17,11 +18,13 @@ use PDO;
 class OrderController {
     
     private $orderModel;
+    private OrderItemService $itemService;
 
     public function __construct() {
         $database = new Database();
         $db = $database->getConnection();
         $this->orderModel = new Order($db);
+        $this->itemService = new OrderItemService($db, $this->orderModel);
     }
 
     public function index() {
@@ -201,59 +204,6 @@ class OrderController {
     }
 
     /**
-     * Verifica se o pedido possui parcelas pagas (bloqueia alteração de produtos)
-     */
-    private function orderHasPaidInstallments($orderId) {
-        if (!$orderId) return false;
-        $database = new Database();
-        $db = $database->getConnection();
-        $financialModel = new Financial($db);
-        return $financialModel->hasAnyPaidInstallment($orderId);
-    }
-
-    /**
-     * Remove a confirmação de orçamento quando produtos são modificados.
-     * Se o pedido tinha sido aprovado pelo cliente via catálogo,
-     * a aprovação é invalidada para que o cliente aprove novamente.
-     */
-    private function clearQuoteConfirmation($orderId) {
-        if (!$orderId) return;
-        $database = new Database();
-        $db = $database->getConnection();
-        $stmt = $db->prepare("UPDATE orders SET quote_confirmed_at = NULL, quote_confirmed_ip = NULL WHERE id = :id AND quote_confirmed_at IS NOT NULL");
-        $stmt->execute([':id' => $orderId]);
-        if ($stmt->rowCount() > 0) {
-            $logger = new Logger($db);
-            $logger->log('QUOTE_CONFIRMATION_CLEARED', "Confirmação de orçamento do pedido #{$orderId} removida devido a alteração de produtos");
-        }
-
-        // Sincronizar: voltar customer_approval_status para 'pendente' se estava aprovado/recusado
-        $orderModel = new Order($db);
-        $order = $orderModel->readOne($orderId);
-        $approvalStatus = $order['customer_approval_status'] ?? null;
-        if ($approvalStatus === 'aprovado' || $approvalStatus === 'recusado') {
-            $orderModel->setCustomerApprovalStatus($orderId, 'pendente');
-            $db->prepare(
-                "UPDATE orders SET customer_approval_at = NULL, customer_approval_ip = NULL, customer_approval_notes = NULL WHERE id = :id"
-            )->execute([':id' => $orderId]);
-        }
-    }
-
-    /**
-     * Obtém o order_id a partir de um item_id
-     */
-    private function getOrderIdFromItem($itemId) {
-        if (!$itemId) return null;
-        $database = new Database();
-        $db = $database->getConnection();
-        $q = "SELECT order_id FROM order_items WHERE id = :id LIMIT 1";
-        $s = $db->prepare($q);
-        $s->execute([':id' => $itemId]);
-        $row = $s->fetch(PDO::FETCH_ASSOC);
-        return $row ? (int)$row['order_id'] : null;
-    }
-
-    /**
      * Adicionar item ao pedido (POST via AJAX ou form)
      */
     public function addItem() {
@@ -266,7 +216,7 @@ class OrderController {
             $gradeDescription = Input::post('grade_description');
 
             // ═══ BLOQUEIO: Não permitir alterar produtos se há parcelas pagas ═══
-            if ($this->orderHasPaidInstallments($orderId)) {
+            if ($this->itemService->orderHasPaidInstallments($orderId)) {
                 $_SESSION['error'] = 'Não é possível adicionar produtos porque existem parcelas já pagas. Estorne os pagamentos primeiro no módulo Financeiro.';
                 $redirect = Input::post('redirect', 'enum', 'orders', ['orders', 'pipeline']);
                 if ($redirect === 'pipeline') {
@@ -280,7 +230,7 @@ class OrderController {
             $this->orderModel->addItem($orderId, $productId, $quantity, $unitPrice, $combinationId ?: null, $gradeDescription ?: null);
 
             // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
-            $this->clearQuoteConfirmation($orderId);
+            $this->itemService->clearQuoteConfirmation($orderId);
 
             $redirect = Input::post('redirect', 'enum', 'orders', ['orders', 'pipeline']);
             if ($redirect === 'pipeline') {
@@ -303,7 +253,7 @@ class OrderController {
             $orderId = Input::post('order_id', 'int');
 
             // ═══ BLOQUEIO: Não permitir alterar item se há parcelas pagas ═══
-            if ($this->orderHasPaidInstallments($orderId)) {
+            if ($this->itemService->orderHasPaidInstallments($orderId)) {
                 $_SESSION['error'] = 'Não é possível alterar produtos porque existem parcelas já pagas. Estorne os pagamentos primeiro no módulo Financeiro.';
                 $redirect = Input::post('redirect', 'enum', 'orders', ['orders', 'pipeline']);
                 if ($redirect === 'pipeline') {
@@ -317,7 +267,7 @@ class OrderController {
             $this->orderModel->updateItem($itemId, $quantity, $unitPrice);
 
             // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
-            $this->clearQuoteConfirmation($orderId);
+            $this->itemService->clearQuoteConfirmation($orderId);
 
             $redirect = Input::post('redirect', 'enum', 'orders', ['orders', 'pipeline']);
             if ($redirect === 'pipeline') {
@@ -338,7 +288,7 @@ class OrderController {
         $redirect = Input::get('redirect', 'enum', 'orders', ['orders', 'pipeline']);
 
         // ═══ BLOQUEIO: Não permitir remover produtos se há parcelas pagas ═══
-        if ($this->orderHasPaidInstallments($orderId)) {
+        if ($this->itemService->orderHasPaidInstallments($orderId)) {
             $_SESSION['error'] = 'Não é possível remover produtos porque existem parcelas já pagas. Estorne os pagamentos primeiro no módulo Financeiro.';
             if ($redirect === 'pipeline') {
                 header('Location: ?page=pipeline&action=detail&id=' . $orderId);
@@ -353,7 +303,7 @@ class OrderController {
         }
 
         // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
-        $this->clearQuoteConfirmation($orderId);
+        $this->itemService->clearQuoteConfirmation($orderId);
 
         if ($redirect === 'pipeline') {
             header('Location: ?page=pipeline&action=detail&id=' . $orderId . '&status=item_deleted');
@@ -378,8 +328,8 @@ class OrderController {
         }
 
         // ═══ BLOQUEIO: Não permitir alterar quantidade se há parcelas pagas ═══
-        $orderId = $this->getOrderIdFromItem($itemId);
-        if ($orderId && $this->orderHasPaidInstallments($orderId)) {
+        $orderId = $this->itemService->getOrderIdFromItem($itemId);
+        if ($orderId && $this->itemService->orderHasPaidInstallments($orderId)) {
             echo json_encode([
                 'success' => false,
                 'message' => 'Não é possível alterar a quantidade porque existem parcelas já pagas. Estorne os pagamentos primeiro.',
@@ -388,32 +338,8 @@ class OrderController {
             exit;
         }
 
-        $result = $this->orderModel->updateItemQty($itemId, $quantity);
-
-        if ($result) {
-            // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
-            $this->clearQuoteConfirmation($orderId);
-
-            $database = new \Database();
-            $db = $database->getConnection();
-            $q = "SELECT oi.order_id, oi.quantity, oi.unit_price, oi.subtotal, oi.discount, o.total_amount 
-                  FROM order_items oi 
-                  JOIN orders o ON oi.order_id = o.id 
-                  WHERE oi.id = :id";
-            $s = $db->prepare($q);
-            $s->execute([':id' => $itemId]);
-            $row = $s->fetch(PDO::FETCH_ASSOC);
-
-            echo json_encode([
-                'success' => true,
-                'message' => 'Quantidade atualizada com sucesso',
-                'new_subtotal' => $row ? (float)$row['subtotal'] : 0,
-                'new_total' => $row ? (float)$row['total_amount'] : 0,
-                'quantity' => $row ? (int)$row['quantity'] : 1,
-            ]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Erro ao atualizar quantidade']);
-        }
+        $result = $this->itemService->updateItemQuantity($itemId, $quantity);
+        echo json_encode($result);
         exit;
     }
 
@@ -432,8 +358,8 @@ class OrderController {
         }
 
         // ═══ BLOQUEIO: Não permitir alterar desconto de item se há parcelas pagas ═══
-        $orderId = $this->getOrderIdFromItem($itemId);
-        if ($orderId && $this->orderHasPaidInstallments($orderId)) {
+        $orderId = $this->itemService->getOrderIdFromItem($itemId);
+        if ($orderId && $this->itemService->orderHasPaidInstallments($orderId)) {
             echo json_encode([
                 'success' => false,
                 'message' => 'Não é possível alterar o desconto porque existem parcelas já pagas. Estorne os pagamentos primeiro.',
@@ -442,31 +368,8 @@ class OrderController {
             exit;
         }
 
-        $result = $this->orderModel->updateItemDiscount($itemId, $discount);
-
-        if ($result) {
-            // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
-            $this->clearQuoteConfirmation($orderId);
-
-            // Buscar novo total do pedido (recalculado pelo model)
-            $database = new \Database();
-            $db = $database->getConnection();
-            $q = "SELECT oi.order_id, o.total_amount 
-                  FROM order_items oi 
-                  JOIN orders o ON oi.order_id = o.id 
-                  WHERE oi.id = :id";
-            $s = $db->prepare($q);
-            $s->execute([':id' => $itemId]);
-            $row = $s->fetch(PDO::FETCH_ASSOC);
-
-            echo json_encode([
-                'success' => true,
-                'message' => 'Desconto atualizado com sucesso',
-                'new_total' => $row ? (float)$row['total_amount'] : 0,
-            ]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Erro ao atualizar desconto']);
-        }
+        $result = $this->itemService->updateItemDiscount($itemId, $discount);
+        echo json_encode($result);
         exit;
     }
 

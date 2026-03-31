@@ -130,7 +130,7 @@
         </div>
         <div class="col-6 col-md-3">
             <div class="cst-profile-stat-card">
-                <div class="stat-value" style="color:#9b59b6;">R$ <?= number_format($stats['avg_ticket'] ?? 0, 2, ',', '.') ?></div>
+                <div class="stat-value text-purple">R$ <?= number_format($stats['avg_ticket'] ?? 0, 2, ',', '.') ?></div>
                 <div class="stat-label"><i class="fas fa-receipt me-1"></i>Ticket Médio</div>
             </div>
         </div>
@@ -173,7 +173,7 @@
                 <div class="col-md-6">
                     <div class="cst-form-section" style="margin-bottom:0;">
                         <div class="cst-form-section-title">
-                            <i class="fas fa-id-card" style="background:rgba(52,152,219,.1);color:#3498db;"></i>
+                            <i class="fas fa-id-card icon-circle-blue text-blue"></i>
                             Identificação
                         </div>
                         <div class="row g-3">
@@ -216,7 +216,7 @@
                     <?php if (!empty($c['tags'])): ?>
                     <div class="cst-form-section">
                         <div class="cst-form-section-title">
-                            <i class="fas fa-tags" style="background:rgba(155,89,182,.1);color:#9b59b6;"></i>
+                            <i class="fas fa-tags icon-circle-purple text-purple"></i>
                             Tags
                         </div>
                         <div class="d-flex flex-wrap gap-1">
@@ -230,7 +230,7 @@
                     <?php if (!empty($c['observations'])): ?>
                     <div class="cst-form-section" style="margin-bottom:0;">
                         <div class="cst-form-section-title">
-                            <i class="fas fa-sticky-note" style="background:rgba(243,156,18,.1);color:#f39c12;"></i>
+                            <i class="fas fa-sticky-note icon-circle-orange text-orange"></i>
                             Observações
                         </div>
                         <p class="mb-0" style="font-size:.85rem;line-height:1.6;white-space:pre-wrap;"><?= e($c['observations']) ?></p>
@@ -244,7 +244,7 @@
         <div class="tab-pane fade p-4" id="pane-contato" role="tabpanel" aria-labelledby="tab-contato">
             <div class="cst-form-section" style="margin-bottom:0;">
                 <div class="cst-form-section-title">
-                    <i class="fas fa-address-book" style="background:rgba(39,174,96,.1);color:#27ae60;"></i>
+                    <i class="fas fa-address-book icon-circle-green text-green"></i>
                     Informações de Contato
                 </div>
                 <div class="row g-3">
@@ -300,7 +300,7 @@
                 <?php if ($isPJ && (!empty($c['contact_name']) || !empty($c['contact_role']))): ?>
                 <hr class="my-3">
                 <div class="cst-form-section-title" style="margin-bottom:.5rem;">
-                    <i class="fas fa-user-tie" style="background:rgba(23,162,184,.1);color:#17a2b8;"></i>
+                    <i class="fas fa-user-tie icon-circle-info text-info-alt"></i>
                     Contato Principal (PJ)
                 </div>
                 <div class="row g-3">
@@ -318,7 +318,7 @@
                 <?php if (!empty($contacts)): ?>
                 <hr class="my-3">
                 <div class="cst-form-section-title" style="margin-bottom:.5rem;">
-                    <i class="fas fa-users" style="background:rgba(52,152,219,.1);color:#3498db;"></i>
+                    <i class="fas fa-users icon-circle-blue text-blue"></i>
                     Contatos Adicionais
                 </div>
                 <div class="row g-3">
@@ -355,7 +355,7 @@
         <div class="tab-pane fade p-4" id="pane-endereco" role="tabpanel" aria-labelledby="tab-endereco">
             <div class="cst-form-section" style="margin-bottom:0;">
                 <div class="cst-form-section-title">
-                    <i class="fas fa-map-marker-alt" style="background:rgba(243,156,18,.1);color:#f39c12;"></i>
+                    <i class="fas fa-map-marker-alt icon-circle-orange text-orange"></i>
                     Endereço
                 </div>
                 <?php
@@ -415,7 +415,7 @@
         <div class="tab-pane fade p-4" id="pane-comercial" role="tabpanel" aria-labelledby="tab-comercial">
             <div class="cst-form-section" style="margin-bottom:0;">
                 <div class="cst-form-section-title">
-                    <i class="fas fa-briefcase" style="background:rgba(155,89,182,.1);color:#9b59b6;"></i>
+                    <i class="fas fa-briefcase icon-circle-purple text-purple"></i>
                     Dados Comerciais
                 </div>
                 <div class="row g-3">
@@ -456,7 +456,7 @@
             <div class="cst-form-section" style="margin-bottom:0;">
                 <div class="cst-form-section-title d-flex justify-content-between align-items-center">
                     <span>
-                        <i class="fas fa-history" style="background:rgba(52,152,219,.1);color:#3498db;"></i>
+                        <i class="fas fa-history icon-circle-blue text-blue"></i>
                         Histórico de Pedidos
                     </span>
                     <span id="order-history-total" class="badge bg-secondary bg-opacity-10 text-muted" style="font-size:.72rem;"></span>

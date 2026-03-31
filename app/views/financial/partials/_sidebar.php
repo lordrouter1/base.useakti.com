@@ -15,17 +15,17 @@
             <div class="fin-sidebar-label">Financeiro</div>
 
             <a href="#" class="fin-nav-item <?= $activeSection === 'payments' ? 'active' : '' ?>" data-section="payments">
-                <span class="fin-nav-icon" style="background:rgba(52,152,219,.1);color:#3498db;">
+                <span class="fin-nav-icon nav-icon-blue">
                     <i class="fas fa-file-invoice-dollar"></i>
                 </span>
                 <span>Pagamentos</span>
                 <?php if ($overdueCount > 0): ?>
-                <span class="fin-nav-count" style="background:rgba(231,76,60,.15);color:#e74c3c;"><?= $overdueCount ?></span>
+                <span class="fin-nav-count nav-icon-red-alt"><?= $overdueCount ?></span>
                 <?php endif; ?>
             </a>
 
             <a href="#" class="fin-nav-item <?= $activeSection === 'transactions' ? 'active' : '' ?>" data-section="transactions">
-                <span class="fin-nav-icon" style="background:rgba(39,174,96,.1);color:#27ae60;">
+                <span class="fin-nav-icon nav-icon-green">
                     <i class="fas fa-exchange-alt"></i>
                 </span>
                 <span>Visão Geral</span>
@@ -34,21 +34,21 @@
             <div class="fin-sidebar-divider"></div>
 
             <a href="#" class="fin-nav-item <?= $activeSection === 'import' ? 'active' : '' ?>" data-section="import">
-                <span class="fin-nav-icon" style="background:rgba(23,162,184,.1);color:#17a2b8;">
+                <span class="fin-nav-icon nav-icon-info">
                     <i class="fas fa-file-import"></i>
                 </span>
                 <span>Importação</span>
             </a>
 
             <a href="#" class="fin-nav-item <?= $activeSection === 'new' ? 'active' : '' ?>" data-section="new">
-                <span class="fin-nav-icon" style="background:rgba(155,89,182,.1);color:#9b59b6;">
+                <span class="fin-nav-icon nav-icon-purple">
                     <i class="fas fa-plus-circle"></i>
                 </span>
                 <span>Nova Transação</span>
             </a>
 
             <a href="#" class="fin-nav-item <?= $activeSection === 'recurring' ? 'active' : '' ?>" data-section="recurring">
-                <span class="fin-nav-icon" style="background:rgba(241,196,15,.1);color:#f1c40f;">
+                <span class="fin-nav-icon nav-icon-yellow">
                     <i class="fas fa-redo-alt"></i>
                 </span>
                 <span>Recorrências</span>
@@ -58,21 +58,21 @@
             <div class="fin-sidebar-label">Relatórios</div>
 
             <a href="#" class="fin-nav-item <?= $activeSection === 'reports' ? 'active' : '' ?>" data-section="reports">
-                <span class="fin-nav-icon" style="background:rgba(230,126,34,.1);color:#e67e22;">
+                <span class="fin-nav-icon nav-icon-carrot">
                     <i class="fas fa-chart-pie"></i>
                 </span>
                 <span>DRE Simplificado</span>
             </a>
 
             <a href="#" class="fin-nav-item <?= $activeSection === 'cashflow' ? 'active' : '' ?>" data-section="cashflow">
-                <span class="fin-nav-icon" style="background:rgba(46,204,113,.1);color:#2ecc71;">
+                <span class="fin-nav-icon nav-icon-mint">
                     <i class="fas fa-chart-area"></i>
                 </span>
                 <span>Fluxo de Caixa</span>
             </a>
 
             <a href="#" class="fin-nav-item <?= $activeSection === 'audit' ? 'active' : '' ?>" data-section="audit">
-                <span class="fin-nav-icon" style="background:rgba(142,68,173,.1);color:#8e44ad;">
+                <span class="fin-nav-icon nav-icon-grape">
                     <i class="fas fa-shield-alt"></i>
                 </span>
                 <span>Auditoria</span>
@@ -85,15 +85,15 @@
 <!-- Mini-dica -->
 <div class="card border-0 shadow-sm mt-3 d-none d-lg-block" style="border-radius:12px;">
     <div class="card-body p-3">
-        <h6 class="mb-2 fw-bold" style="font-size:.78rem;color:#17a2b8;">
+        <h6 class="mb-2 fw-bold text-info-alt" style="font-size:.78rem;">
             <i class="fas fa-lightbulb me-1"></i>Dica
         </h6>
         <p class="mb-0 text-muted" style="font-size:.72rem;line-height:1.55;">
             Use <span class="fw-bold text-primary">Pagamentos</span> para gerenciar parcelas de pedidos,
             <span class="fw-bold text-success">Visão Geral</span> para entradas e saídas,
-            <span class="fw-bold" style="color:#f1c40f;">Recorrências</span> para despesas/receitas fixas,
-            <span class="fw-bold" style="color:#2ecc71;">Fluxo de Caixa</span> para projeção futura
-            e <span class="fw-bold" style="color:#8e44ad;">Auditoria</span> para rastrear todas as movimentações.
+            <span class="fw-bold text-yellow">Recorrências</span> para despesas/receitas fixas,
+            <span class="fw-bold text-mint">Fluxo de Caixa</span> para projeção futura
+            e <span class="fw-bold text-grape">Auditoria</span> para rastrear todas as movimentações.
         </p>
     </div>
 </div>

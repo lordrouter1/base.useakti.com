@@ -89,7 +89,7 @@ $prioIcons  = ['urgente'=>'🔴','alta'=>'🟡','normal'=>'🔵','baixa'=>'🟢'
                                                        class="btn btn-outline-secondary px-1 py-0" style="font-size:0.6rem;" title="Imprimir relatório">
                                                         <i class="fas fa-print"></i>
                                                     </a>
-                                                    <span class="badge rounded-pill" style="background:#9b59b6;font-size:0.65rem;"><?= count($dayContacts) ?></span>
+                                                    <span class="badge rounded-pill badge-purple" style="font-size:0.65rem;"><?= count($dayContacts) ?></span>
                                                 </div>
                                             <?php endif; ?>
                                         </div>

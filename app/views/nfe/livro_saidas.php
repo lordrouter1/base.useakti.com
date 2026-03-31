@@ -71,7 +71,7 @@ $isAjax = $isAjax ?? false;
     <!-- Resumo por CFOP -->
     <?php if (!empty($totalsByCfop)): ?>
     <div class="card border-0 shadow-sm mb-4" style="border-radius:12px;">
-        <div class="card-header py-2" style="background:linear-gradient(135deg,#1a73e8 0%,#4285f4 100%);">
+        <div class="card-header py-2 card-header-nfe-blue">
             <h6 class="mb-0 text-white" style="font-size:.85rem;">
                 <i class="fas fa-chart-pie me-2"></i>Resumo por CFOP — Período: <?= date('d/m/Y', strtotime($startDate)) ?> a <?= date('d/m/Y', strtotime($endDate)) ?>
             </h6>

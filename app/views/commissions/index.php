@@ -11,7 +11,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
 ?>
 
 <?php if (!empty($_SESSION['flash_success'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2500,timerProgressBar:true}).fire({icon:'success',title:'<?= addslashes($_SESSION['flash_success']) ?>'}));</script>
+<script>document.addEventListener('DOMContentLoaded',()=>{if(typeof AktiToast!=='undefined')AktiToast.success('<?= addslashes($_SESSION['flash_success']) ?>');});</script>
 <?php unset($_SESSION['flash_success']); endif; ?>
 
 <div class="container-fluid py-3">
@@ -41,8 +41,8 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
         <div class="col-lg-9">
 
             <div class="d-flex align-items-center mb-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(52,152,219,.1);">
-                    <i class="fas fa-tachometer-alt" style="color:#3498db;font-size:.85rem;"></i>
+                <div class="icon-circle icon-circle-blue me-2">
+                    <i class="fas fa-tachometer-alt text-blue" style="font-size:.85rem;"></i>
                 </div>
                 <div>
                     <h5 class="mb-0" style="font-size:1rem;">Dashboard</h5>
@@ -75,7 +75,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
                 <div class="col-xl-3 col-md-6">
                     <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
                         <div class="card-body d-flex align-items-center p-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(52,152,219,0.15);">
+                            <div class="icon-circle icon-circle-xxl icon-circle-primary me-3">
                                 <i class="fas fa-coins fa-lg text-primary"></i>
                             </div>
                             <div>
@@ -89,7 +89,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
                 <div class="col-xl-3 col-md-6">
                     <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
                         <div class="card-body d-flex align-items-center p-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(39,174,96,0.15);">
+                            <div class="icon-circle icon-circle-xxl icon-circle-green me-3">
                                 <i class="fas fa-check-circle fa-lg text-success"></i>
                             </div>
                             <div>
@@ -103,7 +103,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
                 <div class="col-xl-3 col-md-6">
                     <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
                         <div class="card-body d-flex align-items-center p-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(243,156,18,0.15);">
+                            <div class="icon-circle icon-circle-xxl icon-circle-warning me-3">
                                 <i class="fas fa-clock fa-lg text-warning"></i>
                             </div>
                             <div>
@@ -120,7 +120,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
                 <div class="col-xl-3 col-md-6">
                     <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
                         <div class="card-body d-flex align-items-center p-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(23,162,184,0.15);">
+                            <div class="icon-circle icon-circle-xxl icon-circle-info me-3">
                                 <i class="fas fa-thumbs-up fa-lg text-info"></i>
                             </div>
                             <div>
@@ -186,7 +186,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
                 <div class="col-md-4">
                     <a href="?page=commissions&action=formas" class="card border-0 shadow-sm text-decoration-none h-100" style="border-radius:12px;">
                         <div class="card-body text-center py-4">
-                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width:48px;height:48px;background:rgba(39,174,96,.1);">
+                            <div class="icon-circle icon-circle-48 icon-circle-green d-inline-flex mb-2">
                                 <i class="fas fa-file-alt fs-5 text-success"></i>
                             </div>
                             <h6 class="mb-1">Formas de Comissão</h6>
@@ -197,7 +197,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
                 <div class="col-md-4">
                     <a href="?page=commissions&action=simulador" class="card border-0 shadow-sm text-decoration-none h-100" style="border-radius:12px;">
                         <div class="card-body text-center py-4">
-                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width:48px;height:48px;background:rgba(52,152,219,.1);">
+                            <div class="icon-circle icon-circle-48 icon-circle-blue d-inline-flex mb-2">
                                 <i class="fas fa-calculator fs-5 text-primary"></i>
                             </div>
                             <h6 class="mb-1">Simulador</h6>
@@ -208,7 +208,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
                 <div class="col-md-4">
                     <a href="?page=commissions&action=configuracoes" class="card border-0 shadow-sm text-decoration-none h-100" style="border-radius:12px;">
                         <div class="card-body text-center py-4">
-                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width:48px;height:48px;background:rgba(127,140,141,.1);">
+                            <div class="icon-circle icon-circle-48 icon-circle-gray d-inline-flex mb-2">
                                 <i class="fas fa-cog fs-5 text-secondary"></i>
                             </div>
                             <h6 class="mb-1">Configurações</h6>

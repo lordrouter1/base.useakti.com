@@ -271,21 +271,26 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ── Bell dropdown override (fundo branco) ── */
-.navbar-akti #bellDropdownMenu {
-    background: #fff !important;
+.navbar-akti #bellDropdownMenu,
+.navbar-akti #notifDropdownMenu {
+    background: var(--bg-card, #fff) !important;
     border: 1px solid var(--border-color) !important;
     box-shadow: var(--shadow-lg) !important;
 }
-.navbar-akti #bellDropdownMenu .dropdown-item {
+.navbar-akti #bellDropdownMenu .dropdown-item,
+.navbar-akti #notifDropdownMenu .dropdown-item {
     color: var(--text-main) !important;
     border-radius: 0;
 }
 .navbar-akti #bellDropdownMenu .dropdown-item:hover,
-.navbar-akti #bellDropdownMenu .dropdown-item:focus {
+.navbar-akti #bellDropdownMenu .dropdown-item:focus,
+.navbar-akti #notifDropdownMenu .dropdown-item:hover,
+.navbar-akti #notifDropdownMenu .dropdown-item:focus {
     background: var(--bg-body) !important;
     color: var(--text-main) !important;
 }
-.navbar-akti #bellDropdownToggle::after {
+.navbar-akti #bellDropdownToggle::after,
+.navbar-akti #notifBellToggle::after {
     display: none;
 }
 
@@ -719,7 +724,7 @@ h1, h2, h3, h4, h5, h6 {
     transition: transform var(--transition-fast);
     overflow: hidden;
     border-radius: var(--radius-lg);
-    background: #f8fafc;
+    background: var(--bg-body, #f8fafc);
     border: 1px solid var(--border-light);
 }
 
@@ -788,7 +793,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .pipeline-column-body::-webkit-scrollbar-thumb {
-    background: #dee2e6;
+    background: var(--border-color, #dee2e6);
     border-radius: 4px;
 }
 
@@ -828,7 +833,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .pipeline-card:nth-child(even) {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background: linear-gradient(135deg, var(--bg-body, #f8fafc) 0%, var(--border-light, #f1f5f9) 100%);
 }
 
 /* Subtle left accent per card position */
@@ -844,7 +849,7 @@ h1, h2, h3, h4, h5, h6 {
 .pipeline-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0,0,0,0.08) !important;
-    background: #fff !important;
+    background: var(--bg-card, #fff) !important;
 }
 
 .pipeline-card .card-footer {
@@ -854,7 +859,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .pipeline-card:nth-child(even) .card-footer {
-    background: rgba(241,245,249,0.5) !important;
+    background: rgba(var(--primary-color-rgb, 241,245,249), 0.05) !important;
 }
 
 /* ── Card header row (order # + priority) ── */
@@ -1129,7 +1134,7 @@ body.pipeline-dragging .pipeline-column:hover {
 
 @keyframes card-moved-flash {
     0%   { background: rgba(34, 197, 94, 0.12); box-shadow: 0 0 0 3px rgba(34,197,94,0.2); }
-    100% { background: #fff; box-shadow: var(--shadow-sm); }
+    100% { background: var(--bg-card, #fff); box-shadow: var(--shadow-sm); }
 }
 
 @keyframes pulse-border {
@@ -1212,7 +1217,7 @@ body.pipeline-dragging .pipeline-column:hover {
     left: 50%;
     width: 100%;
     height: 4px;
-    background: #e2e8f0;
+    background: var(--border-color, #e2e8f0);
     border-radius: 2px;
     z-index: -1;
     transition: background 0.4s ease;
@@ -1229,7 +1234,7 @@ body.pipeline-dragging .pipeline-column:hover {
 
 /* Current step connector (half-filled effect) */
 .pipeline-step.step-current::after {
-    background: #e2e8f0;
+    background: var(--border-color, #e2e8f0);
 }
 
 /* Step icon circle */
@@ -1278,7 +1283,7 @@ body.pipeline-dragging .pipeline-column:hover {
 .pipeline-track {
     height: 4px;
     border-radius: 2px;
-    background: #e2e8f0;
+    background: var(--border-color, #e2e8f0);
 }
 
 .pipeline-track-fill {
@@ -1317,7 +1322,7 @@ body.pipeline-dragging .pipeline-column:hover {
     top: 32px;
     width: 2px;
     height: calc(100% - 10px);
-    background: #e9ecef;
+    background: var(--border-color, #e9ecef);
 }
 
 .timeline-item:last-child::before {
@@ -1465,145 +1470,260 @@ fieldset legend {
     }
 }
 
-/* ========================================
-   CONTROLE DE ESTOQUE
-   ======================================== */
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — Pipeline / Kanban (Fase 2)
+   Resolve: Problema #3 (pipeline branco), #9 (animações), #10 (tabelas)
+   ═══════════════════════════════════════════════════════════════ */
 
-/* Dashboard cards do estoque */
-.stock-summary-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border-radius: 0.5rem;
-    overflow: hidden;
+/* ── Pipeline columns ── */
+[data-theme="dark"] .pipeline-column {
+    background: var(--bg-secondary, #16213E);
+    border-color: var(--border, #2C3E50);
 }
 
-.stock-summary-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12) !important;
+/* ── Pipeline cards ── */
+[data-theme="dark"] .pipeline-card,
+[data-theme="dark"] .pipeline-card:nth-child(odd),
+[data-theme="dark"] .pipeline-card:nth-child(even) {
+    background: var(--bg-primary, #1A1A2E) !important;
+    border-color: var(--border-light, #243447) !important;
 }
 
-/* Tipo de movimentação toggle */
-#movTypeGroup .btn-check:checked + .btn-outline-success {
-    background-color: var(--success-color, #27ae60);
-    border-color: var(--success-color, #27ae60);
+[data-theme="dark"] .pipeline-card:hover {
+    background: var(--bg-tertiary, #0F3460) !important;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25) !important;
+}
+
+[data-theme="dark"] .pipeline-card:nth-child(even) .card-footer {
+    background: rgba(22, 33, 62, 0.5) !important;
+}
+
+[data-theme="dark"] .pipeline-card .card-footer {
+    border-top-color: var(--border-light, #243447) !important;
+}
+
+/* ── Pipeline delayed card ── */
+[data-theme="dark"] .pipeline-card-delayed {
+    background: rgba(255, 107, 107, 0.06) !important;
+}
+
+/* ── Pipeline stage meta ── */
+[data-theme="dark"] .pipeline-stage-meta {
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom-color: var(--border-light, #243447);
+    color: var(--text-muted, #94a3b8);
+}
+
+/* ── Pipeline navigation buttons ── */
+[data-theme="dark"] .pipeline-nav-btn {
+    background: var(--bg-secondary, #16213E);
+    border-color: var(--border, #2C3E50);
+    color: var(--text-secondary, #ADB5BD);
+}
+
+[data-theme="dark"] .pipeline-nav-btn:hover {
+    background: var(--accent-color, #60a5fa);
     color: #fff;
-    box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
+    border-color: var(--accent-color, #60a5fa);
 }
 
-#movTypeGroup .btn-check:checked + .btn-outline-danger {
-    background-color: var(--danger-color, #e74c3c);
-    border-color: var(--danger-color, #e74c3c);
-    color: #fff;
-    box-shadow: 0 3px 10px rgba(231, 76, 60, 0.3);
+/* ── Pipeline stepper / progress ── */
+[data-theme="dark"] .pipeline-step::after {
+    background: var(--border, #2C3E50);
 }
 
-#movTypeGroup .btn-check:checked + .btn-outline-warning {
-    background-color: #f39c12;
-    border-color: #f39c12;
-    color: #fff;
-    box-shadow: 0 3px 10px rgba(243, 156, 18, 0.3);
+[data-theme="dark"] .pipeline-step.step-current::after {
+    background: var(--border, #2C3E50);
 }
 
-#movTypeGroup .btn-check:checked + .btn-outline-info {
-    background-color: #17a2b8;
-    border-color: #17a2b8;
-    color: #fff;
-    box-shadow: 0 3px 10px rgba(23, 162, 184, 0.3);
+[data-theme="dark"] .pipeline-track {
+    background: var(--border, #2C3E50);
 }
 
-/* Warehouse cards */
-.warehouse-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border-radius: 0.5rem;
-    overflow: hidden;
+/* ── Timeline ── */
+[data-theme="dark"] .timeline-item::before {
+    background: var(--border, #2C3E50);
 }
 
-.warehouse-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10) !important;
+/* ── Scroll fade ── */
+[data-theme="dark"] .pipeline-board-wrapper::after {
+    background: linear-gradient(to left, var(--bg-body, #1A1A2E), transparent);
 }
 
-.warehouse-card .card-header {
-    border-bottom: 2px solid rgba(52, 152, 219, 0.15);
+/* ── Drag and drop ── */
+[data-theme="dark"] .pipeline-card-ghost {
+    background: var(--bg-tertiary, #0F3460) !important;
+    border-color: var(--accent-color, #60a5fa) !important;
 }
 
-.warehouse-card .card-footer {
-    font-size: 0.8rem;
+[data-theme="dark"] body.pipeline-dragging .pipeline-dropzone {
+    background: rgba(96, 165, 250, 0.05) !important;
+    border-color: rgba(96, 165, 250, 0.2) !important;
 }
 
-/* Stock items table row hover highlight */
-#stockTable tbody tr {
-    transition: background-color 0.15s ease;
+[data-theme="dark"] body.pipeline-dragging .pipeline-column:hover {
+    background: rgba(96, 165, 250, 0.06);
 }
 
-#stockTable tbody tr:hover {
-    background-color: rgba(52, 152, 219, 0.04) !important;
+/* ── Card moved animation (dark) — Resolve Problema #9 ── */
+[data-theme="dark"] .pipeline-card-moved {
+    animation: card-moved-flash-dark 1.5s ease;
 }
 
-/* Low stock row pulse animation */
-#stockTable tbody tr.table-warning {
-    animation: stock-low-pulse 3s infinite;
+@keyframes card-moved-flash-dark {
+    0%   { background: rgba(81, 207, 102, 0.15); box-shadow: 0 0 0 3px rgba(81, 207, 102, 0.2); }
+    100% { background: var(--bg-primary, #1A1A2E); box-shadow: var(--shadow-sm); }
 }
 
-@keyframes stock-low-pulse {
-    0%, 100% { background-color: rgba(243, 156, 18, 0.10); }
-    50% { background-color: rgba(243, 156, 18, 0.22); }
+/* ── Pipeline metric cards ── */
+[data-theme="dark"] .pipeline-metric-card {
+    background: var(--bg-card, #16213E);
+    border-color: var(--border-light, #243447);
 }
 
-/* Items table in entry view */
-#itemsTable tbody tr {
-    transition: background-color 0.15s ease;
+/* ── Pipeline filter bar ── */
+[data-theme="dark"] .pipeline-filter-bar .form-control,
+[data-theme="dark"] .pipeline-filter-bar .form-select {
+    background-color: var(--bg-tertiary, #0F3460);
+    border-color: var(--border, #2C3E50);
+    color: var(--text-primary, #E8E8E8);
 }
 
-#itemsTable tbody tr:hover {
-    background-color: rgba(52, 152, 219, 0.06);
+/* ── Pipeline scrollbar ── */
+[data-theme="dark"] .pipeline-board-wrapper::-webkit-scrollbar-thumb {
+    background: var(--border, #2C3E50);
 }
 
-/* Movement type badges */
-.stock-badge-entrada { background-color: var(--success-color, #27ae60) !important; }
-.stock-badge-saida { background-color: var(--danger-color, #e74c3c) !important; }
-.stock-badge-ajuste { background-color: #f39c12 !important; color: #212529 !important; }
-.stock-badge-transferencia { background-color: #17a2b8 !important; }
-
-/* Recent movements sidebar */
-#recentMovements .list-group-item {
-    transition: background-color 0.15s ease;
-    border-left: 3px solid transparent;
+[data-theme="dark"] .pipeline-column-body::-webkit-scrollbar-thumb {
+    background: var(--border, #2C3E50);
 }
 
-#recentMovements .list-group-item:hover {
-    background-color: rgba(52, 152, 219, 0.04);
-    border-left-color: var(--accent-color, #3498db);
+/* ── Pipeline delayed banner ── */
+[data-theme="dark"] .pipeline-delayed-banner {
+    background: linear-gradient(135deg, rgba(255,107,107,0.08), rgba(255,107,107,0.03));
+    border-color: rgba(255,107,107,0.2);
 }
 
-/* Process button glow effect */
-#btnProcess:not(:disabled) {
-    animation: process-btn-glow 2s infinite;
+/* ── Pipeline badges priority — dark contraste ── */
+[data-theme="dark"] .badge-priority-baixa {
+    background: rgba(148,163,184,0.2);
+    color: #ADB5BD;
 }
 
-@keyframes process-btn-glow {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.4); }
-    50% { box-shadow: 0 0 0 8px rgba(39, 174, 96, 0); }
+[data-theme="dark"] .badge-priority-normal {
+    background: rgba(96,165,250,0.15);
+    color: #93c5fd;
 }
 
-/* Stock alert badge */
-.stock-alert-badge {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
+[data-theme="dark"] .badge-priority-alta {
+    background: rgba(255,212,59,0.18);
+    color: #FFD43B;
 }
 
-/* Responsive adjustments for stock module */
-@media (max-width: 768px) {
-    #movTypeGroup {
-        flex-direction: column;
-    }
-    #movTypeGroup .btn {
-        border-radius: 0.375rem !important;
-        margin-bottom: 4px;
-    }
+/* ── Pipeline chips — dark mode ── */
+[data-theme="dark"] .chip-value {
+    background: rgba(81,207,102,0.15);
+    color: #51CF66;
 }
+
+[data-theme="dark"] .chip-approved {
+    background: rgba(81,207,102,0.15);
+    color: #51CF66;
+}
+
+[data-theme="dark"] .chip-assigned {
+    background: rgba(96,165,250,0.15);
+    color: #93c5fd;
+}
+
+[data-theme="dark"] .chip-date {
+    background: rgba(148,163,184,0.15);
+    color: #ADB5BD;
+}
+
+[data-theme="dark"] .chip-financial {
+    background: rgba(255,212,59,0.15);
+    color: #FFD43B;
+}
+
+/* ── Table headers dark — Resolve Problema #10 ── */
+[data-theme="dark"] .table thead th {
+    background-color: var(--bg-secondary, #16213E);
+    color: var(--text-secondary, #ADB5BD);
+    border-bottom-color: var(--border, #2C3E50);
+}
+
+/* ── Bell dropdown dark ── */
+[data-theme="dark"] .navbar-akti #bellDropdownMenu,
+[data-theme="dark"] .navbar-akti #notifDropdownMenu {
+    background: var(--bg-secondary, #16213E) !important;
+    border-color: var(--border, #2C3E50) !important;
+}
+
+[data-theme="dark"] .navbar-akti #bellDropdownMenu .dropdown-item,
+[data-theme="dark"] .navbar-akti #notifDropdownMenu .dropdown-item {
+    color: var(--text-primary, #E8E8E8) !important;
+}
+
+[data-theme="dark"] .navbar-akti #bellDropdownMenu .dropdown-item:hover,
+[data-theme="dark"] .navbar-akti #notifDropdownMenu .dropdown-item:hover {
+    background: var(--bg-tertiary, #0F3460) !important;
+}
+
+/* ── Cards and fieldsets dark ── */
+[data-theme="dark"] fieldset {
+    background: var(--bg-card, #16213E);
+    border-color: var(--border, #2C3E50) !important;
+}
+
+[data-theme="dark"] fieldset legend {
+    color: var(--text-primary, #E8E8E8);
+}
+
+/* ── Stock dark mode ── */
+[data-theme="dark"] #stockTable tbody tr:hover {
+    background-color: rgba(96, 165, 250, 0.06) !important;
+}
+
+[data-theme="dark"] #stockTable tbody tr.table-warning {
+    animation: none;
+    background-color: rgba(255, 212, 59, 0.1) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — Card-headers temáticos (Fase 4)
+   Classes para substituir inline backgrounds pastéis
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Card-header temáticos (light mode) ── */
+.card-header-success  { background: #e0f7f1; color: #155724; }
+.card-header-warning  { background: #fef5e7; color: #856404; }
+.card-header-purple   { background: #f0e6f6; color: #5b2d8e; }
+.card-header-danger   { background: #fdecea; color: #721c24; }
+.card-header-info     { background: #e8f4fd; color: #0c5460; }
+.card-header-orange   { background: #fef3e2; color: #8a4b08; }
+
+[data-theme="dark"] .card-header-success  { background: rgba(81, 207, 102, 0.12);  color: #51CF66; }
+[data-theme="dark"] .card-header-warning  { background: rgba(255, 212, 59, 0.12);  color: #FFD43B; }
+[data-theme="dark"] .card-header-purple   { background: rgba(187, 143, 206, 0.12); color: #bb8fce; }
+[data-theme="dark"] .card-header-danger   { background: rgba(255, 107, 107, 0.12); color: #FF6B6B; }
+[data-theme="dark"] .card-header-info     { background: rgba(102, 217, 232, 0.12); color: #66D9E8; }
+[data-theme="dark"] .card-header-orange   { background: rgba(240, 178, 122, 0.12); color: #f0b27a; }
+
+/* ── Chips de status (light mode) ── */
+.chip-status-approved  { background: #d4edda; color: #155724; }
+.chip-status-pending   { background: #fff3cd; color: #856404; }
+.chip-status-rejected  { background: #f8d7da; color: #721c24; }
+
+[data-theme="dark"] .chip-status-approved  { background: rgba(81, 207, 102, 0.2);  color: #51CF66; }
+[data-theme="dark"] .chip-status-pending   { background: rgba(255, 212, 59, 0.2);  color: #FFD43B; }
+[data-theme="dark"] .chip-status-rejected  { background: rgba(255, 107, 107, 0.2); color: #FF6B6B; }
+
+/* ── Seção informativa (walkthrough) ── */
+.section-bg-success { background: #f0fdf4; }
+.section-bg-info    { background: #eff6ff; }
+.section-bg-warning { background: #fefce8; }
+
+[data-theme="dark"] .section-bg-success { background: rgba(81, 207, 102, 0.06); }
+[data-theme="dark"] .section-bg-info    { background: rgba(96, 165, 250, 0.06); }
+[data-theme="dark"] .section-bg-warning { background: rgba(255, 212, 59, 0.06); }

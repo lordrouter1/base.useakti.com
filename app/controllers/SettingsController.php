@@ -5,12 +5,11 @@ use Akti\Models\CompanySettings;
 use Akti\Models\PriceTable;
 use Akti\Models\Product;
 use Akti\Models\PreparationStep;
-use Akti\Models\Logger;
 use Akti\Models\DashboardWidget;
 use Akti\Models\UserGroup;
 use Akti\Core\ModuleBootloader;
 use Akti\Utils\Input;
-use Akti\Utils\Sanitizer;
+use Akti\Services\SettingsService;
 use Database;
 use PDO;
 use TenantManager;
@@ -21,6 +20,7 @@ class SettingsController {
     private $companySettings;
     private $priceTable;
     private $preparationStep;
+    private SettingsService $settingsService;
 
     public function __construct() {
         $database = new Database();
@@ -28,6 +28,7 @@ class SettingsController {
         $this->companySettings = new CompanySettings($this->db);
         $this->priceTable = new PriceTable($this->db);
         $this->preparationStep = new PreparationStep($this->db);
+        $this->settingsService = new SettingsService($this->db, $this->companySettings);
     }
 
     // ──────── CONFIGURAÇÕES DA EMPRESA ────────
@@ -87,6 +88,8 @@ class SettingsController {
             exit;
         }
 
+        // Coletar dados do formulário
+        $data = [];
         $keys = [
             'company_name', 'company_document', 'company_phone', 'company_email',
             'company_website', 'company_zipcode', 'company_address_type',
@@ -94,43 +97,23 @@ class SettingsController {
             'company_complement', 'company_city', 'company_state',
             'quote_validity_days', 'quote_footer_note'
         ];
-
         foreach ($keys as $key) {
             if (Input::hasPost($key)) {
-                $this->companySettings->set($key, Input::post($key));
+                $data[$key] = Input::post($key);
             }
         }
 
+        $this->settingsService->saveCompanySettings($data);
+
         // Upload de logo
         if (isset($_FILES['company_logo']) && $_FILES['company_logo']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = TenantManager::getTenantUploadBase();
-            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
-            
-            $ext = pathinfo($_FILES['company_logo']['name'], PATHINFO_EXTENSION);
-            $filename = 'company_logo_' . time() . '.' . $ext;
-            $filepath = $uploadDir . $filename;
-            
-            if (move_uploaded_file($_FILES['company_logo']['tmp_name'], $filepath)) {
-                // Remover logo antiga
-                $oldLogo = $this->companySettings->get('company_logo');
-                if ($oldLogo && file_exists($oldLogo)) {
-                    unlink($oldLogo);
-                }
-                $this->companySettings->set('company_logo', $filepath);
-            }
+            $this->settingsService->handleLogoUpload($_FILES['company_logo']);
         }
 
         // Remover logo se checkbox marcado
         if (Input::post('remove_logo') === '1') {
-            $oldLogo = $this->companySettings->get('company_logo');
-            if ($oldLogo && file_exists($oldLogo)) {
-                unlink($oldLogo);
-            }
-            $this->companySettings->set('company_logo', '');
+            $this->settingsService->removeLogo();
         }
-
-        $logger = new Logger($this->db);
-        $logger->log('SETTINGS_UPDATE', 'Configurações da empresa atualizadas');
 
         header('Location: ?page=settings&status=saved');
         exit;
@@ -147,12 +130,6 @@ class SettingsController {
             exit;
         }
 
-        if (!ModuleBootloader::isModuleEnabled('boleto')) {
-            $_SESSION['flash_error'] = 'Módulo de boleto desativado para este tenant.';
-            header('Location: ?page=settings');
-            exit;
-        }
-
         $keys = [
             'boleto_banco', 'boleto_agencia', 'boleto_agencia_dv',
             'boleto_conta', 'boleto_conta_dv', 'boleto_carteira',
@@ -164,14 +141,20 @@ class SettingsController {
             'mercadopago_access_token', 'mercadopago_public_key',
         ];
 
+        $data = [];
         foreach ($keys as $key) {
             if (Input::hasPost($key)) {
-                $this->companySettings->set($key, Input::post($key));
+                $data[$key] = Input::post($key);
             }
         }
 
-        $logger = new Logger($this->db);
-        $logger->log('SETTINGS_UPDATE', 'Configurações bancárias/boleto atualizadas');
+        $result = $this->settingsService->saveBankSettings($data);
+
+        if (!$result['success']) {
+            $_SESSION['flash_error'] = $result['message'];
+            header('Location: ?page=settings');
+            exit;
+        }
 
         header('Location: ?page=settings&tab=boleto&status=saved');
         exit;
@@ -357,8 +340,7 @@ class SettingsController {
             $sortOrder = Input::post('sort_order', 'int', 0);
 
             if ($label) {
-                // Gerar key a partir do label
-                $key = $this->generateStepKey($label);
+                $key = $this->settingsService->generateStepKey($label);
                 $this->preparationStep->add($key, $label, $description, $icon, $sortOrder);
             }
 
@@ -426,41 +408,35 @@ class SettingsController {
             exit;
         }
 
-        if (!ModuleBootloader::isModuleEnabled('fiscal')) {
-            $_SESSION['flash_error'] = 'Módulo fiscal desativado para este tenant.';
-            header('Location: ?page=settings');
-            exit;
-        }
-
         $keys = [
-            // Identificação
             'fiscal_razao_social', 'fiscal_nome_fantasia', 'fiscal_cnpj',
             'fiscal_ie', 'fiscal_im', 'fiscal_cnae', 'fiscal_crt',
-            // Endereço fiscal
             'fiscal_endereco_logradouro', 'fiscal_endereco_numero', 'fiscal_endereco_complemento',
             'fiscal_endereco_bairro', 'fiscal_endereco_cidade', 'fiscal_endereco_uf',
             'fiscal_endereco_cep', 'fiscal_endereco_cod_municipio',
             'fiscal_endereco_cod_pais', 'fiscal_endereco_pais', 'fiscal_endereco_fone',
-            // Certificado digital
             'fiscal_certificado_tipo', 'fiscal_certificado_senha', 'fiscal_certificado_validade',
-            // NF-e
             'fiscal_ambiente', 'fiscal_serie_nfe', 'fiscal_proximo_numero_nfe',
             'fiscal_modelo_nfe', 'fiscal_tipo_emissao', 'fiscal_finalidade',
-            // Alíquotas padrão
             'fiscal_aliq_icms_padrao', 'fiscal_aliq_pis_padrao',
             'fiscal_aliq_cofins_padrao', 'fiscal_aliq_iss_padrao',
-            // Natureza e informações complementares
             'fiscal_nat_operacao', 'fiscal_info_complementar',
         ];
 
+        $data = [];
         foreach ($keys as $key) {
             if (Input::hasPost($key)) {
-                $this->companySettings->set($key, Input::post($key));
+                $data[$key] = Input::post($key);
             }
         }
 
-        $logger = new Logger($this->db);
-        $logger->log('SETTINGS_UPDATE', 'Configurações fiscais/NF-e atualizadas');
+        $result = $this->settingsService->saveFiscalSettings($data);
+
+        if (!$result['success']) {
+            $_SESSION['flash_error'] = $result['message'];
+            header('Location: ?page=settings');
+            exit;
+        }
 
         header('Location: ?page=settings&tab=fiscal&status=saved');
         exit;
@@ -478,17 +454,10 @@ class SettingsController {
         }
 
         $timeout = Input::post('session_timeout_minutes', 'int', 60);
-        // Validação: mínimo 5, máximo 1440 (24h)
-        if ($timeout < 5) $timeout = 5;
-        if ($timeout > 1440) $timeout = 1440;
-
-        $this->companySettings->set('session_timeout_minutes', $timeout);
+        $validatedTimeout = $this->settingsService->saveSecuritySettings($timeout);
 
         // Limpar cache de timeout na sessão para refletir imediatamente
         unset($_SESSION['_session_timeout_minutes'], $_SESSION['_session_timeout_cached_at']);
-
-        $logger = new Logger($this->db);
-        $logger->log('SETTINGS_UPDATE', "Configurações de segurança atualizadas (timeout={$timeout}min)");
 
         header('Location: ?page=settings&tab=security&status=saved');
         exit;
@@ -510,27 +479,8 @@ class SettingsController {
         $groupId = Input::post('group_id', 'int');
         $widgetsJson = Input::post('widgets');
 
-        if (!$groupId) {
-            echo json_encode(['success' => false, 'message' => 'Grupo não informado.']);
-            exit;
-        }
-
-        $widgets = json_decode($widgetsJson, true);
-        if (!is_array($widgets)) {
-            echo json_encode(['success' => false, 'message' => 'Dados de widgets inválidos.']);
-            exit;
-        }
-
-        $dashWidgetModel = new DashboardWidget($this->db);
-        $result = $dashWidgetModel->saveForGroup($groupId, $widgets);
-
-        if ($result) {
-            $logger = new Logger($this->db);
-            $logger->log('SETTINGS_UPDATE', "Widgets do dashboard atualizados para o grupo #{$groupId}");
-            echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Erro ao salvar configuração.']);
-        }
+        $result = $this->settingsService->saveDashboardWidgets($groupId, $widgetsJson ?? '');
+        echo json_encode($result);
         exit;
     }
 
@@ -546,44 +496,9 @@ class SettingsController {
         }
 
         $groupId = Input::post('group_id', 'int');
-
-        if (!$groupId) {
-            echo json_encode(['success' => false, 'message' => 'Grupo não informado.']);
-            exit;
-        }
-
-        $dashWidgetModel = new DashboardWidget($this->db);
-        $result = $dashWidgetModel->resetGroup($groupId);
-
-        if ($result) {
-            $logger = new Logger($this->db);
-            $logger->log('SETTINGS_UPDATE', "Widgets do dashboard resetados para o grupo #{$groupId}");
-            echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Erro ao restaurar padrão.']);
-        }
+        $result = $this->settingsService->resetDashboardWidgets($groupId);
+        echo json_encode($result);
         exit;
     }
 
-    /**
-     * Gerar uma chave a partir do label (slug-like)
-     */
-    private function generateStepKey($label) {
-        $key = mb_strtolower($label, 'UTF-8');
-        // Remover acentos
-        $key = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $key);
-        $key = preg_replace('/[^a-z0-9]+/', '_', $key);
-        $key = trim($key, '_');
-        // Garantir que não exista
-        $base = $key;
-        $i = 1;
-        while (true) {
-            $stmt = $this->db->prepare("SELECT COUNT(*) FROM preparation_steps WHERE step_key = :key");
-            $stmt->execute([':key' => $key]);
-            if ($stmt->fetchColumn() == 0) break;
-            $key = $base . '_' . $i;
-            $i++;
-        }
-        return $key;
-    }
 }

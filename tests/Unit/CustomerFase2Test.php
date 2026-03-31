@@ -532,8 +532,9 @@ class CustomerFase2Test extends TestCase
 
     public function testControllerHasAuditLogExport(): void
     {
-        $content = file_get_contents(__DIR__ . '/../../app/controllers/CustomerController.php');
-        $this->assertStringContainsString('CUSTOMER_EXPORT', $content, 'export() deve registrar log CUSTOMER_EXPORT');
+        // Após refatoração, o log de exportação está no CustomerExportService
+        $content = file_get_contents(__DIR__ . '/../../app/services/CustomerExportService.php');
+        $this->assertStringContainsString('CUSTOMER_EXPORT', $content, 'CustomerExportService deve registrar log CUSTOMER_EXPORT');
     }
 
     public function testControllerHasAuditLogImport(): void

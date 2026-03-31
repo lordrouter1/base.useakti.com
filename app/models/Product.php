@@ -409,6 +409,62 @@ class Product {
     }
 
     /**
+     * Busca paginada de produtos — para dropdowns AJAX com paginação (Select2).
+     *
+     * @param string $query   Termo de busca (nome ou SKU)
+     * @param int    $page    Página (1-based)
+     * @param int    $perPage Itens por página
+     * @return array{data: array, total: int, hasMore: bool}
+     */
+    public function searchPaginated(string $query = '', int $page = 1, int $perPage = 20): array
+    {
+        $page = max(1, $page);
+        $perPage = min(max(1, $perPage), 100);
+        $offset = ($page - 1) * $perPage;
+
+        $where = '';
+        $params = [];
+
+        if ($query !== '') {
+            $like = "%{$query}%";
+            $where = "WHERE (p.name LIKE :q1 OR p.sku LIKE :q2)";
+            $params[':q1'] = $like;
+            $params[':q2'] = $like;
+        }
+
+        // Contar total
+        $countSql = "SELECT COUNT(*) FROM {$this->table_name} p {$where}";
+        $countStmt = $this->conn->prepare($countSql);
+        foreach ($params as $k => $v) {
+            $countStmt->bindValue($k, $v);
+        }
+        $countStmt->execute();
+        $total = (int) $countStmt->fetchColumn();
+
+        // Buscar página
+        $dataSql = "SELECT p.id, p.name, p.sku, p.price, p.category_id,
+                           c.name AS category_name
+                    FROM {$this->table_name} p
+                    LEFT JOIN categories c ON p.category_id = c.id
+                    {$where}
+                    ORDER BY p.name ASC
+                    LIMIT :lim OFFSET :off";
+        $dataStmt = $this->conn->prepare($dataSql);
+        foreach ($params as $k => $v) {
+            $dataStmt->bindValue($k, $v);
+        }
+        $dataStmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
+        $dataStmt->bindValue(':off', $offset, PDO::PARAM_INT);
+        $dataStmt->execute();
+
+        return [
+            'data'    => $dataStmt->fetchAll(PDO::FETCH_ASSOC),
+            'total'   => $total,
+            'hasMore' => ($offset + $perPage) < $total,
+        ];
+    }
+
+    /**
      * Get products by category ID (with main image)
      */
     function getByCategory($categoryId) {

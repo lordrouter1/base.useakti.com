@@ -51,30 +51,54 @@
     <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="assets/css/theme.css">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link href="assets/css/walkthrough.css" rel="stylesheet">
-    <style>
-        /* ── Bell dropdown override (fundo branco) ── */
-        #bellDropdownMenu {
-            background: #fff !important;
-        }
-        #bellDropdownMenu .dropdown-item {
-            color: #333 !important;
-            padding: 0.4rem 0.75rem;
-            font-size: 0.85rem;
-        }
-        #bellDropdownMenu .dropdown-item:hover,
-        #bellDropdownMenu .dropdown-item:focus {
-            background: #f1f5f9 !important;
-            color: #333 !important;
-            padding-left: 0.75rem;
-        }
-        #bellDropdownToggle::after {
-            display: none;
-        }
-    </style>
+    <!-- Design System (must load BEFORE other CSS) -->
+    <link rel="stylesheet" href="<?= asset('assets/css/design-system.css') ?>">
+    <!-- Custom CSS (cache busting via asset()) -->
+    <link rel="stylesheet" href="<?= asset('assets/css/theme.css') ?>">
+    <link rel="stylesheet" href="<?= asset('assets/css/style.css') ?>">
+    <link href="<?= asset('assets/css/walkthrough.css') ?>" rel="stylesheet">
+    <!-- Module-specific CSS (loaded per page) -->
+    <?php
+    $__currentPageCss = $_GET['page'] ?? 'dashboard';
+    $__moduleCssMap = [
+        'customers'            => 'assets/css/modules/customers.css',
+        'products'             => 'assets/css/modules/products.css',
+        'pipeline'             => 'assets/css/modules/pipeline.css',
+        'financial'            => 'assets/css/modules/financial.css',
+        'orders'               => 'assets/css/modules/orders.css',
+        'dashboard'            => 'assets/css/modules/dashboard.css',
+        'stock'                => 'assets/css/modules/stock.css',
+        'reports'              => 'assets/css/modules/reports.css',
+        'nfe'                  => 'assets/css/modules/nfe.css',
+        'nfe_documents'        => 'assets/css/modules/nfe.css',
+        'nfe_credentials'      => 'assets/css/modules/nfe.css',
+        'commissions'          => 'assets/css/modules/commissions.css',
+        'commissions_formas'   => 'assets/css/modules/commissions.css',
+        'commissions_historico'=> 'assets/css/modules/commissions.css',
+        'notifications'        => 'assets/css/modules/notifications.css',
+        'users'                => 'assets/css/modules/users.css',
+        'settings'             => 'assets/css/modules/settings.css',
+        'home'                 => 'assets/css/modules/home.css',
+        'dashboard_widgets'    => 'assets/css/modules/settings.css',
+        'production_board'     => 'assets/css/modules/production-board.css',
+        'sectors'              => 'assets/css/modules/pipeline.css',
+        'installments'         => 'assets/css/modules/financial.css',
+        'categories'           => 'assets/css/modules/products.css',
+        'payment_gateways'     => 'assets/css/modules/financial.css',
+        'portal_admin'         => 'assets/css/modules/users.css',
+        'price_tables'         => 'assets/css/modules/settings.css',
+        'profile'              => 'assets/css/modules/users.css',
+        'financial_payments'   => 'assets/css/modules/financial.css',
+        'financial_transactions' => 'assets/css/modules/financial.css',
+        'agenda'               => 'assets/css/modules/orders.css',
+        'walkthrough'          => 'assets/css/modules/home.css',
+    ];
+    if (isset($__moduleCssMap[$__currentPageCss]) && file_exists($__moduleCssMap[$__currentPageCss])):
+    ?>
+    <link rel="stylesheet" href="<?= asset($__moduleCssMap[$__currentPageCss]) ?>">
+    <?php endif; ?>
+    <!-- Dark Mode: apply theme BEFORE render to prevent FOUC -->
+    <script src="<?= asset('assets/js/components/theme-toggle.js') ?>"></script>
     <?= \Akti\Core\ModuleBootloader::injectJS() ?>
 </head>
 <body>
@@ -95,85 +119,23 @@
         }
     }
 
-    // Carrega as permissões do usuário logado para filtrar o menu
-    $userPermissions = [];
+    // ── HeaderDataService: toda lógica SQL extraída para o Service ──
     $isAdmin = (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin');
-    
-    if (!$isAdmin && isset($_SESSION['user_id'])) {
-        $dbMenu = (new Database())->getConnection();
-        if (!empty($_SESSION['group_id'])) {
-            $stmtMenu = $dbMenu->prepare("SELECT page_name FROM group_permissions WHERE group_id = :gid");
-            $stmtMenu->bindParam(':gid', $_SESSION['group_id']);
-            $stmtMenu->execute();
-            $userPermissions = $stmtMenu->fetchAll(PDO::FETCH_COLUMN);
-        }
+    $headerData = $GLOBALS['_headerData'] ?? null;
+
+    if ($headerData === null && isset($_SESSION['user_id'])) {
+        $headerService = new \Akti\Services\HeaderDataService(Database::getInstance());
+        $headerData = $headerService->getAllHeaderData(
+            (int)$_SESSION['user_id'],
+            !empty($_SESSION['group_id']) ? (int)$_SESSION['group_id'] : null,
+            $isAdmin
+        );
     }
 
-    // Contar pedidos atrasados para badge no menu
-    $headerDelayedCount = 0;
-    $headerDelayedOrders = [];
-    if (isset($_SESSION['user_id'])) {
-        try {
-            $dbAlert = isset($dbMenu) ? $dbMenu : (new Database())->getConnection();
-            $stmtGoalsH = $dbAlert->query("SELECT stage, max_hours FROM pipeline_stage_goals");
-            $goalsH = [];
-            while ($gRow = $stmtGoalsH->fetch(PDO::FETCH_ASSOC)) {
-                $goalsH[$gRow['stage']] = (int)$gRow['max_hours'];
-            }
-            // Buscar pedidos ativos com info do cliente e produtos
-            $stmtActiveH = $dbAlert->query("
-                SELECT o.id, o.pipeline_stage, o.pipeline_entered_at, o.priority, o.deadline,
-                       c.name as customer_name
-                FROM orders o
-                LEFT JOIN customers c ON o.customer_id = c.id
-                WHERE o.pipeline_stage NOT IN ('concluido','cancelado') AND o.status != 'cancelado'
-                ORDER BY o.pipeline_entered_at ASC
-            ");
-            while ($oRow = $stmtActiveH->fetch(PDO::FETCH_ASSOC)) {
-                $hrsH = round((time() - strtotime($oRow['pipeline_entered_at'])) / 3600);
-                $goalH = $goalsH[$oRow['pipeline_stage']] ?? 24;
-                if ($goalH > 0 && $hrsH > $goalH) {
-                    $oRow['hours_in_stage'] = $hrsH;
-                    $oRow['max_hours'] = $goalH;
-                    $oRow['delay_hours'] = $hrsH - $goalH;
-                    $headerDelayedOrders[] = $oRow;
-                    $headerDelayedCount++;
-                }
-            }
-            // Buscar produtos atrasados nos setores de produção (pedidos em producao/preparacao)
-            $headerDelayedProducts = [];
-            try {
-                $stmtDelayedProd = $dbAlert->query("
-                    SELECT ops.order_id, ops.order_item_id, ops.sector_id, ops.status, ops.started_at,
-                           s.name as sector_name, s.color as sector_color,
-                           p.name as product_name,
-                           o.pipeline_stage,
-                           oi.quantity,
-                           c.name as customer_name
-                    FROM order_production_sectors ops
-                    JOIN production_sectors s ON ops.sector_id = s.id
-                    JOIN order_items oi ON ops.order_item_id = oi.id
-                    JOIN products p ON oi.product_id = p.id
-                    JOIN orders o ON ops.order_id = o.id
-                    LEFT JOIN customers c ON o.customer_id = c.id
-                    WHERE ops.status = 'pendente'
-                      AND o.pipeline_stage IN ('producao','preparacao')
-                      AND o.status != 'cancelado'
-                    ORDER BY ops.order_id ASC, ops.sort_order ASC
-                ");
-                $allPendingSectors = $stmtDelayedProd->fetchAll(PDO::FETCH_ASSOC);
-                // Agrupar: primeiro setor pendente por item (setor atual)
-                $currentSectorByItem = [];
-                foreach ($allPendingSectors as $row) {
-                    $itemKey = $row['order_id'] . '_' . $row['order_item_id'];
-                    if (!isset($currentSectorByItem[$itemKey])) {
-                        $currentSectorByItem[$itemKey] = $row;
-                    }
-                }
-                $headerDelayedProducts = array_values($currentSectorByItem);
-            } catch (Exception $e) { $headerDelayedProducts = []; }
-        } catch (Exception $e) { $headerDelayedCount = 0; $headerDelayedOrders = []; $headerDelayedProducts = []; }
-    }
+    $userPermissions      = $headerData['userPermissions'] ?? [];
+    $headerDelayedCount   = $headerData['delayedCount'] ?? 0;
+    $headerDelayedOrders  = $headerData['delayedOrders'] ?? [];
+    $headerDelayedProducts = $headerData['delayedProducts'] ?? [];
     
     /**
      * Verifica se o usuário pode ver determinada página no menu.
@@ -260,30 +222,55 @@
 
       <!-- ── Menu Direito (Perfil / Config / Sair) ── -->
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center gap-1">
-        <?php if ($headerDelayedCount > 0): ?>
-        <li class="nav-item dropdown">
+        <!-- Command Palette Trigger -->
+        <li class="nav-item d-none d-lg-block">
+          <button type="button" class="akti-btn-icon" id="cmdPaletteTrigger"
+                  onclick="if(window.AktiCommandPalette)AktiCommandPalette.open();"
+                  title="Busca rápida (Ctrl+K)" aria-label="Busca rápida">
+            <i class="fas fa-search"></i>
+          </button>
+        </li>
+        <!-- Dark Mode Toggle (cycles: Light → Dark → Auto) -->
+        <li class="nav-item">
+          <button type="button" class="akti-btn-icon" id="themeToggleBtn"
+                  onclick="if(window.AktiTheme)AktiTheme.toggle();"
+                  title="Alternar tema (Claro / Escuro / Auto)" aria-label="Alternar modo de tema">
+            <i id="themeToggleIcon" class="fas fa-moon"></i>
+          </button>
+        </li>
+        <!-- Notifications Bell (unified: system notifications + delayed orders) -->
+        <?php if (isset($_SESSION['user_id'])): ?>
+        <li class="nav-item dropdown" id="notifBellContainer">
           <a href="#" class="nav-link nav-icon-btn dropdown-toggle" 
              role="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside"
-             title="<?= $headerDelayedCount ?> pedido(s) atrasado(s)" id="bellDropdownToggle">
+             title="Notificações" id="notifBellToggle">
             <i class="fas fa-bell"></i>
-            <span class="notification-badge">
-                <?= $headerDelayedCount ?>
-            </span>
+            <span class="notification-badge" id="notifBadge" style="<?= $headerDelayedCount > 0 ? '' : 'display:none;' ?>"
+                  data-delayed-count="<?= $headerDelayedCount ?>"><?= $headerDelayedCount > 0 ? $headerDelayedCount : '0' ?></span>
           </a>
-          <div class="dropdown-menu dropdown-menu-end p-0" id="bellDropdownMenu" 
-               style="width:420px;max-height:500px;overflow-y:auto;background:#fff !important;border:1px solid #dee2e6 !important;box-shadow:0 8px 32px rgba(0,0,0,0.18) !important;">
-            <!-- Header do dropdown -->
-            <div class="px-3 py-2 border-bottom" style="background:#fff3cd;">
+          <div class="dropdown-menu dropdown-menu-end p-0 dropdown-themed" id="notifDropdownMenu"
+               style="width:420px;max-height:500px;overflow-y:auto;">
+            <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center bg-section-muted">
+                <strong class="text-dark" style="font-size:.85rem;"><i class="fas fa-bell text-primary me-1"></i>Notificações</strong>
+                <div class="d-flex gap-2">
+                    <a href="#" id="notifMarkAllRead" class="text-muted small text-decoration-none" title="Marcar todas como lidas" style="font-size:.72rem;">
+                        <i class="fas fa-check-double me-1"></i>Marcar lidas
+                    </a>
+                </div>
+            </div>
+
+            <?php if ($headerDelayedCount > 0): ?>
+            <!-- ── Pedidos Atrasados (server-side) ── -->
+            <div class="px-3 py-2 border-bottom bg-section-yellow">
                 <div class="d-flex justify-content-between align-items-center">
-                    <strong class="text-dark"><i class="fas fa-exclamation-triangle text-warning me-1"></i> Pedidos Atrasados</strong>
-                    <span class="badge bg-danger rounded-pill"><?= $headerDelayedCount ?></span>
+                    <strong class="text-dark" style="font-size:.82rem;"><i class="fas fa-exclamation-triangle text-warning me-1"></i>Pedidos Atrasados</strong>
+                    <span class="badge bg-danger rounded-pill" style="font-size:.65rem;"><?= $headerDelayedCount ?></span>
                 </div>
             </div>
 
             <?php if (!empty($headerDelayedOrders)): ?>
-            <!-- Lista de pedidos atrasados -->
             <div class="px-2 py-1">
-                <small class="text-muted fw-bold px-2"><i class="fas fa-clock me-1"></i>PEDIDOS NA ETAPA ALÉM DO PRAZO</small>
+                <small class="text-muted fw-bold px-2" style="font-size:.65rem;"><i class="fas fa-clock me-1"></i>PEDIDOS NA ETAPA ALÉM DO PRAZO</small>
             </div>
             <?php 
             $stageLabelsH = [
@@ -301,7 +288,7 @@
                 $pEmoji = $priorityEmoji[$dOrder['priority'] ?? 'normal'] ?? '🔵';
             ?>
             <a href="?page=pipeline&action=detail&id=<?= $dOrder['id'] ?>" 
-               class="dropdown-item px-3 py-2 border-bottom" style="white-space:normal;color:#333 !important;">
+               class="dropdown-item px-3 py-2 border-bottom" style="white-space:normal;">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="d-flex align-items-start gap-2">
                         <div class="flex-shrink-0 mt-1">
@@ -311,7 +298,7 @@
                             </span>
                         </div>
                         <div>
-                            <div class="fw-bold" style="font-size:0.82rem;color:#333;">
+                            <div class="fw-bold" style="font-size:0.82rem;">
                                 <?= $pEmoji ?> #<?= str_pad($dOrder['id'], 4, '0', STR_PAD_LEFT) ?>
                                 <?php if (!empty($dOrder['customer_name'])): ?>
                                 — <?= e(mb_substr($dOrder['customer_name'], 0, 20)) ?>
@@ -350,19 +337,19 @@
 
             <?php if (!empty($headerDelayedProducts)): ?>
             <!-- Produtos em produção (onde estão parados) -->
-            <div class="px-2 py-1 border-top" style="background:#f8f9fa;">
-                <small class="text-muted fw-bold px-2"><i class="fas fa-industry me-1"></i>PRODUTOS EM PRODUÇÃO (SETOR ATUAL)</small>
+            <div class="px-2 py-1 border-top bg-section-muted">
+                <small class="text-muted fw-bold px-2" style="font-size:.65rem;"><i class="fas fa-industry me-1"></i>PRODUTOS EM PRODUÇÃO (SETOR ATUAL)</small>
             </div>
             <?php foreach (array_slice($headerDelayedProducts, 0, 8) as $dProd): ?>
             <a href="?page=pipeline&action=detail&id=<?= $dProd['order_id'] ?>" 
-               class="dropdown-item px-3 py-2 border-bottom" style="white-space:normal;color:#333 !important;">
+               class="dropdown-item px-3 py-2 border-bottom" style="white-space:normal;">
                 <div class="d-flex align-items-center gap-2">
                     <span class="d-inline-flex align-items-center justify-content-center rounded-circle" 
                           style="width:24px;height:24px;min-width:24px;background:<?= $dProd['sector_color'] ?? '#e67e22' ?>20;">
                         <i class="fas fa-box" style="color:<?= $dProd['sector_color'] ?? '#e67e22' ?>;font-size:0.6rem;"></i>
                     </span>
                     <div style="font-size:0.78rem;">
-                        <div class="fw-bold" style="color:#333;">
+                        <div class="fw-bold">
                             <?= e(mb_substr($dProd['product_name'], 0, 25)) ?> 
                             <span class="text-muted fw-normal">(×<?= $dProd['quantity'] ?>)</span>
                         </div>
@@ -386,19 +373,31 @@
             <?php endif; ?>
             <?php endif; ?>
 
-            <!-- Footer -->
-            <div class="px-3 py-2 border-top text-center" style="background:#f8f9fa;">
-                <a href="?page=pipeline" class="text-decoration-none small fw-bold" style="color:#3498db;">
+            <!-- Link para pipeline -->
+            <div class="px-3 py-2 border-top text-center bg-section-muted">
+                <a href="?page=pipeline" class="text-decoration-none small fw-bold text-blue">
                     <i class="fas fa-columns me-1"></i>Ver Pipeline Completo
                 </a>
             </div>
+            <?php endif; ?>
+
+            <!-- ── Notificações do sistema (carregadas via AJAX) ── -->
+            <?php if ($headerDelayedCount > 0): ?>
+            <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center bg-section-muted">
+                <strong class="text-dark" style="font-size:.82rem;"><i class="fas fa-inbox text-primary me-1"></i>Outras Notificações</strong>
+            </div>
+            <?php endif; ?>
+            <div id="notifDropdownBody">
+                <div class="text-center text-muted py-4" style="font-size:.82rem;">
+                    <i class="fas fa-spinner fa-spin me-1"></i>Carregando...
+                </div>
+            </div>
+            <div class="px-3 py-2 border-top text-center bg-section-muted">
+                <a href="?page=notifications" class="text-decoration-none small fw-bold text-blue">
+                    <i class="fas fa-list me-1"></i>Ver todas as notificações
+                </a>
+            </div>
           </div>
-        </li>
-        <?php elseif (isset($_SESSION['user_id'])): ?>
-        <li class="nav-item">
-          <a href="#" class="nav-link nav-icon-btn" title="Sem avisos" style="opacity:0.4;">
-            <i class="fas fa-bell"></i>
-          </a>
         </li>
         <?php endif; ?>
         <li class="nav-item d-none d-lg-block"><span class="nav-divider"></span></li>
@@ -445,6 +444,11 @@
                     <i class="fas fa-question-circle me-2 text-info"></i>Tour Guiado
                 </a>
             </li>
+            <li>
+                <a class="dropdown-item" href="javascript:void(0);" onclick="if(window.AktiShortcuts)AktiShortcuts.showHelp();">
+                    <i class="fas fa-keyboard me-2 text-info"></i>Atalhos de Teclado
+                </a>
+            </li>
             <li><hr class="dropdown-divider"></li>
             <li>
                 <a class="dropdown-item text-danger" href="?page=login&action=logout">
@@ -459,7 +463,16 @@
   </div>
 </nav>
 
+<!-- Skip link for accessibility -->
+<a href="#main-content" class="akti-skip-link">Ir para conteúdo principal</a>
+
 <div class="container-fluid">
     <div class="row">
         <!-- Main Content -->
-        <main class="col-md-12 ms-sm-auto px-md-4 py-4 main-bg">
+        <main class="col-md-12 ms-sm-auto px-md-4 py-4 main-bg" id="main-content">
+            <?php
+            // Render contextual breadcrumb
+            if (isset($_SESSION['user_id'])) {
+                require 'app/views/components/breadcrumb.php';
+            }
+            ?>

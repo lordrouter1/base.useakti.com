@@ -204,6 +204,7 @@ return [
             'importProducts'         => 'importProducts',
             'getProductsList'        => 'getProductsList',
             'searchSelect2'          => 'searchSelect2',
+            'searchAjax'             => 'searchAjax',
             'parseImportFile'        => 'parseImportFile',
             'importProductsMapped'   => 'importProductsMapped',
         ],
@@ -267,6 +268,7 @@ return [
             // AJAX — Listagem e busca
             'getCustomersList'        => 'getCustomersList',
             'searchSelect2'           => 'searchSelect2',
+            'searchAjax'              => 'searchAjax',
 
             // AJAX — Verificações e APIs externas (Fase 2)
             'checkDuplicate'          => 'checkDuplicate',
@@ -685,6 +687,32 @@ return [
     ],
 
     // ══════════════════════════════════════════════════════════════
+    // BUSCA GLOBAL (Command Palette / Ctrl+K)
+    // ══════════════════════════════════════════════════════════════
+
+    'search' => [
+        'controller'     => 'SearchController',
+        'default_action' => 'query',
+        'actions'        => [
+            'query' => 'query',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════════
+    // NOTIFICAÇÕES
+    // ══════════════════════════════════════════════════════════════
+
+    'notifications' => [
+        'controller'     => 'NotificationController',
+        'default_action' => 'index',
+        'actions'        => [
+            'count'       => 'count',
+            'markRead'    => 'markRead',
+            'markAllRead' => 'markAllRead',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════════
     // API — Geração de token JWT para consumo da API Node.js
     // ══════════════════════════════════════════════════════════════
 
@@ -744,6 +772,34 @@ return [
             // Configurações
             'configuracoes'      => 'configuracoes',
             'saveConfig'         => 'saveConfig',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════════
+    // DASHBOARD WIDGETS (AJAX — lazy loading de widgets do dashboard)
+    // ══════════════════════════════════════════════════════════════
+
+    'dashboard_widgets' => [
+        'controller'     => 'DashboardWidgetController',
+        'default_action' => 'config',
+        'actions'        => [
+            'load'   => 'load',
+            'config' => 'config',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════════
+    // HEALTH CHECK (monitoramento e status do sistema)
+    // ══════════════════════════════════════════════════════════════
+
+    'health' => [
+        'controller'     => 'HealthController',
+        'default_action' => 'ping',
+        'public'         => true,
+        'before_auth'    => true,
+        'actions'        => [
+            'ping'  => 'ping',
+            'check' => 'check',
         ],
     ],
 

@@ -18,7 +18,7 @@
             <?php if (!empty($c['photo'])): ?>
                 <img src="<?= eAttr($c['photo']) ?>" alt="Foto" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;border:2px solid var(--cst-border);">
             <?php else: ?>
-                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:rgba(52,152,219,.1);color:#3498db;font-size:1.2rem;font-weight:700;">
+                <div class="icon-circle icon-circle-48 icon-circle-blue text-blue" style="font-size:1.2rem;font-weight:700;">
                     <?= strtoupper(mb_substr($c['name'], 0, 1)) ?>
                 </div>
             <?php endif; ?>
@@ -77,7 +77,7 @@
         <div class="cst-step-content active" id="cst-step-1">
             <div class="cst-form-section">
                 <div class="cst-form-section-title">
-                    <i class="fas fa-id-card" style="background:rgba(52,152,219,.1);color:#3498db;"></i>
+                    <i class="fas fa-id-card icon-circle-blue text-blue"></i>
                     Dados de Identificação
                 </div>
 
@@ -172,7 +172,7 @@
         <div class="cst-step-content" id="cst-step-2">
             <div class="cst-form-section">
                 <div class="cst-form-section-title">
-                    <i class="fas fa-address-book" style="background:rgba(39,174,96,.1);color:#27ae60;"></i>
+                    <i class="fas fa-address-book icon-circle-green text-green"></i>
                     Informações de Contato
                 </div>
                 <div class="row g-3">
@@ -252,7 +252,7 @@
         <div class="cst-step-content" id="cst-step-3">
             <div class="cst-form-section">
                 <div class="cst-form-section-title">
-                    <i class="fas fa-map-marker-alt" style="background:rgba(243,156,18,.1);color:#f39c12;"></i>
+                    <i class="fas fa-map-marker-alt icon-circle-orange text-orange"></i>
                     Endereço
                 </div>
                 <div class="row g-3">
@@ -313,7 +313,7 @@
         <div class="cst-step-content" id="cst-step-4">
             <div class="cst-form-section">
                 <div class="cst-form-section-title">
-                    <i class="fas fa-briefcase" style="background:rgba(155,89,182,.1);color:#9b59b6;"></i>
+                    <i class="fas fa-briefcase icon-circle-purple text-purple"></i>
                     Dados Comerciais
                 </div>
                 <div class="row g-3">

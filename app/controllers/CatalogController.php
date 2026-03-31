@@ -7,6 +7,8 @@ use Akti\Models\Product;
 use Akti\Models\PriceTable;
 use Akti\Models\CompanySettings;
 use Akti\Models\Logger;
+use Akti\Services\CatalogCartService;
+use Akti\Services\CatalogQuoteService;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
 use Database;
@@ -23,10 +25,14 @@ use PDO;
 class CatalogController {
 
     private $db;
+    private CatalogCartService $cartService;
+    private CatalogQuoteService $quoteService;
 
     public function __construct() {
         $database = new Database();
         $this->db = $database->getConnection();
+        $this->cartService = new CatalogCartService($this->db);
+        $this->quoteService = new CatalogQuoteService($this->db);
     }
 
     /**
@@ -230,66 +236,15 @@ class CatalogController {
     public function addToCart() {
         header('Content-Type: application/json');
 
-        $token = Input::post('token');
-        $productId = Input::post('product_id', 'int');
-        $quantity = Input::post('quantity', 'int', 1);
-        $combinationId = Input::post('combination_id', 'int') ?: null;
-        $gradeDescription = Input::post('grade_description');
+        $result = $this->cartService->addToCart(
+            Input::post('token'),
+            Input::post('product_id', 'int'),
+            Input::post('quantity', 'int', 1),
+            Input::post('combination_id', 'int') ?: null,
+            Input::post('grade_description')
+        );
 
-        $catalogModel = new CatalogLink($this->db);
-        $link = $catalogModel->findByToken($token);
-
-        if (!$link) {
-            echo json_encode(['success' => false, 'message' => 'Link inválido ou expirado']);
-            exit;
-        }
-
-        $orderId = $link['order_id'];
-        $customerId = $link['customer_id'];
-
-        // Buscar preço do produto para o cliente
-        $priceTableModel = new PriceTable($this->db);
-        $unitPrice = $priceTableModel->getProductPriceForCustomer($productId, $customerId);
-
-        // Se a combinação tem preço override, usá-lo
-        if ($combinationId) {
-            $comboStmt = $this->db->prepare("SELECT price_override FROM product_grade_combinations WHERE id = :id AND is_active = 1");
-            $comboStmt->bindParam(':id', $combinationId, PDO::PARAM_INT);
-            $comboStmt->execute();
-            $combo = $comboStmt->fetch(PDO::FETCH_ASSOC);
-            if ($combo && $combo['price_override'] !== null) {
-                $unitPrice = (float)$combo['price_override'];
-            }
-        }
-
-        // Verificar se o produto (com mesma combinação) já está no carrinho
-        $orderModel = new Order($this->db);
-        $currentItems = $orderModel->getItems($orderId);
-        $existingItem = null;
-        foreach ($currentItems as $item) {
-            if ($item['product_id'] == $productId && ($item['grade_combination_id'] ?? null) == $combinationId) {
-                $existingItem = $item;
-                break;
-            }
-        }
-
-        if ($existingItem) {
-            // Atualizar quantidade
-            $newQty = $existingItem['quantity'] + $quantity;
-            $orderModel->updateItem($existingItem['id'], $newQty, $unitPrice);
-        } else {
-            // Adicionar novo item
-            $orderModel->addItem($orderId, $productId, $quantity, $unitPrice, $combinationId, $gradeDescription);
-        }
-
-        // Retornar carrinho atualizado
-        $updatedItems = $orderModel->getItems($orderId);
-        echo json_encode([
-            'success' => true,
-            'cart' => $updatedItems,
-            'cart_count' => count($updatedItems),
-            'cart_total' => array_sum(array_column($updatedItems, 'subtotal'))
-        ]);
+        echo json_encode($result);
         exit;
     }
 
@@ -299,45 +254,12 @@ class CatalogController {
     public function removeFromCart() {
         header('Content-Type: application/json');
 
-        $token = Input::post('token');
-        $itemId = Input::post('item_id', 'int');
+        $result = $this->cartService->removeFromCart(
+            Input::post('token'),
+            Input::post('item_id', 'int')
+        );
 
-        $catalogModel = new CatalogLink($this->db);
-        $link = $catalogModel->findByToken($token);
-
-        if (!$link) {
-            echo json_encode(['success' => false, 'message' => 'Link inválido ou expirado']);
-            exit;
-        }
-
-        $orderId = $link['order_id'];
-        $orderModel = new Order($this->db);
-
-        // Verificar se o item pertence ao pedido correto
-        $currentItems = $orderModel->getItems($orderId);
-        $valid = false;
-        foreach ($currentItems as $item) {
-            if ($item['id'] == $itemId) {
-                $valid = true;
-                break;
-            }
-        }
-
-        if (!$valid) {
-            echo json_encode(['success' => false, 'message' => 'Item não encontrado']);
-            exit;
-        }
-
-        $orderModel->deleteItem($itemId);
-
-        // Retornar carrinho atualizado
-        $updatedItems = $orderModel->getItems($orderId);
-        echo json_encode([
-            'success' => true,
-            'cart' => $updatedItems,
-            'cart_count' => count($updatedItems),
-            'cart_total' => array_sum(array_column($updatedItems, 'subtotal'))
-        ]);
+        echo json_encode($result);
         exit;
     }
 
@@ -347,51 +269,13 @@ class CatalogController {
     public function updateCartItem() {
         header('Content-Type: application/json');
 
-        $token = Input::post('token');
-        $itemId = Input::post('item_id', 'int');
-        $quantity = Input::post('quantity', 'int', 1);
+        $result = $this->cartService->updateCartItem(
+            Input::post('token'),
+            Input::post('item_id', 'int'),
+            Input::post('quantity', 'int', 1)
+        );
 
-        $catalogModel = new CatalogLink($this->db);
-        $link = $catalogModel->findByToken($token);
-
-        if (!$link) {
-            echo json_encode(['success' => false, 'message' => 'Link inválido ou expirado']);
-            exit;
-        }
-
-        if ($quantity < 1) {
-            // Se quantidade zero, remover
-            $this->removeFromCart();
-            return;
-        }
-
-        $orderId = $link['order_id'];
-        $orderModel = new Order($this->db);
-
-        // Buscar item atual para pegar preço
-        $currentItems = $orderModel->getItems($orderId);
-        $found = false;
-        foreach ($currentItems as $item) {
-            if ($item['id'] == $itemId) {
-                $orderModel->updateItem($itemId, $quantity, $item['unit_price']);
-                $found = true;
-                break;
-            }
-        }
-
-        if (!$found) {
-            echo json_encode(['success' => false, 'message' => 'Item não encontrado']);
-            exit;
-        }
-
-        // Retornar carrinho atualizado
-        $updatedItems = $orderModel->getItems($orderId);
-        echo json_encode([
-            'success' => true,
-            'cart' => $updatedItems,
-            'cart_count' => count($updatedItems),
-            'cart_total' => array_sum(array_column($updatedItems, 'subtotal'))
-        ]);
+        echo json_encode($result);
         exit;
     }
 
@@ -400,25 +284,7 @@ class CatalogController {
      */
     public function getCart() {
         header('Content-Type: application/json');
-
-        $token = Input::get('token');
-        $catalogModel = new CatalogLink($this->db);
-        $link = $catalogModel->findByToken($token);
-
-        if (!$link) {
-            echo json_encode(['success' => false, 'message' => 'Link inválido ou expirado']);
-            exit;
-        }
-
-        $orderModel = new Order($this->db);
-        $items = $orderModel->getItems($link['order_id']);
-
-        echo json_encode([
-            'success' => true,
-            'cart' => $items,
-            'cart_count' => count($items),
-            'cart_total' => array_sum(array_column($items, 'subtotal'))
-        ]);
+        echo json_encode($this->cartService->getCart(Input::get('token')));
         exit;
     }
 
@@ -434,72 +300,9 @@ class CatalogController {
             exit;
         }
 
-        $token = Input::post('token');
-
-        $catalogModel = new CatalogLink($this->db);
-        $link = $catalogModel->findByToken($token);
-
-        if (!$link) {
-            echo json_encode(['success' => false, 'message' => 'Link inválido ou expirado']);
-            exit;
-        }
-
-        // Verificar se o link requer confirmação
-        if (empty($link['require_confirmation'])) {
-            echo json_encode(['success' => false, 'message' => 'Este link não permite confirmação de orçamento']);
-            exit;
-        }
-
-        // Verificar se já foi confirmado
-        if (!empty($link['quote_confirmed_at'])) {
-            echo json_encode(['success' => false, 'message' => 'Este orçamento já foi confirmado anteriormente']);
-            exit;
-        }
-
-        $orderId = $link['order_id'];
-
-        // Verificar se tem itens no pedido
-        $orderModel = new Order($this->db);
-        $items = $orderModel->getItems($orderId);
-        if (empty($items)) {
-            echo json_encode(['success' => false, 'message' => 'Não é possível confirmar um orçamento sem produtos']);
-            exit;
-        }
-
-        // Capturar IP do cliente
-        $clientIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['HTTP_X_REAL_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? 'desconhecido';
-        // Se vier lista de IPs, pegar o primeiro (IP real do cliente)
-        if (strpos($clientIp, ',') !== false) {
-            $clientIp = trim(explode(',', $clientIp)[0]);
-        }
-
-        // Marcar a confirmação do orçamento com IP
-        $stmt = $this->db->prepare("UPDATE orders SET quote_confirmed_at = NOW(), quote_confirmed_ip = :ip WHERE id = :id");
-        $stmt->bindParam(':ip', $clientIp);
-        $stmt->bindParam(':id', $orderId, PDO::PARAM_INT);
-        $stmt->execute();
-
-        // Sincronizar: marcar customer_approval_status como 'aprovado' também
-        $orderModel = new Order($this->db);
-        $orderModel->setCustomerApprovalStatus($orderId, 'aprovado');
-        // Gravar IP e timestamp da aprovação
-        $stmtApproval = $this->db->prepare(
-            "UPDATE orders SET customer_approval_at = NOW(), customer_approval_ip = :ip,
-                    customer_approval_notes = 'Aprovado via link de catálogo'
-             WHERE id = :id"
-        );
-        $stmtApproval->execute([':ip' => $clientIp, ':id' => $orderId]);
-
-        // Log
-        $logger = new Logger($this->db);
-        $logger->log('QUOTE_CONFIRMED', "Orçamento do pedido #{$orderId} confirmado pelo cliente via catálogo (IP: {$clientIp})");
-
-        echo json_encode([
-            'success' => true,
-            'message' => 'Orçamento confirmado com sucesso!',
-            'confirmed_at' => date('Y-m-d H:i:s'),
-            'confirmed_ip' => $clientIp
-        ]);
+        $clientIp = CatalogQuoteService::getClientIp();
+        $result = $this->quoteService->confirmQuote(Input::post('token'), $clientIp);
+        echo json_encode($result);
         exit;
     }
 
@@ -514,55 +317,9 @@ class CatalogController {
             exit;
         }
 
-        $token = Input::post('token');
-
-        $catalogModel = new CatalogLink($this->db);
-        $link = $catalogModel->findByToken($token);
-
-        if (!$link) {
-            echo json_encode(['success' => false, 'message' => 'Link inválido ou expirado']);
-            exit;
-        }
-
-        if (empty($link['require_confirmation'])) {
-            echo json_encode(['success' => false, 'message' => 'Este link não permite confirmação de orçamento']);
-            exit;
-        }
-
-        if (empty($link['quote_confirmed_at'])) {
-            echo json_encode(['success' => false, 'message' => 'O orçamento ainda não foi confirmado']);
-            exit;
-        }
-
-        $orderId = $link['order_id'];
-
-        // Revogar a confirmação
-        $stmt = $this->db->prepare("UPDATE orders SET quote_confirmed_at = NULL, quote_confirmed_ip = NULL WHERE id = :id");
-        $stmt->bindParam(':id', $orderId, PDO::PARAM_INT);
-        $stmt->execute();
-
-        // Sincronizar: voltar customer_approval_status para 'pendente'
-        $orderModel = new Order($this->db);
-        $orderModel->setCustomerApprovalStatus($orderId, 'pendente');
-        $stmtApproval = $this->db->prepare(
-            "UPDATE orders SET customer_approval_at = NULL, customer_approval_ip = NULL,
-                    customer_approval_notes = NULL
-             WHERE id = :id"
-        );
-        $stmtApproval->execute([':id' => $orderId]);
-
-        // Log
-        $clientIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['HTTP_X_REAL_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? 'desconhecido';
-        if (strpos($clientIp, ',') !== false) {
-            $clientIp = trim(explode(',', $clientIp)[0]);
-        }
-        $logger = new Logger($this->db);
-        $logger->log('QUOTE_REVOKED', "Orçamento do pedido #{$orderId} revogado pelo cliente via catálogo (IP: {$clientIp})");
-
-        echo json_encode([
-            'success' => true,
-            'message' => 'Confirmação revogada. Agora você pode editar o orçamento.'
-        ]);
+        $clientIp = CatalogQuoteService::getClientIp();
+        $result = $this->quoteService->revokeQuote(Input::post('token'), $clientIp);
+        echo json_encode($result);
         exit;
     }
 

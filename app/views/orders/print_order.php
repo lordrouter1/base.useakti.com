@@ -179,7 +179,7 @@
         <!-- Dados de Pagamento -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-light py-2">
-                <h6 class="mb-0 fw-bold" style="color:#2ecc71;"><i class="fas fa-money-bill-wave me-2"></i>Dados de Pagamento</h6>
+                <h6 class="mb-0 fw-bold icon-green"><i class="fas fa-money-bill-wave me-2"></i>Dados de Pagamento</h6>
             </div>
             <div class="card-body py-3">
                 <div class="row g-2">
@@ -197,7 +197,7 @@
                     </div>
                     <div class="col-md-4">
                         <span class="info-label">Valor Total</span>
-                        <div class="info-value fw-bold fs-5" style="color:#27ae60;">R$ <?= number_format($order['total_amount'], 2, ',', '.') ?></div>
+                        <div class="info-value fw-bold fs-5 icon-green">R$ <?= number_format($order['total_amount'], 2, ',', '.') ?></div>
                     </div>
                 </div>
 

@@ -344,8 +344,8 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                    <h5 class="mb-0" style="color: #1abc9c;"><i class="fas fa-boxes-packing me-2"></i>Etapas de Preparo dos Pedidos</h5>
-                    <button class="btn btn-sm text-white" style="background:#1abc9c;" data-bs-toggle="modal" data-bs-target="#modalNewStep">
+                    <h5 class="mb-0 icon-mint"><i class="fas fa-boxes-packing me-2"></i>Etapas de Preparo dos Pedidos</h5>
+                    <button class="btn btn-sm btn-mint" data-bs-toggle="modal" data-bs-target="#modalNewStep">
                         <i class="fas fa-plus me-1"></i> Nova Etapa
                     </button>
                 </div>
@@ -370,9 +370,8 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                                 <tr class="<?= !$step['is_active'] ? 'table-secondary opacity-75' : '' ?>">
                                     <td class="text-center fw-bold text-muted"><?= $step['sort_order'] ?></td>
                                     <td class="text-center">
-                                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle" 
-                                              style="width:32px;height:32px;background:<?= $step['is_active'] ? '#e0f7f1' : '#f0f0f0' ?>;">
-                                            <i class="<?= eAttr($step['icon']) ?>" style="color:<?= $step['is_active'] ? '#1abc9c' : '#999' ?>;font-size:0.85rem;"></i>
+                                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle step-icon-circle <?= $step['is_active'] ? 'step-icon-active' : 'step-icon-inactive' ?>">
+                                            <i class="<?= eAttr($step['icon']) ?> <?= $step['is_active'] ? 'icon-mint' : 'text-muted' ?>" style="font-size:0.85rem;"></i>
                                         </span>
                                     </td>
                                     <td class="fw-bold <?= !$step['is_active'] ? 'text-muted text-decoration-line-through' : '' ?>">
@@ -419,10 +418,10 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-light py-2">
-                    <h6 class="mb-0 fw-bold" style="color:#1abc9c;"><i class="fas fa-info-circle me-2"></i>Como Funciona</h6>
+                    <h6 class="mb-0 fw-bold icon-mint"><i class="fas fa-info-circle me-2"></i>Como Funciona</h6>
                 </div>
                 <div class="card-body small">
-                    <p><strong>Etapas de preparo</strong> são o checklist que aparece quando um pedido entra na fase de <span class="badge" style="background:#1abc9c;">Preparação</span>.</p>
+                    <p><strong>Etapas de preparo</strong> são o checklist que aparece quando um pedido entra na fase de <span class="badge btn-mint">Preparação</span>.</p>
                     <ul class="mb-2">
                         <li>As etapas <strong>ativas</strong> serão exibidas para todos os pedidos em preparação.</li>
                         <li>Desative etapas que não são necessárias no momento sem excluí-las.</li>
@@ -435,8 +434,8 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
             <!-- Preview das etapas ativas -->
             <div class="card border-0 shadow-sm">
-                <div class="card-header py-2" style="background: #e0f7f1;">
-                    <h6 class="mb-0 fw-bold" style="color:#1abc9c;"><i class="fas fa-eye me-2"></i>Prévia do Checklist</h6>
+                <div class="card-header py-2 card-header-mint">
+                    <h6 class="mb-0 fw-bold icon-mint"><i class="fas fa-eye me-2"></i>Prévia do Checklist</h6>
                 </div>
                 <div class="card-body p-2">
                     <?php 
@@ -449,8 +448,8 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     <?php else: ?>
                     <?php foreach ($activeSteps as $step): ?>
                     <div class="d-flex align-items-center gap-2 p-2 border-bottom">
-                        <span class="d-flex align-items-center justify-content-center rounded-circle border border-2" 
-                              style="width:24px;height:24px;min-width:24px;border-color:#ccc !important;">
+                        <span class="d-flex align-items-center justify-content-center rounded-circle border border-2 border-secondary" 
+                              style="width:24px;height:24px;min-width:24px;">
                             <i class="<?= eAttr($step['icon']) ?> text-muted" style="font-size:0.6rem;"></i>
                         </span>
                         <div>
@@ -476,8 +475,8 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
             <form method="POST" action="?page=settings&action=addPreparationStep">
                 <?= csrf_field() ?>
                 <div class="modal-content">
-                    <div class="modal-header" style="background:#e0f7f1;">
-                        <h5 class="modal-title" style="color:#1abc9c;"><i class="fas fa-plus-circle me-2"></i>Nova Etapa de Preparo</h5>
+                    <div class="modal-header card-header-mint">
+                        <h5 class="modal-title icon-mint"><i class="fas fa-plus-circle me-2"></i>Nova Etapa de Preparo</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -519,7 +518,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn text-white" style="background:#1abc9c;"><i class="fas fa-save me-1"></i> Criar Etapa</button>
+                        <button type="submit" class="btn btn-mint"><i class="fas fa-save me-1"></i> Criar Etapa</button>
                     </div>
                 </div>
             </form>
@@ -532,8 +531,8 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
             <form method="POST" action="?page=settings&action=updatePreparationStep">
                 <?= csrf_field() ?>
                 <div class="modal-content">
-                    <div class="modal-header" style="background:#e0f7f1;">
-                        <h5 class="modal-title" style="color:#1abc9c;"><i class="fas fa-edit me-2"></i>Editar Etapa de Preparo</h5>
+                    <div class="modal-header card-header-mint">
+                        <h5 class="modal-title icon-mint"><i class="fas fa-edit me-2"></i>Editar Etapa de Preparo</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -568,7 +567,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn text-white" style="background:#1abc9c;"><i class="fas fa-save me-1"></i> Salvar</button>
+                        <button type="submit" class="btn btn-mint"><i class="fas fa-save me-1"></i> Salvar</button>
                     </div>
                 </div>
             </form>
@@ -584,7 +583,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
             <div class="col-lg-8">
                 <!-- Dados Bancários do Cedente -->
                 <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
-                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #f39c12;">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold legend-orange">
                         <i class="fas fa-university me-2"></i>Dados Bancários do Cedente
                     </legend>
                     <div class="row g-3">
@@ -660,7 +659,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
                 <!-- Cedente / Beneficiário -->
                 <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
-                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #f39c12;">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold legend-orange">
                         <i class="fas fa-user-tie me-2"></i>Cedente / Beneficiário
                     </legend>
                     <div class="row g-3">
@@ -697,7 +696,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
                 <!-- Instruções do Boleto -->
                 <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
-                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #f39c12;">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold legend-orange">
                         <i class="fas fa-file-alt me-2"></i>Instruções e Textos do Boleto
                     </legend>
                     <div class="row g-3">
@@ -753,7 +752,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
                         <div class="col-12 mt-2">
                             <hr>
-                            <h6 class="fw-bold mb-2" style="color:#0d6efd;"><i class="fas fa-link me-2"></i>Gateway Mercado Pago</h6>
+                            <h6 class="fw-bold mb-2 legend-blue"><i class="fas fa-link me-2"></i>Gateway Mercado Pago</h6>
                             <small class="text-muted d-block mb-2">Essas credenciais habilitam geração de link de pagamento no pedido em etapa financeira.</small>
                         </div>
                         <div class="col-md-6">
@@ -770,15 +769,15 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                 </fieldset>
 
                 <div class="text-end mb-4">
-                    <button type="submit" class="btn px-4 fw-bold text-white" style="background:#f39c12;"><i class="fas fa-save me-2"></i>Salvar Configurações Bancárias</button>
+                    <button type="submit" class="btn btn-orange px-4 fw-bold text-white"><i class="fas fa-save me-2"></i>Salvar Configurações Bancárias</button>
                 </div>
             </div>
 
             <!-- Coluna Direita: Info e Preview -->
             <div class="col-lg-4">
                 <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header py-2" style="background: #fef5e7;">
-                        <h6 class="mb-0 fw-bold" style="color:#f39c12;"><i class="fas fa-info-circle me-2"></i>Sobre o Boleto</h6>
+                    <div class="card-header py-2 card-header-warning">
+                        <h6 class="mb-0 fw-bold legend-orange"><i class="fas fa-info-circle me-2"></i>Sobre o Boleto</h6>
                     </div>
                     <div class="card-body small">
                         <p><strong>Padrão FEBRABAN:</strong> Os boletos gerados seguem o layout padrão da Federação Brasileira de Bancos.</p>
@@ -798,14 +797,14 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
                 <!-- Preview do Boleto -->
                 <div class="card border-0 shadow-sm">
-                    <div class="card-header py-2" style="background: #fef5e7;">
-                        <h6 class="mb-0 fw-bold" style="color:#f39c12;"><i class="fas fa-eye me-2"></i>Prévia dos Dados</h6>
+                    <div class="card-header py-2 card-header-warning">
+                        <h6 class="mb-0 fw-bold legend-orange"><i class="fas fa-eye me-2"></i>Prévia dos Dados</h6>
                     </div>
                     <div class="card-body p-3">
                         <div class="border rounded p-3 bg-light" style="font-size:0.75rem;">
                             <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
                                 <strong><?= eAttr($settings['boleto_cedente'] ?? $settings['company_name'] ?? '(Cedente)') ?></strong>
-                                <span class="badge" style="background:#f39c12;color:#fff;"><?= eAttr($settings['boleto_banco'] ?? '---') ?></span>
+                                <span class="badge badge-orange"><?= eAttr($settings['boleto_banco'] ?? '---') ?></span>
                             </div>
                             <div class="mb-1"><strong>Ag:</strong> <?= eAttr(($settings['boleto_agencia'] ?? '----') . '-' . ($settings['boleto_agencia_dv'] ?? '0')) ?></div>
                             <div class="mb-1"><strong>CC:</strong> <?= eAttr(($settings['boleto_conta'] ?? '------') . '-' . ($settings['boleto_conta_dv'] ?? '0')) ?></div>
@@ -833,7 +832,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
             <div class="col-lg-8">
                 <!-- Identificação Fiscal da Empresa -->
                 <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
-                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #8e44ad;">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold legend-purple">
                         <i class="fas fa-id-card-alt me-2"></i>Identificação Fiscal
                     </legend>
                     <div class="row g-3">
@@ -877,7 +876,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
                 <!-- Endereço Fiscal -->
                 <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
-                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #8e44ad;">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold legend-purple">
                         <i class="fas fa-map-pin me-2"></i>Endereço Fiscal
                     </legend>
                     <div class="alert alert-info py-2 px-3 small mb-3">
@@ -936,7 +935,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
                 <!-- Certificado Digital -->
                 <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
-                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #8e44ad;">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold legend-purple">
                         <i class="fas fa-key me-2"></i>Certificado Digital
                     </legend>
                     <div class="row g-3">
@@ -965,7 +964,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
                 <!-- Configurações NF-e -->
                 <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
-                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #8e44ad;">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold legend-purple">
                         <i class="fas fa-cog me-2"></i>Configurações NF-e
                     </legend>
                     <div class="row g-3">
@@ -1022,7 +1021,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
                 <!-- Alíquotas Padrão -->
                 <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
-                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #8e44ad;">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold legend-purple">
                         <i class="fas fa-percentage me-2"></i>Alíquotas Padrão da Empresa
                     </legend>
                     <div class="alert alert-info py-2 px-3 small mb-3">
@@ -1064,7 +1063,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
                 <!-- Informações Complementares -->
                 <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
-                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #8e44ad;">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold legend-purple">
                         <i class="fas fa-sticky-note me-2"></i>Informações Complementares
                     </legend>
                     <div class="row g-3">
@@ -1077,15 +1076,15 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                 </fieldset>
 
                 <div class="text-end mb-4">
-                    <button type="submit" class="btn px-4 fw-bold text-white" style="background:#8e44ad;"><i class="fas fa-save me-2"></i>Salvar Configurações Fiscais</button>
+                    <button type="submit" class="btn btn-grape px-4 fw-bold text-white"><i class="fas fa-save me-2"></i>Salvar Configurações Fiscais</button>
                 </div>
             </div>
 
             <!-- Coluna Direita: Info e Resumo -->
             <div class="col-lg-4">
                 <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header py-2" style="background: #f0e6f6;">
-                        <h6 class="mb-0 fw-bold" style="color:#8e44ad;"><i class="fas fa-info-circle me-2"></i>Sobre Dados Fiscais</h6>
+                    <div class="card-header py-2 card-header-purple">
+                        <h6 class="mb-0 fw-bold legend-purple"><i class="fas fa-info-circle me-2"></i>Sobre Dados Fiscais</h6>
                     </div>
                     <div class="card-body small">
                         <p><strong>Configurações fiscais</strong> são necessárias para emissão de Nota Fiscal Eletrônica (NF-e/NFC-e).</p>
@@ -1105,8 +1104,8 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
                 <!-- Resumo Fiscal -->
                 <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header py-2" style="background: #f0e6f6;">
-                        <h6 class="mb-0 fw-bold" style="color:#8e44ad;"><i class="fas fa-eye me-2"></i>Resumo Fiscal</h6>
+                    <div class="card-header py-2 card-header-purple">
+                        <h6 class="mb-0 fw-bold legend-purple"><i class="fas fa-eye me-2"></i>Resumo Fiscal</h6>
                     </div>
                     <div class="card-body p-3">
                         <div class="border rounded p-3 bg-light" style="font-size:0.75rem;">
@@ -1155,8 +1154,8 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
                 <!-- Links Úteis -->
                 <div class="card border-0 shadow-sm">
-                    <div class="card-header py-2" style="background: #f0e6f6;">
-                        <h6 class="mb-0 fw-bold" style="color:#8e44ad;"><i class="fas fa-external-link-alt me-2"></i>Links Úteis</h6>
+                    <div class="card-header py-2 card-header-purple">
+                        <h6 class="mb-0 fw-bold legend-purple"><i class="fas fa-external-link-alt me-2"></i>Links Úteis</h6>
                     </div>
                     <div class="card-body small">
                         <ul class="list-unstyled mb-0">
@@ -1185,7 +1184,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
             <div class="col-lg-8">
                 <!-- Timeout de Sessão -->
                 <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
-                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #e74c3c;">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold legend-danger">
                         <i class="fas fa-clock me-2"></i>Tempo Limite de Sessão
                     </legend>
                     <div class="row g-3">
@@ -1231,7 +1230,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
 
                 <!-- Proteções Ativas -->
                 <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
-                    <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color: #e74c3c;">
+                    <legend class="float-none w-auto px-2 fs-5 fw-bold legend-danger">
                         <i class="fas fa-shield-alt me-2"></i>Proteções Ativas
                     </legend>
                     <div class="table-responsive">
@@ -1278,7 +1277,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                 </fieldset>
 
                 <div class="text-end mb-4">
-                    <button type="submit" class="btn px-4 fw-bold text-white" style="background:#e74c3c;">
+                    <button type="submit" class="btn btn-red px-4 fw-bold text-white">
                         <i class="fas fa-save me-2"></i>Salvar Configurações de Segurança
                     </button>
                 </div>
@@ -1287,8 +1286,8 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
             <!-- Coluna Direita: Info -->
             <div class="col-lg-4">
                 <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header py-2" style="background: #fdecea;">
-                        <h6 class="mb-0 fw-bold" style="color:#e74c3c;"><i class="fas fa-info-circle me-2"></i>Sobre Sessão Segura</h6>
+                    <div class="card-header py-2 card-header-danger">
+                        <h6 class="mb-0 fw-bold legend-danger"><i class="fas fa-info-circle me-2"></i>Sobre Sessão Segura</h6>
                     </div>
                     <div class="card-body small">
                         <p>O sistema gerencia sessões de forma segura com múltiplas camadas de proteção:</p>

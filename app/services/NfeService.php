@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Services;
 
+use Akti\Core\Log;
+
 use Akti\Models\NfeCredential;
 use Akti\Models\NfeDocument;
 use Akti\Models\NfeLog;
@@ -685,7 +687,7 @@ class NfeService
                     ]);
                 } catch (\Exception $e) {
                     // Não falhar a operação se o histórico falhar — apenas logar
-                    error_log('[NfeService] Erro ao salvar histórico CC-e: ' . $e->getMessage());
+                    Log::error('NfeService: Erro ao salvar histórico CC-e', ['exception' => $e->getMessage()]);
                 }
 
                 EventDispatcher::dispatch('model.nfe_document.corrected', new Event('model.nfe_document.corrected', [
@@ -842,7 +844,7 @@ class NfeService
                     ':v_tot_trib'      => $item['vTotTrib'] ?? 0,
                 ]);
             } catch (\Exception $e) {
-                error_log('[NfeService] Erro ao salvar item NF-e: ' . $e->getMessage());
+                Log::error('NfeService: Erro ao salvar item NF-e', ['exception' => $e->getMessage()]);
                 // Não falhar a emissão se um item não salvar — apenas logar
             }
         }
@@ -868,7 +870,7 @@ class NfeService
             try {
                 $this->docModel->update($nfeId, $updateData);
             } catch (\Exception $e) {
-                error_log('[NfeService] Erro ao salvar totais fiscais: ' . $e->getMessage());
+                Log::error('NfeService: Erro ao salvar totais fiscais', ['exception' => $e->getMessage()]);
             }
         }
     }
@@ -938,7 +940,7 @@ class NfeService
                         ];
                     }
                 } catch (\Throwable $sefazEx) {
-                    error_log('[NfeService] SEFAZ inutilizar error: ' . $sefazEx->getMessage());
+                    Log::error('NfeService: SEFAZ inutilizar error', ['exception' => $sefazEx->getMessage()]);
                     // Se falhou a comunicação SEFAZ, registrar localmente com aviso
                     $sefazProtocol = null;
                 }
@@ -972,7 +974,7 @@ class NfeService
             ];
 
         } catch (\Throwable $e) {
-            error_log('[NfeService] Inutilizar error: ' . $e->getMessage());
+            Log::error('NfeService: Inutilizar error', ['exception' => $e->getMessage()]);
             return ['success' => false, 'message' => 'Erro ao inutilizar: ' . $e->getMessage()];
         }
     }

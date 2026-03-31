@@ -87,10 +87,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.history.replaceState) { const url = new URL(window.location); url.searchParams.delete('status'); window.history.replaceState({}, '', url); }
     <?php endif; ?>
     <?php if(isset($_GET['status']) && $_GET['status'] == 'success'): ?>
-    Swal.fire({ icon: 'success', title: 'Sucesso!', text: 'Usuário salvo com sucesso!', timer: 2000, showConfirmButton: false });
+    if (window.AktiToast) AktiToast.success('Usuário salvo com sucesso!');
     <?php endif; ?>
     <?php if(isset($_GET['status']) && $_GET['status'] == 'limit_users'): ?>
-    Swal.fire({ icon: 'warning', title: 'Limite atingido!', text: 'Você atingiu o limite de usuários do seu plano. Entre em contato com o suporte para fazer um upgrade.', confirmButtonColor: '#3498db' });
+    if (window.AktiToast) AktiToast.warning('Limite de usuários atingido. Entre em contato com o suporte para upgrade.');
     <?php endif; ?>
 
     document.querySelectorAll('.btn-delete-user').forEach(btn => {

@@ -47,63 +47,15 @@ $methodLabels = [
 $allCats = array_merge($categories['entrada'] ?? [], $categories['saida'] ?? [], \Akti\Models\Financial::getInternalCategories());
 ?>
 
-<!-- ══════ Flash messages ══════ -->
+<!-- ══════ Flash messages (Toast) ══════ -->
 <?php if (!empty($_SESSION['flash_error'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'error',title:'Erro',html:'<?= addslashes($_SESSION['flash_error']) ?>',confirmButtonColor:'#3498db'}));</script>
+<script>document.addEventListener('DOMContentLoaded',()=>{if(typeof AktiToast!=='undefined')AktiToast.error('<?= addslashes($_SESSION['flash_error']) ?>');});</script>
 <?php unset($_SESSION['flash_error']); endif; ?>
 <?php if (!empty($_SESSION['flash_success'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2500,timerProgressBar:true}).fire({icon:'success',title:'<?= addslashes($_SESSION['flash_success']) ?>'}));</script>
+<script>document.addEventListener('DOMContentLoaded',()=>{if(typeof AktiToast!=='undefined')AktiToast.success('<?= addslashes($_SESSION['flash_success']) ?>');});</script>
 <?php unset($_SESSION['flash_success']); endif; ?>
 
-<style>
-    /* ── Sidebar nav ── */
-    .fin-sidebar .fin-nav-item{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;border-radius:10px;text-decoration:none;color:#555;font-size:.82rem;font-weight:500;transition:all .15s ease;margin-bottom:2px;border:1px solid transparent;cursor:pointer}
-    .fin-sidebar .fin-nav-item:hover{background:#f1f5f9;color:#333}
-    .fin-sidebar .fin-nav-item.active{background:var(--bs-primary,#3498db);color:#fff;box-shadow:0 2px 8px rgba(52,152,219,.3)}
-    .fin-sidebar .fin-nav-item.active .fin-nav-icon{background:rgba(255,255,255,.2) !important;color:#fff !important}
-    .fin-sidebar .fin-nav-item.active .fin-nav-count{background:rgba(255,255,255,.25) !important;color:#fff !important}
-    .fin-nav-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:all .15s ease}
-    .fin-nav-count{font-size:.65rem;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:auto}
-    .fin-sidebar-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;padding:0 1rem;margin-bottom:.3rem;margin-top:.6rem}
-    .fin-sidebar-divider{height:1px;background:#e9ecef;margin:.5rem 1rem}
-
-    /* ── Section transition ── */
-    .fin-section{display:none;animation:finFadeIn .25s ease}
-    .fin-section.active{display:block}
-    @keyframes finFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-    /* ── Mobile sidebar ── */
-    @media(max-width:991.98px){
-        .fin-sidebar-col{margin-bottom:1rem}
-        .fin-sidebar{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:thin}
-        .fin-sidebar .fin-nav-item{white-space:nowrap;flex-shrink:0;padding:.5rem .85rem;font-size:.75rem}
-        .fin-sidebar-label{display:none}
-        .fin-sidebar-divider{display:none}
-    }
-
-    /* ── Pagination style ── */
-    .fin-pagination{display:flex;align-items:center;justify-content:center;gap:.5rem;margin-top:1rem}
-    .fin-pagination .btn{min-width:36px;font-size:.78rem}
-    .fin-pagination .page-info{font-size:.75rem;color:#888}
-
-    /* ── Import styles (dropzone + stepper) ── */
-    .import-dropzone{border:2px dashed #ccc;border-radius:12px;padding:2.5rem 1.5rem;text-align:center;transition:all .2s ease;cursor:pointer;background:#fafbfc}
-    .import-dropzone:hover,.import-dropzone.dragover{border-color:#17a2b8;background:rgba(23,162,184,.05)}
-    .import-dropzone.has-file{border-color:#27ae60;background:rgba(39,174,96,.05)}
-    .import-step{display:none}
-    .import-step.active{display:block}
-    .mapping-select{font-size:.78rem;padding:.25rem .5rem}
-    .preview-table{font-size:.72rem;max-height:350px;overflow:auto}
-    .preview-table th{position:sticky;top:0;z-index:2;background:#e9ecef}
-    .preview-table td{white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
-
-    /* ── DRE styles ── */
-    .dre-row{transition:background .15s}
-    .dre-row:hover{background:#f8f9fa}
-    .dre-total-row{font-weight:bold;border-top:2px solid #dee2e6}
-    .dre-result-positive{color:#27ae60}
-    .dre-result-negative{color:#e74c3c}
-</style>
+<!-- Styles moved to assets/css/modules/financial.css -->
 
 <div class="container-fluid py-3">
 

@@ -5,6 +5,19 @@ assets/uploads/
 vendor/
 storage/logs/
 
+# Arquivos de backup e temporários
+*.bak
+*.new
+*.orig
+*.swp
+*.swo
+
+# Scripts de debug/diagnóstico (não devem ir para produção)
+scripts/
+
+# PHPUnit local (pode conter credenciais)
+phpunit.xml
+
 # Node.js (API microservice)
 api/node_modules/
 api/.env

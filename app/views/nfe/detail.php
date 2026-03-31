@@ -25,31 +25,7 @@ $installments = $installments ?? [];
 $installmentSummary = $installmentSummary ?? ['total' => 0, 'pagas' => 0, 'pendentes' => 0, 'faturadas' => 0, 'valor_total' => 0, 'valor_pago' => 0];
 ?>
 
-<style>
-    .nfe-detail-header { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 1rem; }
-    .nfe-detail-header .status-badge { font-size: 0.85rem; padding: 0.4em 1em; border-radius: 2rem; }
-    .nfe-key-box { background: #f8f9fa; border-radius: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.78rem; letter-spacing: 0.5px; word-break: break-all; padding: 0.75rem 1rem; border: 1px solid #dee2e6; }
-    .nfe-tab-nav .nav-link { color: #6c757d; font-weight: 500; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 0.75rem 1.25rem; transition: all 0.2s; }
-    .nfe-tab-nav .nav-link:hover { color: #0d6efd; border-bottom-color: #dee2e6; }
-    .nfe-tab-nav .nav-link.active { color: #0d6efd; border-bottom-color: #0d6efd; background: transparent; }
-    .info-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; margin-bottom: 2px; }
-    .info-value { font-weight: 600; font-size: 0.92rem; }
-    .timeline-item { position: relative; padding-left: 2rem; padding-bottom: 1.25rem; border-left: 2px solid #dee2e6; }
-    .timeline-item:last-child { border-left-color: transparent; padding-bottom: 0; }
-    .timeline-item::before { content: ''; position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; }
-    .timeline-item.tl-success::before { background: #198754; }
-    .timeline-item.tl-danger::before  { background: #dc3545; }
-    .timeline-item.tl-warning::before { background: #ffc107; }
-    .timeline-item.tl-info::before    { background: #0dcaf0; }
-    .timeline-item.tl-secondary::before { background: #6c757d; }
-    .download-card { transition: all 0.2s; border-radius: 0.75rem; }
-    .download-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .action-btn-group .btn { border-radius: 0.5rem; padding: 0.5rem 1rem; font-weight: 500; }
-    @media (max-width: 768px) {
-        .nfe-tab-nav .nav-link { padding: 0.5rem 0.75rem; font-size: 0.85rem; }
-        .nfe-detail-header { padding: 1rem !important; }
-    }
-</style>
+<!-- Styles moved to assets/css/modules/nfe.css -->
 
 <div class="container-fluid py-4 px-lg-4">
 

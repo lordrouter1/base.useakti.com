@@ -67,7 +67,7 @@ $isAjax = $isAjax ?? false;
     <!-- KPIs -->
     <div class="row g-3 mb-4">
         <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+            <div class="card border-0 shadow-sm h-100 kpi-blue">
                 <div class="card-body text-center py-3">
                     <div class="text-primary mb-1"><i class="fas fa-edit fa-2x"></i></div>
                     <h3 class="mb-0"><?= $totalCorrections ?></h3>
@@ -76,7 +76,7 @@ $isAjax = $isAjax ?? false;
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);">
+            <div class="card border-0 shadow-sm h-100 kpi-green">
                 <div class="card-body text-center py-3">
                     <div class="text-success mb-1"><i class="fas fa-file-invoice fa-2x"></i></div>
                     <h3 class="mb-0"><?= $totalNfes ?></h3>
@@ -85,7 +85,7 @@ $isAjax = $isAjax ?? false;
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);">
+            <div class="card border-0 shadow-sm h-100 kpi-orange">
                 <div class="card-body text-center py-3">
                     <div class="text-warning mb-1"><i class="fas fa-calculator fa-2x"></i></div>
                     <h3 class="mb-0"><?= $totalCorrections > 0 ? number_format($totalCorrections / max($totalNfes, 1), 1) : '0' ?></h3>
@@ -94,7 +94,7 @@ $isAjax = $isAjax ?? false;
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);">
+            <div class="card border-0 shadow-sm h-100 kpi-purple">
                 <div class="card-body text-center py-3">
                     <div class="text-purple mb-1"><i class="fas fa-calendar-alt fa-2x"></i></div>
                     <h3 class="mb-0 fs-6"><?= htmlspecialchars(date('d/m/Y', strtotime($startDate))) ?> — <?= htmlspecialchars(date('d/m/Y', strtotime($endDate))) ?></h3>

@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Models;
 
+use Akti\Core\Log;
+
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
@@ -17,22 +19,15 @@ class OrderPreparation {
     }
 
     /**
-     * Cria a tabela se não existir
+     * Verifica se a tabela existe (DDL movida para /sql).
      */
     public function createTableIfNotExists() {
-        $sql = "CREATE TABLE IF NOT EXISTS order_preparation_checklist (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            order_id INT NOT NULL,
-            check_key VARCHAR(100) NOT NULL,
-            checked TINYINT(1) DEFAULT 0,
-            checked_by INT DEFAULT NULL,
-            checked_at DATETIME DEFAULT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY uq_order_key (order_id, check_key),
-            INDEX idx_order_id (order_id),
-            FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-        $this->conn->exec($sql);
+        // DDL movida para sql/update_202603301000_extract_ddl_from_models.sql
+        try {
+            $this->conn->query("SELECT 1 FROM order_preparation_checklist LIMIT 1");
+        } catch (\Exception $e) {
+            Log::warning('OrderPreparation: Tabela order_preparation_checklist não encontrada. Execute as migrations pendentes.');
+        }
     }
 
     /**

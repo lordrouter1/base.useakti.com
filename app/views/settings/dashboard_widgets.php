@@ -122,8 +122,7 @@ foreach ($widgets as $k => $w) {
                         </div>
 
                         <!-- Ícone -->
-                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                             style="width:40px;height:40px;background:rgba(52,152,219,0.1);">
+                        <div class="icon-circle icon-circle-lg icon-circle-blue flex-shrink-0">
                             <i class="<?= $w['icon'] ?> text-primary"></i>
                         </div>
 
@@ -150,30 +149,7 @@ foreach ($widgets as $k => $w) {
             </div>
         </div>
 
-        <style>
-        .widget-item {
-            transition: background-color 0.15s ease, box-shadow 0.15s ease;
-        }
-        .widget-item:hover {
-            background-color: #f8f9fa;
-        }
-        .widget-item.ui-sortable-helper {
-            background: #fff;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.12);
-            border-radius: 8px;
-            z-index: 10;
-        }
-        .widget-item.ui-sortable-placeholder {
-            visibility: visible !important;
-            background: #eef6ff;
-            border: 2px dashed #3498db;
-            border-radius: 8px;
-            height: 60px;
-        }
-        .drag-handle:active {
-            cursor: grabbing;
-        }
-        </style>
+        <!-- Styles moved to assets/css/modules/settings.css -->
 
         <script>
         $(function(){
@@ -223,23 +199,22 @@ foreach ($widgets as $k => $w) {
                 dataType: 'json',
                 success: function(resp) {
                     if (resp.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Salvo!',
-                            text: 'A configuração do dashboard foi atualizada.',
-                            timer: 2000,
-                            showConfirmButton: false
-                        }).then(function(){
-                            location.reload();
-                        });
+                        if (typeof AktiToast !== 'undefined') {
+                            AktiToast.success('A configuração do dashboard foi atualizada.');
+                        }
+                        setTimeout(function(){ location.reload(); }, 1200);
                     } else {
-                        Swal.fire('Erro', resp.message || 'Erro ao salvar.', 'error');
+                        if (typeof AktiToast !== 'undefined') {
+                            AktiToast.error(resp.message || 'Erro ao salvar.');
+                        }
                         btn.disabled = false;
                         btn.innerHTML = '<i class="fas fa-save me-2"></i>Salvar Configuração';
                     }
                 },
                 error: function() {
-                    Swal.fire('Erro', 'Erro de comunicação com o servidor.', 'error');
+                    if (typeof AktiToast !== 'undefined') {
+                        AktiToast.error('Erro de comunicação com o servidor.');
+                    }
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-save me-2"></i>Salvar Configuração';
                 }
@@ -247,42 +222,32 @@ foreach ($widgets as $k => $w) {
         }
 
         function resetGroupConfig(groupId) {
-            Swal.fire({
-                title: 'Restaurar Padrão?',
-                text: 'Isso removerá a personalização deste grupo. Todos os widgets serão exibidos na ordem padrão.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-undo me-1"></i> Restaurar',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#e74c3c',
-                reverseButtons: true
-            }).then(function(result) {
-                if (!result.isConfirmed) return;
-                $.ajax({
-                    url: '?page=settings&action=resetDashboardWidgets',
-                    method: 'POST',
-                    data: {
-                        group_id: groupId,
-                        csrf_token: $('meta[name="csrf-token"]').attr('content')
-                    },
-                    dataType: 'json',
-                    success: function(resp) {
-                        if (resp.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Restaurado!',
-                                text: 'O grupo voltou à configuração padrão.',
-                                timer: 1500,
-                                showConfirmButton: false
-                            }).then(function(){ location.reload(); });
-                        } else {
-                            Swal.fire('Erro', resp.message || 'Erro ao restaurar.', 'error');
+            if (!confirm('Isso removerá a personalização deste grupo. Todos os widgets serão exibidos na ordem padrão. Continuar?')) return;
+            $.ajax({
+                url: '?page=settings&action=resetDashboardWidgets',
+                method: 'POST',
+                data: {
+                    group_id: groupId,
+                    csrf_token: $('meta[name="csrf-token"]').attr('content')
+                },
+                dataType: 'json',
+                success: function(resp) {
+                    if (resp.success) {
+                        if (typeof AktiToast !== 'undefined') {
+                            AktiToast.success('O grupo voltou à configuração padrão.');
                         }
-                    },
-                    error: function() {
-                        Swal.fire('Erro', 'Erro de comunicação.', 'error');
+                        setTimeout(function(){ location.reload(); }, 1200);
+                    } else {
+                        if (typeof AktiToast !== 'undefined') {
+                            AktiToast.error(resp.message || 'Erro ao restaurar.');
+                        }
                     }
-                });
+                },
+                error: function() {
+                    if (typeof AktiToast !== 'undefined') {
+                        AktiToast.error('Erro de comunicação.');
+                    }
+                }
             });
         }
         </script>

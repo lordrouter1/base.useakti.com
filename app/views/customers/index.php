@@ -16,73 +16,9 @@ $validSections = ['overview', 'create', 'import'];
 if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
 ?>
 
+<!-- Styles loaded from assets/css/modules/customers.css via header.php -->
 <link rel="stylesheet" href="assets/css/customers.css">
-
-<!-- ══════ Flash messages ══════ -->
-<?php if (!empty($_SESSION['flash_error'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'error',title:'Erro',html:'<?= addslashes($_SESSION['flash_error']) ?>',confirmButtonColor:'#3498db'}));</script>
-<?php unset($_SESSION['flash_error']); endif; ?>
-<?php if (!empty($_SESSION['flash_success'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2500,timerProgressBar:true}).fire({icon:'success',title:'<?= addslashes($_SESSION['flash_success']) ?>'}));</script>
-<?php unset($_SESSION['flash_success']); endif; ?>
-
-<style>
-    /* ── Sidebar nav ── */
-    .cst-sidebar .cst-nav-item{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;border-radius:10px;text-decoration:none;color:#555;font-size:.82rem;font-weight:500;transition:all .15s ease;margin-bottom:2px;border:1px solid transparent;cursor:pointer}
-    .cst-sidebar .cst-nav-item:hover{background:#f1f5f9;color:#333}
-    .cst-sidebar .cst-nav-item.active{background:var(--bs-primary,#3498db);color:#fff;box-shadow:0 2px 8px rgba(52,152,219,.3)}
-    .cst-sidebar .cst-nav-item.active .cst-nav-icon{background:rgba(255,255,255,.2) !important;color:#fff !important}
-    .cst-sidebar .cst-nav-item.active .cst-nav-count{background:rgba(255,255,255,.25) !important;color:#fff !important}
-    .cst-nav-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:all .15s ease}
-    .cst-nav-count{font-size:.65rem;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:auto}
-    .cst-sidebar-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;padding:0 1rem;margin-bottom:.3rem;margin-top:.6rem}
-    .cst-sidebar-divider{height:1px;background:#e9ecef;margin:.5rem 1rem}
-
-    /* ── Section transition ── */
-    .cst-section{display:none;animation:cstFadeIn .25s ease}
-    .cst-section.active{display:block}
-    @keyframes cstFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-    /* ── Import styles ── */
-    .import-dropzone{border:2px dashed #ccc;border-radius:12px;padding:2rem;text-align:center;transition:all .2s ease;cursor:pointer;background:#fafbfc}
-    .import-dropzone:hover,.import-dropzone.dragover{border-color:#3498db;background:rgba(52,152,219,.05)}
-    .import-dropzone.has-file{border-color:#27ae60;background:rgba(39,174,96,.05)}
-    .mapping-select{font-size:.78rem;padding:.25rem .5rem}
-    .preview-table{font-size:.72rem;max-height:300px;overflow:auto}
-    .preview-table th{position:sticky;top:0;z-index:2;background:#e9ecef}
-    .preview-table td{white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
-    .import-step{display:none}
-    .import-step.active{display:block}
-
-    /* ── Mobile sidebar ── */
-    @media(max-width:991.98px){
-        .cst-sidebar-col{margin-bottom:1rem}
-        .cst-sidebar{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:thin}
-        .cst-sidebar .cst-nav-item{white-space:nowrap;flex-shrink:0;padding:.5rem .85rem;font-size:.75rem}
-        .cst-sidebar-label{display:none}
-        .cst-sidebar-divider{display:none}
-    }
-
-    /* ── Cards grid ── */
-    .cst-cards-grid{display:none;overflow:hidden;max-width:100%}
-    .cst-cards-grid.active{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
-    .cst-card-col{min-width:0;overflow:hidden}
-    @media(max-width:991.98px){.cst-cards-grid.active{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:575.98px){.cst-cards-grid.active{grid-template-columns:minmax(0,1fr)}}
-    .cst-table-wrap.active{display:block}
-    .cst-table-wrap{display:none}
-
-    /* ── Status badge colors ── */
-    .badge-status-active{background:rgba(39,174,96,.12);color:#27ae60}
-    .badge-status-inactive{background:rgba(243,156,18,.12);color:#f39c12}
-    .badge-status-blocked{background:rgba(231,76,60,.12);color:#e74c3c}
-
-    /* ── Bulk toolbar animation ── */
-    .cst-bulk-bar{display:none;align-items:center;gap:.6rem;padding:.6rem 1rem;background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;border-radius:10px;font-size:.82rem;margin-bottom:.75rem;box-shadow:0 2px 12px rgba(52,152,219,.25);animation:cstSlideDown .25s ease}
-    .cst-bulk-bar.show{display:flex}
-    .cst-bulk-bar .btn{font-size:.75rem;padding:.3rem .65rem;border-color:rgba(255,255,255,.3);color:#fff}
-    .cst-bulk-bar .btn:hover{background:rgba(255,255,255,.15)}
-</style>
+<?php require 'app/views/components/flash-messages.php'; ?>
 
 <div class="container-fluid py-3">
 
@@ -116,24 +52,24 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                         <div class="cst-sidebar-label">Clientes</div>
 
                         <a href="#" class="cst-nav-item <?= $activeSection === 'overview' ? 'active' : '' ?>" data-section="overview">
-                            <span class="cst-nav-icon" style="background:rgba(52,152,219,.1);color:#3498db;">
+                            <span class="cst-nav-icon nav-icon-blue">
                                 <i class="fas fa-users"></i>
                             </span>
                             <span>Visão Geral</span>
-                            <span class="cst-nav-count" style="background:rgba(52,152,219,.1);color:#3498db;"><?= $totalItems ?></span>
+                            <span class="cst-nav-count nav-icon-blue"><?= $totalItems ?></span>
                         </a>
 
                         <div class="cst-sidebar-divider"></div>
 
                         <a href="#" class="cst-nav-item <?= $activeSection === 'create' ? 'active' : '' ?>" data-section="create">
-                            <span class="cst-nav-icon" style="background:rgba(39,174,96,.1);color:#27ae60;">
+                            <span class="cst-nav-icon nav-icon-green">
                                 <i class="fas fa-user-plus"></i>
                             </span>
                             <span>Cadastro de Clientes</span>
                         </a>
 
                         <a href="#" class="cst-nav-item <?= $activeSection === 'import' ? 'active' : '' ?>" data-section="import">
-                            <span class="cst-nav-icon" style="background:rgba(243,156,18,.1);color:#f39c12;">
+                            <span class="cst-nav-icon nav-icon-orange">
                                 <i class="fas fa-file-import"></i>
                             </span>
                             <span>Importação</span>
@@ -145,13 +81,13 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
             <!-- Mini-dica -->
             <div class="card border-0 shadow-sm mt-3 d-none d-lg-block" style="border-radius:12px;">
                 <div class="card-body p-3">
-                    <h6 class="mb-2 fw-bold" style="font-size:.78rem;color:#17a2b8;">
+                    <h6 class="mb-2 fw-bold text-info-alt" style="font-size:.78rem;">
                         <i class="fas fa-lightbulb me-1"></i>Dica
                     </h6>
                     <p class="mb-0 text-muted" style="font-size:.72rem;line-height:1.55;">
                         Use a <span class="fw-bold text-primary">Visão Geral</span> para buscar e gerenciar seus clientes,
                         <span class="fw-bold text-success">Cadastro de Clientes</span> para registrar rapidamente
-                        e <span class="fw-bold" style="color:#f39c12;">Importação</span> para adicionar clientes em massa via planilha.
+                        e <span class="fw-bold text-orange">Importação</span> para adicionar clientes em massa via planilha.
                     </p>
                 </div>
             </div>
@@ -169,8 +105,8 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
 
                 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(52,152,219,.1);">
-                            <i class="fas fa-users" style="color:#3498db;font-size:.85rem;"></i>
+                        <div class="icon-circle icon-circle-blue me-2">
+                            <i class="fas fa-users text-blue" style="font-size:.85rem;"></i>
                         </div>
                         <div>
                             <h5 class="mb-0" style="font-size:1rem;">Clientes Cadastrados</h5>
@@ -281,8 +217,8 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
             <!-- ══════════════════════════════════════ -->
             <div class="cst-section <?= $activeSection === 'create' ? 'active' : '' ?>" id="cst-create">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(39,174,96,.1);">
-                        <i class="fas fa-user-plus" style="color:#27ae60;font-size:.85rem;"></i>
+                    <div class="icon-circle icon-circle-green me-2">
+                        <i class="fas fa-user-plus text-green" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Cadastrar Novo Cliente</h5>
@@ -302,7 +238,7 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                 <div class="card border-0 shadow-sm">
                     <div class="card-body text-center py-5">
                         <div class="mb-4">
-                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto" style="width:80px;height:80px;background:rgba(39,174,96,.1);">
+                            <div class="icon-circle icon-circle-80 icon-circle-green d-inline-flex mx-auto">
                                 <i class="fas fa-user-plus fa-2x text-success"></i>
                             </div>
                         </div>
@@ -324,8 +260,8 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
 
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(243,156,18,.1);">
-                            <i class="fas fa-file-import" style="color:#f39c12;font-size:.85rem;"></i>
+                        <div class="icon-circle icon-circle-orange me-2">
+                            <i class="fas fa-file-import text-orange" style="font-size:.85rem;"></i>
                         </div>
                         <div>
                             <h5 class="mb-0" style="font-size:1rem;">Importar Clientes em Massa</h5>
@@ -1006,7 +942,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<div class="cst-card-info">' +
                         emailLine + phoneLine +
                     '</div>' +
-                    '<div class="cst-card-actions">' +
+                    '<div class="cst-card-actions mt-1">' +
                         '<a href="?page=customers&action=view&id=' + c.id + '" class="btn btn-sm btn-outline-info flex-fill"><i class="fas fa-eye me-1"></i>Ver</a>' +
                         '<a href="?page=customers&action=edit&id=' + c.id + '" class="btn btn-sm btn-outline-primary flex-fill"><i class="fas fa-edit me-1"></i>Editar</a>' +
                     '</div>' +
@@ -1732,7 +1668,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.success) {
             var totalProcessed = (data.imported || 0) + (data.updated || 0);
             if (totalProcessed > 0) {
-                html += '<div class="text-center mb-4"><div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(39,174,96,.1);"><i class="fas fa-check-circle fa-2x text-success"></i></div>';
+                html += '<div class="text-center mb-4"><div class="icon-circle icon-circle-80 icon-circle-green d-inline-flex mx-auto mb-3"><i class="fas fa-check-circle fa-2x text-success"></i></div>';
                 html += '<h4 class="text-success">Importação Concluída!</h4><p class="text-muted">';
                 if (data.imported > 0) html += '<strong>' + data.imported + '</strong> cliente(s) criado(s)';
                 if (data.imported > 0 && data.updated > 0) html += ', ';
@@ -1740,7 +1676,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.skipped > 0) html += ', <strong>' + data.skipped + '</strong> ignorado(s)';
                 html += '.</p></div>';
             } else {
-                html += '<div class="text-center mb-4"><div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(243,156,18,.1);"><i class="fas fa-exclamation-triangle fa-2x text-warning"></i></div>';
+                html += '<div class="text-center mb-4"><div class="icon-circle icon-circle-80 icon-circle-warning d-inline-flex mx-auto mb-3"><i class="fas fa-exclamation-triangle fa-2x text-warning"></i></div>';
                 html += '<h4 class="text-warning">Nenhum cliente processado</h4><p class="text-muted">Verifique os erros abaixo.</p></div>';
             }
             // Warnings
@@ -1769,7 +1705,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 btnUndoImport.dataset.batchId = data.batch_id;
             }
         } else {
-            html += '<div class="text-center"><div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;background:rgba(192,57,43,.1);"><i class="fas fa-times-circle fa-2x text-danger"></i></div>';
+            html += '<div class="text-center"><div class="icon-circle icon-circle-80 icon-circle-danger d-inline-flex mx-auto mb-3"><i class="fas fa-times-circle fa-2x text-danger"></i></div>';
             html += '<h4 class="text-danger">Erro na Importação</h4><p class="text-muted">' + escHtml(data.message || 'Erro desconhecido.') + '</p></div>';
         }
         container.innerHTML = html;

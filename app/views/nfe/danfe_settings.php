@@ -115,7 +115,7 @@ $isAjax = $isAjax ?? false;
                         <h5 class="mb-0"><i class="fas fa-eye me-2 text-secondary"></i> Preview do DANFE</h5>
                     </div>
                     <div class="card-body">
-                        <div class="border rounded p-3" style="min-height: 400px; background: #fafafa;">
+                        <div class="preview-area rounded p-3" style="min-height: 400px;">
                             <!-- Preview Header -->
                             <div class="border-bottom pb-2 mb-3">
                                 <div class="row align-items-center">

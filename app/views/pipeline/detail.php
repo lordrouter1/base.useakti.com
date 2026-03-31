@@ -284,8 +284,8 @@
                 <input type="hidden" name="id" value="<?= $order['id'] ?>">
 
                 <!-- Dados do Cliente -->
-                <fieldset class="p-4 mb-4" style="border: 2px solid #6c757d; border-radius: 8px;">
-                    <legend class="float-none w-auto px-2 fs-5" style="color: #6c757d;"><i class="fas fa-user-tag me-2"></i>Cliente</legend>
+                <fieldset class="p-4 mb-4 fieldset-gray">
+                    <legend class="float-none w-auto px-2 fs-5 legend-gray"><i class="fas fa-user-tag me-2"></i>Cliente</legend>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-muted">Nome</label>
@@ -333,8 +333,8 @@
 
                 <?php if ($showProducts): ?>
                 <!-- Produtos do Orçamento -->
-                <fieldset class="p-4 mb-4" style="border: 2px solid #9b59b6; border-radius: 8px;">
-                    <legend class="float-none w-auto px-2 fs-5" style="color: #9b59b6;">
+                <fieldset class="p-4 mb-4 fieldset-purple">
+                    <legend class="float-none w-auto px-2 fs-5 legend-purple">
                         <i class="fas fa-file-invoice-dollar me-2"></i>Produtos do Orçamento
                         <?php
                             $quoteApproval = $order['customer_approval_status'] ?? null;
@@ -357,10 +357,10 @@
                     <!-- ═══ Link de Catálogo para o Cliente ═══ -->
                     <?php if ($currentStage === 'orcamento' && !$isReadOnly): ?>
                     <div class="card border-0 shadow-sm mb-3" id="catalogLinkSection">
-                        <div class="card-header py-2" style="background: linear-gradient(135deg, #17a2b810 0%, #0dcaf015 100%);">
+                        <div class="card-header py-2 card-header-info-light">
                             <div class="d-flex align-items-center justify-content-between">
-                                <h6 class="mb-0" style="font-size:0.85rem; color:#17a2b8;"><i class="fas fa-share-alt me-2"></i>Catálogo do Cliente</h6>
-                                <span class="badge" style="font-size:0.6rem; background:#17a2b820; color:#17a2b8;" id="catalogHeaderBadge">
+                                <h6 class="mb-0 text-info-alt" style="font-size:0.85rem;"><i class="fas fa-share-alt me-2"></i>Catálogo do Cliente</h6>
+                                <span class="badge badge-info-light" style="font-size:0.6rem;" id="catalogHeaderBadge">
                                     <i class="fas fa-magic me-1"></i>O cliente monta a lista!
                                 </span>
                             </div>
@@ -390,15 +390,15 @@
                                         </select>
                                     </div>
                                     <div class="col-md-4">
-                                        <button class="btn btn-sm w-100 fw-bold shadow-sm" id="btnGenerateCatalog" onclick="generateCatalogLink()" style="background:#17a2b8; color:#fff; border-radius: 8px;">
+                                        <button class="btn btn-teal btn-sm w-100 fw-bold shadow-sm" id="btnGenerateCatalog" onclick="generateCatalogLink()" style="border-radius: 8px;">
                                             <i class="fas fa-magic me-1"></i> Gerar Link
                                         </button>
                                     </div>
                                 </div>
 
                                 <!-- CTA visual -->
-                                <div class="text-center py-3 mb-3" style="background: linear-gradient(135deg, #e0f7fa 0%, #e8f8f5 100%); border-radius: 10px; border: 2px dashed #17a2b840;">
-                                    <i class="fas fa-share-alt d-block mb-2" style="font-size: 2.2rem; color: #17a2b8; opacity: 0.6;"></i>
+                                <div class="text-center py-3 mb-3 catalog-link-section">
+                                    <i class="fas fa-share-alt d-block mb-2 text-info-alt" style="font-size: 2.2rem; opacity: 0.6;"></i>
                                     <p class="mb-1 small text-muted" style="font-size: 0.78rem;">
                                         Gere um link exclusivo para o Pedido <strong>#<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></strong>.
                                     </p>
@@ -407,24 +407,24 @@
                                     </p>
                                     <div id="catalogLinkActive" style="display:none;">
                                         <div class="input-group input-group-sm mt-2 px-3">
-                                            <span class="input-group-text" style="background: #f8f9fa; border-color: #17a2b840;">
-                                                <i class="fas fa-link" style="font-size:0.7rem; color:#17a2b8;"></i>
+                                            <span class="input-group-text input-group-catalog">
+                                                <i class="fas fa-link icon-teal" style="font-size:0.7rem;"></i>
                                             </span>
-                                            <input type="text" class="form-control" id="catalogLinkUrl" readonly onclick="this.select()" style="font-size:0.75rem; border-color: #17a2b840; color: #17a2b8; font-weight: 600;">
-                                            <button class="btn btn-outline-success btn-sm" type="button" onclick="copyCatalogLink()" title="Copiar link" style="border-color: #17a2b840;">
+                                            <input type="text" class="form-control text-info-alt" id="catalogLinkUrl" readonly onclick="this.select()" style="font-size:0.75rem; font-weight: 600;">
+                                            <button class="btn btn-outline-success btn-sm" type="button" onclick="copyCatalogLink()" title="Copiar link">
                                                 <i class="fas fa-copy"></i>
                                             </button>
-                                            <a id="catalogLinkOpen" href="#" target="_blank" class="btn btn-outline-primary btn-sm" title="Abrir catálogo" style="border-color: #17a2b840;">
+                                            <a id="catalogLinkOpen" href="#" target="_blank" class="btn btn-outline-primary btn-sm" title="Abrir catálogo">
                                                 <i class="fas fa-external-link-alt"></i>
                                             </a>
-                                            <button class="btn btn-outline-info btn-sm" type="button" onclick="shareViaWhatsApp()" title="Enviar via WhatsApp" style="border-color: #17a2b840;">
+                                            <button class="btn btn-outline-info btn-sm" type="button" onclick="shareViaWhatsApp()" title="Enviar via WhatsApp">
                                                 <i class="fab fa-whatsapp"></i>
                                             </button>
                                             <button class="btn btn-sm btn-outline-danger" type="button" onclick="deactivateCatalogLink()">
                                             <i class="fas fa-ban me-1"></i>
                                         </button>
                                         </div>
-                                        <b><small class="mb-0" style="font-size: 0.7rem; color: #6c757d;" id="catalogLinkPriceInfo"></small></b> - <small class="text-muted" style="font-size:0.65rem;" id="catalogLinkMeta"></small>
+                                        <b><small class="mb-0 text-muted" style="font-size: 0.7rem;" id="catalogLinkPriceInfo"></small></b> - <small class="text-muted" style="font-size:0.65rem;" id="catalogLinkMeta"></small>
                                     </div>
                                 </div>
                             </div>
@@ -432,9 +432,9 @@
                     </div>
                     <?php endif; ?>
 
-                    <div class="card-header border-bottom p-2 mb-3" style="background: linear-gradient(135deg,rgba(0, 204, 0, 0.06) 0%,rgba(0, 204, 0, 0.08) 100%);">
+                    <div class="card-header border-bottom p-2 mb-3 card-header-green-light">
                         <div class="d-flex align-items-center justify-content-between">
-                            <h6 class="mb-0" style="font-size:0.85rem; color:#00cc00;"><i class="fa-solid fa-table-list me-2"></i>Lista de Produtos</h6>
+                            <h6 class="mb-0 text-green-dark" style="font-size:0.85rem;"><i class="fa-solid fa-table-list me-2"></i>Lista de Produtos</h6>
                         </div>
                     </div>
 
@@ -585,8 +585,8 @@
                     <?php else: ?>
                     <!-- Formulário Adicionar Item -->
                     <div class="card border-0 shadow-sm">
-                        <div class="card-header py-2" style="background: linear-gradient(135deg, #0d6efd10 0%, #3498db15 100%);">
-                            <h6 class="mb-0" style="font-size:0.85rem; color:#0d6efd;"><i class="fas fa-plus-circle me-2"></i>Adicionar Produto</h6>
+                        <div class="card-header py-2 card-header-blue-light">
+                            <h6 class="mb-0 text-accent-blue" style="font-size:0.85rem;"><i class="fas fa-plus-circle me-2"></i>Adicionar Produto</h6>
                         </div>
                         <div class="card-body p-3">
                             <!-- O form real é colocado via JS para evitar nesting -->
@@ -627,8 +627,8 @@
 
                     <!-- Custos Extras do Orçamento -->
                     <div class="card border-0 shadow-sm mt-3">
-                        <div class="card-header py-2" style="background: linear-gradient(135deg, #f39c1210 0%, #e67e2215 100%);">
-                            <h6 class="mb-0" style="font-size:0.85rem; color:#e67e22;"><i class="fas fa-receipt me-2"></i>Custos Extras</h6>
+                        <div class="card-header py-2 card-header-orange-light">
+                            <h6 class="mb-0 text-carrot" style="font-size:0.85rem;"><i class="fas fa-receipt me-2"></i>Custos Extras</h6>
                         </div>
                         <div class="card-body p-3">
                             <?php if (!empty($extraCosts)): ?>
@@ -722,19 +722,19 @@
                 <!-- ═══ ORÇAMENTO — Card para impressão ═══ -->
                 <?php if (!$isReadOnly): ?>
                 <div class="card border-0 shadow-sm mb-4" id="quoteOrderSection">
-                    <div class="card-header py-2" style="background: linear-gradient(135deg, #9b59b610 0%, #8e44ad15 100%);">
+                    <div class="card-header py-2 card-header-purple-light">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0" style="font-size:0.85rem; color:#9b59b6;">
+                            <h6 class="mb-0 text-purple" style="font-size:0.85rem;">
                                 <i class="fas fa-file-invoice-dollar me-2"></i>Orçamento
                             </h6>
-                            <span class="badge" style="font-size:0.6rem; background:#9b59b620; color:#9b59b6;">
+                            <span class="badge badge-purple-light" style="font-size:0.6rem;">
                                 <i class="fas fa-print me-1"></i>Impressão
                             </span>
                         </div>
                     </div>
                     <div class="card-body p-3">
-                        <div class="text-center py-3" style="background: linear-gradient(135deg, #f3e8ff 0%, #faf5ff 100%); border-radius: 10px; border: 2px dashed #9b59b640;">
-                            <i class="fas fa-file-invoice-dollar d-block mb-2" style="font-size: 2.2rem; color: #9b59b6; opacity: 0.6;"></i>
+                        <div class="text-center py-3 section-bg-purple">
+                            <i class="fas fa-file-invoice-dollar d-block mb-2 text-purple" style="font-size: 2.2rem; opacity: 0.6;"></i>
                             <p class="mb-1 small text-muted" style="font-size: 0.78rem;">
                                 Imprima o orçamento completo com todos os produtos, valores e condições para enviar ao cliente.
                             </p>
@@ -743,7 +743,7 @@
                             </p>
                             <div class="d-flex justify-content-center gap-2">
                                 <a href="?page=orders&action=printQuote&id=<?= $order['id'] ?>" 
-                                   target="_blank" class="btn px-4 shadow-sm" style="background:#9b59b6; color:#fff; font-size: 0.95rem; border-radius: 10px;">
+                                   target="_blank" class="btn btn-grape px-4 shadow-sm" style="font-size: 0.95rem; border-radius: 10px;">
                                     <i class="fas fa-print me-2"></i> Imprimir Orçamento
                                 </a>
                             </div>
@@ -870,7 +870,7 @@
                     }
                     $progressPct = $totalSteps > 0 ? round(($completedSteps / $totalSteps) * 100) : 0;
                 ?>
-                <fieldset class="p-4 mb-4" style="border: 2px solid #27ae60; border-radius: 8px;">
+                <fieldset class="p-4 mb-4 fieldset-green">
                     <legend class="float-none w-auto px-3 fs-5 text-success">
                         <i class="fas fa-industry me-2"></i>Controle de Produção
                         <span class="badge bg-success bg-opacity-75 ms-2" style="font-size:0.7rem;"><?= $completedSteps ?>/<?= $totalSteps ?> setores</span>
@@ -982,7 +982,7 @@
                                 ?>
                                 <?php if (!$isFirst): ?>
                                 <!-- Linha conectora -->
-                                <div class="flex-grow-1" style="height:3px;background:<?= $isDone ? '#27ae60' : '#e0e0e0' ?>;min-width:12px;"></div>
+                                <div class="flex-grow-1 <?= $isDone ? 'bg-green-ds' : '' ?>" style="height:3px;<?= $isDone ? '' : 'background:#e0e0e0;' ?>min-width:12px;"></div>
                                 <?php endif; ?>
                                 <!-- Step -->
                                 <div class="production-step text-center position-relative flex-shrink-0" 
@@ -1077,7 +1077,7 @@
                 </fieldset>
                 <?php else: ?>
                 <!-- Sem setores configurados para os produtos deste pedido -->
-                <fieldset class="p-4 mb-4" style="border: 2px solid #e67e22; border-radius: 8px;">
+                <fieldset class="p-4 mb-4 fieldset-carrot">
                     <legend class="float-none w-auto px-3 fs-5 text-warning">
                         <i class="fas fa-industry me-2"></i>Setores de Produção
                     </legend>
@@ -1105,10 +1105,10 @@
                 if ($currentStage === 'preparacao' && !empty($activeDeductions)):
                     $warehouseName = $activeDeductions[0]['warehouse_name'] ?? 'N/D';
                 ?>
-                <fieldset class="p-4 mb-4" style="border: 2px solid #e67e22; border-radius: 8px;">
-                    <legend class="float-none w-auto px-3 fs-5" style="color: #e67e22;">
+                <fieldset class="p-4 mb-4 fieldset-carrot">
+                    <legend class="float-none w-auto px-3 fs-5 legend-carrot">
                         <i class="fas fa-warehouse me-2"></i>Estoque Deduzido
-                        <span class="badge bg-opacity-75 ms-2" style="font-size:0.7rem;background:#e67e22;">
+                        <span class="badge bg-opacity-75 ms-2 badge-carrot-light" style="font-size:0.7rem;">
                             <?= count($activeDeductions) ?> item(ns)
                         </span>
                     </legend>
@@ -1163,21 +1163,21 @@
                     $prepPct = $totalPrepItems > 0 ? round(($checkedCount / $totalPrepItems) * 100) : 0;
                     $allPrepDone = ($checkedCount === $totalPrepItems);
                 ?>
-                <fieldset class="p-4 mb-4" style="border: 2px solid #1abc9c; border-radius: 8px;">
-                    <legend class="float-none w-auto px-3 fs-5" style="color: #1abc9c;">
+                <fieldset class="p-4 mb-4 fieldset-teal">
+                    <legend class="float-none w-auto px-3 fs-5 legend-teal">
                         <i class="fas fa-boxes-packing me-2"></i>Preparo do Pedido
-                        <span class="badge bg-opacity-75 ms-2" style="font-size:0.7rem;background:#1abc9c;"><?= $checkedCount ?>/<?= $totalPrepItems ?> etapas</span>
+                        <span class="badge bg-opacity-75 ms-2 badge-teal-light" style="font-size:0.7rem;"><?= $checkedCount ?>/<?= $totalPrepItems ?> etapas</span>
                     </legend>
 
                     <!-- Barra de progresso do preparo -->
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <small class="text-muted fw-bold">Progresso do Preparo</small>
-                            <small class="fw-bold <?= $allPrepDone ? 'text-success' : '' ?>" style="color:<?= !$allPrepDone ? '#1abc9c' : '' ?>;"><?= $prepPct ?>%</small>
+                            <small class="fw-bold <?= $allPrepDone ? 'text-success' : 'text-turquoise' ?>"><?= $prepPct ?>%</small>
                         </div>
                         <div class="progress" style="height: 8px; border-radius: 5px;">
-                            <div class="progress-bar <?= $allPrepDone ? 'bg-success' : '' ?> progress-bar-striped <?= (!$allPrepDone && $prepPct > 0) ? 'progress-bar-animated' : '' ?>" 
-                                 role="progressbar" style="width:<?= $prepPct ?>%;background:<?= !$allPrepDone ? '#1abc9c' : '' ?>;"></div>
+                            <div class="progress-bar <?= $allPrepDone ? 'bg-success' : 'bg-turquoise' ?> progress-bar-striped <?= (!$allPrepDone && $prepPct > 0) ? 'progress-bar-animated' : '' ?>" 
+                                 role="progressbar" style="width:<?= $prepPct ?>%;"></div>
                         </div>
                     </div>
 
@@ -1214,8 +1214,8 @@
                                                 <i class="fas fa-check text-white" style="font-size:0.7rem;"></i>
                                             </span>
                                         <?php else: ?>
-                                            <span class="d-flex align-items-center justify-content-center rounded-circle border border-2" 
-                                                  style="width:28px;height:28px;border-color:#ccc !important;">
+                                            <span class="d-flex align-items-center justify-content-center rounded-circle border border-2 border-secondary" 
+                                                  style="width:28px;height:28px;">
                                                 <i class="<?= $pItem['icon'] ?> text-muted" style="font-size:0.7rem;"></i>
                                             </span>
                                         <?php endif; ?>
@@ -1276,19 +1276,19 @@
                 <!-- ═══════════════════════════════════════════════════════════ -->
                 <?php if (in_array($currentStage, ['venda', 'financeiro'])): ?>
                 <div class="card border-0 shadow-sm mb-4" id="notaPedidoSection">
-                    <div class="card-header py-2" style="background: linear-gradient(135deg, #27ae6010 0%, #2ecc7115 100%);">
+                    <div class="card-header py-2 card-header-green-light">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0" style="font-size:0.85rem; color:#27ae60;">
+                            <h6 class="mb-0 text-green" style="font-size:0.85rem;">
                                 <i class="fas fa-file-invoice me-2"></i>Nota de Pedido
                             </h6>
-                            <span class="badge" style="font-size:0.6rem; background:#27ae6020; color:#27ae60;">
+                            <span class="badge badge-green-light" style="font-size:0.6rem;">
                                 <i class="fas fa-print me-1"></i>Documento para impressão
                             </span>
                         </div>
                     </div>
                     <div class="card-body p-3">
-                        <div class="text-center py-3" style="background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-radius: 10px; border: 2px dashed #27ae6040;">
-                            <i class="fas fa-file-invoice d-block mb-2" style="font-size: 2.2rem; color: #27ae60; opacity: 0.6;"></i>
+                        <div class="text-center py-3 section-bg-green">
+                            <i class="fas fa-file-invoice d-block mb-2 text-green" style="font-size: 2.2rem; opacity: 0.6;"></i>
                             <p class="mb-1 small text-muted" style="font-size: 0.78rem;">
                                 Gere a Nota de Pedido com dados do cliente, produtos, valores e pagamento.
                             </p>
@@ -1296,7 +1296,7 @@
                                 <i class="fas fa-info-circle me-1"></i>Ideal como comprovante ao cliente. <strong>Dados serão salvos automaticamente.</strong>
                             </p>
                             <button type="submit" name="print_order_after_save" value="1"
-                                    class="btn px-4 shadow-sm" style="background:#27ae60; color:#fff; font-size: 0.95rem; border-radius: 10px;">
+                                    class="btn btn-green px-4 shadow-sm" style="font-size: 0.95rem; border-radius: 10px;">
                                 <i class="fas fa-print me-2"></i> Imprimir Nota de Pedido
                             </button>
                             <div class="mt-2">
@@ -1341,10 +1341,10 @@
                     $savedPaymentLinkAt = $order['payment_link_created_at'] ?? '';
                 ?>
                 <fieldset class="p-4 mb-4" style="border: 2px solid <?= $finBorderColor ?>; border-radius: 8px;">
-                    <legend class="float-none w-auto px-3 fs-5" style="color: #f39c12;">
+                    <legend class="float-none w-auto px-3 fs-5 legend-orange">
                         <i class="fas fa-coins me-2"></i>Financeiro
                         <?php if ($isFinanceiroStage): ?>
-                        <span class="badge ms-2" style="font-size:0.7rem;background:#f39c12;color:#fff;">
+                        <span class="badge ms-2 badge-orange-light" style="font-size:0.7rem;">
                             <i class="fas fa-money-bill-wave me-1"></i>Etapa Atual
                         </span>
                         <?php endif; ?>
@@ -1444,13 +1444,13 @@
                     <!-- ══ STEP 1 — Forma de Pagamento (sempre visível) ══ -->
                     <!-- ═══════════════════════════════════════════════════ -->
                     <div class="card border-0 shadow-sm mb-3">
-                        <div class="card-header py-2" style="background: linear-gradient(135deg, #f39c1215 0%, #e67e2210 100%);">
+                        <div class="card-header py-2 card-header-carrot-orange-light">
                             <div class="d-flex align-items-center justify-content-between">
-                                <h6 class="mb-0" style="font-size:0.85rem; color:#e67e22;">
+                                <h6 class="mb-0 text-carrot" style="font-size:0.85rem;">
                                     <i class="fas fa-wallet me-2"></i>Forma de Pagamento
                                 </h6>
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="fw-bold fs-5" style="color:#e67e22;" id="finTotalDisplay">
+                                    <span class="fw-bold fs-5 legend-carrot" id="finTotalDisplay">
                                         R$ <?= number_format($order['total_amount'], 2, ',', '.') ?>
                                     </span>
                                 </div>
@@ -1498,7 +1498,7 @@
 
                             <!-- ═══ Status + Entrada (aparece após selecionar forma de pagamento) ═══ -->
                             <div id="finPaymentDetails" style="<?= empty($selectedMethod) ? 'display:none;' : '' ?>">
-                                <hr class="my-3" style="border-color:#f39c12; opacity:0.2;">
+                                <hr class="my-3 border-warning" style="opacity:0.2;">
 
                                 <!-- Aviso quando modo Gateway Online está selecionado -->
                                 <div class="alert alert-info py-2 px-3 mb-3" id="finGatewayModeAlert" style="border-radius:8px; <?= ($selectedMethod !== 'gateway') ? 'display:none;' : '' ?>">
@@ -1557,8 +1557,8 @@
                     <!-- ══ STEP 2 — Parcelamento (condicional)         ══ -->
                     <!-- ═══════════════════════════════════════════════════ -->
                     <div class="card mb-3 border-0 shadow-sm" id="installmentRow" style="display:none;">
-                        <div class="card-header py-2" style="background:linear-gradient(135deg, #f39c1210 0%, #e67e2208 100%);">
-                            <h6 class="mb-0" style="font-size:0.85rem; color:#e67e22;" id="installmentCardTitle">
+                        <div class="card-header py-2 card-header-carrot-light">
+                            <h6 class="mb-0 text-carrot" style="font-size:0.85rem;" id="installmentCardTitle">
                                 <i class="fas fa-calculator me-2"></i><span id="installmentCardTitleText">Parcelamento</span>
                             </h6>
                         </div>
@@ -1629,14 +1629,14 @@
                     <!-- ══ STEP 3 — Link de Pagamento (Gateway)        ══ -->
                     <!-- ═══════════════════════════════════════════════════ -->
                     <div class="card mb-3 border-0 shadow-sm" id="paymentLinksSection" style="<?= ($selectedMethod !== 'gateway') ? 'display:none;' : '' ?>">
-                        <div class="card-header py-2" style="background:linear-gradient(135deg, #9b59b610 0%, #8e44ad08 100%);">
+                        <div class="card-header py-2 card-header-grape-purple-light">
                             <div class="d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0" style="font-size:0.85rem; color:#8e44ad;">
+                                <h6 class="mb-0 text-grape-dark" style="font-size:0.85rem;">
                                     <i class="fas fa-link me-2"></i>Link de Pagamento
                                 </h6>
                                 <div class="d-flex gap-1 align-items-center">
                                     <?php if (!empty($savedPaymentLink)): ?>
-                                    <span class="badge" style="font-size:0.6rem; background:#8e44ad20; color:#8e44ad;">
+                                    <span class="badge badge-grape-light" style="font-size:0.6rem;">
                                         <i class="fas fa-check-circle me-1"></i>Link ativo
                                     </span>
                                     <?php endif; ?>
@@ -1753,19 +1753,19 @@
 
                     <!-- ═══ CUPOM NÃO FISCAL — Impressão Térmica ═══ -->
                     <div class="card mt-3 border-0 shadow-sm" id="thermalReceiptSection">
-                        <div class="card-header py-2" style="background: linear-gradient(135deg, #8e44ad10 0%, #9b59b615 100%);">
+                        <div class="card-header py-2 card-header-grape-light">
                             <div class="d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0" style="font-size:0.85rem; color:#8e44ad;">
+                                <h6 class="mb-0 text-grape-dark" style="font-size:0.85rem;">
                                     <i class="fas fa-receipt me-2"></i>Cupom Não Fiscal
                                 </h6>
-                                <span class="badge" style="font-size:0.6rem; background:#8e44ad20; color:#8e44ad;">
+                                <span class="badge badge-grape-light" style="font-size:0.6rem;">
                                     <i class="fas fa-print me-1"></i>Impressora Térmica
                                 </span>
                             </div>
                         </div>
                         <div class="card-body p-3">
-                            <div class="text-center py-3" style="background: linear-gradient(135deg, #f3e5f5 0%, #f8f0fc 100%); border-radius: 10px; border: 2px dashed #8e44ad40;">
-                                <i class="fas fa-receipt d-block mb-2" style="font-size: 2.2rem; color: #8e44ad; opacity: 0.6;"></i>
+                            <div class="text-center py-3 section-bg-grape">
+                                <i class="fas fa-receipt d-block mb-2 text-grape-dark" style="font-size: 2.2rem; opacity: 0.6;"></i>
                                 <p class="mb-1 small text-muted" style="font-size: 0.78rem;">
                                     Gere um cupom formatado para impressora térmica (80mm/58mm) com dados do pedido.
                                 </p>
@@ -1774,7 +1774,7 @@
                                 </p>
                                 <div class="d-flex justify-content-center gap-2">
                                     <a href="?page=pipeline&action=printThermalReceipt&id=<?= $order['id'] ?>" 
-                                       target="_blank" class="btn px-4 shadow-sm" style="background:#8e44ad; color:#fff; font-size: 0.95rem; border-radius: 10px;">
+                                       target="_blank" class="btn btn-grape px-4 shadow-sm" style="font-size: 0.95rem; border-radius: 10px;">
                                         <i class="fas fa-receipt me-2"></i> Imprimir Cupom
                                     </a>
                                     <a href="?page=pipeline&action=printThermalReceipt&id=<?= $order['id'] ?>&auto_print=1" 
@@ -1823,9 +1823,9 @@
                     ?>
                     <!-- ═══ FISCAL — Nota Fiscal Eletrônica (SEFAZ) ═══ -->
                     <div class="card mt-3 border-0 shadow-sm" id="fiscalSection">
-                        <div class="card-header py-2" style="background: linear-gradient(135deg, #28a74510 0%, #27ae6015 100%);">
+                        <div class="card-header py-2 card-header-emerald-light">
                             <div class="d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0" style="font-size:0.85rem; color:#28a745;">
+                                <h6 class="mb-0 text-emerald" style="font-size:0.85rem;">
                                     <i class="fas fa-file-invoice me-2"></i>NF-e — Nota Fiscal Eletrônica
                                     <?php if ($hasNfe): ?>
                                     <span class="badge bg-<?= $nfeStatusColor ?> ms-2" style="font-size:0.6rem;">
@@ -1852,8 +1852,8 @@
 
                             <?php if (!$hasNfe && in_array($currentStage, ['venda', 'financeiro', 'concluido'])): ?>
                             <!-- ═══ CTA principal: Emitir NF-e (sem nota emitida) ═══ -->
-                            <div class="text-center py-3 mb-3" style="background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-radius: 10px; border: 2px dashed #27ae6040;">
-                                <i class="fas fa-file-invoice-dollar d-block mb-2" style="font-size: 2.5rem; color: #27ae60; opacity: 0.7;"></i>
+                            <div class="text-center py-3 mb-3 section-bg-green">
+                                <i class="fas fa-file-invoice-dollar d-block mb-2 text-green" style="font-size: 2.5rem; opacity: 0.7;"></i>
                                 <p class="mb-2 fw-bold text-success" style="font-size: 0.95rem;">Nenhuma NF-e emitida para este pedido</p>
                                 <p class="small text-muted mb-3" style="font-size: 0.78rem;">Emita a nota fiscal eletrônica diretamente pela SEFAZ com um clique.</p>
                                 <button type="button" class="btn btn-success btn-lg px-5 shadow-sm" id="btnEmitirNfeSefaz" style="font-size: 1rem; border-radius: 10px;">
@@ -1868,8 +1868,8 @@
                             </div>
                             <?php elseif ($hasNfe && $nfeDoc['status'] === 'rejeitada' && in_array($currentStage, ['venda', 'financeiro', 'concluido'])): ?>
                             <!-- ═══ CTA: Reemitir NF-e rejeitada ═══ -->
-                            <div class="text-center py-3 mb-3" style="background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%); border-radius: 10px; border: 2px dashed #e67e22;">
-                                <i class="fas fa-exclamation-triangle d-block mb-2" style="font-size: 2rem; color: #e67e22; opacity: 0.7;"></i>
+                            <div class="text-center py-3 mb-3 section-bg-warning">
+                                <i class="fas fa-exclamation-triangle d-block mb-2 text-carrot" style="font-size: 2rem; opacity: 0.7;"></i>
                                 <p class="mb-2 fw-bold text-warning" style="font-size: 0.9rem;">NF-e Rejeitada pela SEFAZ</p>
                                 <?php if (!empty($nfeDoc['motivo_sefaz'])): ?>
                                 <p class="small text-danger mb-2" style="font-size: 0.75rem;"><i class="fas fa-times-circle me-1"></i><?= e($nfeDoc['motivo_sefaz']) ?></p>
@@ -1935,11 +1935,11 @@
 
                             <?php if ($nfeDoc['xml_autorizado'] && in_array($nfeDoc['status'], ['autorizada', 'corrigida'])): ?>
                             <!-- Botão principal: Imprimir DANFE (destaque) -->
-                            <div class="text-center py-3 mb-2" style="background: linear-gradient(135deg, #fce4ec 0%, #ffebee 100%); border-radius: 10px; border: 2px dashed #dc354540;">
-                                <i class="fas fa-file-pdf d-block mb-2" style="font-size: 2.2rem; color: #dc3545; opacity: 0.6;"></i>
+                            <div class="text-center py-3 mb-2 report-instant-placeholder">
+                                <i class="fas fa-file-pdf d-block mb-2 text-red-dark" style="font-size: 2.2rem; opacity: 0.6;"></i>
                                 <p class="mb-2 small text-muted" style="font-size: 0.78rem;">Imprima o DANFE (PDF) para acompanhar a nota fiscal.</p>
                                 <a href="?page=nfe_documents&action=download&id=<?= $nfeDoc['id'] ?>&type=danfe" 
-                                   target="_blank" class="btn px-4 shadow-sm" id="btnPrintDanfePipeline" style="background:#dc3545; color:#fff; font-size: 0.95rem; border-radius: 10px;">
+                                   target="_blank" class="btn btn-danger px-4 shadow-sm" id="btnPrintDanfePipeline" style="font-size: 0.95rem; border-radius: 10px;">
                                     <i class="fas fa-print me-2"></i> Imprimir DANFE (PDF)
                                 </a>
                             </div>
@@ -2072,7 +2072,7 @@
                     <!-- NF-e desabilitado — card informativo -->
                     <div class="card mt-3 border-0 shadow-sm opacity-75" role="button"
                          onclick="<?= \Akti\Core\ModuleBootloader::getDisabledModuleJS('nfe') ?>">
-                        <div class="card-header py-2" style="background: linear-gradient(135deg, #dee2e610 0%, #adb5bd10 100%);">
+                        <div class="card-header py-2 card-header-gray-light">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0 text-muted" style="font-size:0.85rem;">
                                     <i class="fas fa-file-invoice me-2"></i>Fiscal / Nota Fiscal
@@ -2167,8 +2167,8 @@
 
                     <!-- Retirada na loja (visível apenas quando tipo = retirada) -->
                     <div class="card mb-3 border-0 shadow-sm" id="shippingRetiradaCard" style="<?= ($shippingType !== 'retirada') ? 'display:none;' : '' ?>">
-                        <div class="card-body p-3 text-center" style="background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-radius: 10px; border: 2px dashed #27ae6040;">
-                            <i class="fas fa-store d-block mb-2" style="font-size:2.2rem; color:#27ae60; opacity:0.6;"></i>
+                        <div class="card-body p-3 text-center section-bg-green">
+                            <i class="fas fa-store d-block mb-2 text-green" style="font-size:2.2rem; opacity:0.6;"></i>
                             <span class="text-muted fs-6">O cliente irá <strong>retirar na loja</strong>.</span>
                             <p class="text-muted small mt-1 mb-0">Nenhum endereço de entrega necessário.</p>
                         </div>
@@ -2176,9 +2176,9 @@
 
                     <!-- Endereço de Entrega (visível quando tipo = entrega ou correios) -->
                     <div class="card mb-3 border-0 shadow-sm" id="shippingAddressCard" style="<?= ($shippingType === 'retirada') ? 'display:none;' : '' ?>">
-                        <div class="card-header py-2" style="background: linear-gradient(135deg, #e67e2210 0%, #f39c1208 100%);">
+                        <div class="card-header py-2 card-header-carrot-light">
                             <div class="d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0" style="font-size:0.85rem; color:#e67e22;">
+                                <h6 class="mb-0 text-carrot" style="font-size:0.85rem;">
                                     <i class="fas fa-map-marker-alt me-2"></i>Endereço de Entrega
                                 </h6>
                                 <div class="d-flex gap-1">
@@ -2217,8 +2217,8 @@
 
                     <!-- Rastreamento e Código -->
                     <div class="card mb-3 border-0 shadow-sm" id="trackingSection">
-                        <div class="card-header py-2" style="background: linear-gradient(135deg, #3498db10 0%, #2980b908 100%);">
-                            <h6 class="mb-0" style="font-size:0.85rem; color:#3498db;">
+                        <div class="card-header py-2 card-header-navy-light">
+                            <h6 class="mb-0 text-blue" style="font-size:0.85rem;">
                                 <i class="fas fa-barcode me-2"></i>Rastreamento
                             </h6>
                         </div>
@@ -2276,7 +2276,7 @@
 
                     <!-- API de Transportadoras (placeholder para integração futura) -->
                     <div class="card border-0 shadow-sm mb-0">
-                        <div class="card-body p-3 text-center" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; border: 2px dashed #adb5bd40;">
+                        <div class="card-body p-3 text-center section-bg-gray">
                             <i class="fas fa-plug text-muted d-block mb-2" style="font-size:1.5rem;opacity:0.4;"></i>
                             <p class="small text-muted mb-1 fw-bold">Integração com Transportadoras</p>
                             <p class="small text-muted mb-0" style="font-size:0.72rem;">
@@ -2303,8 +2303,8 @@
                 <?php endif; ?>
 
                 <!-- Gerenciamento do Pedido (sempre no final) -->
-                <fieldset class="p-4 mb-4" style="border: 2px solid #3498db; border-radius: 8px;">
-                    <legend class="float-none w-auto px-2 fs-5" style="color: #3498db;"><i class="fas fa-sliders-h me-2"></i>Gerenciamento</legend>
+                <fieldset class="p-4 mb-4 fieldset-blue">
+                    <legend class="float-none w-auto px-2 fs-5 legend-blue"><i class="fas fa-sliders-h me-2"></i>Gerenciamento</legend>
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label small fw-bold text-muted">Prioridade</label>
@@ -2516,8 +2516,8 @@
 
             <!-- Histórico de Movimentação do Pipeline -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header py-2" style="background: linear-gradient(135deg, #3498db10 0%, #0d6efd15 100%);">
-                    <h6 class="mb-0 fw-bold" style="font-size:0.85rem; color:#3498db;"><i class="fas fa-history me-2"></i>Histórico de Movimentação</h6>
+                <div class="card-header py-2 card-header-navy-light">
+                    <h6 class="mb-0 fw-bold text-blue" style="font-size:0.85rem;"><i class="fas fa-history me-2"></i>Histórico de Movimentação</h6>
                 </div>
                 <div class="card-body p-3" style="max-height: 400px; overflow-y: auto;">
                     <?php if (empty($history)): ?>
@@ -2596,9 +2596,9 @@
 
             <!-- ═══ Registro (Logs dos Produtos) ═══ -->
             <div class="card border-0 shadow-sm">
-                <div class="card-header py-2" style="background: linear-gradient(135deg, #27ae6010 0%, #2ecc7115 100%);">
+                <div class="card-header py-2 card-header-green-light">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 fw-bold" style="font-size:0.85rem; color:#27ae60;"><i class="fas fa-clipboard-list me-2"></i>Registro</h6>
+                        <h6 class="mb-0 fw-bold text-green" style="font-size:0.85rem;"><i class="fas fa-clipboard-list me-2"></i>Registro</h6>
                         <?php if (!empty($orderItems) && !$isReadOnly): ?>
                         <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#collapseAddLog">
                             <i class="fas fa-plus me-1"></i> Novo
@@ -2715,62 +2715,7 @@
     </div>
 </div>
 
-<style>
-/* ═══ Micro-interações e transições ═══ */
-.card { transition: box-shadow 0.2s ease; }
-.card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.08) !important; }
-fieldset { transition: border-color 0.3s ease; }
-.btn { transition: all 0.2s ease; }
-.badge { transition: all 0.2s ease; }
-.prep-check-card { transition: all 0.2s ease; }
-.prep-check-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-.payment-method-card { transition: all 0.2s ease !important; }
-.payment-method-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; }
-.timeline-item { transition: background-color 0.2s ease; }
-.timeline-item:hover { background-color: rgba(0,0,0,0.01); border-radius: 8px; }
-
-/* ═══ Toast Push para Link de Pagamento ═══ */
-@keyframes gwToastSlideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to   { transform: translateX(0);    opacity: 1; }
-}
-@keyframes gwToastTimer {
-    from { width: 100%; }
-    to   { width: 0%;   }
-}
-.gw-payment-toast {
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-.gw-payment-toast .input-group .form-control {
-    font-size: 0.7rem !important;
-}
-
-/* ═══ Estilos Controle de Produção por Produto ═══ */
-.production-item-card {
-    transition: box-shadow 0.2s;
-    border-left: 3px solid #e0e0e0 !important;
-}
-.production-item-card:hover {
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08) !important;
-}
-.production-item-card.border-success {
-    border-left: 3px solid #27ae60 !important;
-}
-.production-stepper {
-    overflow-x: auto;
-    scrollbar-width: thin;
-}
-.production-step {
-    min-width: 50px;
-}
-@keyframes sectorPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.4); }
-    50% { box-shadow: 0 0 0 6px rgba(52, 152, 219, 0); }
-}
-.sector-pulse {
-    animation: sectorPulse 2s ease-in-out infinite;
-}
-</style>
+<!-- Styles moved to assets/css/modules/pipeline.css -->
 
 <script>
 // ── CSRF token global para fetch POST (acessível por todas as funções, inclusive fora do DOMContentLoaded) ──
@@ -4544,21 +4489,6 @@ setInterval(() => {
     
     toggleInstallmentRow();
     updateDownPaymentInfo();
-
-    // ═══ Estilização dinâmica do select de status de pagamento ═══
-    var finPaymentStatus = document.getElementById('finPaymentStatus');
-    if (finPaymentStatus) {
-        var statusStyles = {
-            'pendente': { color: '#f39c12', bg: '#fff3cd' },
-            'parcial':  { color: '#3498db', bg: '#cfe2ff' },
-            'pago':     { color: '#198754', bg: '#d1e7dd' }
-        };
-        finPaymentStatus.addEventListener('change', function() {
-            var s = statusStyles[this.value] || statusStyles['pendente'];
-            this.style.borderColor = s.color;
-            this.style.backgroundColor = s.bg;
-        });
-    }
 
     // Bloquear campos se há parcelas pagas (logo no carregamento da página)
     lockFinancialFieldsIfPaid();

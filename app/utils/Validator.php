@@ -119,6 +119,43 @@ class Validator
     }
 
     /**
+     * Valida força da senha: mínimo 8 caracteres, pelo menos 1 maiúscula e 1 número.
+     *
+     * @param string $field  Nome do campo (para acumular erros)
+     * @param mixed  $value  Senha em texto plano
+     * @param string $label  Rótulo para mensagem de erro
+     * @return self
+     */
+    public function passwordStrength(string $field, $value, string $label = ''): self
+    {
+        if (isset($this->errors[$field])) return $this;
+        $label = $label ?: 'Senha';
+
+        if ($value === null || $value === '') {
+            return $this;
+        }
+
+        $val = (string) $value;
+
+        if (mb_strlen($val, 'UTF-8') < 8) {
+            $this->errors[$field] = "A {$label} deve ter no mínimo 8 caracteres.";
+            return $this;
+        }
+
+        if (!preg_match('/[A-Z]/', $val)) {
+            $this->errors[$field] = "A {$label} deve conter pelo menos 1 letra maiúscula.";
+            return $this;
+        }
+
+        if (!preg_match('/[0-9]/', $val)) {
+            $this->errors[$field] = "A {$label} deve conter pelo menos 1 número.";
+            return $this;
+        }
+
+        return $this;
+    }
+
+    /**
      * Comprimento máximo.
      */
     public function maxLength(string $field, $value, int $max, string $label = ''): self

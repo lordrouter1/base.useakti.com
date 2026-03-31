@@ -8,6 +8,7 @@ use Akti\Models\CompanySettings;
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use Akti\Core\Security;
+use Akti\Services\PortalAdminService;
 use Akti\Utils\Input;
 use PDO;
 
@@ -24,11 +25,13 @@ class PortalAdminController
 {
     private PDO $db;
     private PortalAccess $portalAccess;
+    private PortalAdminService $service;
 
     public function __construct()
     {
         $this->db = (new \Database())->getConnection();
         $this->portalAccess = new PortalAccess($this->db);
+        $this->service = new PortalAdminService($this->db);
     }
 
     // ══════════════════════════════════════════════
@@ -44,14 +47,9 @@ class PortalAdminController
         $search = Input::get('q') ?: '';
         $filter = Input::get('filter') ?: 'all';
 
-        // Buscar todos os acessos
-        $accesses = $this->getFilteredAccesses($search, $filter);
-
-        // Métricas
-        $metrics = $this->getPortalMetrics();
-
-        // Mensagens pendentes (enviadas pelo cliente, não lidas)
-        $pendingMessages = $this->countPendingMessages();
+        $accesses = $this->service->getFilteredAccesses($search, $filter);
+        $metrics = $this->service->getPortalMetrics();
+        $pendingMessages = $this->service->countPendingMessages();
 
         require 'app/views/layout/header.php';
         require 'app/views/portal_admin/index.php';
@@ -68,7 +66,7 @@ class PortalAdminController
      */
     public function create(): void
     {
-        $customers = $this->getCustomersWithoutAccess();
+        $customers = $this->service->getCustomersWithoutAccess();
         $error = '';
         $success = '';
 
@@ -104,7 +102,7 @@ class PortalAdminController
         }
 
         if ($error) {
-            $customers = $this->getCustomersWithoutAccess();
+            $customers = $this->service->getCustomersWithoutAccess();
             $success = '';
             require 'app/views/layout/header.php';
             require 'app/views/portal_admin/create.php';
@@ -253,7 +251,7 @@ class PortalAdminController
         }
 
         // Gerar nova senha temporária
-        $tempPassword = $this->generateTempPassword();
+        $tempPassword = $this->service->generateTempPassword();
         $this->portalAccess->update($accessId, ['password' => $tempPassword]);
         $this->portalAccess->setMustChangePassword($accessId, true);
 
@@ -320,7 +318,7 @@ class PortalAdminController
 
         if ($access) {
             // Remover sessões ativas
-            $this->removeActiveSessions($accessId);
+            $this->service->removeActiveSessions($accessId);
 
             $this->portalAccess->delete($accessId);
 
@@ -346,7 +344,7 @@ class PortalAdminController
         }
 
         $accessId = (int) Input::post('id');
-        $removed = $this->removeActiveSessions($accessId);
+        $removed = $this->service->removeActiveSessions($accessId);
 
         $this->jsonResponse(true, "Sessões encerradas ({$removed}).", [
             'sessions_removed' => $removed,
@@ -433,7 +431,7 @@ class PortalAdminController
      */
     public function metrics(): void
     {
-        $metrics = $this->getPortalMetrics();
+        $metrics = $this->service->getPortalMetrics();
         header('Content-Type: application/json');
         echo json_encode(['success' => true, 'metrics' => $metrics]);
         exit;
@@ -442,166 +440,6 @@ class PortalAdminController
     // ══════════════════════════════════════════════
     // MÉTODOS PRIVADOS
     // ══════════════════════════════════════════════
-
-    /**
-     * Busca acessos filtrados por pesquisa e status.
-     */
-    private function getFilteredAccesses(string $search, string $filter): array
-    {
-        $where = '1=1';
-        $params = [];
-
-        if (!empty($search)) {
-            $where .= " AND (pa.email LIKE :search OR c.name LIKE :search OR c.phone LIKE :search)";
-            $params[':search'] = '%' . $search . '%';
-        }
-
-        switch ($filter) {
-            case 'active':
-                $where .= " AND pa.is_active = 1";
-                break;
-            case 'inactive':
-                $where .= " AND pa.is_active = 0";
-                break;
-            case 'locked':
-                $where .= " AND pa.locked_until > NOW()";
-                break;
-            case 'recent':
-                $where .= " AND pa.last_login_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-                break;
-        }
-
-        $sql = "SELECT pa.*, c.name AS customer_name, c.phone AS customer_phone,
-                       c.email AS customer_email_main
-                FROM customer_portal_access pa
-                JOIN customers c ON c.id = pa.customer_id
-                WHERE {$where}
-                ORDER BY pa.created_at DESC";
-
-        $stmt = $this->db->prepare($sql);
-        foreach ($params as $k => $v) {
-            $stmt->bindValue($k, $v);
-        }
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    /**
-     * Retorna clientes sem acesso ao portal.
-     */
-    private function getCustomersWithoutAccess(): array
-    {
-        $sql = "SELECT c.id, c.name, c.email, c.phone
-                FROM customers c
-                LEFT JOIN customer_portal_access pa ON pa.customer_id = c.id
-                WHERE pa.id IS NULL
-                ORDER BY c.name ASC";
-        $stmt = $this->db->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    /**
-     * Retorna métricas do portal.
-     */
-    private function getPortalMetrics(): array
-    {
-        $metrics = [
-            'total_accesses'   => 0,
-            'active_accesses'  => 0,
-            'inactive_accesses' => 0,
-            'logins_last_7d'   => 0,
-            'logins_last_30d'  => 0,
-            'pending_messages' => 0,
-            'locked_accounts'  => 0,
-        ];
-
-        // Total de acessos
-        $stmt = $this->db->query("SELECT COUNT(*) FROM customer_portal_access");
-        $metrics['total_accesses'] = (int) $stmt->fetchColumn();
-
-        // Ativos
-        $stmt = $this->db->query("SELECT COUNT(*) FROM customer_portal_access WHERE is_active = 1");
-        $metrics['active_accesses'] = (int) $stmt->fetchColumn();
-
-        // Inativos
-        $metrics['inactive_accesses'] = $metrics['total_accesses'] - $metrics['active_accesses'];
-
-        // Logins nos últimos 7 dias
-        $stmt = $this->db->query(
-            "SELECT COUNT(*) FROM customer_portal_access
-             WHERE last_login_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"
-        );
-        $metrics['logins_last_7d'] = (int) $stmt->fetchColumn();
-
-        // Logins nos últimos 30 dias
-        $stmt = $this->db->query(
-            "SELECT COUNT(*) FROM customer_portal_access
-             WHERE last_login_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
-        );
-        $metrics['logins_last_30d'] = (int) $stmt->fetchColumn();
-
-        // Mensagens pendentes (do cliente, não lidas)
-        try {
-            $stmt = $this->db->query(
-                "SELECT COUNT(*) FROM customer_portal_messages
-                 WHERE sender_type = 'customer' AND is_read = 0"
-            );
-            $metrics['pending_messages'] = (int) $stmt->fetchColumn();
-        } catch (\PDOException $e) {
-            // Tabela pode não existir
-        }
-
-        // Contas bloqueadas
-        $stmt = $this->db->query(
-            "SELECT COUNT(*) FROM customer_portal_access WHERE locked_until > NOW()"
-        );
-        $metrics['locked_accounts'] = (int) $stmt->fetchColumn();
-
-        return $metrics;
-    }
-
-    /**
-     * Conta mensagens pendentes de clientes.
-     */
-    private function countPendingMessages(): int
-    {
-        try {
-            $stmt = $this->db->query(
-                "SELECT COUNT(*) FROM customer_portal_messages
-                 WHERE sender_type = 'customer' AND is_read = 0"
-            );
-            return (int) $stmt->fetchColumn();
-        } catch (\PDOException $e) {
-            return 0;
-        }
-    }
-
-    /**
-     * Remove sessões ativas de um acesso.
-     */
-    private function removeActiveSessions(int $accessId): int
-    {
-        try {
-            $stmt = $this->db->prepare("DELETE FROM customer_portal_sessions WHERE access_id = :aid");
-            $stmt->execute([':aid' => $accessId]);
-            return $stmt->rowCount();
-        } catch (\PDOException $e) {
-            return 0;
-        }
-    }
-
-    /**
-     * Gera senha temporária aleatória.
-     */
-    private function generateTempPassword(): string
-    {
-        $chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        $password = '';
-        for ($i = 0; $i < 10; $i++) {
-            $password .= $chars[random_int(0, strlen($chars) - 1)];
-        }
-        return $password;
-    }
 
     /**
      * Resposta JSON.

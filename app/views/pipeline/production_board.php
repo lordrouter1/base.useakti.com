@@ -34,47 +34,8 @@ if (!in_array($activeSectorId, $validSectorIds) && !empty($sectorList)) {
 }
 ?>
 
-<style>
-/* ── Production Board Sidebar ── */
-.pb-sidebar .pb-nav-item{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;border-radius:10px;text-decoration:none;color:#555;font-size:.82rem;font-weight:500;transition:all .15s ease;margin-bottom:2px;border:1px solid transparent;cursor:pointer}
-.pb-sidebar .pb-nav-item:hover{background:#f1f5f9;color:#333}
-.pb-sidebar .pb-nav-item.active{background:var(--bs-primary,#3498db);color:#fff;box-shadow:0 2px 8px rgba(52,152,219,.3)}
-.pb-sidebar .pb-nav-item.active .pb-nav-icon{background:rgba(255,255,255,.2) !important;color:#fff !important}
-.pb-sidebar .pb-nav-item.active .pb-nav-count{background:rgba(255,255,255,.25) !important;color:#fff !important}
-.pb-nav-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:all .15s ease}
-.pb-nav-count{font-size:.65rem;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:auto}
-.pb-sidebar-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;padding:0 1rem;margin-bottom:.3rem;margin-top:.6rem}
-.pb-sidebar-divider{height:1px;background:#e9ecef;margin:.5rem 1rem}
-
-/* ── Section transition ── */
-.pb-section{display:none;animation:pbFadeIn .25s ease}
-.pb-section.active{display:block}
-@keyframes pbFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-/* ── Board Cards ── */
-.board-item-card{transition:transform .18s ease,box-shadow .18s ease;border-radius:.5rem;overflow:hidden;border:1px solid #e2e8f0 !important}
-.board-item-card:hover{transform:translateY(-3px);box-shadow:0 8px 25px rgba(0,0,0,.12) !important;border-color:#cbd5e1 !important}
-.board-item-card .card-header{border-radius:0 !important}
-.board-item-card .card-footer{border-radius:0 0 .5rem .5rem !important}
-.board-item-done{opacity:.7}
-.board-item-done:hover{opacity:.9}
-.board-item-urgent{border:2px solid #dc3545 !important;animation:board-pulse-urgent 2.5s infinite ease-in-out}
-@keyframes board-pulse-urgent{0%,100%{box-shadow:0 1px 3px rgba(220,53,69,.15)}50%{box-shadow:0 4px 15px rgba(220,53,69,.3)}}
-.board-priority-badge{font-size:.6rem;animation:board-badge-pop .3s ease}
-@keyframes board-badge-pop{0%{transform:scale(.8)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
-.board-item-thumb img{transition:transform .2s ease}
-.board-item-card:hover .board-item-thumb img{transform:scale(1.05)}
-.min-width-0{min-width:0}
-
-/* ── Mobile sidebar ── */
-@media(max-width:991.98px){
-    .pb-sidebar-col{margin-bottom:1rem}
-    .pb-sidebar{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:thin}
-    .pb-sidebar .pb-nav-item{white-space:nowrap;flex-shrink:0;padding:.5rem .85rem;font-size:.75rem}
-    .pb-sidebar-label{display:none}
-    .pb-sidebar-divider{display:none}
-}
-</style>
+<!-- Production board module CSS (extracted from inline) -->
+<link rel="stylesheet" href="<?= asset('assets/css/modules/production-board.css') ?>">
 
 <div class="container-fluid py-4 px-lg-4">
 
@@ -160,11 +121,11 @@ if (!in_array($activeSectorId, $validSectorIds) && !empty($sectorList)) {
                         <div class="pb-sidebar-divider"></div>
 
                         <a href="#" class="pb-nav-item <?= ($activeSectorId === 'concluidos') ? 'active' : '' ?>" data-sector="concluidos">
-                            <span class="pb-nav-icon" style="background:rgba(39,174,96,.1);color:#27ae60;">
+                            <span class="pb-nav-icon nav-icon-green">
                                 <i class="fas fa-check-double"></i>
                             </span>
                             <span>Concluídos</span>
-                            <span class="pb-nav-count" style="background:rgba(39,174,96,.1);color:#27ae60;"><?= count($allConcluidos) ?></span>
+                            <span class="pb-nav-count nav-icon-green"><?= count($allConcluidos) ?></span>
                         </a>
 
                     </nav>
@@ -174,7 +135,7 @@ if (!in_array($activeSectorId, $validSectorIds) && !empty($sectorList)) {
             <!-- Mini-dica -->
             <div class="card border-0 shadow-sm mt-3 d-none d-lg-block" style="border-radius:12px;">
                 <div class="card-body p-3">
-                    <h6 class="mb-2 fw-bold" style="font-size:.78rem;color:#17a2b8;">
+                    <h6 class="mb-2 fw-bold text-info-alt" style="font-size:.78rem;">
                         <i class="fas fa-lightbulb me-1"></i>Dica
                     </h6>
                     <p class="mb-0 text-muted" style="font-size:.72rem;line-height:1.55;">
@@ -358,8 +319,8 @@ if (!in_array($activeSectorId, $validSectorIds) && !empty($sectorList)) {
 
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <div class="d-flex align-items-center gap-2">
-                        <span class="rounded-circle d-inline-flex align-items-center justify-content-center"
-                              style="width:40px;height:40px;background:#27ae60;color:#fff;font-size:1rem;">
+                        <span class="rounded-circle d-inline-flex align-items-center justify-content-center bg-green-ds text-white"
+                              style="width:40px;height:40px;font-size:1rem;">
                             <i class="fas fa-check-double"></i>
                         </span>
                         <div>
@@ -387,7 +348,7 @@ if (!in_array($activeSectorId, $validSectorIds) && !empty($sectorList)) {
                         <div class="card h-100 board-item-card board-item-done shadow-sm">
                             <!-- Card Header concluído -->
                             <div class="card-header border-0 py-2 px-3 d-flex align-items-center justify-content-between"
-                                 style="background:rgba(39,174,96,0.08); border-left:4px solid #27ae60 !important;">
+                                 style="background:rgba(39,174,96,0.08); border-left:4px solid var(--bs-success) !important;">
                                 <div class="d-flex align-items-center gap-2">
                                     <a href="?page=pipeline&action=detail&id=<?= $item['order_id'] ?>"
                                        class="badge bg-success text-decoration-none fw-bold" style="font-size:0.72rem;" title="Abrir pedido">
@@ -556,10 +517,7 @@ if (!in_array($activeSectorId, $validSectorIds) && !empty($sectorList)) {
     </div>
 </div>
 
-<!-- Estilos específicos do painel -->
-<style>
-/* ═══ Styles already in <style> tag above — keeping only modal-specific ones here ═══ */
-</style>
+<!-- Production board styles loaded from CSS module -->
 
 <script>
 // ── CSRF token global para fetch POST ──

@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Models;
 
+use Akti\Core\Log;
+
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
@@ -26,24 +28,16 @@ class OrderItemLog {
     }
 
     /**
-     * Cria a tabela se não existir
+     * Verifica se a tabela existe (DDL movida para /sql).
      */
     public function createTableIfNotExists() {
-        $sql = "CREATE TABLE IF NOT EXISTS order_item_logs (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            order_id INT NOT NULL,
-            order_item_id INT NOT NULL,
-            user_id INT DEFAULT NULL,
-            message TEXT DEFAULT NULL,
-            file_path VARCHAR(500) DEFAULT NULL,
-            file_name VARCHAR(255) DEFAULT NULL,
-            file_type VARCHAR(100) DEFAULT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_order_id (order_id),
-            INDEX idx_order_item_id (order_item_id),
-            INDEX idx_created_at (created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-        $this->conn->exec($sql);
+        // DDL movida para sql/update_202603301000_extract_ddl_from_models.sql
+        // Mantém método para compatibilidade — apenas verifica existência
+        try {
+            $this->conn->query("SELECT 1 FROM order_item_logs LIMIT 1");
+        } catch (\Exception $e) {
+            Log::warning('OrderItemLog: Tabela order_item_logs não encontrada. Execute as migrations pendentes.');
+        }
     }
 
     /**

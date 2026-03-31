@@ -46,9 +46,9 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                     <div class="row g-3">
                         <div class="col-md-6">
                             <input type="radio" class="btn-check" name="initial_stage" id="stage_contato" value="contato" checked autocomplete="off">
-                            <label class="btn btn-outline-purple w-100 p-3 text-start" for="stage_contato" style="border-color:#9b59b6;">
+                            <label class="btn btn-outline-purple w-100 p-3 text-start" for="stage_contato">
                                 <div class="d-flex align-items-center">
-                                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:45px;height:45px;background:#9b59b6;color:#fff;">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3 bg-purple text-white" style="width:45px;height:45px;">
                                         <i class="fas fa-phone fa-lg"></i>
                                     </div>
                                     <div>
@@ -62,7 +62,7 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                             <input type="radio" class="btn-check" name="initial_stage" id="stage_orcamento" value="orcamento" autocomplete="off">
                             <label class="btn btn-outline-primary w-100 p-3 text-start" for="stage_orcamento">
                                 <div class="d-flex align-items-center">
-                                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:45px;height:45px;background:#3498db;color:#fff;">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3 bg-primary text-white" style="width:45px;height:45px;">
                                         <i class="fas fa-file-invoice-dollar fa-lg"></i>
                                     </div>
                                     <div>
@@ -105,12 +105,12 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                 <!-- ========================================= -->
                 <div id="sectionContato">
                     <fieldset class="border p-4 mb-4 rounded bg-white shadow-sm">
-                        <legend class="float-none w-auto px-2 fs-5 fw-bold" style="color:#9b59b6;">
+                        <legend class="float-none w-auto px-2 fs-5 fw-bold legend-purple">
                             <i class="fas fa-phone me-2"></i>Dados do Contato
                         </legend>
                         
                         <div class="alert alert-light border mb-3" style="border-left:4px solid #9b59b6 !important;">
-                            <i class="fas fa-info-circle me-2" style="color:#9b59b6;"></i>
+                            <i class="fas fa-info-circle me-2 icon-purple"></i>
                             O pedido será criado como <strong>Contato</strong>. Produtos e valores poderão ser adicionados quando o pedido avançar para <strong>Orçamento</strong>.
                         </div>
 
@@ -312,7 +312,7 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                                         <span class="small <?= $isToday ? 'fw-bold text-primary' : '' ?>"><?= $dayCounter ?></span>
                                         <?php if($hasContacts): ?>
                                             <div class="mt-1">
-                                                <span class="badge rounded-pill bg-purple px-2" style="font-size:0.6rem;background:#9b59b6!important;">
+                                                <span class="badge rounded-pill bg-purple px-2" style="font-size:0.6rem;">
                                                     <?= $contactCount ?> <i class="fas fa-phone" style="font-size:0.5rem;"></i>
                                                 </span>
                                             </div>
@@ -329,7 +329,7 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
 
                     <!-- Legenda -->
                     <div class="d-flex gap-3 small text-muted mb-3">
-                        <span><span class="badge rounded-pill" style="background:#9b59b6;font-size:0.6rem;">&nbsp;</span> Contatos agendados</span>
+                        <span><span class="badge rounded-pill badge-purple" style="font-size:0.6rem;">&nbsp;</span> Contatos agendados</span>
                         <span><span class="badge rounded-pill bg-primary" style="font-size:0.6rem;">&nbsp;</span> Hoje</span>
                     </div>
 
@@ -363,8 +363,7 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                                 $prioColors = ['urgente'=>'danger','alta'=>'warning','normal'=>'primary','baixa'=>'secondary'];
                                 $pColor = $prioColors[$uc['priority']] ?? 'primary';
                             ?>
-                            <div class="d-flex align-items-start p-2 mb-2 rounded border-start border-3 bg-light" 
-                                 style="border-color:<?= $uc['priority'] === 'urgente' ? '#e74c3c' : ($uc['priority'] === 'alta' ? '#f39c12' : '#9b59b6') ?> !important;">
+                            <div class="d-flex align-items-start p-2 mb-2 rounded border-start border-3 bg-light border-<?= $pColor ?>">
                                 <div class="flex-grow-1">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <strong class="small">#<?= str_pad($uc['id'], 4, '0', STR_PAD_LEFT) ?> - <?= e($uc['customer_name']) ?></strong>
@@ -391,35 +390,7 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
     </div>
 </div>
 
-<style>
-.btn-check:checked + .btn-outline-purple {
-    background-color: #9b59b6;
-    border-color: #9b59b6;
-    color: #fff;
-}
-.btn-outline-purple:hover {
-    background-color: rgba(155,89,182,0.1);
-}
-.btn-check:checked + .btn-outline-primary {
-    background-color: #3498db;
-    border-color: #3498db;
-    color: #fff;
-}
-.agenda-calendar td {
-    transition: background 0.2s;
-}
-.agenda-calendar td:hover {
-    background-color: rgba(52,152,219,0.08) !important;
-}
-/* Select2 dentro da tabela de itens */
-#orderItemsTable .select2-container {
-    width: 100% !important;
-}
-#orderItemsTable .select2-container .select2-selection--single {
-    min-height: 36px;
-    font-size: 0.875rem;
-}
-</style>
+<!-- Styles moved to assets/css/modules/orders.css -->
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

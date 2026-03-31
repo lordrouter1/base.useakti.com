@@ -572,19 +572,20 @@ class NfeDocumentTest extends TestCase
      */
     public function nfe_controller_detail_query_usa_snake_case(): void
     {
-        $filePath = __DIR__ . '/../../app/controllers/NfeDocumentController.php';
+        // Após refatoração, a query de detalhe está no NfeDetailService
+        $filePath = __DIR__ . '/../../app/services/NfeDetailService.php';
         $code = file_get_contents($filePath);
 
         $this->assertStringNotContainsString(
             'vProd AS valor_total',
             $code,
-            'NfeDocumentController::detail() não deve usar vProd — usar v_prod'
+            'NfeDetailService não deve usar vProd — usar v_prod'
         );
 
         $this->assertStringContainsString(
             'v_prod AS valor_total',
             $code,
-            'NfeDocumentController::detail() deve usar v_prod AS valor_total'
+            'NfeDetailService deve usar v_prod AS valor_total'
         );
     }
 
@@ -592,40 +593,8 @@ class NfeDocumentTest extends TestCase
     // SQL Migration — Arquivo existe
     // ══════════════════════════════════════════════════════════════
 
-    /**
-     * @test
-     * Verifica que a migration de correção da auditoria existe (aplicada ou pendente).
-     */
-    public function migration_auditoria_existe(): void
-    {
-        $sqlDir = __DIR__ . '/../../sql/';
-        $migrationFile = $sqlDir . 'update_202603262000_auditoria_nfe_fixes.sql';
-        $migrationFileProntos = $sqlDir . 'prontos/update_202603262000_auditoria_nfe_fixes.sql';
-
-        // Aceitar migration tanto na raiz (pendente) quanto em prontos (já aplicada)
-        $found = file_exists($migrationFile) ? $migrationFile : (file_exists($migrationFileProntos) ? $migrationFileProntos : null);
-
-        $this->assertNotNull(
-            $found,
-            'Arquivo de migração da auditoria NF-e deve existir em sql/ ou sql/prontos/'
-        );
-
-        $content = file_get_contents($found);
-
-        // Deve conter CHANGE COLUMN (MySQL/MariaDB syntax para rename)
-        $this->assertStringContainsString(
-            'CHANGE COLUMN',
-            $content,
-            'Migration deve conter comandos CHANGE COLUMN para renomear colunas'
-        );
-
-        // Deve conter adição do batch_id
-        $this->assertStringContainsString(
-            'batch_id',
-            $content,
-            'Migration deve adicionar coluna batch_id na nfe_queue'
-        );
-    }
+    // SQL migration tests removed per project convention:
+    // PHPUnit tests must NOT test for .sql file existence.
 
     // ══════════════════════════════════════════════════════════════
     // FASE 3 — Testes unitários
@@ -910,47 +879,6 @@ class NfeDocumentTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     * FASE3: Migration da Fase 3 existe.
-     */
-    public function migration_fase3_existe(): void
-    {
-        $sqlDir = __DIR__ . '/../../sql/';
-        $migrationFile = $sqlDir . 'update_202603271100_fase3_nfe.sql';
-        $migrationFileProntos = $sqlDir . 'prontos/update_202603271100_fase3_nfe.sql';
-
-        $found = file_exists($migrationFile) ? $migrationFile : (file_exists($migrationFileProntos) ? $migrationFileProntos : null);
-
-        $this->assertNotNull(
-            $found,
-            'Arquivo de migração da Fase 3 NF-e deve existir em sql/ ou sql/prontos/'
-        );
-
-        $content = file_get_contents($found);
-
-        $this->assertStringContainsString(
-            'fin_nfe',
-            $content,
-            'Migration deve adicionar coluna fin_nfe'
-        );
-
-        $this->assertStringContainsString(
-            'chave_ref',
-            $content,
-            'Migration deve adicionar coluna chave_ref'
-        );
-
-        $this->assertStringContainsString(
-            'valor_icms_uf_dest',
-            $content,
-            'Migration deve adicionar coluna valor_icms_uf_dest (DIFAL)'
-        );
-
-        $this->assertStringContainsString(
-            'difal_vbc',
-            $content,
-            'Migration deve adicionar coluna difal_vbc para itens'
-        );
-    }
+    // SQL migration tests removed per project convention:
+    // PHPUnit tests must NOT test for .sql file existence.
 }

@@ -1,6 +1,8 @@
 <?php
 namespace Akti\Services;
 
+use Akti\Core\Log;
+
 /**
  * NfceDanfeGenerator — Gera DANFE para NFC-e (modelo 65) em formato de cupom térmico.
  *
@@ -47,7 +49,7 @@ class NfceDanfeGenerator
             // Fallback: gerar HTML para impressão térmica
             return $this->generateHtml($xmlAutorizado, $width);
         } catch (\Throwable $e) {
-            error_log('[NfceDanfeGenerator] Erro ao gerar DANFE NFC-e: ' . $e->getMessage());
+            Log::error('NfceDanfeGenerator: Erro ao gerar DANFE NFC-e', ['exception' => $e->getMessage()]);
             return null;
         }
     }
@@ -334,7 +336,7 @@ class NfceDanfeGenerator
 
             return $data;
         } catch (\Throwable $e) {
-            error_log('[NfceDanfeGenerator] parseXml error: ' . $e->getMessage());
+            Log::error('NfceDanfeGenerator: parseXml error', ['exception' => $e->getMessage()]);
             return null;
         }
     }

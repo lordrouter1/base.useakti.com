@@ -1,0 +1,65 @@
+/* ═══════════════════════════════════════════════════════════════
+   MODULE: Dashboard
+   Extracted from app/views/dashboard/index.php inline <style>
+   ═══════════════════════════════════════════════════════════════ */
+
+.hover-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--ds-shadow-md, 0 .5rem 1rem rgba(0,0,0,.15)) !important;
+}
+
+.pipeline-mini-card {
+    transition: transform var(--ds-duration-fast, 0.15s) ease;
+}
+
+.pipeline-mini-card:hover {
+    transform: translateY(-2px);
+}
+
+/* ── Dashboard KPI Cards ── */
+.dashboard-kpi {
+    border-radius: var(--ds-radius-md, 8px);
+    border: 1px solid var(--border, #dee2e6);
+    background: var(--bg-primary, #fff);
+    padding: var(--space-md, 16px);
+}
+
+.dashboard-kpi .kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--ds-radius-md, 8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — Dashboard
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .hover-card {
+    box-shadow: var(--ds-shadow-sm);
+}
+
+[data-theme="dark"] .hover-card:hover {
+    box-shadow: var(--ds-shadow-md) !important;
+}
+
+[data-theme="dark"] .dashboard-kpi {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .pipeline-mini-card {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .pipeline-mini-card:hover {
+    box-shadow: var(--ds-shadow-md);
+}

@@ -1,0 +1,105 @@
+# ═══════════════════════════════════════════════════════════════
+# Akti — Docker Compose (Ambiente de Desenvolvimento)
+# ═══════════════════════════════════════════════════════════════
+# Usage:
+#   docker-compose up -d
+#   docker-compose down
+#
+# Acesso:
+#   App PHP:      http://localhost:8080
+#   API Node.js:  http://localhost:3000
+#   MySQL:        localhost:3306
+# ═══════════════════════════════════════════════════════════════
+
+version: '3.8'
+
+services:
+  # ── PHP + Apache ──
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: akti-app
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/php.ini:/usr/local/etc/php/php.ini
+    environment:
+      - APP_ENV=development
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=akti
+      - DB_PASS=akti_dev_2026
+      - DB_NAME=akti_dev
+      - AKTI_API_URL=http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - akti-network
+
+  # ── MySQL 8 ──
+  db:
+    image: mysql:8.0
+    container_name: akti-db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_dev_2026
+      MYSQL_DATABASE: akti_dev
+      MYSQL_USER: akti
+      MYSQL_PASSWORD: akti_dev_2026
+    volumes:
+      - akti-db-data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_dev_2026"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - akti-network
+
+  # ── Node.js API ──
+  api:
+    image: node:20-alpine
+    container_name: akti-api
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api:/app
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=akti
+      - DB_PASS=akti_dev_2026
+      - DB_NAME=akti_dev
+      - PORT=3000
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - akti-network
+
+volumes:
+  akti-db-data:
+    driver: local
+
+networks:
+  akti-network:
+    driver: bridge

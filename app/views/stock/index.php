@@ -31,43 +31,9 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
 ?>
 
 <!-- ══════ Flash messages ══════ -->
-<?php if (!empty($_SESSION['flash_error'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'error',title:'Erro',html:'<?= addslashes($_SESSION['flash_error']) ?>',confirmButtonColor:'#3498db'}));</script>
-<?php unset($_SESSION['flash_error']); endif; ?>
-<?php if (!empty($_SESSION['flash_success'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:2500,timerProgressBar:true}).fire({icon:'success',title:'<?= addslashes($_SESSION['flash_success']) ?>'}));</script>
-<?php unset($_SESSION['flash_success']); endif; ?>
+<?php require 'app/views/components/flash-messages.php'; ?>
 
-<style>
-    /* ── Sidebar nav ── */
-    .stk-sidebar .stk-nav-item{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;border-radius:10px;text-decoration:none;color:#555;font-size:.82rem;font-weight:500;transition:all .15s ease;margin-bottom:2px;border:1px solid transparent;cursor:pointer}
-    .stk-sidebar .stk-nav-item:hover{background:#f1f5f9;color:#333}
-    .stk-sidebar .stk-nav-item.active{background:var(--bs-primary,#3498db);color:#fff;box-shadow:0 2px 8px rgba(52,152,219,.3)}
-    .stk-sidebar .stk-nav-item.active .stk-nav-icon{background:rgba(255,255,255,.2) !important;color:#fff !important}
-    .stk-sidebar .stk-nav-item.active .stk-nav-count{background:rgba(255,255,255,.25) !important;color:#fff !important}
-    .stk-nav-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:all .15s ease}
-    .stk-nav-count{font-size:.65rem;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:auto}
-    .stk-sidebar-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;padding:0 1rem;margin-bottom:.3rem;margin-top:.6rem}
-    .stk-sidebar-divider{height:1px;background:#e9ecef;margin:.5rem 1rem}
-
-    /* ── Section transition ── */
-    .stk-section{display:none;animation:stkFadeIn .25s ease}
-    .stk-section.active{display:block}
-    @keyframes stkFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-    /* ── Warehouse cards ── */
-    .warehouse-card{transition:transform .15s ease,box-shadow .15s ease;border-radius:12px;overflow:hidden}
-    .warehouse-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.08)!important}
-
-    /* ── Mobile sidebar ── */
-    @media(max-width:991.98px){
-        .stk-sidebar-col{margin-bottom:1rem}
-        .stk-sidebar{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:thin}
-        .stk-sidebar .stk-nav-item{white-space:nowrap;flex-shrink:0;padding:.5rem .85rem;font-size:.75rem}
-        .stk-sidebar-label{display:none}
-        .stk-sidebar-divider{display:none}
-    }
-</style>
+<!-- Styles loaded from assets/css/modules/stock.css via header.php -->
 
 <div class="container-fluid py-3">
 
@@ -92,15 +58,15 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
                         <div class="stk-sidebar-label">Estoque</div>
 
                         <a href="#" class="stk-nav-item <?= $activeSection === 'overview' ? 'active' : '' ?>" data-section="overview">
-                            <span class="stk-nav-icon" style="background:rgba(52,152,219,.1);color:#3498db;">
+                            <span class="stk-nav-icon nav-icon-blue">
                                 <i class="fas fa-tachometer-alt"></i>
                             </span>
                             <span>Visão Geral</span>
-                            <span class="stk-nav-count" style="background:rgba(52,152,219,.1);color:#3498db;"><?= $summary['total_items'] ?></span>
+                            <span class="stk-nav-count nav-icon-blue"><?= $summary['total_items'] ?></span>
                         </a>
 
                         <a href="#" class="stk-nav-item <?= $activeSection === 'movements' ? 'active' : '' ?>" data-section="movements">
-                            <span class="stk-nav-icon" style="background:rgba(155,89,182,.1);color:#9b59b6;">
+                            <span class="stk-nav-icon nav-icon-purple">
                                 <i class="fas fa-exchange-alt"></i>
                             </span>
                             <span>Movimentações</span>
@@ -109,7 +75,7 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
                         <div class="stk-sidebar-divider"></div>
 
                         <a href="#" class="stk-nav-item <?= $activeSection === 'entry' ? 'active' : '' ?>" data-section="entry">
-                            <span class="stk-nav-icon" style="background:rgba(39,174,96,.1);color:#27ae60;">
+                            <span class="stk-nav-icon nav-icon-green">
                                 <i class="fas fa-arrow-right-arrow-left"></i>
                             </span>
                             <span>Entrada / Saída</span>
@@ -118,11 +84,11 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
                         <div class="stk-sidebar-divider"></div>
 
                         <a href="#" class="stk-nav-item <?= $activeSection === 'warehouses' ? 'active' : '' ?>" data-section="warehouses">
-                            <span class="stk-nav-icon" style="background:rgba(243,156,18,.1);color:#f39c12;">
+                            <span class="stk-nav-icon nav-icon-orange">
                                 <i class="fas fa-building"></i>
                             </span>
                             <span>Armazéns</span>
-                            <span class="stk-nav-count" style="background:rgba(243,156,18,.1);color:#f39c12;"><?= $summary['total_warehouses'] ?></span>
+                            <span class="stk-nav-count nav-icon-orange"><?= $summary['total_warehouses'] ?></span>
                         </a>
 
                     </nav>
@@ -132,7 +98,7 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
             <!-- Mini-dica -->
             <div class="card border-0 shadow-sm mt-3 d-none d-lg-block" style="border-radius:12px;">
                 <div class="card-body p-3">
-                    <h6 class="mb-2 fw-bold" style="font-size:.78rem;color:#17a2b8;">
+                    <h6 class="mb-2 fw-bold text-info-alt" style="font-size:.78rem;">
                         <i class="fas fa-lightbulb me-1"></i>Dica
                     </h6>
                     <p class="mb-0 text-muted" style="font-size:.72rem;line-height:1.55;">
@@ -177,8 +143,8 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
             <div class="stk-section <?= $activeSection === 'overview' ? 'active' : '' ?>" id="stk-overview">
 
                 <div class="d-flex align-items-center mb-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(52,152,219,.1);">
-                        <i class="fas fa-tachometer-alt" style="color:#3498db;font-size:.85rem;"></i>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 nav-icon-blue" style="width:34px;height:34px;">
+                        <i class="fas fa-tachometer-alt" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Visão Geral do Estoque</h5>
@@ -191,7 +157,7 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
                     <div class="col-xl-3 col-md-4 col-6">
                         <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
                             <div class="card-body d-flex align-items-center p-3">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;background:rgba(52,152,219,0.15);">
+                                <div class="icon-circle icon-circle-lg icon-circle-primary me-3">
                                     <i class="fas fa-building text-primary"></i>
                                 </div>
                                 <div>
@@ -204,7 +170,7 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
                     <div class="col-xl-3 col-md-4 col-6">
                         <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
                             <div class="card-body d-flex align-items-center p-3">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;background:rgba(39,174,96,0.15);">
+                                <div class="icon-circle icon-circle-lg icon-circle-green me-3">
                                     <i class="fas fa-box-open text-success"></i>
                                 </div>
                                 <div>
@@ -217,7 +183,7 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
                     <div class="col-xl-3 col-md-4 col-6">
                         <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
                             <div class="card-body d-flex align-items-center p-3">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;background:rgba(243,156,18,0.15);">
+                                <div class="icon-circle icon-circle-lg icon-circle-warning me-3">
                                     <i class="fas fa-dollar-sign text-warning"></i>
                                 </div>
                                 <div>
@@ -230,7 +196,7 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
                     <div class="col-xl-3 col-md-4 col-6">
                         <div class="card border-0 shadow-sm h-100 border-start border-danger border-4 <?= $summary['low_stock_count'] > 0 ? 'bg-danger bg-opacity-10' : '' ?>">
                             <div class="card-body d-flex align-items-center p-3">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;background:rgba(192,57,43,0.15);">
+                                <div class="icon-circle icon-circle-lg icon-circle-danger me-3">
                                     <i class="fas fa-exclamation-triangle text-danger"></i>
                                 </div>
                                 <div>
@@ -312,8 +278,8 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
             <div class="stk-section <?= $activeSection === 'movements' ? 'active' : '' ?>" id="stk-movements">
 
                 <div class="d-flex align-items-center mb-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(155,89,182,.1);">
-                        <i class="fas fa-exchange-alt" style="color:#9b59b6;font-size:.85rem;"></i>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 nav-icon-purple" style="width:34px;height:34px;">
+                        <i class="fas fa-exchange-alt" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Histórico de Movimentações</h5>
@@ -407,8 +373,8 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
             <div class="stk-section <?= $activeSection === 'entry' ? 'active' : '' ?>" id="stk-entry">
 
                 <div class="d-flex align-items-center mb-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(39,174,96,.1);">
-                        <i class="fas fa-arrow-right-arrow-left" style="color:#27ae60;font-size:.85rem;"></i>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 nav-icon-green" style="width:34px;height:34px;">
+                        <i class="fas fa-arrow-right-arrow-left" style="font-size:.85rem;"></i>
                     </div>
                     <div>
                         <h5 class="mb-0" style="font-size:1rem;">Movimentação de Estoque</h5>
@@ -593,8 +559,8 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
 
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:34px;height:34px;background:rgba(243,156,18,.1);">
-                            <i class="fas fa-building" style="color:#f39c12;font-size:.85rem;"></i>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2 nav-icon-orange" style="width:34px;height:34px;">
+                            <i class="fas fa-building" style="font-size:.85rem;"></i>
                         </div>
                         <div>
                             <h5 class="mb-0" style="font-size:1rem;">Armazéns / Locais de Estoque</h5>
@@ -822,7 +788,7 @@ $fDateTo    = $_GET['mov_date_to'] ?? '';
                 <input type="hidden" id="editMov_id">
 
                 <!-- Info do produto (readonly) -->
-                <div class="mb-3 p-3 rounded" style="background:#f8f9fa;border:1px solid #e9ecef;">
+                <div class="mb-3 p-3 rounded bg-section-muted">
                     <div class="row">
                         <div class="col-md-6">
                             <small class="text-muted d-block">Produto</small>
@@ -1830,4 +1796,3 @@ function openNewWarehouse() {
     document.getElementById('wh_active_wrap').style.display = 'none';
     document.getElementById('wh_default').checked = false;
 }
-</script>

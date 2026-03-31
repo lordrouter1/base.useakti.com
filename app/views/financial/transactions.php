@@ -20,10 +20,10 @@ $methodLabels = [
 ?>
 
 <?php if (!empty($_SESSION['flash_success'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'success',title:'Sucesso!',text:'<?= addslashes($_SESSION['flash_success']) ?>',timer:2500,showConfirmButton:false}));</script>
+<script>document.addEventListener('DOMContentLoaded',()=>{if(typeof AktiToast!=='undefined')AktiToast.success('<?= addslashes($_SESSION['flash_success']) ?>');});</script>
 <?php unset($_SESSION['flash_success']); endif; ?>
 <?php if (!empty($_SESSION['flash_error'])): ?>
-<script>document.addEventListener('DOMContentLoaded',()=>Swal.fire({icon:'error',title:'Erro',text:'<?= addslashes($_SESSION['flash_error']) ?>'}));</script>
+<script>document.addEventListener('DOMContentLoaded',()=>{if(typeof AktiToast!=='undefined')AktiToast.error('<?= addslashes($_SESSION['flash_error']) ?>');});</script>
 <?php unset($_SESSION['flash_error']); endif; ?>
 
 <!-- ══════ Header ══════ -->
@@ -47,7 +47,7 @@ $methodLabels = [
     <div class="col-xl-4 col-md-4">
         <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
             <div class="card-body d-flex align-items-center p-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(39,174,96,0.15);">
+                <div class="icon-circle icon-circle-xxl icon-circle-green me-3">
                     <i class="fas fa-arrow-down fa-lg text-success"></i>
                 </div>
                 <div>
@@ -60,7 +60,7 @@ $methodLabels = [
     <div class="col-xl-4 col-md-4">
         <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
             <div class="card-body d-flex align-items-center p-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:rgba(192,57,43,0.15);">
+                <div class="icon-circle icon-circle-xxl icon-circle-danger me-3">
                     <i class="fas fa-arrow-up fa-lg text-danger"></i>
                 </div>
                 <div>
@@ -73,7 +73,7 @@ $methodLabels = [
     <div class="col-xl-4 col-md-4">
         <div class="card border-0 shadow-sm h-100 border-start <?= $saldo >= 0 ? 'border-primary' : 'border-warning' ?> border-4">
             <div class="card-body d-flex align-items-center p-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;background:<?= $saldo >= 0 ? 'rgba(52,152,219,0.15)' : 'rgba(243,156,18,0.15)' ?>;">
+                <div class="icon-circle icon-circle-xxl <?= $saldo >= 0 ? 'icon-circle-primary' : 'icon-circle-warning' ?> me-3">
                     <i class="fas fa-balance-scale fa-lg <?= $saldo >= 0 ? 'text-primary' : 'text-warning' ?>"></i>
                 </div>
                 <div>
