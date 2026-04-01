@@ -169,6 +169,14 @@ return [
         ],
     ],
 
+    // ─── Site Builder (editor visual da loja online) ───
+    'site_builder' => [
+        'label'      => 'Site Builder',
+        'icon'       => 'fas fa-paint-brush',
+        'menu'       => true,
+        'permission' => true,
+    ],
+
     // ─── Relatórios (item direto no menu principal) ───
     'reports' => [
         'label'      => 'Relatórios',

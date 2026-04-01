@@ -1,0 +1,41 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}Contato — {{ shop.name|default('Minha Loja') }}{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <h1 class="h2 mb-4">Entre em Contato</h1>
+
+                <form method="post" action="/contato">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nome</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" class="form-control" name="email" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Assunto</label>
+                            <input type="text" class="form-control" name="subject">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Mensagem</label>
+                            <textarea class="form-control" name="message" rows="5" required></textarea>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Enviar Mensagem
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

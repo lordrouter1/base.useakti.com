@@ -1,0 +1,93 @@
+/* ============================================================
+   Akti Store Theme — Base Styles
+   ============================================================ */
+
+:root {
+    --primary-color: #3b82f6;
+    --secondary-color: #64748b;
+    --accent-color: #f59e0b;
+    --body-font: 'Inter', sans-serif;
+    --heading-font: 'Inter', sans-serif;
+}
+
+/* --- Reset & Base --- */
+body {
+    font-family: var(--body-font);
+    color: #333;
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--heading-font);
+}
+
+a {
+    color: var(--primary-color);
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--secondary-color);
+}
+
+/* --- Header --- */
+.store-header {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    z-index: 1030;
+}
+
+.store-header .navbar-brand img {
+    max-height: 40px;
+}
+
+/* --- Hero Banner --- */
+.hero-banner {
+    min-height: 500px;
+}
+
+/* --- Product Card --- */
+.product-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+}
+
+.product-card .card-img-top {
+    transition: opacity 0.3s ease;
+}
+
+.product-card:hover .card-img-top {
+    opacity: 0.9;
+}
+
+/* --- Price --- */
+.product-price .fw-bold {
+    font-size: 1.15rem;
+}
+
+/* --- Footer --- */
+.store-footer a {
+    transition: opacity 0.2s ease;
+}
+
+.store-footer a:hover {
+    opacity: 1 !important;
+}
+
+/* --- Sections --- */
+section {
+    overflow: hidden;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .hero-banner {
+        min-height: 350px;
+    }
+    .hero-banner h1 {
+        font-size: 1.8rem;
+    }
+}

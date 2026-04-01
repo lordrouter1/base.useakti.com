@@ -1,0 +1,20 @@
+{# Newsletter Section #}
+{% set title = settings.title|default('Fique por dentro') %}
+{% set description = settings.description|default('Inscreva-se para receber novidades e promoções.') %}
+{% set bg_color = settings.bg_color|default('#f8f9fa') %}
+{% set button_text = settings.button_text|default('Inscrever') %}
+
+<section class="newsletter py-5" style="background-color: {{ bg_color }};">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 text-center">
+                <h2 class="mb-3">{{ title }}</h2>
+                <p class="text-muted mb-4">{{ description }}</p>
+                <form class="d-flex gap-2">
+                    <input type="email" class="form-control" placeholder="Seu e-mail" required>
+                    <button type="submit" class="btn btn-primary text-nowrap">{{ button_text }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>

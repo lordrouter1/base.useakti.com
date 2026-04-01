@@ -1,0 +1,9 @@
+{# Custom HTML Section — Permite HTML customizado pelo usuário #}
+{% set content = settings.content|default('') %}
+{% set container = settings.full_width|default(false) ? 'container-fluid' : 'container' %}
+
+<section class="custom-html py-4">
+    <div class="{{ container }}">
+        {{ content|raw }}
+    </div>
+</section>

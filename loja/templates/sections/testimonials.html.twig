@@ -1,0 +1,31 @@
+{# Testimonials Section #}
+{% set title = settings.title|default('O que nossos clientes dizem') %}
+{% set testimonials = data.testimonials|default([]) %}
+
+<section class="testimonials py-5">
+    <div class="container">
+        <h2 class="text-center mb-4">{{ title }}</h2>
+
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            {% for testimonial in testimonials %}
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            {% if testimonial.photo|default(null) %}
+                                <img src="{{ testimonial.photo }}" alt="{{ testimonial.name }}"
+                                     class="rounded-circle mb-3" style="width:60px;height:60px;object-fit:cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3"
+                                     style="width:60px;height:60px;">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            {% endif %}
+                            <p class="text-muted mb-3">"{{ testimonial.text }}"</p>
+                            <strong>{{ testimonial.name }}</strong>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>

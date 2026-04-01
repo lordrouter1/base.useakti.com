@@ -812,4 +812,25 @@ return [
         'redirect' => '?page=commissions&action=historico',
     ],
 
+    // ══════════════════════════════════════════════════════════════
+    // SITE BUILDER (editor visual da loja online)
+    // ══════════════════════════════════════════════════════════════
+
+    'site_builder' => [
+        'controller'     => 'SiteBuilderController',
+        'default_action' => 'index',
+        'actions'        => [
+            'pages'             => 'pages',
+            'createPage'        => 'createPage',
+            'updatePage'        => 'updatePage',
+            'deletePage'        => 'deletePage',
+            'saveSections'      => 'saveSections',
+            'addComponent'      => 'addComponent',
+            'updateComponent'   => 'updateComponent',
+            'removeComponent'   => 'removeComponent',
+            'saveThemeSettings' => 'saveThemeSettings',
+            'preview'           => 'preview',
+        ],
+    ],
+
 ];

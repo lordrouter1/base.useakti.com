@@ -379,4 +379,15 @@ return [
         'contains' => ['<html'],
     ],
 
+    // ══════════════════════════════════════════════════════════════
+    // SITE BUILDER
+    // ══════════════════════════════════════════════════════════════
+
+    [
+        'route'    => '?page=site_builder',
+        'label'    => 'Site Builder — Editor Visual',
+        'auth'     => true,
+        'contains' => ['<html'],
+    ],
+
 ];

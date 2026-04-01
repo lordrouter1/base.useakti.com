@@ -1,0 +1,24 @@
+{# Image with Text Section #}
+{% set image = settings.image|default('/loja/assets/images/placeholder.svg') %}
+{% set title = settings.title|default('Título') %}
+{% set text = settings.text|default('Descrição da seção.') %}
+{% set image_position = settings.image_position|default('left') %}
+{% set button_text = settings.button_text|default('') %}
+{% set button_url = settings.button_url|default('#') %}
+
+<section class="image-with-text py-5">
+    <div class="container">
+        <div class="row align-items-center g-4 {{ image_position == 'right' ? 'flex-row-reverse' : '' }}">
+            <div class="col-md-6">
+                <img src="{{ image }}" alt="{{ title }}" class="img-fluid rounded">
+            </div>
+            <div class="col-md-6">
+                <h2>{{ title }}</h2>
+                <p class="text-muted">{{ text }}</p>
+                {% if button_text %}
+                    <a href="{{ button_url }}" class="btn btn-primary">{{ button_text }}</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>

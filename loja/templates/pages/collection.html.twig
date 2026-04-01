@@ -1,0 +1,35 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}{{ page.title|default('Produtos') }} — {{ shop.name|default('Minha Loja') }}{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        {% include 'snippets/breadcrumb.html.twig' with {'items': [
+            {'label': 'Início', 'url': '/'},
+            {'label': page.title|default('Produtos')}
+        ]} %}
+
+        <h1 class="h2 mb-4">{{ page.title|default('Produtos') }}</h1>
+
+        <div class="row row-cols-1 row-cols-md-{{ settings.columns|default(3) }} g-4">
+            {% for product in data.products|default([]) %}
+                <div class="col">
+                    {% include 'snippets/product-card.html.twig' with {'product': product} %}
+                </div>
+            {% else %}
+                <div class="col-12">
+                    <p class="text-muted text-center py-5">Nenhum produto encontrado.</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% if data.products|default([])|length > 0 %}
+            {% include 'snippets/pagination.html.twig' with {
+                'current_page': data.current_page|default(1),
+                'total_pages': data.total_pages|default(1)
+            } %}
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

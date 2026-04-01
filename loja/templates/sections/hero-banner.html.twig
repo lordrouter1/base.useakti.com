@@ -1,0 +1,21 @@
+{# Hero Banner Section #}
+{% set bg_image = settings.bg_image|default('/loja/assets/images/placeholder.svg') %}
+{% set title = settings.title|default('Bem-vindo à nossa loja') %}
+{% set subtitle = settings.subtitle|default('Encontre os melhores produtos') %}
+{% set cta_text = settings.cta_text|default('Ver Produtos') %}
+{% set cta_url = settings.cta_url|default('/produtos') %}
+{% set overlay = settings.overlay|default('rgba(0,0,0,0.4)') %}
+{% set text_align = settings.text_align|default('center') %}
+{% set min_height = settings.min_height|default('500px') %}
+
+<section class="hero-banner position-relative d-flex align-items-center"
+         style="background-image: url('{{ bg_image }}'); background-size: cover; background-position: center; min-height: {{ min_height }};">
+    <div class="position-absolute top-0 start-0 w-100 h-100" style="background: {{ overlay }};"></div>
+    <div class="container position-relative text-{{ text_align }}">
+        <h1 class="display-4 fw-bold text-white mb-3">{{ title }}</h1>
+        <p class="lead text-white mb-4">{{ subtitle }}</p>
+        {% if cta_text %}
+            <a href="{{ cta_url }}" class="btn btn-primary btn-lg">{{ cta_text }}</a>
+        {% endif %}
+    </div>
+</section>

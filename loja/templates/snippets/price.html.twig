@@ -1,0 +1,13 @@
+{# Price Snippet — Formatação de preço #}
+{% set formatted_price = price|default(0)|number_format(2, ',', '.') %}
+
+<span class="product-price">
+    {% if original_price|default(null) and original_price > price %}
+        <span class="text-muted text-decoration-line-through small me-1">
+            R$ {{ original_price|number_format(2, ',', '.') }}
+        </span>
+    {% endif %}
+    <span class="fw-bold text-primary">
+        R$ {{ formatted_price }}
+    </span>
+</span>
