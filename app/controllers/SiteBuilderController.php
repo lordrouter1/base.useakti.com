@@ -43,7 +43,8 @@ class SiteBuilderController
         }
 
         // Carregar schema de configurações do tema
-        $schemaPath = __DIR__ . '/../../loja/config/settings_schema.json';
+        $basePath = realpath(__DIR__ . '/../../') ?: dirname(__DIR__, 2);
+        $schemaPath = $basePath . '/loja/config/settings_schema.json';
         $settingsSchema = file_exists($schemaPath)
             ? json_decode(file_get_contents($schemaPath), true)
             : [];

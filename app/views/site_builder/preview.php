@@ -182,7 +182,7 @@ $sections = $page['sections'] ?? [];
                 <?php elseif ($sType === 'custom-html'): ?>
                     <section class="py-4">
                         <div class="container">
-                            <?= $sSettings['content'] ?? '<p class="text-muted text-center">Conteúdo HTML customizado</p>' ?>
+                            <?= htmlspecialchars($sSettings['content'] ?? 'Conteúdo HTML customizado', ENT_QUOTES, 'UTF-8') ?>
                         </div>
                     </section>
                 <?php endif; ?>
