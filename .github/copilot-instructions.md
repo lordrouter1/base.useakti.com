@@ -43,7 +43,7 @@
 2. Executar `git commit -m "<tipo>: <descricao_do_que_foi_feito>"` registrando todas as alterações realizadas.
    - Tipos de commit: `feat` (nova funcionalidade), `fix` (correção), `refactor` (refatoração), `docs` (documentação), `style` (formatação), `test` (testes), `chore` (manutenção).
    - Exemplo: `feat: adicionar modulo de fornecedores com CRUD completo`
-
+,
 > **Nunca** use `--force`, `--no-verify` ou `reset --hard` sem confirmação explícita do usuário.
 
 ### 1.2 Banco de Dados — Usar Skill `sql-migration`
