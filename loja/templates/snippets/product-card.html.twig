@@ -1,0 +1,25 @@
+{# Product Card Snippet — Card reutilizável de produto #}
+<div class="card h-100 border-0 shadow-sm product-card">
+    <a href="/produto/{{ product.slug|default(product.id|default('#')) }}">
+        {% if product.image|default(null) %}
+            <img src="{{ product.image }}" alt="{{ product.name|default('Produto') }}"
+                 class="card-img-top" style="height:220px;object-fit:cover;">
+        {% else %}
+            <img src="/loja/assets/images/placeholder.svg" alt="Sem imagem"
+                 class="card-img-top" style="height:220px;object-fit:cover;">
+        {% endif %}
+    </a>
+    <div class="card-body d-flex flex-column">
+        <h5 class="card-title">
+            <a href="/produto/{{ product.slug|default(product.id|default('#')) }}" class="text-decoration-none text-dark">
+                {{ product.name|default('Produto') }}
+            </a>
+        </h5>
+        {% if product.description|default(null) %}
+            <p class="card-text text-muted small">{{ product.description|striptags|slice(0, 80) }}...</p>
+        {% endif %}
+        <div class="mt-auto">
+            {% include 'snippets/price.html.twig' with {'price': product.price|default(0), 'original_price': product.original_price|default(null)} %}
+        </div>
+    </div>
+</div>

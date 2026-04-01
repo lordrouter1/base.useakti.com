@@ -1,0 +1,22 @@
+{# Gallery Section #}
+{% set title = settings.title|default('Galeria') %}
+{% set columns = settings.columns|default(3) %}
+{% set images = data.images|default([]) %}
+
+<section class="gallery py-5">
+    <div class="container">
+        {% if title %}
+            <h2 class="text-center mb-4">{{ title }}</h2>
+        {% endif %}
+
+        <div class="row row-cols-2 row-cols-md-{{ columns }} g-3">
+            {% for image in images %}
+                <div class="col">
+                    <a href="{{ image.url|default(image.src) }}" class="d-block" data-lightbox="gallery">
+                        <img src="{{ image.src }}" alt="{{ image.alt|default('') }}" class="img-fluid rounded">
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>

@@ -1,0 +1,21 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}{{ shop.name|default('Minha Loja') }} — Página Inicial{% endblock %}
+
+{% block content %}
+    {% for section in page.sections|default([]) %}
+        {% set template_name = 'sections/' ~ section.type ~ '.html.twig' %}
+        {% include template_name with {
+            'settings': section.settings|default({}),
+            'data': section.data|default({})
+        } ignore missing %}
+    {% else %}
+        {# Conteúdo padrão quando não há seções configuradas #}
+        <section class="py-5 text-center">
+            <div class="container">
+                <h1>Bem-vindo à {{ shop.name|default('Minha Loja') }}</h1>
+                <p class="lead text-muted">Configure sua loja usando o Site Builder no painel administrativo.</p>
+            </div>
+        </section>
+    {% endfor %}
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}Carrinho — {{ shop.name|default('Minha Loja') }}{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        <h1 class="h2 mb-4"><i class="fas fa-shopping-cart me-2"></i>Carrinho</h1>
+
+        {% if cart.items|default([])|length > 0 %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Preço</th>
+                            <th>Quantidade</th>
+                            <th>Subtotal</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cart.items %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ item.image|default('/loja/assets/images/placeholder.svg') }}"
+                                         alt="{{ item.name }}" class="rounded me-3" style="width:60px;height:60px;object-fit:cover;">
+                                    <span>{{ item.name }}</span>
+                                </div>
+                            </td>
+                            <td>{% include 'snippets/price.html.twig' with {'price': item.price} %}</td>
+                            <td style="width:120px">
+                                <input type="number" class="form-control form-control-sm" value="{{ item.quantity }}" min="1">
+                            </td>
+                            <td>{% include 'snippets/price.html.twig' with {'price': item.price * item.quantity} %}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row justify-content-end">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Resumo</h5>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Subtotal</span>
+                                <strong>{% include 'snippets/price.html.twig' with {'price': cart.subtotal|default(0)} %}</strong>
+                            </div>
+                            <hr>
+                            <div class="d-grid">
+                                <button class="btn btn-primary">Finalizar Compra</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Seu carrinho está vazio.</p>
+                <a href="/" class="btn btn-primary">Continuar Comprando</a>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

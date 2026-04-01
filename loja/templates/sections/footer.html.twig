@@ -1,0 +1,61 @@
+{# Footer Section — Rodapé da loja #}
+{% set bg_color = settings.bg_color|default(theme.footer_bg_color|default('#2c3e50')) %}
+{% set text_color = settings.text_color|default(theme.footer_text_color|default('#ffffff')) %}
+{% set columns = settings.columns|default(theme.footer_columns|default(3)) %}
+
+<footer class="store-footer mt-auto" style="background-color: {{ bg_color }}; color: {{ text_color }};">
+    <div class="container py-5">
+        <div class="row row-cols-1 row-cols-md-{{ columns }} g-4">
+            {# Coluna 1 — Sobre #}
+            <div class="col">
+                <h5 style="color: {{ text_color }};">{{ shop.name|default('Minha Loja') }}</h5>
+                <p class="small" style="color: {{ text_color }}; opacity: 0.8;">
+                    {{ shop.description|default('Sua loja online.') }}
+                </p>
+                {% include 'snippets/social-icons.html.twig' with {'color': text_color} ignore missing %}
+            </div>
+
+            {% if columns|default(3) >= 2 %}
+            {# Coluna 2 — Links #}
+            <div class="col">
+                <h5 style="color: {{ text_color }};">Links</h5>
+                <ul class="list-unstyled">
+                    {% for item in menu|default([]) %}
+                        <li class="mb-1">
+                            <a href="{{ item.url }}" class="text-decoration-none small" style="color: {{ text_color }}; opacity: 0.8;">
+                                {{ item.label }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if columns|default(3) >= 3 %}
+            {# Coluna 3 — Contato #}
+            <div class="col">
+                <h5 style="color: {{ text_color }};">Contato</h5>
+                <ul class="list-unstyled small" style="color: {{ text_color }}; opacity: 0.8;">
+                    {% if shop.email|default(null) %}
+                        <li class="mb-1"><i class="fas fa-envelope me-2"></i>{{ shop.email }}</li>
+                    {% endif %}
+                    {% if shop.phone|default(null) %}
+                        <li class="mb-1"><i class="fas fa-phone me-2"></i>{{ shop.phone }}</li>
+                    {% endif %}
+                    {% if shop.address|default(null) %}
+                        <li class="mb-1"><i class="fas fa-map-marker-alt me-2"></i>{{ shop.address }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="border-top" style="border-color: rgba(255,255,255,0.1) !important;">
+        <div class="container py-3">
+            <p class="text-center small mb-0" style="color: {{ text_color }}; opacity: 0.6;">
+                {{ settings.copyright|default('&copy; ' ~ 'now'|date('Y') ~ ' ' ~ shop.name|default('Minha Loja') ~ '. Todos os direitos reservados.') }}
+            </p>
+        </div>
+    </div>
+</footer>

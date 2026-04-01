@@ -1,0 +1,20 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block title %}{{ page.title|default('Página') }} — {{ shop.name|default('Minha Loja') }}{% endblock %}
+
+{% block content %}
+    {% for section in page.sections|default([]) %}
+        {% set template_name = 'sections/' ~ section.type ~ '.html.twig' %}
+        {% include template_name with {
+            'settings': section.settings|default({}),
+            'data': section.data|default({})
+        } ignore missing %}
+    {% else %}
+        <section class="py-5">
+            <div class="container">
+                <h1>{{ page.title|default('Página') }}</h1>
+                <div>{{ page.content|default('')|raw }}</div>
+            </div>
+        </section>
+    {% endfor %}
+{% endblock %}

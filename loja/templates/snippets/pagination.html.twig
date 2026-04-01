@@ -1,0 +1,18 @@
+{# Pagination Snippet #}
+{% if total_pages|default(1) > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ current_page <= 1 ? 'disabled' : '' }}">
+            <a class="page-link" href="?page_num={{ current_page - 1 }}">&laquo;</a>
+        </li>
+        {% for i in 1..total_pages %}
+            <li class="page-item {{ i == current_page ? 'active' : '' }}">
+                <a class="page-link" href="?page_num={{ i }}">{{ i }}</a>
+            </li>
+        {% endfor %}
+        <li class="page-item {{ current_page >= total_pages ? 'disabled' : '' }}">
+            <a class="page-link" href="?page_num={{ current_page + 1 }}">&raquo;</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}

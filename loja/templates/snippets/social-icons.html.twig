@@ -1,0 +1,25 @@
+{# Social Icons Snippet #}
+{% set color = color|default('#ffffff') %}
+
+<div class="social-icons d-flex gap-3 mt-3">
+    {% if shop.social_facebook|default(null) %}
+        <a href="{{ shop.social_facebook }}" target="_blank" rel="noopener" style="color: {{ color }}; opacity: 0.8;">
+            <i class="fab fa-facebook-f fa-lg"></i>
+        </a>
+    {% endif %}
+    {% if shop.social_instagram|default(null) %}
+        <a href="{{ shop.social_instagram }}" target="_blank" rel="noopener" style="color: {{ color }}; opacity: 0.8;">
+            <i class="fab fa-instagram fa-lg"></i>
+        </a>
+    {% endif %}
+    {% if shop.social_twitter|default(null) %}
+        <a href="{{ shop.social_twitter }}" target="_blank" rel="noopener" style="color: {{ color }}; opacity: 0.8;">
+            <i class="fab fa-x-twitter fa-lg"></i>
+        </a>
+    {% endif %}
+    {% if shop.social_whatsapp|default(null) %}
+        <a href="https://wa.me/{{ shop.social_whatsapp }}" target="_blank" rel="noopener" style="color: {{ color }}; opacity: 0.8;">
+            <i class="fab fa-whatsapp fa-lg"></i>
+        </a>
+    {% endif %}
+</div>

@@ -1,0 +1,14 @@
+{# Breadcrumb Snippet #}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        {% for item in items|default([]) %}
+            {% if loop.last %}
+                <li class="breadcrumb-item active" aria-current="page">{{ item.label }}</li>
+            {% else %}
+                <li class="breadcrumb-item">
+                    <a href="{{ item.url|default('#') }}" class="text-decoration-none">{{ item.label }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ol>
+</nav>

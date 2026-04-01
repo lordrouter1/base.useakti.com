@@ -1,0 +1,49 @@
+{# Header Section — Cabeçalho da loja #}
+{% set style = settings.style|default('default') %}
+{% set bg_color = settings.bg_color|default(theme.header_bg_color|default('#ffffff')) %}
+{% set text_color = settings.text_color|default(theme.header_text_color|default('#333333')) %}
+{% set logo_position = settings.logo_position|default(theme.header_logo_position|default('left')) %}
+{% set is_sticky = settings.sticky|default(theme.header_sticky|default(true)) %}
+
+<header class="store-header {{ is_sticky ? 'sticky-top' : '' }}" style="background-color: {{ bg_color }}; color: {{ text_color }};">
+    <nav class="navbar navbar-expand-lg" style="color: {{ text_color }};">
+        <div class="container">
+            {% if logo_position == 'left' or logo_position == 'center' %}
+                <a class="navbar-brand {{ logo_position == 'center' ? 'mx-auto' : '' }}" href="/">
+                    {% if shop.logo|default(null) %}
+                        <img src="{{ shop.logo }}" alt="{{ shop.name }}" height="40">
+                    {% else %}
+                        <strong style="color: {{ text_color }};">{{ shop.name|default('Minha Loja') }}</strong>
+                    {% endif %}
+                </a>
+            {% endif %}
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#storeNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="storeNav">
+                <ul class="navbar-nav {{ logo_position == 'center' ? 'mx-auto' : 'ms-auto' }}">
+                    {% for item in menu|default([]) %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ item.url }}" style="color: {{ text_color }};">
+                                {{ item.label }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                <div class="d-flex align-items-center ms-3">
+                    <a href="/carrinho" class="btn btn-outline-secondary btn-sm position-relative" style="color: {{ text_color }}; border-color: {{ text_color }};">
+                        <i class="fas fa-shopping-cart"></i>
+                        {% if cart.count|default(0) > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ cart.count }}
+                            </span>
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>

@@ -1,0 +1,22 @@
+{# Featured Products Section #}
+{% set title = settings.title|default('Produtos em Destaque') %}
+{% set columns = settings.columns|default(3) %}
+{% set products = data.products|default([]) %}
+
+<section class="featured-products py-5">
+    <div class="container">
+        <h2 class="text-center mb-4">{{ title }}</h2>
+
+        <div class="row row-cols-1 row-cols-md-{{ columns }} g-4">
+            {% for product in products %}
+                <div class="col">
+                    {% include 'snippets/product-card.html.twig' with {'product': product} %}
+                </div>
+            {% else %}
+                <div class="col-12 text-center text-muted py-4">
+                    <p>Nenhum produto em destaque.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>

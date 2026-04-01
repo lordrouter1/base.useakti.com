@@ -1,0 +1,133 @@
+[
+    {
+        "name": "Cores",
+        "settings": [
+            {
+                "type": "color",
+                "id": "primary_color",
+                "label": "Cor primária",
+                "default": "#3b82f6"
+            },
+            {
+                "type": "color",
+                "id": "secondary_color",
+                "label": "Cor secundária",
+                "default": "#64748b"
+            },
+            {
+                "type": "color",
+                "id": "accent_color",
+                "label": "Cor de destaque",
+                "default": "#f59e0b"
+            }
+        ]
+    },
+    {
+        "name": "Tipografia",
+        "settings": [
+            {
+                "type": "font_picker",
+                "id": "body_font",
+                "label": "Fonte do corpo",
+                "default": "Inter"
+            },
+            {
+                "type": "font_picker",
+                "id": "heading_font",
+                "label": "Fonte dos títulos",
+                "default": "Inter"
+            }
+        ]
+    },
+    {
+        "name": "Cabeçalho",
+        "settings": [
+            {
+                "type": "select",
+                "id": "header_style",
+                "label": "Estilo do cabeçalho",
+                "options": [
+                    {"value": "default", "label": "Padrão"},
+                    {"value": "centered", "label": "Centralizado"},
+                    {"value": "minimal", "label": "Minimalista"},
+                    {"value": "mega-menu", "label": "Mega Menu"}
+                ],
+                "default": "default"
+            },
+            {
+                "type": "image_picker",
+                "id": "header_logo",
+                "label": "Logo"
+            },
+            {
+                "type": "select",
+                "id": "header_logo_position",
+                "label": "Posição do logo",
+                "options": [
+                    {"value": "left", "label": "Esquerda"},
+                    {"value": "center", "label": "Centro"},
+                    {"value": "right", "label": "Direita"}
+                ],
+                "default": "left"
+            },
+            {
+                "type": "color",
+                "id": "header_bg_color",
+                "label": "Cor de fundo",
+                "default": "#ffffff"
+            },
+            {
+                "type": "color",
+                "id": "header_text_color",
+                "label": "Cor do texto",
+                "default": "#333333"
+            },
+            {
+                "type": "checkbox",
+                "id": "header_sticky",
+                "label": "Fixar no topo",
+                "default": true
+            }
+        ]
+    },
+    {
+        "name": "Rodapé",
+        "settings": [
+            {
+                "type": "select",
+                "id": "footer_style",
+                "label": "Estilo do rodapé",
+                "options": [
+                    {"value": "default", "label": "Padrão"},
+                    {"value": "minimal", "label": "Minimalista"},
+                    {"value": "expanded", "label": "Expandido"}
+                ],
+                "default": "default"
+            },
+            {
+                "type": "select",
+                "id": "footer_columns",
+                "label": "Quantidade de colunas",
+                "options": [
+                    {"value": "1", "label": "1 Coluna"},
+                    {"value": "2", "label": "2 Colunas"},
+                    {"value": "3", "label": "3 Colunas"},
+                    {"value": "4", "label": "4 Colunas"}
+                ],
+                "default": "3"
+            },
+            {
+                "type": "color",
+                "id": "footer_bg_color",
+                "label": "Cor de fundo",
+                "default": "#2c3e50"
+            },
+            {
+                "type": "color",
+                "id": "footer_text_color",
+                "label": "Cor do texto",
+                "default": "#ffffff"
+            }
+        ]
+    }
+]
