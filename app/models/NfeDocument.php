@@ -3,6 +3,7 @@ namespace Akti\Models;
 
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
+use Akti\Core\Log;
 use PDO;
 
 /**
@@ -292,6 +293,7 @@ class NfeDocument
 
             return true;
         } catch (\Exception $e) {
+            Log::error('markAuthorized rollback: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             $this->conn->rollBack();
             return false;
         }
@@ -333,6 +335,7 @@ class NfeDocument
 
             return true;
         } catch (\Exception $e) {
+            Log::error('markCancelled rollback: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             $this->conn->rollBack();
             return false;
         }

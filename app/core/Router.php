@@ -149,7 +149,7 @@ class Router
             $controllerClass = $this->resolveControllerClass($actionConfig['controller']);
         }
 
-        $controller = new $controllerClass();
+        $controller = $this->createController($controllerClass);
         $method     = $actionConfig['method'];
 
         if (!method_exists($controller, $method)) {
@@ -189,8 +189,9 @@ class Router
      *
      * Ordem de prioridade:
      * 1. Se existe mapeamento em route['actions'][$action] → usa o mapeamento
-     * 2. Se o método existe na whitelist (route['actions'] keys) → usa direto
-     * 3. Senão → usa route['default_action'] ou 'index'
+     * 2. Se a rota tem 'rest' => true e a action é um verbo REST padrão → auto-map
+     * 3. Se o método existe na whitelist (route['actions'] keys) → usa direto
+     * 4. Senão → usa route['default_action'] ou 'index'
      *
      * @return array ['method' => string, 'controller' => ?string]
      */
@@ -199,9 +200,16 @@ class Router
         $actions = $route['actions'] ?? [];
         $action  = $this->action;
 
-        // 1. Busca mapeamento explícito
-        if (isset($actions[$action])) {
-            $config = $actions[$action];
+        // 1. Busca mapeamento explícito (actions + extra_actions)
+        $allActions = $actions;
+        if (!empty($route['extra_actions'])) {
+            foreach ((array) $route['extra_actions'] as $extra) {
+                $allActions[$extra] = $extra;
+            }
+        }
+
+        if (isset($allActions[$action])) {
+            $config = $allActions[$action];
 
             // String simples: nome do método
             if (is_string($config)) {
@@ -215,22 +223,71 @@ class Router
             ];
         }
 
-        // 2. Se não há mapa de actions definido, ou a action não está mapeada,
+        // 2. REST convenção: se 'rest' => true, auto-mapeia verbos CRUD padrão
+        if (!empty($route['rest'])) {
+            $restActions = ['index', 'create', 'store', 'edit', 'update', 'delete'];
+            if (in_array($action, $restActions, true)) {
+                return ['method' => $action, 'controller' => null];
+            }
+        }
+
+        // 3. Se não há mapa de actions definido, ou a action não está mapeada,
         //    verificar se o action é "index" e retornar default
         if ($action === 'index' || empty($action)) {
             $default = $route['default_action'] ?? 'index';
             return ['method' => $default, 'controller' => null];
         }
 
-        // 3. Se a rota tem 'allow_unmapped' => true, permite chamar qualquer método
+        // 4. Se a rota tem 'allow_unmapped' => true, permite chamar qualquer método
         //    (equivalente ao comportamento antigo para rotas simples)
         if (!empty($route['allow_unmapped'])) {
             return ['method' => $action, 'controller' => null];
         }
 
-        // 4. Se a action não está mapeada e não é permitida → default
+        // 5. Se a action não está mapeada e não é permitida → default
         $default = $route['default_action'] ?? 'index';
         return ['method' => $default, 'controller' => null];
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // DI Container leve (ARQ-012)
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * Instancia um controller injetando dependências no construtor.
+     *
+     * Se o construtor aceita um parâmetro tipado como PDO, injeta a
+     * conexão de banco atual via Database::getInstance().
+     * Controllers sem construtor ou sem parâmetros continuam funcionando.
+     */
+    private function createController(string $class): object
+    {
+        $ref = new \ReflectionClass($class);
+        $ctor = $ref->getConstructor();
+
+        // Sem construtor ou sem parâmetros → instanciar direto
+        if ($ctor === null || $ctor->getNumberOfParameters() === 0) {
+            return new $class();
+        }
+
+        $params = $ctor->getParameters();
+        $args = [];
+
+        foreach ($params as $param) {
+            $type = $param->getType();
+            $typeName = $type instanceof \ReflectionNamedType ? $type->getName() : null;
+
+            if ($typeName === 'PDO' || $typeName === \PDO::class) {
+                $args[] = \Database::getInstance();
+            } elseif ($param->isDefaultValueAvailable()) {
+                $args[] = $param->getDefaultValue();
+            } else {
+                // Parâmetro não resolvível — instanciar sem args (fallback)
+                return new $class();
+            }
+        }
+
+        return $ref->newInstanceArgs($args);
     }
 
     // ══════════════════════════════════════════════════════════════

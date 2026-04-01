@@ -27,12 +27,23 @@ router.get('/status', (_req, res) => {
  *
  * Para adicionar novas rotas protegidas:
  *   import orderRoutes from './orderRoutes.js';
- *   router.use('/orders', orderRoutes);
+ *   v1Router.use('/orders', orderRoutes);
  */
+const v1Router = Router();
+v1Router.use(authMiddleware);
+v1Router.use(tenantMiddleware);
+
+// ── Resource routes (v1) ──
+v1Router.use('/products', productRoutes);
+// v1Router.use('/orders', orderRoutes);
+// v1Router.use('/customers', customerRoutes);
+
+// Mount versioned routes
+router.use('/v1', v1Router);
+
+// ── Backward compatibility: unversioned paths redirect to v1 ──
 router.use(authMiddleware);
 router.use(tenantMiddleware);
-
-// ── Resource routes ──
 router.use('/products', productRoutes);
 // router.use('/orders', orderRoutes);
 // router.use('/customers', customerRoutes);

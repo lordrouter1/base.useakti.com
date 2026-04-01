@@ -5,6 +5,7 @@ use Akti\Models\NfeCredential;
 use Akti\Services\NfeService;
 use Akti\Services\NfeAuditService;
 use Akti\Core\ModuleBootloader;
+use Akti\Core\Log;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
 use Akti\Models\User;
@@ -187,6 +188,15 @@ class NfeCredentialController
             return;
         }
 
+        // Validação MIME por magic bytes (SEC-006)
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+        $allowedMimes = ['application/x-pkcs12', 'application/octet-stream'];
+        if (!in_array($mime, $allowedMimes)) {
+            $_SESSION['flash_error'] = 'O arquivo enviado não é um certificado válido.';
+            return;
+        }
+
         // Diretório seguro fora do webroot
         $tenantDb = $_SESSION['tenant']['db_name'] ?? 'default';
         $certDir = __DIR__ . '/../../storage/certificates/' . $tenantDb;
@@ -325,9 +335,10 @@ class NfeCredentialController
                 'total'    => $result['total'],
             ]);
         } catch (\Throwable $e) {
+            Log::error('NfeCredentialController: importCertificates', ['exception' => $e->getMessage()]);
             echo json_encode([
                 'success' => false,
-                'message' => 'Erro na importação: ' . $e->getMessage(),
+                'message' => 'Erro interno na importação. Tente novamente.',
             ]);
         }
         exit;
@@ -345,7 +356,8 @@ class NfeCredentialController
             $stats = $ibptaxModel->getStats();
             echo json_encode(['success' => true, 'stats' => $stats]);
         } catch (\Throwable $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            Log::error('NfeCredentialController: ibptaxStats', ['exception' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao consultar estatísticas. Tente novamente.']);
         }
         exit;
     }

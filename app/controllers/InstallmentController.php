@@ -522,6 +522,14 @@ class InstallmentController
             return null;
         }
 
+        // Validação MIME por magic bytes (SEC-006)
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($_FILES['attachment']['tmp_name']);
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+        if (!in_array($mime, $allowedMimes)) {
+            return null;
+        }
+
         $filename = 'comprovante_' . $installmentId . '_' . time() . '.' . $ext;
         $filepath = $uploadDir . $filename;
 

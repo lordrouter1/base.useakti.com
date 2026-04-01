@@ -1,4 +1,8 @@
 <?php
+namespace Akti\Config;
+
+use PDO;
+use PDOException;
 
 class TenantManager
 {
@@ -248,4 +252,9 @@ class TenantManager
         }
     }
 
+}
+
+// Backward compatibility — permite usar TenantManager sem namespace
+if (!class_exists('TenantManager', false)) {
+    class_alias(\Akti\Config\TenantManager::class, 'TenantManager');
 }

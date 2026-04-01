@@ -11,18 +11,230 @@
  *   $themeSettings  — configurações globais do tema
  */
 
+use Akti\Utils\SafeHtml;
+
 $headerBg    = htmlspecialchars($themeSettings['header_bg_color'] ?? '#ffffff');
 $headerText  = htmlspecialchars($themeSettings['header_text_color'] ?? '#333333');
 $headerSticky = ($themeSettings['header_sticky'] ?? '1') === '1';
+$headerStyle = (string) ($themeSettings['header_style'] ?? 'default');
+$headerLogoPosition = (string) ($themeSettings['header_logo_position'] ?? 'left');
 $footerBg    = htmlspecialchars($themeSettings['footer_bg_color'] ?? '#2c3e50');
 $footerText  = htmlspecialchars($themeSettings['footer_text_color'] ?? '#ffffff');
 $footerCols  = (int) ($themeSettings['footer_columns'] ?? 3);
+$footerStyle = (string) ($themeSettings['footer_style'] ?? 'default');
 $primary     = htmlspecialchars($themeSettings['primary_color'] ?? '#3b82f6');
 $secondary   = htmlspecialchars($themeSettings['secondary_color'] ?? '#64748b');
-$bodyFont    = htmlspecialchars($themeSettings['body_font'] ?? 'Inter');
+$accent      = htmlspecialchars($themeSettings['accent_color'] ?? ($themeSettings['primary_color'] ?? '#3b82f6'));
+
+// Whitelist de fontes permitidas para evitar injeção via CSS/URL
+$allowedFonts = [
+    'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins',
+    'Raleway', 'Nunito', 'Ubuntu', 'Playfair Display', 'Merriweather',
+    'Source Sans Pro', 'PT Sans', 'Oswald', 'Quicksand',
+];
+$bodyFont = in_array($themeSettings['body_font'] ?? 'Inter', $allowedFonts)
+    ? ($themeSettings['body_font'] ?? 'Inter')
+    : 'Inter';
+$headingFont = in_array($themeSettings['heading_font'] ?? $bodyFont, $allowedFonts, true)
+    ? ($themeSettings['heading_font'] ?? $bodyFont)
+    : $bodyFont;
+$fontFamilies = array_values(array_unique([$bodyFont, $headingFont]));
+$fontQuery = implode('&family=', array_map(static function (string $font): string {
+    return str_replace('%20', '+', rawurlencode($font)) . ':wght@300;400;500;600;700';
+}, $fontFamilies));
+
 $shopName    = htmlspecialchars($_SESSION['company_name'] ?? 'Minha Loja');
+$headerBrandClass = '';
+$headerNavListClass = 'ms-auto';
+
+if ($headerLogoPosition === 'center') {
+    $headerBrandClass = 'mx-auto';
+    $headerNavListClass = 'mx-auto';
+} elseif ($headerLogoPosition === 'right') {
+    $headerBrandClass = 'ms-auto order-2';
+    $headerNavListClass = 'me-auto order-1';
+}
+
+$footerPaddingClass = $footerStyle === 'minimal' ? 'py-4' : 'py-5';
+$headerClassName = $headerStyle === 'minimal' ? 'border-bottom shadow-sm' : '';
 
 $sections = $page['sections'] ?? [];
+$previewProducts = $previewProducts ?? [];
+
+if (!function_exists('sb_preview_escape')) {
+    function sb_preview_escape(?string $value): string
+    {
+        return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    }
+
+    function sb_preview_safe_url(?string $value): ?string
+    {
+        $value = trim((string) $value);
+        if ($value === '' || strpos($value, '#') === 0) {
+            return $value;
+        }
+
+        $normalized = strtolower($value);
+        if (strpos($normalized, 'javascript:') === 0 || strpos($normalized, 'vbscript:') === 0 || strpos($normalized, 'data:') === 0) {
+            return null;
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $value)) {
+            return preg_match('#^(https?:|mailto:|tel:)#i', $value) ? $value : null;
+        }
+
+        return $value;
+    }
+
+    function sb_preview_sanitize_html(string $html): string
+    {
+        return SafeHtml::sanitizeFragment(
+            $html,
+            [
+                'a', 'b', 'blockquote', 'br', 'code', 'div', 'em', 'figcaption', 'figure',
+                'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'i', 'img', 'li', 'ol', 'p',
+                'pre', 'small', 'span', 'strong', 'sub', 'sup', 'table', 'tbody', 'td',
+                'th', 'thead', 'tr', 'u', 'ul'
+            ],
+            [
+                '*' => ['class', 'title'],
+                'a' => ['href', 'target', 'rel'],
+                'img' => ['src', 'alt', 'width', 'height', 'title'],
+            ]
+        );
+    }
+
+    function sb_preview_image_url(?string $path): string
+    {
+        $path = trim((string) $path);
+        if ($path === '') {
+            return '/loja/assets/images/placeholder.svg';
+        }
+
+        return $path;
+    }
+
+    function sb_preview_price($price): string
+    {
+        return 'R$ ' . number_format((float) $price, 2, ',', '.');
+    }
+
+    function sb_preview_render_product_cards(array $products, int $columns, string $primary): string
+    {
+        $columns = max(1, min(4, $columns));
+        $items = array_slice($products, 0, max($columns * 2, 4));
+
+        if (empty($items)) {
+            return '<div class="text-muted text-center py-3">Nenhum produto encontrado para o preview.</div>';
+        }
+
+        ob_start();
+        ?>
+        <div class="row row-cols-1 row-cols-md-<?= $columns ?> g-4">
+            <?php foreach ($items as $product): ?>
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm product-card">
+                        <img src="<?= sb_preview_escape(sb_preview_image_url($product['main_image_path'] ?? '')) ?>"
+                             class="card-img-top"
+                             style="height:180px;object-fit:cover;"
+                             alt="<?= sb_preview_escape($product['name'] ?? 'Produto') ?>">
+                        <div class="card-body">
+                            <h6 class="card-title"><?= sb_preview_escape($product['name'] ?? 'Produto') ?></h6>
+                            <span class="fw-bold" style="color: <?= sb_preview_escape($primary) ?>;">
+                                <?= sb_preview_escape(sb_preview_price($product['price'] ?? 0)) ?>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <?php
+        return (string) ob_get_clean();
+    }
+
+    function sb_preview_render_component(array $component, array $previewProducts, string $primary, string $secondary, string $accent): string
+    {
+        $type = $component['type'] ?? 'rich-text';
+        $content = is_array($component['content'] ?? null) ? $component['content'] : [];
+        $gridCol = max(1, min(12, (int) ($component['grid_col'] ?? 12)));
+
+        ob_start();
+        ?>
+        <div class="col-12 col-md-<?= $gridCol ?>">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <?php if ($type === 'rich-text'): ?>
+                        <?= sb_preview_sanitize_html((string) ($content['html'] ?? $content['text'] ?? '<p>Texto rico</p>')) ?: '<p class="text-muted mb-0">Texto rico</p>' ?>
+
+                    <?php elseif ($type === 'image'): ?>
+                        <?php $imageUrl = sb_preview_safe_url($content['src'] ?? $content['image_url'] ?? '') ?: '/loja/assets/images/placeholder.svg'; ?>
+                        <?php $linkUrl = sb_preview_safe_url($content['link_url'] ?? ''); ?>
+                        <?php if ($linkUrl): ?>
+                            <a href="<?= sb_preview_escape($linkUrl) ?>" class="d-block text-decoration-none">
+                                <img src="<?= sb_preview_escape($imageUrl) ?>" class="img-fluid rounded w-100" alt="<?= sb_preview_escape($content['alt'] ?? 'Imagem') ?>">
+                            </a>
+                        <?php else: ?>
+                            <img src="<?= sb_preview_escape($imageUrl) ?>" class="img-fluid rounded w-100" alt="<?= sb_preview_escape($content['alt'] ?? 'Imagem') ?>">
+                        <?php endif; ?>
+
+                    <?php elseif ($type === 'button'): ?>
+                        <?php $buttonUrl = sb_preview_safe_url($content['url'] ?? $content['href'] ?? '#') ?? '#'; ?>
+                        <a href="<?= sb_preview_escape($buttonUrl) ?>"
+                           class="btn w-100"
+                           style="background-color: <?= sb_preview_escape($accent) ?>; color: #fff; border-color: <?= sb_preview_escape($accent) ?>;">
+                            <?= sb_preview_escape($content['label'] ?? $content['text'] ?? 'Botão') ?>
+                        </a>
+
+                    <?php elseif ($type === 'spacer'): ?>
+                        <div style="height: <?= max(16, min(240, (int) ($content['height'] ?? 40))) ?>px;"></div>
+
+                    <?php elseif ($type === 'divider'): ?>
+                        <hr class="my-2">
+
+                    <?php elseif ($type === 'custom-html'): ?>
+                        <?= sb_preview_sanitize_html((string) ($content['html'] ?? $content['content'] ?? '')) ?: '<p class="text-muted mb-0">HTML customizado</p>' ?>
+
+                    <?php elseif ($type === 'product-grid' || $type === 'product-carousel'): ?>
+                        <div class="mb-2 d-flex align-items-center justify-content-between">
+                            <strong><?= $type === 'product-carousel' ? 'Carrossel de Produtos' : 'Grid de Produtos' ?></strong>
+                            <span class="badge rounded-pill" style="background-color: <?= sb_preview_escape($secondary) ?>;">Preview</span>
+                        </div>
+                        <?= sb_preview_render_product_cards($previewProducts, (int) ($content['columns'] ?? 3), $primary) ?>
+
+                    <?php else: ?>
+                        <div class="text-muted small">Componente <?= sb_preview_escape($type) ?> ainda não possui renderer visual.</div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php
+        return (string) ob_get_clean();
+    }
+
+    function sb_preview_render_section_components(array $section, array $previewProducts, string $primary, string $secondary, string $accent): string
+    {
+        $components = $section['components'] ?? [];
+        if (empty($components)) {
+            return '';
+        }
+
+        ob_start();
+        ?>
+        <section class="py-4 section-components">
+            <div class="container">
+                <div class="row g-3">
+                    <?php foreach ($components as $component): ?>
+                        <?= sb_preview_render_component($component, $previewProducts, $primary, $secondary, $accent) ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </section>
+        <?php
+        return (string) ob_get_clean();
+    }
+}
+
+$headerLogoUrl = sb_preview_safe_url($themeSettings['header_logo'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -32,28 +244,40 @@ $sections = $page['sections'] ?? [];
     <title><?= htmlspecialchars($page['title'] ?? 'Preview') ?> — <?= $shopName ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=<?= $bodyFont ?>:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=<?= sb_preview_escape($fontQuery) ?>&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/loja/assets/css/theme.css">
     <style>
         :root {
             --primary-color: <?= $primary ?>;
             --secondary-color: <?= $secondary ?>;
+            --accent-color: <?= $accent ?>;
             --body-font: '<?= $bodyFont ?>', sans-serif;
+            --heading-font: '<?= $headingFont ?>', sans-serif;
         }
         body { font-family: var(--body-font); margin: 0; }
+        h1, h2, h3, h4, h5, h6 { font-family: var(--heading-font); }
+        .btn-primary,
+        .bg-primary {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+        }
+        .text-primary { color: var(--primary-color) !important; }
     </style>
 </head>
 <body>
 
     <!-- Header -->
-    <header class="store-header <?= $headerSticky ? 'sticky-top' : '' ?>" style="background-color: <?= $headerBg ?>; color: <?= $headerText ?>;">
+    <header class="store-header <?= $headerSticky ? 'sticky-top' : '' ?> <?= $headerClassName ?>" style="background-color: <?= $headerBg ?>; color: <?= $headerText ?>;">
         <nav class="navbar navbar-expand-lg">
-            <div class="container">
-                <a class="navbar-brand" href="#" style="color: <?= $headerText ?>;">
+            <div class="container flex-wrap">
+                <a class="navbar-brand d-inline-flex align-items-center gap-2 <?= $headerBrandClass ?>" href="#" style="color: <?= $headerText ?>;">
+                    <?php if ($headerLogoUrl): ?>
+                        <img src="<?= sb_preview_escape($headerLogoUrl) ?>" alt="<?= $shopName ?>" style="max-height:42px; max-width:120px; object-fit:contain;">
+                    <?php endif; ?>
                     <strong><?= $shopName ?></strong>
                 </a>
                 <div class="collapse navbar-collapse">
-                    <ul class="navbar-nav ms-auto">
+                    <ul class="navbar-nav <?= $headerNavListClass ?>">
                         <li class="nav-item"><a class="nav-link" href="#" style="color: <?= $headerText ?>;">Início</a></li>
                         <li class="nav-item"><a class="nav-link" href="#" style="color: <?= $headerText ?>;">Produtos</a></li>
                         <li class="nav-item"><a class="nav-link" href="#" style="color: <?= $headerText ?>;">Contato</a></li>
@@ -77,8 +301,12 @@ $sections = $page['sections'] ?? [];
             </section>
         <?php else: ?>
             <?php foreach ($sections as $section):
+                if (!(int) ($section['is_visible'] ?? 1)) {
+                    continue;
+                }
                 $sSettings = $section['settings'] ?? [];
                 $sType = $section['type'] ?? 'custom-html';
+                $sectionComponentsHtml = sb_preview_render_section_components($section, $previewProducts, $primary, $secondary, $accent);
             ?>
                 <?php if ($sType === 'hero-banner'): ?>
                     <section class="hero-banner position-relative d-flex align-items-center"
@@ -93,26 +321,16 @@ $sections = $page['sections'] ?? [];
                             <?php endif; ?>
                         </div>
                     </section>
+                    <?= $sectionComponentsHtml ?>
 
                 <?php elseif ($sType === 'featured-products'): ?>
                     <section class="py-5">
                         <div class="container">
                             <h2 class="text-center mb-4"><?= htmlspecialchars($sSettings['title'] ?? 'Produtos em Destaque') ?></h2>
-                            <div class="row row-cols-1 row-cols-md-<?= (int) ($sSettings['columns'] ?? 3) ?> g-4">
-                                <?php for ($i = 1; $i <= 6; $i++): ?>
-                                <div class="col">
-                                    <div class="card h-100 border-0 shadow-sm">
-                                        <img src="/loja/assets/images/placeholder.svg" class="card-img-top" style="height:180px;object-fit:cover;">
-                                        <div class="card-body">
-                                            <h6 class="card-title">Produto Exemplo <?= $i ?></h6>
-                                            <span class="fw-bold" style="color: <?= $primary ?>;">R$ 99,90</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <?php endfor; ?>
-                            </div>
+                            <?= sb_preview_render_product_cards($previewProducts, (int) ($sSettings['columns'] ?? 3), $primary) ?>
                         </div>
                     </section>
+                    <?= $sectionComponentsHtml ?>
 
                 <?php elseif ($sType === 'image-with-text'): ?>
                     <section class="py-5">
@@ -128,6 +346,7 @@ $sections = $page['sections'] ?? [];
                             </div>
                         </div>
                     </section>
+                    <?= $sectionComponentsHtml ?>
 
                 <?php elseif ($sType === 'newsletter'): ?>
                     <section class="py-5" style="background-color: #f8f9fa;">
@@ -144,6 +363,7 @@ $sections = $page['sections'] ?? [];
                             </div>
                         </div>
                     </section>
+                    <?= $sectionComponentsHtml ?>
 
                 <?php elseif ($sType === 'testimonials'): ?>
                     <section class="py-5">
@@ -164,6 +384,7 @@ $sections = $page['sections'] ?? [];
                             </div>
                         </div>
                     </section>
+                    <?= $sectionComponentsHtml ?>
 
                 <?php elseif ($sType === 'gallery'): ?>
                     <section class="py-5">
@@ -178,13 +399,25 @@ $sections = $page['sections'] ?? [];
                             </div>
                         </div>
                     </section>
+                    <?= $sectionComponentsHtml ?>
 
                 <?php elseif ($sType === 'custom-html'): ?>
                     <section class="py-4">
                         <div class="container">
-                            <?= htmlspecialchars($sSettings['content'] ?? 'Conteúdo HTML customizado', ENT_QUOTES, 'UTF-8') ?>
+                            <?= sb_preview_sanitize_html((string) ($sSettings['content'] ?? '')) ?: '<p class="text-muted">Conteúdo HTML customizado</p>' ?>
                         </div>
                     </section>
+                    <?= $sectionComponentsHtml ?>
+
+                <?php else: ?>
+                    <section class="py-4">
+                        <div class="container">
+                            <div class="alert alert-light border mb-0">
+                                Seção <?= sb_preview_escape($sType) ?> carregada em modo genérico.
+                            </div>
+                        </div>
+                    </section>
+                    <?= $sectionComponentsHtml ?>
                 <?php endif; ?>
 
             <?php endforeach; ?>
@@ -193,7 +426,7 @@ $sections = $page['sections'] ?? [];
 
     <!-- Footer -->
     <footer class="mt-auto" style="background-color: <?= $footerBg ?>; color: <?= $footerText ?>;">
-        <div class="container py-5">
+        <div class="container <?= $footerPaddingClass ?>">
             <div class="row row-cols-1 row-cols-md-<?= $footerCols ?> g-4">
                 <div class="col">
                     <h5 style="color: <?= $footerText ?>;"><?= $shopName ?></h5>

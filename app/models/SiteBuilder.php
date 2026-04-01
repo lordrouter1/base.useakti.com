@@ -115,6 +115,88 @@ class SiteBuilder
     }
 
     /**
+     * Obtém uma seção específica do tenant.
+     */
+    public function getSection(int $id, int $tenantId): ?array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM sb_sections WHERE id = :id AND tenant_id = :tid'
+        );
+        $stmt->execute([':id' => $id, ':tid' => $tenantId]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
+     * Valida se a ordem informada contém exatamente as seções da página.
+     */
+    public function isValidSectionOrder(int $pageId, int $tenantId, array $order): bool
+    {
+        $sections = $this->getSections($pageId, $tenantId);
+        $existingIds = array_map('intval', array_column($sections, 'id'));
+        $incomingIds = array_map('intval', $order);
+
+        sort($existingIds);
+        sort($incomingIds);
+
+        return $existingIds === $incomingIds;
+    }
+
+    /**
+     * Salva seções em lote com transação.
+     */
+    public function saveSectionsBatch(int $tenantId, int $pageId, array $sections): bool
+    {
+        if (!$this->getPage($pageId, $tenantId)) {
+            return false;
+        }
+
+        $existing = $this->getSections($pageId, $tenantId);
+        $existingIds = array_flip(array_map('intval', array_column($existing, 'id')));
+
+        try {
+            $this->db->beginTransaction();
+
+            foreach ($sections as $index => $section) {
+                $sectionId = isset($section['id']) ? (int) $section['id'] : 0;
+                $sectionData = [
+                    'tenant_id'  => $tenantId,
+                    'page_id'    => $pageId,
+                    'type'       => $section['type'] ?? 'custom-html',
+                    'settings'   => $section['settings'] ?? [],
+                    'sort_order' => $index,
+                    'is_visible' => $section['is_visible'] ?? 1,
+                ];
+
+                if ($sectionId > 0) {
+                    if (!isset($existingIds[$sectionId])) {
+                        $this->db->rollBack();
+                        return false;
+                    }
+                    if (!$this->updateSection($sectionId, $sectionData)) {
+                        $this->db->rollBack();
+                        return false;
+                    }
+                    continue;
+                }
+
+                if ($this->createSection($sectionData) <= 0) {
+                    $this->db->rollBack();
+                    return false;
+                }
+            }
+
+            $this->db->commit();
+            return true;
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            return false;
+        }
+    }
+
+    /**
      * Cria uma nova seção.
      */
     public function createSection(array $data): int
@@ -170,18 +252,29 @@ class SiteBuilder
      */
     public function reorderSections(int $pageId, int $tenantId, array $order): bool
     {
-        $stmt = $this->db->prepare(
-            'UPDATE sb_sections SET sort_order = :sort WHERE id = :id AND tenant_id = :tid AND page_id = :pid'
-        );
-        foreach ($order as $position => $sectionId) {
-            $stmt->execute([
-                ':sort' => $position,
-                ':id'   => (int) $sectionId,
-                ':tid'  => $tenantId,
-                ':pid'  => $pageId,
-            ]);
+        try {
+            $this->db->beginTransaction();
+
+            $stmt = $this->db->prepare(
+                'UPDATE sb_sections SET sort_order = :sort WHERE id = :id AND tenant_id = :tid AND page_id = :pid'
+            );
+            foreach ($order as $position => $sectionId) {
+                $stmt->execute([
+                    ':sort' => $position,
+                    ':id'   => (int) $sectionId,
+                    ':tid'  => $tenantId,
+                    ':pid'  => $pageId,
+                ]);
+            }
+
+            $this->db->commit();
+            return true;
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            return false;
         }
-        return true;
     }
 
     // ─── Components ──────────────────────────────────────────────
@@ -196,6 +289,19 @@ class SiteBuilder
         );
         $stmt->execute([':sid' => $sectionId, ':tid' => $tenantId]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Obtém um componente específico do tenant.
+     */
+    public function getComponent(int $id, int $tenantId): ?array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM sb_components WHERE id = :id AND tenant_id = :tid LIMIT 1'
+        );
+        $stmt->execute([':id' => $id, ':tid' => $tenantId]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $row ?: null;
     }
 
     /**
@@ -248,7 +354,7 @@ class SiteBuilder
         $stmt = $this->db->prepare(
             'DELETE FROM sb_components WHERE id = :id AND tenant_id = :tid'
         );
-        return $stmt->execute([':id' => $id, ':tid' => $tenantId]);
+        return $stmt->execute([':id' => $id, ':tid' => $tenantId]) && $stmt->rowCount() > 0;
     }
 
     // ─── Theme Settings ─────────────────────────────────────────
@@ -297,10 +403,22 @@ class SiteBuilder
      */
     public function saveThemeSettings(int $tenantId, array $settings, string $group = 'general'): bool
     {
-        foreach ($settings as $key => $value) {
-            $this->saveThemeSetting($tenantId, $key, $value, $group);
+        try {
+            $this->db->beginTransaction();
+            foreach ($settings as $key => $value) {
+                if (!$this->saveThemeSetting($tenantId, $key, (string) $value, $group)) {
+                    $this->db->rollBack();
+                    return false;
+                }
+            }
+            $this->db->commit();
+            return true;
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            return false;
         }
-        return true;
     }
 
     // ─── Full Page Data ──────────────────────────────────────────

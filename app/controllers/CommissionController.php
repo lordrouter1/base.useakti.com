@@ -240,10 +240,10 @@ class CommissionController
         $regras = $this->service->getComissaoProdutos();
 
         $productModel = new Product($this->db);
-        $products = $productModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
+        $products = $productModel->readAll();
 
         $categoryModel = new Category($this->db);
-        $categories = $categoryModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
+        $categories = $categoryModel->readAll();
 
         require 'app/views/layout/header.php';
         require 'app/views/commissions/produtos.php';

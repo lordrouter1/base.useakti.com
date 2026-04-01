@@ -14,8 +14,11 @@
 // ── Configurações de cookie de sessão ────────────────────────────────
 ini_set('session.cookie_httponly', '1');     // JS não acessa o cookie de sessão
 ini_set('session.cookie_samesite', 'Strict'); // Previne CSRF via cross-site
-ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? '1' : '0');
-// ↑ Secure=true apenas quando HTTPS está ativo (evita quebrar dev local em HTTP)
+$isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+         || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+         || (!empty($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443);
+ini_set('session.cookie_secure', $isSecure ? '1' : '0');
+// ↑ Secure=true quando HTTPS detectado (diretamente ou via proxy reverso)
 
 ini_set('session.use_strict_mode', '1');    // Rejeita IDs de sessão não gerados pelo servidor
 ini_set('session.use_only_cookies', '1');   // Não aceita session ID via query string

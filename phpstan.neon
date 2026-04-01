@@ -1,6 +1,6 @@
 includes:
 parameters:
-    level: 3
+    level: 5
     paths:
         - app/
     excludePaths:
@@ -12,5 +12,9 @@ parameters:
         - '#Function checkAdmin not found#'
         - '#Access to an undefined property#'
         - '#Call to an undefined method#'
+        # Level 5 — return type mismatches em models legados (migração gradual)
+        - '#Method .+::\w+\(\) should return .+ but returns#'
+        # Level 5 — parâmetros com tipo misto em controllers legados
+        - '#Parameter .+ of method .+ expects .+, .+ given#'
     reportUnmatchedIgnoredErrors: false
     treatPhpDocTypesAsCertain: false

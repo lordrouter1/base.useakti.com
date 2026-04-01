@@ -81,7 +81,7 @@ class User {
     /**
      * Retorna um PDOStatement com todos os usuários (junto com o nome do grupo quando houver).
      *
-     * @return PDOStatement
+     * @return array
      */
     public function readAll() {
         $query = "SELECT u.*, g.name as group_name 
@@ -90,7 +90,7 @@ class User {
                   ORDER BY u.name ASC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
-        return $stmt;
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
     
 
@@ -104,6 +104,28 @@ class User {
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Retorna usuários paginados com JOIN no grupo.
+     *
+     * @param int $page   Página atual (1-based)
+     * @param int $perPage Registros por página
+     * @return array
+     */
+    public function readPaginated(int $page = 1, int $perPage = 15): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $query = "SELECT u.*, g.name as group_name
+                  FROM {$this->table_name} u
+                  LEFT JOIN user_groups g ON u.group_id = g.id
+                  ORDER BY u.name ASC
+                  LIMIT :limit OFFSET :offset";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**

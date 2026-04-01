@@ -348,10 +348,10 @@ class CommissionService
     public function getAuxData(): array
     {
         $userGroupModel = new UserGroup($this->db);
-        $groups = $userGroupModel->readAll()->fetchAll(\PDO::FETCH_ASSOC);
+        $groups = $userGroupModel->readAll();
 
         $userModel = new User($this->db);
-        $users = $userModel->readAll()->fetchAll(\PDO::FETCH_ASSOC);
+        $users = $userModel->readAll();
 
         $formas = $this->model->getAllFormas();
 

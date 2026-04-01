@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import swaggerUi from 'swagger-ui-express';
 
 import { env } from './config/env.js';
 import { corsOptions } from './config/cors.js';
@@ -9,6 +10,7 @@ import { rateLimiter } from './middlewares/rateLimiter.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import routes from './routes/index.js';
 import webhookRoutes from './routes/webhookRoutes.js';
+import swaggerSpec from './config/swagger.js';
 
 const app = express();
 
@@ -42,6 +44,10 @@ app.use(express.urlencoded({ extended: true }));
 // tenantMiddleware é aplicado DEPOIS do authMiddleware dentro de routes/index.js
 // para que req.user.tenant_db esteja disponível.
 app.use('/api', routes);
+
+// --------------- Swagger Docs -----------
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/api/docs.json', (_req, res) => res.json(swaggerSpec));
 
 // ----------- Health Check ---------------
 app.get('/health', (_req, res) => {

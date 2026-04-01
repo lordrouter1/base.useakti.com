@@ -1281,3 +1281,125 @@ EventDispatcher::listen('model.recurring_transaction.processed', function (Event
     }
     @file_put_contents($financialLogFile, date('[Y-m-d H:i:s] ') . $logMessage . PHP_EOL, FILE_APPEND);
 });
+
+// ══════════════════════════════════════════════════════════════
+// Listeners de Domínio — Pedidos, Clientes, Segurança
+// (ARQ-008 — Ativação de eventos que eram disparados sem listeners)
+// ══════════════════════════════════════════════════════════════
+
+$auditLogFile = (defined('AKTI_BASE_PATH') ? AKTI_BASE_PATH : '') . 'storage/logs/audit.log';
+$securityLogFile = (defined('AKTI_BASE_PATH') ? AKTI_BASE_PATH : '') . 'storage/logs/security.log';
+
+/**
+ * Helper genérico de log em arquivo.
+ */
+$writeLog = function (string $file, string $message): void {
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+    @file_put_contents($file, date('[Y-m-d H:i:s] ') . $message . PHP_EOL, FILE_APPEND);
+};
+
+/**
+ * model.order.created — Pedido criado.
+ * Payload: id, customer_id, total (conforme Order.php dispatch)
+ *
+ * Ações:
+ *   1. Log de auditoria
+ *   2. Notificação para admins (novo pedido no pipeline)
+ */
+EventDispatcher::listen('model.order.created', function (Event $event) use ($auditLogFile, $writeLog, $notifyAdmins) {
+    $data = $event->getData();
+    $orderId    = $data['id'] ?? 0;
+    $customerId = $data['customer_id'] ?? 'N/A';
+    $total      = $data['total'] ?? 0;
+
+    $writeLog($auditLogFile, sprintf(
+        '[Pedido Criado] ID: %d | Cliente: %s | Total: R$ %s | Usuário: %s',
+        $orderId,
+        $customerId,
+        number_format((float) $total, 2, ',', '.'),
+        $_SESSION['user_name'] ?? 'Sistema'
+    ));
+
+    try {
+        $notifyAdmins(
+            'Novo Pedido #' . $orderId,
+            sprintf('Pedido #%d criado (R$ %s). Verifique o pipeline.', $orderId, number_format((float) $total, 2, ',', '.')),
+            'info'
+        );
+    } catch (\Throwable $e) {
+        // best-effort
+    }
+});
+
+/**
+ * model.customer.created — Cliente criado.
+ * Payload: id, name, email (conforme Customer.php dispatch)
+ *
+ * Ações:
+ *   1. Log de auditoria
+ */
+EventDispatcher::listen('model.customer.created', function (Event $event) use ($auditLogFile, $writeLog) {
+    $data = $event->getData();
+
+    $writeLog($auditLogFile, sprintf(
+        '[Cliente Criado] ID: %d | Nome: %s | Email: %s | Usuário: %s',
+        $data['id'] ?? 0,
+        $data['name'] ?? '',
+        $data['email'] ?? '',
+        $_SESSION['user_name'] ?? 'Sistema'
+    ));
+});
+
+/**
+ * auth.login.failed — Tentativa de login falha.
+ * Payload: email, ip, user_agent
+ *
+ * Ações:
+ *   1. Log de segurança
+ */
+EventDispatcher::listen('auth.login.failed', function (Event $event) use ($securityLogFile, $writeLog) {
+    $data = $event->getData();
+
+    $writeLog($securityLogFile, sprintf(
+        '[Login Falhou] Email: %s | IP: %s | User-Agent: %s',
+        $data['email'] ?? '(vazio)',
+        $data['ip'] ?? ($_SERVER['REMOTE_ADDR'] ?? '?'),
+        $data['user_agent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? '?')
+    ));
+});
+
+/**
+ * middleware.csrf.failed — Token CSRF inválido detectado.
+ * Payload: ip, page, action, method
+ *
+ * Ações:
+ *   1. Log de segurança
+ *   2. Alerta para administradores (possível CSRF attack)
+ */
+EventDispatcher::listen('middleware.csrf.failed', function (Event $event) use ($securityLogFile, $writeLog, $notifyAdmins) {
+    $data = $event->getData();
+
+    $msg = sprintf(
+        '[CSRF Falhou] IP: %s | Page: %s | Action: %s | Method: %s | User: %s',
+        $data['ip'] ?? ($_SERVER['REMOTE_ADDR'] ?? '?'),
+        $data['page'] ?? '?',
+        $data['action'] ?? '?',
+        $data['method'] ?? ($_SERVER['REQUEST_METHOD'] ?? '?'),
+        $_SESSION['user_name'] ?? 'Não autenticado'
+    );
+
+    $writeLog($securityLogFile, $msg);
+
+    try {
+        $notifyAdmins(
+            'Alerta CSRF',
+            "Token CSRF inválido detectado.\n" . $msg,
+            'danger'
+        );
+    } catch (\Throwable $e) {
+        // best-effort
+    }
+});

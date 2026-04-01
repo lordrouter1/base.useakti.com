@@ -55,8 +55,7 @@ class ProductController {
         $limitInfo = $limitReached ? ['current' => $currentProducts, 'max' => $maxProducts] : null;
 
         // Categorias para filtro
-        $stmt = $this->categoryModel->readAll();
-        $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $categories = $this->categoryModel->readAll();
 
         // Campos disponíveis para mapeamento de importação
         $importFields = [
@@ -79,8 +78,7 @@ class ProductController {
 
     public function create() {
         // Fetch categories for the dropdown
-        $stmt = $this->categoryModel->readAll();
-        $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $categories = $this->categoryModel->readAll();
 
         // Fetch price tables
         $database = new Database();
@@ -231,8 +229,7 @@ class ProductController {
             exit;
         }
 
-        $stmt = $this->categoryModel->readAll();
-        $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $categories = $this->categoryModel->readAll();
 
         $images = $this->productModel->getImages($id);
         

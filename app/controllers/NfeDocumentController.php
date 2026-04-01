@@ -276,7 +276,7 @@ class NfeDocumentController
             echo json_encode($result);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: emit', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao emitir NF-e. Tente novamente.']);
         }
         exit;
     }
@@ -327,7 +327,7 @@ class NfeDocumentController
             echo json_encode($result);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: cancel', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao cancelar NF-e. Tente novamente.']);
         }
         exit;
     }
@@ -379,7 +379,7 @@ class NfeDocumentController
             echo json_encode($result);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: correction', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao registrar correção. Tente novamente.']);
         }
         exit;
     }
@@ -488,7 +488,7 @@ class NfeDocumentController
             echo json_encode($result);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: checkStatus', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage(), 'details' => []]);
+            echo json_encode(['success' => false, 'message' => 'Erro ao consultar status. Tente novamente.', 'details' => []]);
         }
         exit;
     }
@@ -596,7 +596,7 @@ class NfeDocumentController
             $fiscalService->exportToExcel($data, $title);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: exportReport', ['exception' => $e->getMessage()]);
-            $_SESSION['flash_error'] = 'Erro ao exportar: ' . $e->getMessage();
+            $_SESSION['flash_error'] = 'Erro interno ao exportar relatório. Tente novamente.';
             header('Location: ?page=nfe_documents&action=dashboard');
             exit;
         }
@@ -1127,7 +1127,7 @@ class NfeDocumentController
         } catch (\Throwable $e) {
             $this->docModel->update($nfeId, ['status' => 'rejeitada']);
             Log::error('NfeDocumentController: retry', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro ao reenviar: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao reenviar NF-e. Tente novamente.']);
         }
     }
 
@@ -1187,7 +1187,7 @@ class NfeDocumentController
             }
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: Inutilizar', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao processar inutilização: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao processar inutilização. Tente novamente.']);
         }
     }
 
@@ -1242,7 +1242,7 @@ class NfeDocumentController
             echo json_encode($result);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: emitNfce', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao emitir NFC-e. Tente novamente.']);
         }
         exit;
     }
@@ -1488,7 +1488,7 @@ class NfeDocumentController
             echo $content;
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: exportSped', ['exception' => $e->getMessage()]);
-            $_SESSION['flash_error'] = 'Erro ao gerar SPED Fiscal: ' . $e->getMessage();
+            $_SESSION['flash_error'] = 'Erro interno ao gerar SPED Fiscal. Tente novamente.';
             header('Location: ?page=nfe_documents&action=dashboard');
         }
         exit;
@@ -1532,7 +1532,7 @@ class NfeDocumentController
             echo $content;
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: exportSintegra', ['exception' => $e->getMessage()]);
-            $_SESSION['flash_error'] = 'Erro ao gerar SINTEGRA: ' . $e->getMessage();
+            $_SESSION['flash_error'] = 'Erro interno ao gerar SINTEGRA. Tente novamente.';
             header('Location: ?page=nfe_documents&action=dashboard');
         }
         exit;
@@ -1630,7 +1630,7 @@ class NfeDocumentController
             echo json_encode($result);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: backupXml', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao gerar backup XML. Tente novamente.']);
         }
         exit;
     }
@@ -1702,7 +1702,7 @@ class NfeDocumentController
             $this->getAuditService()->record('backup_settings', 'nfe_backup', null, 'Configurações de backup atualizadas');
             $_SESSION['flash_success'] = 'Configurações de backup salvas!';
         } catch (\Throwable $e) {
-            $_SESSION['flash_error'] = 'Erro ao salvar configurações: ' . $e->getMessage();
+            $_SESSION['flash_error'] = 'Erro interno ao salvar configurações. Tente novamente.';
         }
 
         header('Location: ?page=nfe_documents&action=backupSettings');

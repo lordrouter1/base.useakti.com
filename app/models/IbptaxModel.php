@@ -1,6 +1,7 @@
 <?php
 namespace Akti\Models;
 
+use Akti\Core\Log;
 use PDO;
 
 /**
@@ -223,6 +224,7 @@ class IbptaxModel
 
             $this->conn->commit();
         } catch (\Exception $e) {
+            Log::error('IBPTAX importFromCsv rollback: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             $this->conn->rollBack();
             fclose($handle);
             throw $e;

@@ -63,7 +63,7 @@ class SettingsController {
 
         if ($safeTab === 'dashboard') {
             $userGroupModel = new UserGroup($this->db);
-            $dashGroups = $userGroupModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
+            $dashGroups = $userGroupModel->readAll();
 
             $dashSelectedGroupId = Input::get('group_id', 'int');
 
@@ -268,7 +268,7 @@ class SettingsController {
         $items = $this->priceTable->getItems($id);
         
         $productModel = new Product($this->db);
-        $products = $productModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
+        $products = $productModel->readAll();
 
         // Criar mapa de produtos já na tabela
         $existingProducts = [];

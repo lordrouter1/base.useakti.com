@@ -11,16 +11,8 @@ use Akti\Models\Order;
  * Endpoint AJAX para busca global (Command Palette / Ctrl+K).
  * Busca em clientes, produtos, pedidos e páginas do sistema.
  */
-class SearchController
+class SearchController extends BaseController
 {
-    /** @var \PDO */
-    private $db;
-
-    public function __construct()
-    {
-        $database = new \Database();
-        $this->db = $database->getConnection();
-    }
 
     /**
      * Busca global AJAX — retorna JSON com resultados agrupados.
@@ -28,14 +20,12 @@ class SearchController
     public function query(): void
     {
         if (empty($_SESSION['user_id'])) {
-            $this->jsonError('Não autenticado.', 401);
+            $this->json(['success' => false, 'error' => 'Não autenticado.'], 401);
         }
 
         $q = trim($_GET['q'] ?? '');
         if (strlen($q) < 2) {
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['success' => true, 'results' => []]);
-            exit;
+            $this->json(['success' => true, 'results' => []]);
         }
 
         $limit = min((int) ($_GET['limit'] ?? 5), 10);
@@ -62,13 +52,11 @@ class SearchController
             // Silently skip
         }
 
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode([
+        $this->json([
             'success' => true,
             'results' => $results,
             'query'   => $q,
         ]);
-        exit;
     }
 
     /**
@@ -185,15 +173,5 @@ class SearchController
         }
 
         return $results;
-    }
-
-    // ── Helpers ──
-
-    private function jsonError(string $message, int $code = 400): void
-    {
-        http_response_code($code);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['success' => false, 'error' => $message]);
-        exit;
     }
 }

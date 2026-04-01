@@ -294,7 +294,7 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                                                 $pColor = $prioColors[$c['priority']] ?? 'primary';
                                                 $popoverContent .= '<div class=&quot;mb-2 pb-2 border-bottom&quot;>';
                                                 $popoverContent .= '<strong>#' . str_pad($c['id'], 4, '0', STR_PAD_LEFT) . '</strong> ';
-                                                $popoverContent .= '<span class=&quot;badge bg-' . $pColor . ' rounded-pill&quot; style=&quot;font-size:0.65rem&quot;>' . ucfirst($c['priority']) . '</span><br>';
+                                                $popoverContent .= '<span class=&quot;badge bg-' . $pColor . ' rounded-pill&quot; style=&quot;font-size:0.65rem&quot;>' . e(ucfirst($c['priority'])) . '</span><br>';
                                                 $popoverContent .= '<i class=&quot;fas fa-user me-1&quot;></i>' . e($c['customer_name']) . '<br>';
                                                 if (!empty($c['customer_phone'])) {
                                                     $popoverContent .= '<i class=&quot;fas fa-phone me-1&quot;></i>' . e($c['customer_phone']) . '<br>';
@@ -304,7 +304,7 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                                                 }
                                                 $popoverContent .= '</div>';
                                             }
-                                            $popoverContent .= '<a href=&quot;?page=orders&amp;action=report&amp;date=' . $currentDate . '&quot; target=&quot;_blank&quot; class=&quot;btn btn-sm btn-outline-primary w-100 mt-1&quot;><i class=&quot;fas fa-print me-1&quot;></i>Imprimir</a>';
+                                            $popoverContent .= '<a href=&quot;?page=orders&amp;action=report&amp;date=' . e($currentDate) . '&quot; target=&quot;_blank&quot; class=&quot;btn btn-sm btn-outline-primary w-100 mt-1&quot;><i class=&quot;fas fa-print me-1&quot;></i>Imprimir</a>';
                                             echo $popoverContent;
                                         ?>"
                                         <?php endif; ?>

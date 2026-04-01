@@ -8,6 +8,7 @@ use Akti\Models\ProductGrade;
 use Akti\Models\CategoryGrade;
 use Akti\Models\Logger;
 use Akti\Models\Product;
+use Akti\Core\Log;
 use Akti\Services\CategoryService;
 use Akti\Utils\Input;
 use Database;
@@ -279,9 +280,10 @@ class CategoryController {
                 'has_sectors' => $exportInfo['has_sectors']
             ]);
         } catch (\Exception $e) {
+            Log::error('CategoryController: getProducts', ['exception' => $e->getMessage()]);
             echo json_encode([
                 'success' => false,
-                'message' => 'Erro ao buscar produtos: ' . $e->getMessage(),
+                'message' => 'Erro interno ao buscar produtos. Tente novamente.',
                 'products' => []
             ]);
         }

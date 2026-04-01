@@ -12,7 +12,7 @@
  *   $settingsSchema — schema de campos de configuração
  */
 
-$currentPageId = $currentPage['id'] ?? 0;
+$currentPageId = (int) ($currentPage['id'] ?? 0);
 $currentPageTitle = $currentPage['title'] ?? '';
 
 // Tipos de seções disponíveis
@@ -37,6 +37,51 @@ $componentTypes = [
     'product-grid'    => ['label' => 'Grid de Produtos', 'icon' => 'fas fa-th'],
     'product-carousel'=> ['label' => 'Carrossel',        'icon' => 'fas fa-film'],
 ];
+
+$themeFontOptions = [
+    'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins',
+    'Raleway', 'Nunito', 'Ubuntu', 'Playfair Display', 'Merriweather',
+    'Source Sans Pro', 'PT Sans', 'Oswald', 'Quicksand',
+];
+
+$renderedThemeSettingIds = [
+    'header_style',
+    'header_bg_color',
+    'header_text_color',
+    'header_sticky',
+    'footer_columns',
+    'footer_bg_color',
+    'footer_text_color',
+    'primary_color',
+    'secondary_color',
+];
+
+$dynamicThemeGroups = [];
+foreach ($settingsSchema as $schemaGroup) {
+    $groupName = $schemaGroup['name'] ?? 'Geral';
+    $groupKey = strtolower((string) preg_replace('/[^a-z0-9]+/i', '_', $groupName));
+
+    foreach (($schemaGroup['settings'] ?? []) as $setting) {
+        $settingId = $setting['id'] ?? '';
+        $settingType = $setting['type'] ?? 'text';
+        if ($settingId === '' || in_array($settingId, $renderedThemeSettingIds, true)) {
+            continue;
+        }
+
+        if (!in_array($settingType, ['color', 'select', 'checkbox', 'font_picker'], true)) {
+            continue;
+        }
+
+        if (!isset($dynamicThemeGroups[$groupName])) {
+            $dynamicThemeGroups[$groupName] = [
+                'group_key' => $groupKey,
+                'settings' => [],
+            ];
+        }
+
+        $dynamicThemeGroups[$groupName]['settings'][] = $setting;
+    }
+}
 ?>
 
 <style>
@@ -270,31 +315,76 @@ $componentTypes = [
         border-color: var(--bs-primary);
         background: #eff6ff;
     }
+
+    /* ── Selected Section ── */
+    .sb-section-item.sb-selected {
+        border-color: var(--bs-primary);
+        background: #eff6ff;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .sb-page-dropdown { width: 340px; padding: 0; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.12); overflow: hidden; }
+    .sb-page-dropdown .sb-dd-search { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+    .sb-page-dropdown .sb-dd-search input { font-size: .85rem; }
+    .sb-page-dropdown .sb-dd-list { max-height: 260px; overflow-y: auto; padding: 6px 0; }
+    .sb-page-dropdown .sb-dd-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; font-size: .85rem; color: #334155; text-decoration: none; white-space: nowrap; }
+    .sb-page-dropdown .sb-dd-item:hover { background: #f1f5f9; }
+    .sb-page-dropdown .sb-dd-item.active { background: #eff6ff; font-weight: 600; color: var(--bs-primary); }
+    .sb-page-dropdown .sb-dd-item .sb-dd-label { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .sb-page-dropdown .sb-dd-item .sb-dd-slug { color: #94a3b8; font-size: .75rem; margin-left: 4px; }
+    .sb-page-dropdown .sb-dd-item .sb-dd-del { color: #94a3b8; padding: 2px 5px; border-radius: 4px; border: none; background: none; font-size: .78rem; line-height: 1; }
+    .sb-page-dropdown .sb-dd-item .sb-dd-del:hover { color: #dc3545; background: #fee2e2; }
+    .sb-page-dropdown .sb-dd-footer { border-top: 1px solid #e2e8f0; padding: 8px 12px; }
+    .sb-page-dropdown .sb-dd-empty { padding: 20px 12px; text-align: center; color: #94a3b8; font-size: .85rem; }
 </style>
 
 <div class="container-fluid px-0">
     <!-- ── Toolbar ── -->
-    <div class="d-flex align-items-center justify-content-between px-3 py-2 bg-white border-bottom">
-        <div class="d-flex align-items-center gap-3">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 px-3 py-2 bg-white border-bottom">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
             <h5 class="mb-0">
                 <i class="fas fa-paint-brush me-2 text-primary"></i>Site Builder
             </h5>
-            <span class="text-muted">—</span>
-            <select id="sbPageSelect" class="form-select form-select-sm" style="width: 200px;">
-                <?php foreach ($pages as $p): ?>
-                    <option value="<?= (int) $p['id'] ?>" <?= (int) $p['id'] === $currentPageId ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($p['title']) ?>
-                    </option>
-                <?php endforeach; ?>
-                <?php if (empty($pages)): ?>
-                    <option value="0">Nenhuma página</option>
-                <?php endif; ?>
-            </select>
-            <button class="btn btn-sm btn-outline-primary" id="sbAddPageBtn" title="Nova Página">
-                <i class="fas fa-plus me-1"></i>Página
-            </button>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="sbPageDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    <i class="fas fa-file-alt me-1"></i><?= htmlspecialchars($currentPageTitle !== '' ? $currentPageTitle : 'Selecionar página') ?>
+                </button>
+                <div class="dropdown-menu sb-page-dropdown" aria-labelledby="sbPageDropdownBtn">
+                    <div class="sb-dd-search">
+                        <input type="search" class="form-control form-control-sm" id="sbPageSearchInput" placeholder="Buscar página..." autocomplete="off">
+                    </div>
+                    <div class="sb-dd-list" id="sbPageDdList">
+                        <?php if (empty($pages)): ?>
+                            <div class="sb-dd-empty">Nenhuma página criada.</div>
+                        <?php else: ?>
+                            <?php foreach ($pages as $p): ?>
+                                <?php $pid = (int) $p['id']; ?>
+                                <a href="?page=site_builder&action=index&page_id=<?= $pid ?>"
+                                   class="sb-dd-item<?= $pid === $currentPageId ? ' active' : '' ?>"
+                                   data-page-id="<?= $pid ?>"
+                                   data-search="<?= htmlspecialchars(strtolower(($p['title'] ?? '') . ' ' . ($p['slug'] ?? '')), ENT_QUOTES, 'UTF-8') ?>">
+                                    <span class="sb-dd-label"><?= htmlspecialchars($p['title'] ?? 'Sem título') ?></span>
+                                    <span class="sb-dd-slug">/<?= htmlspecialchars($p['slug'] ?? '') ?></span>
+                                    <button type="button" class="sb-dd-del" title="Excluir"
+                                            data-page-id="<?= $pid ?>"
+                                            data-page-title="<?= htmlspecialchars($p['title'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                            data-is-current="<?= $pid === $currentPageId ? '1' : '0' ?>">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </a>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                    <div class="sb-dd-footer">
+                        <button type="button" class="btn btn-sm btn-primary w-100" id="sbAddPageBtn">
+                            <i class="fas fa-plus me-1"></i>Nova Página
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+            <span id="sbSaveStatus" class="small text-muted" style="display:none;"></span>
             <button class="btn btn-sm btn-success" id="sbSaveBtn">
                 <i class="fas fa-save me-1"></i>Salvar
             </button>
@@ -393,6 +483,74 @@ $componentTypes = [
                                    value="<?= htmlspecialchars($themeSettings['secondary_color'] ?? '#64748b') ?>">
                         </div>
 
+                        <?php if (!empty($dynamicThemeGroups)): ?>
+                            <hr class="my-2">
+                            <h6 class="small fw-bold text-muted mb-2">Configurações Avançadas</h6>
+                            <?php foreach ($dynamicThemeGroups as $groupLabel => $dynamicGroup): ?>
+                                <p class="small fw-bold mb-2 mt-3"><?= htmlspecialchars($groupLabel) ?></p>
+                                <?php foreach ($dynamicGroup['settings'] as $setting): ?>
+                                    <?php
+                                    $settingId = $setting['id'];
+                                    $settingType = $setting['type'];
+                                    $groupKey = $dynamicGroup['group_key'];
+                                    $settingValue = $themeSettings[$settingId] ?? $setting['default'] ?? '';
+                                    ?>
+                                    <?php if ($settingType === 'color'): ?>
+                                        <div class="mb-2">
+                                            <label class="form-label small"><?= htmlspecialchars($setting['label'] ?? $settingId) ?></label>
+                                            <input type="color"
+                                                   class="form-control form-control-sm form-control-color sb-theme-field"
+                                                   data-key="<?= htmlspecialchars($settingId) ?>"
+                                                   data-group="<?= htmlspecialchars($groupKey) ?>"
+                                                   value="<?= htmlspecialchars((string) $settingValue ?: '#000000') ?>">
+                                        </div>
+                                    <?php elseif ($settingType === 'checkbox'): ?>
+                                        <div class="mb-3">
+                                            <div class="form-check form-switch">
+                                                <input type="checkbox"
+                                                       class="form-check-input sb-theme-field"
+                                                       data-key="<?= htmlspecialchars($settingId) ?>"
+                                                       data-group="<?= htmlspecialchars($groupKey) ?>"
+                                                       id="theme_<?= htmlspecialchars($settingId) ?>"
+                                                       <?= in_array((string) $settingValue, ['1', 'true', 'on'], true) || $settingValue === true ? 'checked' : '' ?>>
+                                                <label class="form-check-label small" for="theme_<?= htmlspecialchars($settingId) ?>">
+                                                    <?= htmlspecialchars($setting['label'] ?? $settingId) ?>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    <?php elseif ($settingType === 'select'): ?>
+                                        <div class="mb-2">
+                                            <label class="form-label small"><?= htmlspecialchars($setting['label'] ?? $settingId) ?></label>
+                                            <select class="form-select form-select-sm sb-theme-field"
+                                                    data-key="<?= htmlspecialchars($settingId) ?>"
+                                                    data-group="<?= htmlspecialchars($groupKey) ?>">
+                                                <?php foreach (($setting['options'] ?? []) as $option): ?>
+                                                    <option value="<?= htmlspecialchars((string) ($option['value'] ?? '')) ?>"
+                                                        <?= (string) ($settingValue ?? '') === (string) ($option['value'] ?? '') ? 'selected' : '' ?>>
+                                                        <?= htmlspecialchars((string) ($option['label'] ?? $option['value'] ?? '')) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                    <?php elseif ($settingType === 'font_picker'): ?>
+                                        <div class="mb-2">
+                                            <label class="form-label small"><?= htmlspecialchars($setting['label'] ?? $settingId) ?></label>
+                                            <select class="form-select form-select-sm sb-theme-field"
+                                                    data-key="<?= htmlspecialchars($settingId) ?>"
+                                                    data-group="<?= htmlspecialchars($groupKey) ?>">
+                                                <?php foreach ($themeFontOptions as $fontOption): ?>
+                                                    <option value="<?= htmlspecialchars($fontOption) ?>"
+                                                        <?= (string) ($settingValue ?? '') === (string) $fontOption ? 'selected' : '' ?>>
+                                                        <?= htmlspecialchars($fontOption) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+
                         <button class="btn btn-sm btn-primary w-100 mt-2" id="sbSaveThemeBtn">
                             <i class="fas fa-save me-1"></i>Salvar Tema
                         </button>
@@ -411,7 +569,10 @@ $componentTypes = [
                         <div id="sbSectionList">
                             <?php if (!empty($currentPage['sections'])): ?>
                                 <?php foreach ($currentPage['sections'] as $section): ?>
-                                    <div class="sb-section-item" data-id="<?= (int) $section['id'] ?>" data-type="<?= htmlspecialchars($section['type']) ?>">
+                                    <div class="sb-section-item<?= empty($section['is_visible']) ? ' opacity-50' : '' ?>"
+                                         data-id="<?= (int) $section['id'] ?>"
+                                         data-type="<?= htmlspecialchars($section['type']) ?>"
+                                         data-visible="<?= (int) ($section['is_visible'] ?? 1) ?>">
                                         <i class="fas fa-grip-vertical text-muted"></i>
                                         <i class="<?= $sectionTypes[$section['type']]['icon'] ?? 'fas fa-puzzle-piece' ?> text-primary"></i>
                                         <span class="sb-section-label"><?= htmlspecialchars($sectionTypes[$section['type']]['label'] ?? $section['type']) ?></span>
@@ -481,6 +642,7 @@ $componentTypes = [
                 <iframe id="sbPreviewFrame"
                         src="?page=site_builder&action=preview&page_id=<?= $currentPageId ?>"
                         style="width: 100%; height: 100%; border: none;"
+                        sandbox="allow-same-origin"
                         title="Preview da Loja"></iframe>
             </div>
         </div><!-- /.sb-preview-wrapper -->
@@ -527,14 +689,155 @@ $componentTypes = [
     </div>
 </div>
 
+<!-- ── Modal: Editar Seção + Componentes ── -->
+<div class="modal fade" id="sbEditSectionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-layer-group me-2"></i>Editar Seção</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="sbEditSectionId">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Tipo da Seção</label>
+                    <input type="text" class="form-control form-control-sm" id="sbEditSectionType" disabled>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0"><i class="fas fa-sliders-h me-2"></i>Configurações da Seção</h6>
+                    <div class="form-check form-switch m-0">
+                        <input type="checkbox" class="form-check-input" id="sbEditSectionVisible">
+                        <label class="form-check-label small" for="sbEditSectionVisible">Visível no preview</label>
+                    </div>
+                </div>
+                <div id="sbSectionSettingsFields" class="row g-2 mb-3">
+                    <div class="col-12">
+                        <p class="text-muted small mb-0">Selecione uma seção para carregar as configurações.</p>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-success mb-3" id="sbSaveSectionSettingsBtn">
+                    <i class="fas fa-save me-1"></i>Salvar Configurações da Seção
+                </button>
+
+                <hr>
+                <h6 class="fw-bold"><i class="fas fa-puzzle-piece me-2"></i>Componentes da Seção</h6>
+                <div id="sbSectionComponentsList" class="mb-3" style="min-height:60px;">
+                    <p class="text-muted text-center small py-3">Carregando...</p>
+                </div>
+
+                <!-- Adicionar componente -->
+                <div class="card border-dashed" style="border-style:dashed;">
+                    <div class="card-body p-2">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Tipo</label>
+                                <select class="form-select form-select-sm" id="sbAddCompType">
+                                    <?php foreach ($componentTypes as $cType => $cInfo): ?>
+                                    <option value="<?= $cType ?>"><?= $cInfo['label'] ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">Colunas (1-12)</label>
+                                <input type="number" class="form-control form-control-sm" id="sbAddCompCol" value="12" min="1" max="12">
+                            </div>
+                            <div class="col-md-5">
+                                <button type="button" class="btn btn-sm btn-primary w-100" id="sbAddCompBtn">
+                                    <i class="fas fa-plus me-1"></i>Adicionar Componente
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     'use strict';
 
     var csrf = document.querySelector('meta[name="csrf-token"]');
     var csrfToken = csrf ? csrf.getAttribute('content') : '';
-    var currentPageId = <?= $currentPageId ?>;
+    var currentPageId = <?= (int) $currentPageId ?>;
+    if (!currentPageId) {
+        var firstPageLink = document.querySelector('.sb-dd-item[data-page-id]');
+        if (firstPageLink) {
+            currentPageId = parseInt(firstPageLink.dataset.pageId, 10) || 0;
+        }
+    }
     var previewFrame = document.getElementById('sbPreviewFrame');
+    var hasUnsavedChanges = false;
+    var saveStatusEl = document.getElementById('sbSaveStatus');
+    var selectedSectionId = null;
+    var sectionFieldMap = {
+        'hero-banner': [
+            { key: 'title', label: 'Título', type: 'text', placeholder: 'Bem-vindo' },
+            { key: 'subtitle', label: 'Subtítulo', type: 'textarea', placeholder: 'Descreva a seção' },
+            { key: 'cta_text', label: 'Texto do botão', type: 'text', placeholder: 'Comprar agora' },
+            { key: 'cta_url', label: 'URL do botão', type: 'text', placeholder: '#' },
+            { key: 'min_height', label: 'Altura mínima', type: 'text', placeholder: '400px' }
+        ],
+        'featured-products': [
+            { key: 'title', label: 'Título', type: 'text', placeholder: 'Produtos em Destaque' },
+            { key: 'columns', label: 'Colunas', type: 'number', min: 1, max: 4, placeholder: '3' }
+        ],
+        'image-with-text': [
+            { key: 'title', label: 'Título', type: 'text', placeholder: 'Sobre nós' },
+            { key: 'text', label: 'Texto', type: 'textarea', placeholder: 'Conteúdo da seção' }
+        ],
+        'newsletter': [
+            { key: 'title', label: 'Título', type: 'text', placeholder: 'Fique por dentro' },
+            { key: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Receba novidades e promoções.' },
+            { key: 'button_text', label: 'Texto do botão', type: 'text', placeholder: 'Inscrever' }
+        ],
+        'testimonials': [
+            { key: 'title', label: 'Título', type: 'text', placeholder: 'Depoimentos' }
+        ],
+        'gallery': [
+            { key: 'title', label: 'Título', type: 'text', placeholder: 'Galeria' },
+            { key: 'columns', label: 'Colunas', type: 'number', min: 2, max: 4, placeholder: '3' }
+        ],
+        'custom-html': [
+            { key: 'content', label: 'HTML', type: 'textarea', rows: 8, placeholder: '<p>Conteúdo HTML customizado</p>' }
+        ]
+    };
+
+    function markDirty() {
+        hasUnsavedChanges = true;
+        if (saveStatusEl) {
+            saveStatusEl.style.display = '';
+            saveStatusEl.className = 'small text-warning fw-bold';
+            saveStatusEl.innerHTML = '<i class="fas fa-circle me-1" style="font-size:0.5rem;"></i>Altera\u00e7\u00f5es n\u00e3o salvas';
+        }
+    }
+
+    function markClean() {
+        hasUnsavedChanges = false;
+        if (saveStatusEl) {
+            saveStatusEl.style.display = '';
+            saveStatusEl.className = 'small text-success fw-bold';
+            saveStatusEl.innerHTML = '<i class="fas fa-check-circle me-1"></i>Salvo';
+            setTimeout(function() {
+                if (!hasUnsavedChanges && saveStatusEl) {
+                    saveStatusEl.style.display = 'none';
+                }
+            }, 3000);
+        }
+    }
+
+    window.addEventListener('beforeunload', function(e) {
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
 
     // ── Helpers ──
     function postJson(action, data, callback) {
@@ -547,13 +850,45 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         fetch('?page=site_builder&action=' + action, {
             method: 'POST',
+            headers: { 'Accept': 'application/json' },
             body: formData
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            return r.json().then(function(json) {
+                return json;
+            }, function() {
+                throw new Error('HTTP ' + r.status + ' — resposta inválida do servidor');
+            });
+        })
         .then(function(res) {
             if (callback) callback(res);
         })
-        .catch(function(err) { console.error(err); });
+        .catch(function(err) {
+            console.error('Site Builder AJAX error:', err);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Erro', err.message || 'Falha na comunicação com o servidor.', 'error');
+            }
+        });
+    }
+
+    function getJson(action, params, callback) {
+        var query = '?page=site_builder&action=' + action;
+        for (var key in params) {
+            if (params.hasOwnProperty(key)) {
+                query += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+            }
+        }
+        fetch(query, { headers: { 'Accept': 'application/json' } })
+            .then(function(r) {
+                return r.json().then(function(json) { return json; }, function() {
+                    throw new Error('HTTP ' + r.status);
+                });
+            })
+            .then(function(res) { if (callback) callback(res); })
+            .catch(function(err) {
+                console.error('Site Builder GET error:', err);
+                if (callback) callback({ success: false, message: err.message });
+            });
     }
 
     function refreshPreview() {
@@ -562,19 +897,147 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function escapeHtml(value) {
+        return String(value === undefined || value === null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function renderSectionSettingsFields(section) {
+        var container = document.getElementById('sbSectionSettingsFields');
+        var visibilityField = document.getElementById('sbEditSectionVisible');
+        if (!container || !visibilityField) {
+            return;
+        }
+
+        var settings = section && section.settings ? section.settings : {};
+        var fields = sectionFieldMap[section.type] || [];
+        visibilityField.checked = String(section.is_visible || '1') !== '0';
+
+        if (!fields.length) {
+            container.innerHTML = '<div class="col-12"><p class="text-muted small mb-0">Esta seção ainda não possui campos configuráveis no editor.</p></div>';
+            return;
+        }
+
+        var html = '';
+        fields.forEach(function(field) {
+            var value = settings[field.key];
+            if (value === undefined || value === null || value === '') {
+                value = field.placeholder || '';
+            }
+
+            var columnClass = field.type === 'textarea' ? 'col-12' : 'col-md-6';
+            html += '<div class="' + columnClass + '">';
+            html += '<label class="form-label small fw-bold">' + escapeHtml(field.label) + '</label>';
+            if (field.type === 'textarea') {
+                html += '<textarea class="form-control form-control-sm sb-section-setting" data-key="' + escapeHtml(field.key) + '" rows="' + escapeHtml(field.rows || 4) + '" placeholder="' + escapeHtml(field.placeholder || '') + '">' + escapeHtml(value) + '</textarea>';
+            } else {
+                html += '<input type="' + escapeHtml(field.type) + '" class="form-control form-control-sm sb-section-setting" data-key="' + escapeHtml(field.key) + '" value="' + escapeHtml(value) + '" placeholder="' + escapeHtml(field.placeholder || '') + '"';
+                if (field.min !== undefined) {
+                    html += ' min="' + escapeHtml(field.min) + '"';
+                }
+                if (field.max !== undefined) {
+                    html += ' max="' + escapeHtml(field.max) + '"';
+                }
+                html += '>';
+            }
+            html += '</div>';
+        });
+
+        container.innerHTML = html;
+    }
+
+    function collectSectionSettings() {
+        var settings = {};
+        document.querySelectorAll('.sb-section-setting').forEach(function(field) {
+            settings[field.dataset.key] = field.value;
+        });
+        return settings;
+    }
+
     var previewTimeout;
     function debouncedRefresh() {
         clearTimeout(previewTimeout);
         previewTimeout = setTimeout(refreshPreview, 300);
     }
 
-    // ── Page Select ──
-    var pageSelect = document.getElementById('sbPageSelect');
-    if (pageSelect) {
-        pageSelect.addEventListener('change', function() {
-            window.location.href = '?page=site_builder&page_id=' + this.value;
+    // ── Page Dropdown: search ──
+    var ddSearch = document.getElementById('sbPageSearchInput');
+    var ddList = document.getElementById('sbPageDdList');
+    if (ddSearch && ddList) {
+        ddSearch.addEventListener('input', function() {
+            var term = this.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            var items = ddList.querySelectorAll('.sb-dd-item');
+            var found = false;
+            items.forEach(function(el) {
+                var match = term === '' || (el.dataset.search || '').indexOf(term) !== -1;
+                el.style.display = match ? '' : 'none';
+                if (match) found = true;
+            });
+            var empty = document.getElementById('sbDdEmptyMsg');
+            if (!found) {
+                if (!empty) {
+                    var d = document.createElement('div');
+                    d.className = 'sb-dd-empty';
+                    d.id = 'sbDdEmptyMsg';
+                    d.textContent = 'Nenhuma página encontrada.';
+                    ddList.appendChild(d);
+                }
+            } else if (empty) {
+                empty.remove();
+            }
         });
     }
+
+    // ── Page Dropdown: focus search on open ──
+    var ddBtn = document.getElementById('sbPageDropdownBtn');
+    if (ddBtn) {
+        ddBtn.addEventListener('shown.bs.dropdown', function() {
+            if (ddSearch) { ddSearch.value = ''; ddSearch.dispatchEvent(new Event('input')); ddSearch.focus(); }
+        });
+    }
+
+    // ── Page Dropdown: delete buttons ──
+    document.querySelectorAll('.sb-dd-del').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var pageId = this.dataset.pageId;
+            var pageTitle = this.dataset.pageTitle || 'Página';
+            var isCurrent = this.dataset.isCurrent === '1';
+            var itemEl = this.closest('.sb-dd-item');
+
+            Swal.fire({
+                title: 'Excluir página?',
+                html: 'A página <strong>' + escapeHtml(pageTitle) + '</strong> e todo seu conteúdo serão removidos.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Sim, excluir',
+                cancelButtonText: 'Cancelar'
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+                postJson('deletePage', { id: pageId }, function(res) {
+                    if (!(res && res.success)) {
+                        Swal.fire('Erro', (res && res.message) || 'Falha ao excluir.', 'error');
+                        return;
+                    }
+                    if (itemEl) itemEl.remove();
+                    if (isCurrent) {
+                        var next = ddList ? ddList.querySelector('.sb-dd-item') : null;
+                        var url = next ? next.getAttribute('href') : '?page=site_builder&action=index';
+                        Swal.fire({ icon: 'success', title: 'Excluída!', timer: 1000, showConfirmButton: false });
+                        setTimeout(function() { window.location.href = url; }, 1100);
+                    } else {
+                        Swal.fire({ icon: 'success', title: 'Excluída!', timer: 1000, showConfirmButton: false });
+                    }
+                });
+            });
+        });
+    });
 
     // ── New Page Modal ──
     var addPageBtn = document.getElementById('sbAddPageBtn');
@@ -595,11 +1058,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 Swal.fire('Atenção', 'Título e slug são obrigatórios.', 'warning');
                 return;
             }
+            var btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Criando...';
             postJson('createPage', { title: title, slug: slug, type: type }, function(res) {
-                if (res.success) {
-                    window.location.href = '?page=site_builder&page_id=' + res.id;
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plus me-1"></i>Criar Página';
+                if (res && res.success) {
+                    window.location.href = '?page=site_builder&action=index&page_id=' + res.id;
                 } else {
-                    Swal.fire('Erro', res.message || 'Falha ao criar página.', 'error');
+                    Swal.fire('Erro', (res && res.message) || 'Falha ao criar página.', 'error');
                 }
             });
         });
@@ -637,13 +1105,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // ── Add Section ──
     document.querySelectorAll('.sb-add-section-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
+            if (!currentPageId) {
+                Swal.fire('Atenção', 'Crie uma página antes de adicionar seções.', 'warning');
+                return;
+            }
             var type = this.dataset.type;
-            postJson('saveSections', {
+            postJson('addSection', {
                 page_id: currentPageId,
-                sections: JSON.stringify([{ type: type, settings: {}, is_visible: 1 }])
+                type: type,
+                settings: JSON.stringify({})
             }, function(res) {
-                if (res.success) {
-                    window.location.href = '?page=site_builder&page_id=' + currentPageId;
+                if (res && res.success) {
+                    hasUnsavedChanges = false;
+                    window.location.href = '?page=site_builder&action=index&page_id=' + currentPageId;
+                } else {
+                    Swal.fire('Erro', (res && res.message) || 'Falha ao adicionar seção.', 'error');
                 }
             });
         });
@@ -664,20 +1140,100 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelButtonText: 'Cancelar'
             }).then(function(result) {
                 if (result.isConfirmed) {
-                    var formData = new FormData();
-                    formData.append('csrf_token', csrfToken);
-                    formData.append('id', sectionId);
-                    fetch('?page=site_builder&action=deleteSection', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(function() {
+                    postJson('deleteSection', { id: sectionId }, function(res) {
+                        if (!res || !res.success) {
+                            Swal.fire('Erro', (res && res.message) ? res.message : 'Falha ao excluir seção.', 'error');
+                            return;
+                        }
+
                         item.remove();
+                        markClean();
                         debouncedRefresh();
                     });
                 }
             });
         });
+    });
+
+    // ── Save Button (persist section order) ──
+    var saveBtn = document.getElementById('sbSaveBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            if (!currentPageId) {
+                Swal.fire('Atenção', 'Crie uma página primeiro para poder salvar.', 'info');
+                return;
+            }
+
+            var sectionList = document.getElementById('sbSectionList');
+            var order = [];
+            if (sectionList) {
+                sectionList.querySelectorAll('.sb-section-item').forEach(function(item) {
+                    order.push(parseInt(item.dataset.id));
+                });
+            }
+
+            if (order.length === 0) {
+                markClean();
+                Swal.fire({ icon: 'info', title: 'Nenhuma seção para salvar.', timer: 1500, showConfirmButton: false });
+                return;
+            }
+
+            var btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Salvando...';
+
+            postJson('reorderSections', { page_id: currentPageId, order: order }, function(res) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save me-1"></i>Salvar';
+                if (res && res.success) {
+                    markClean();
+                    Swal.fire({ icon: 'success', title: 'Alterações salvas!', timer: 1200, showConfirmButton: false });
+                    debouncedRefresh();
+                } else {
+                    Swal.fire('Erro', (res && res.message) || 'Falha ao salvar.', 'error');
+                }
+            });
+        });
+    }
+
+    // ── Track theme field changes + live preview ──
+    function applyThemePreview() {
+        try {
+            var doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            if (!doc) return;
+            document.querySelectorAll('.sb-theme-field').forEach(function(f) {
+                var key = f.dataset.key;
+                var value = f.type === 'checkbox' ? (f.checked ? '1' : '0') : f.value;
+                if (key === 'primary_color') {
+                    doc.documentElement.style.setProperty('--primary-color', value);
+                } else if (key === 'secondary_color') {
+                    doc.documentElement.style.setProperty('--secondary-color', value);
+                } else if (key === 'accent_color') {
+                    doc.documentElement.style.setProperty('--accent-color', value);
+                } else if (key === 'header_bg_color') {
+                    var hdr = doc.querySelector('.store-header');
+                    if (hdr) hdr.style.backgroundColor = value;
+                } else if (key === 'header_text_color') {
+                    var hdr2 = doc.querySelector('.store-header');
+                    if (hdr2) { hdr2.style.color = value; hdr2.querySelectorAll('a,.navbar-brand').forEach(function(el) { el.style.color = value; }); }
+                } else if (key === 'footer_bg_color') {
+                    var ftr = doc.querySelector('footer');
+                    if (ftr) ftr.style.backgroundColor = value;
+                } else if (key === 'footer_text_color') {
+                    var ftr2 = doc.querySelector('footer');
+                    if (ftr2) { ftr2.style.color = value; ftr2.querySelectorAll('a,h5').forEach(function(el) { el.style.color = value; }); }
+                } else if (key === 'body_font') {
+                    doc.documentElement.style.setProperty('--body-font', '"' + value + '", sans-serif');
+                } else if (key === 'heading_font') {
+                    doc.documentElement.style.setProperty('--heading-font', '"' + value + '", sans-serif');
+                }
+            });
+        } catch (e) { /* iframe not ready or cross-origin */ }
+    }
+
+    document.querySelectorAll('.sb-theme-field').forEach(function(field) {
+        field.addEventListener('change', function() { markDirty(); applyThemePreview(); });
+        field.addEventListener('input', function() { markDirty(); applyThemePreview(); });
     });
 
     // ── Save Theme Settings ──
@@ -699,20 +1255,82 @@ document.addEventListener('DOMContentLoaded', function() {
                 groups[group][key] = value;
             });
 
-            var saves = Object.keys(groups).map(function(group) {
-                return new Promise(function(resolve) {
-                    postJson('saveThemeSettings', { settings: groups[group], group: group }, resolve);
-                });
-            });
+            var btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Salvando...';
 
-            Promise.all(saves).then(function() {
-                Swal.fire({ icon: 'success', title: 'Tema salvo!', timer: 1500, showConfirmButton: false });
-                debouncedRefresh();
+            var groupKeys = Object.keys(groups);
+            var completed = 0;
+            var hasError = false;
+
+            groupKeys.forEach(function(group) {
+                postJson('saveThemeSettings', { settings: groups[group], group: group }, function(res) {
+                    completed++;
+                    if (!res || !res.success) hasError = true;
+                    if (completed === groupKeys.length) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-save me-1"></i>Salvar Tema';
+                        if (hasError) {
+                            Swal.fire('Erro', 'Algumas configurações não foram salvas.', 'error');
+                        } else {
+                            markClean();
+                            Swal.fire({ icon: 'success', title: 'Tema salvo!', timer: 1500, showConfirmButton: false });
+                            refreshPreview();
+                        }
+                    }
+                });
             });
         });
     }
 
-    // ── SortableJS for sections (if available) ──
+    // ── Section Selection ──
+    function selectSection(id) {
+        selectedSectionId = id;
+        document.querySelectorAll('.sb-section-item').forEach(function(item) {
+            item.classList.toggle('sb-selected', String(item.dataset.id) === String(id));
+        });
+    }
+
+    document.querySelectorAll('.sb-section-item').forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            if (e.target.closest('.sb-section-actions')) return;
+            selectSection(this.dataset.id);
+        });
+    });
+
+    // Auto-select first section
+    var firstSection = document.querySelector('.sb-section-item');
+    if (firstSection) selectSection(firstSection.dataset.id);
+
+    // ── Component Palette (click to add to selected section) ──
+    document.querySelectorAll('.sb-component-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            if (!selectedSectionId) {
+                Swal.fire('Atenção', 'Selecione uma seção no painel de seções primeiro.', 'info');
+                return;
+            }
+            if (!currentPageId) {
+                Swal.fire('Atenção', 'Crie uma página primeiro.', 'info');
+                return;
+            }
+            var type = this.dataset.type;
+            postJson('addComponent', {
+                section_id: selectedSectionId,
+                type: type,
+                content: JSON.stringify({}),
+                grid_col: 12
+            }, function(res) {
+                if (res && res.success) {
+                    Swal.fire({ icon: 'success', title: 'Componente adicionado!', timer: 1000, showConfirmButton: false });
+                    debouncedRefresh();
+                } else {
+                    Swal.fire('Erro', (res && res.message) || 'Falha ao adicionar.', 'error');
+                }
+            });
+        });
+    });
+
+    // ── SortableJS for sections ──
     if (typeof Sortable !== 'undefined') {
         var sectionList = document.getElementById('sbSectionList');
         if (sectionList) {
@@ -721,19 +1339,176 @@ document.addEventListener('DOMContentLoaded', function() {
                 handle: '.fa-grip-vertical',
                 ghostClass: 'sortable-ghost',
                 onEnd: function() {
-                    var order = [];
-                    sectionList.querySelectorAll('.sb-section-item').forEach(function(item) {
-                        order.push(item.dataset.id);
-                    });
-                    postJson('reorderSections', {
-                        page_id: currentPageId,
-                        order: order
-                    }, function() {
-                        debouncedRefresh();
-                    });
+                    markDirty();
                 }
             });
         }
+    }
+
+    // ── Edit Section (open modal with components) ──
+    var editSectionModal = null;
+    document.querySelectorAll('.sb-edit-section').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var item = this.closest('.sb-section-item');
+            var sectionId = item.dataset.id;
+            var sectionType = item.dataset.type;
+
+            document.getElementById('sbEditSectionId').value = sectionId;
+            document.getElementById('sbEditSectionType').value = sectionType;
+
+            loadSectionComponents(sectionId);
+
+            if (!editSectionModal) {
+                editSectionModal = new bootstrap.Modal(document.getElementById('sbEditSectionModal'));
+            }
+            editSectionModal.show();
+        });
+    });
+
+    function loadSectionComponents(sectionId) {
+        var container = document.getElementById('sbSectionComponentsList');
+        container.innerHTML = '<p class="text-muted text-center small py-2"><i class="fas fa-spinner fa-spin me-1"></i>Carregando...</p>';
+
+        getJson('getPageData', { page_id: currentPageId }, function(data) {
+            if (!data || !data.success || !data.page || !data.page.sections) {
+                container.innerHTML = '<p class="text-muted text-center small py-3">Erro ao carregar dados.</p>';
+                renderSectionSettingsFields({ type: document.getElementById('sbEditSectionType').value || '', settings: {}, is_visible: '1' });
+                return;
+            }
+
+            var section = null;
+            for (var i = 0; i < data.page.sections.length; i++) {
+                if (String(data.page.sections[i].id) === String(sectionId)) {
+                    section = data.page.sections[i];
+                    break;
+                }
+            }
+
+            if (!section || !section.components || section.components.length === 0) {
+                renderSectionSettingsFields(section || { type: document.getElementById('sbEditSectionType').value || '', settings: {}, is_visible: '1' });
+                container.innerHTML = '<p class="text-muted text-center small py-3"><i class="fas fa-inbox me-1"></i>Nenhum componente. Adicione abaixo.</p>';
+                return;
+            }
+
+            renderSectionSettingsFields(section);
+
+            var html = '<div class="list-group list-group-flush">';
+            section.components.forEach(function(comp) {
+                html += '<div class="list-group-item d-flex align-items-center justify-content-between py-2" data-comp-id="' + comp.id + '">';
+                html += '<div><i class="fas fa-puzzle-piece text-primary me-2"></i>';
+                html += '<span class="small fw-bold">' + (comp.type || 'unknown') + '</span>';
+                html += '<span class="badge bg-light text-muted ms-2" style="font-size:0.65rem;">col-' + (comp.grid_col || 12) + '</span>';
+                html += '</div>';
+                html += '<button type="button" class="btn btn-sm btn-outline-danger sb-remove-comp-btn" data-id="' + comp.id + '" title="Remover">';
+                html += '<i class="fas fa-trash-alt"></i></button>';
+                html += '</div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+
+            // Bind remove buttons
+            container.querySelectorAll('.sb-remove-comp-btn').forEach(function(rbtn) {
+                rbtn.addEventListener('click', function() {
+                    var compId = this.dataset.id;
+                    Swal.fire({
+                        title: 'Remover componente?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Remover',
+                        cancelButtonText: 'Cancelar'
+                    }).then(function(r) {
+                        if (r.isConfirmed) {
+                            postJson('removeComponent', { id: compId }, function(res) {
+                                if (res && res.success) {
+                                    loadSectionComponents(sectionId);
+                                    debouncedRefresh();
+                                } else {
+                                    Swal.fire('Erro', (res && res.message) || 'Falha ao remover.', 'error');
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+        });
+    }
+
+    // ── Save Section Settings ──
+    var saveSectionSettingsBtn = document.getElementById('sbSaveSectionSettingsBtn');
+    if (saveSectionSettingsBtn) {
+        saveSectionSettingsBtn.addEventListener('click', function() {
+            var sectionId = document.getElementById('sbEditSectionId').value;
+            var sectionType = document.getElementById('sbEditSectionType').value;
+            var isVisible = document.getElementById('sbEditSectionVisible').checked ? 1 : 0;
+
+            if (!sectionId || !sectionType) {
+                Swal.fire('Erro', 'Seção inválida.', 'error');
+                return;
+            }
+
+            var btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Salvando...';
+
+            postJson('updateSection', {
+                id: sectionId,
+                type: sectionType,
+                is_visible: isVisible,
+                settings: collectSectionSettings()
+            }, function(res) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save me-1"></i>Salvar Configurações da Seção';
+
+                if (!res || !res.success) {
+                    Swal.fire('Erro', (res && res.message) || 'Falha ao salvar configurações da seção.', 'error');
+                    return;
+                }
+
+                var sectionItem = document.querySelector('.sb-section-item[data-id="' + sectionId + '"]');
+                if (sectionItem) {
+                    sectionItem.classList.toggle('opacity-50', !isVisible);
+                    sectionItem.dataset.visible = String(isVisible);
+                }
+
+                markClean();
+                refreshPreview();
+                loadSectionComponents(sectionId);
+                Swal.fire({ icon: 'success', title: 'Seção atualizada!', timer: 1000, showConfirmButton: false });
+            });
+        });
+    }
+
+    // ── Add Component Button ──
+    var addCompBtn = document.getElementById('sbAddCompBtn');
+    if (addCompBtn) {
+        addCompBtn.addEventListener('click', function() {
+            var sectionId = document.getElementById('sbEditSectionId').value;
+            var compType = document.getElementById('sbAddCompType').value;
+            var gridCol = parseInt(document.getElementById('sbAddCompCol').value) || 12;
+
+            if (!sectionId) return;
+
+            var btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Adicionando...';
+
+            postJson('addComponent', {
+                section_id: sectionId,
+                type: compType,
+                content: JSON.stringify({}),
+                grid_col: gridCol
+            }, function(res) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plus me-1"></i>Adicionar Componente';
+                if (res && res.success) {
+                    loadSectionComponents(sectionId);
+                    debouncedRefresh();
+                } else {
+                    Swal.fire('Erro', (res && res.message) || 'Falha ao adicionar componente.', 'error');
+                }
+            });
+        });
     }
 });
 </script>

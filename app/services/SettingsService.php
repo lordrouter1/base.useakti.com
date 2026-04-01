@@ -75,7 +75,20 @@ class SettingsService
             mkdir($uploadDir, 0755, true);
         }
 
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+        if (!in_array($ext, $allowedExts)) {
+            return false;
+        }
+
+        // Validação MIME por magic bytes (SEC-006)
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+        if (!in_array($mime, $allowedMimes)) {
+            return false;
+        }
+
         $filename = 'company_logo_' . time() . '.' . $ext;
         $filepath = $uploadDir . $filename;
 

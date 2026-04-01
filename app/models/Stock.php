@@ -32,15 +32,18 @@ class Stock {
     }
 
     public function getAllWarehouses($onlyActive = true) {
-        $where = $onlyActive ? "WHERE is_active = 1" : "";
-        $stmt = $this->conn->prepare("
-            SELECT w.*, 
+        $sql = "SELECT w.*, 
                    (SELECT COUNT(*) FROM stock_items si WHERE si.warehouse_id = w.id) as total_items,
                    (SELECT COALESCE(SUM(si.quantity), 0) FROM stock_items si WHERE si.warehouse_id = w.id) as total_quantity
-            FROM warehouses w 
-            $where 
-            ORDER BY w.name ASC
-        ");
+            FROM warehouses w";
+        if ($onlyActive) {
+            $sql .= " WHERE is_active = :active";
+        }
+        $sql .= " ORDER BY w.name ASC";
+        $stmt = $this->conn->prepare($sql);
+        if ($onlyActive) {
+            $stmt->bindValue(':active', 1, PDO::PARAM_INT);
+        }
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

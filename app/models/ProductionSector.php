@@ -23,8 +23,16 @@ class ProductionSector {
     }
 
     public function readAll($onlyActive = false) {
-        $where = $onlyActive ? " WHERE is_active = 1" : "";
-        $stmt = $this->conn->query("SELECT * FROM {$this->table}{$where} ORDER BY sort_order ASC, name ASC");
+        $sql = "SELECT * FROM {$this->table}";
+        if ($onlyActive) {
+            $sql .= " WHERE is_active = :active";
+        }
+        $sql .= " ORDER BY sort_order ASC, name ASC";
+        $stmt = $this->conn->prepare($sql);
+        if ($onlyActive) {
+            $stmt->bindValue(':active', 1, PDO::PARAM_INT);
+        }
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

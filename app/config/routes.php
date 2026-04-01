@@ -240,11 +240,7 @@ return [
     'sectors' => [
         'controller'     => 'SectorController',
         'default_action' => 'index',
-        'actions'        => [
-            'store'  => 'store',
-            'update' => 'update',
-            'delete' => 'delete',
-        ],
+        'rest'           => true, // Auto-map: index, create, store, edit, update, delete
     ],
 
     // ══════════════════════════════════════════════════════════════
@@ -825,6 +821,11 @@ return [
             'updatePage'        => 'updatePage',
             'deletePage'        => 'deletePage',
             'saveSections'      => 'saveSections',
+            'deleteSection'     => 'deleteSection',
+            'updateSection'     => 'updateSection',
+            'reorderSections'   => 'reorderSections',
+            'addSection'        => 'addSection',
+            'getPageData'       => 'getPageData',
             'addComponent'      => 'addComponent',
             'updateComponent'   => 'updateComponent',
             'removeComponent'   => 'removeComponent',

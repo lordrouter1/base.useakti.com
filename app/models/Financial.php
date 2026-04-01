@@ -3,6 +3,7 @@ namespace Akti\Models;
 
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
+use Akti\Core\Log;
 use PDO;
 
 /**
@@ -880,6 +881,7 @@ class Financial {
 
             $this->conn->commit();
         } catch (\Exception $e) {
+            Log::error('mergeInstallments rollback: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             $this->conn->rollBack();
             return false;
         }
@@ -973,6 +975,7 @@ class Financial {
 
             $this->conn->commit();
         } catch (\Exception $e) {
+            Log::error('splitInstallment rollback: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             $this->conn->rollBack();
             return [];
         }

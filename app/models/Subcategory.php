@@ -22,7 +22,7 @@ class Subcategory {
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":category_id", $categoryId);
         $stmt->execute();
-        return $stmt;
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
     
     public function create() {
@@ -53,6 +53,40 @@ class Subcategory {
             JOIN categories c ON s.category_id = c.id 
             ORDER BY c.name ASC, s.name ASC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Retorna a quantidade total de subcategorias.
+     * @return int
+     */
+    public function countAll(): int
+    {
+        $query = "SELECT COUNT(*) FROM " . $this->table_name;
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Retorna subcategorias paginadas com nome da categoria.
+     *
+     * @param int $page   Página atual (1-based)
+     * @param int $perPage Registros por página
+     * @return array
+     */
+    public function readPaginated(int $page = 1, int $perPage = 15): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $query = "SELECT s.*, c.name as category_name
+                  FROM {$this->table_name} s
+                  JOIN categories c ON s.category_id = c.id
+                  ORDER BY c.name ASC, s.name ASC
+                  LIMIT :limit OFFSET :offset";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function readOne($id) {

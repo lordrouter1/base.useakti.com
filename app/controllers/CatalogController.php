@@ -7,6 +7,7 @@ use Akti\Models\Product;
 use Akti\Models\PriceTable;
 use Akti\Models\CompanySettings;
 use Akti\Models\Logger;
+use Akti\Core\Log;
 use Akti\Services\CatalogCartService;
 use Akti\Services\CatalogQuoteService;
 use Akti\Utils\Input;
@@ -193,7 +194,8 @@ class CatalogController {
             $catalogModel->deactivateByOrder($orderId);
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro ao desativar link: ' . $e->getMessage()]);
+            Log::error('CatalogController: deactivateByOrder', ['exception' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao desativar link. Tente novamente.']);
         }
         exit;
     }

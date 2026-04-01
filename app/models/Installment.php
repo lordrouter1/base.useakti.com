@@ -3,6 +3,7 @@ namespace Akti\Models;
 
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
+use Akti\Core\Log;
 use PDO;
 
 /**
@@ -678,6 +679,7 @@ class Installment
 
             $this->conn->commit();
         } catch (\Exception $e) {
+            Log::error('installment merge rollback: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             $this->conn->rollBack();
             return false;
         }
@@ -751,6 +753,7 @@ class Installment
 
             $this->conn->commit();
         } catch (\Exception $e) {
+            Log::error('installment split rollback: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             $this->conn->rollBack();
             return [];
         }

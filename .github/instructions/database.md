@@ -12,7 +12,8 @@
 ---
 
 ## Regra Crítica
-> Toda alteração que envolva o banco de dados deve obrigatoriamente gerar um arquivo SQL de atualização (ex: `update_YYYYMMDD_descricao.sql`) na pasta `/sql`.
+> Toda alteração que envolva o banco de dados **deve obrigatoriamente usar a skill `sql-migration`** (`.github/skills/sql-migration/SKILL.md`) para gerar o arquivo SQL de atualização na pasta `/sql`.
+> Padrão: `update_YYYYMMDDhhmm_<N>_descricao.sql` — com data/hora atual e sequencial auto-detectado.
 
 ---
 
@@ -54,17 +55,20 @@
 ---
 
 ## Padrão de Nomenclatura de Migrations
-- **Formato obrigatório:** `update_YYYYMMDD_descricao_curta.sql`
-- **Exemplos:** `update_20260304_financial_module.sql`, `update_20260302_tenant_limits.sql`
+
+> **Usar a skill `sql-migration`** para gerar migrations automaticamente com naming correto.
+
+- **Formato obrigatório:** `update_YYYYMMDDhhmm_<N>_descricao.sql`
+  - `YYYYMMDDhhmm` = data e hora **do momento da criação** (nunca copiar de outro arquivo)
+  - `<N>` = sequencial auto-detectado a partir de `/sql` e `/sql/prontos`
+  - `descricao` = snake_case, sem acentos
+- **Exemplos:** `update_202604011430_0_criar_tabela_fornecedores.sql`, `update_202604011445_1_adicionar_coluna_status.sql`
 - **Nunca** usar prefixos como `migration_`, `alter_`, `fix_`. Sempre `update_`.
 - **Cabeçalho obrigatório** no arquivo SQL:
   ```sql
-  -- ============================================================================
-  -- UPDATE: update_YYYYMMDD_descricao.sql
-  -- Descrição: Descrição clara da alteração
-  -- Data: YYYY-MM-DD
-  -- Autor: Nome ou Sistema Akti
-  -- ============================================================================
+  -- Migration: Descrição clara da alteração
+  -- Criado em: DD/MM/YYYY HH:MM
+  -- Sequencial: <N>
   ```
 - Sempre incluir `SET FOREIGN_KEY_CHECKS = 0;` no início e `SET FOREIGN_KEY_CHECKS = 1;` ao final quando houver tabelas com FK.
 - Usar `IF NOT EXISTS` / `IF EXISTS` sempre que possível para tornar a migration idempotente.
@@ -73,7 +77,7 @@
 ---
 
 ## Boas Práticas
-- Nomear arquivos de atualização com data e descrição resumida da mudança (ex: `update_20231010_add_column_new_feature.sql`).
+- Usar a skill `sql-migration` para criar arquivos com naming padronizado (`update_YYYYMMDDhhmm_<N>_descricao.sql`).
 - Incluir sempre um `README.md` na pasta `/sql` explicando como aplicar as atualizações.
 - Testar as atualizações em um ambiente de staging antes de aplicar em produção.
 - Manter backup completo do banco de dados antes de qualquer atualização.
@@ -84,7 +88,7 @@
 Para aplicar uma atualização:
 1. Fazer o upload do arquivo SQL para o servidor, na pasta `/sql`.
 2. Conectar ao banco de dados via linha de comando ou ferramenta de administração (ex: phpMyAdmin).
-3. Executar o comando: `SOURCE /caminho/para/o/arquivo/update_YYYYMMDD.sql;`
+3. Executar o comando: `SOURCE /caminho/para/o/arquivo/update_YYYYMMDDhhmm_N_descricao.sql;`
 4. Verificar se a atualização foi aplicada corretamente (conferir novas tabelas/colunas, testar funcionalidades relacionadas).
 
 ---

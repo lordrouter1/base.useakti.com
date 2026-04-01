@@ -5,6 +5,7 @@ use Akti\Models\PaymentGateway;
 use Akti\Models\Financial;
 use Akti\Gateways\GatewayManager;
 use Akti\Core\ModuleBootloader;
+use Akti\Core\Log;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
 use Database;
@@ -227,7 +228,8 @@ class PaymentGatewayController
             $result = $instance->testConnection();
             echo json_encode($result);
         } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
+            Log::error('PaymentGatewayController: testConnection', ['exception' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao testar conexão. Tente novamente.']);
         }
         exit;
     }
@@ -317,7 +319,8 @@ class PaymentGatewayController
 
             echo json_encode($result);
         } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro ao processar cobrança: ' . $e->getMessage()]);
+            Log::error('PaymentGatewayController: createCharge', ['exception' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao processar cobrança. Tente novamente.']);
         }
         exit;
     }
@@ -348,7 +351,8 @@ class PaymentGatewayController
             $result = $gateway->getChargeStatus($externalId);
             echo json_encode($result);
         } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
+            Log::error('PaymentGatewayController: getChargeStatus', ['exception' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao consultar cobrança. Tente novamente.']);
         }
         exit;
     }

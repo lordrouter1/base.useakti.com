@@ -44,8 +44,11 @@ class SecurityHeadersMiddleware
         header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 
         // X-XSS-Protection desabilitado — é obsoleto e pode causar falsos positivos
-        // em navegadores modernos. O CSP é a proteção correta (futuro).
+        // em navegadores modernos. O CSP é a proteção correta.
         header('X-XSS-Protection: 0');
+
+        // Content Security Policy — controla origens permitidas de scripts, styles e recursos
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com code.jquery.com; style-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com fonts.googleapis.com; font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com; img-src 'self' data: blob:");
 
         // HSTS — força HTTPS por 1 ano (apenas quando já em HTTPS)
         if (self::isHttps()) {

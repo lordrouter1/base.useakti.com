@@ -39,8 +39,7 @@ class UserController {
         // Apenas admin
         $this->checkAdmin();
         
-        $stmt = $this->userModel->readAll();
-        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $users = $this->userModel->readAll();
 
         // Verificar limite de usuários do tenant
         $maxUsers = TenantManager::getTenantLimit('max_users');
@@ -55,8 +54,7 @@ class UserController {
 
     public function create() {
         $this->checkAdmin();
-        $stmt = $this->groupModel->readAll();
-        $groups = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $groups = $this->groupModel->readAll();
         require 'app/views/layout/header.php';
         require 'app/views/users/create.php';
         require 'app/views/layout/footer.php';
@@ -127,8 +125,7 @@ class UserController {
             exit;
         }
 
-        $stmt = $this->groupModel->readAll();
-        $groups = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $groups = $this->groupModel->readAll();
         
         require 'app/views/layout/header.php';
         require 'app/views/users/edit.php';
@@ -210,8 +207,7 @@ class UserController {
             }
         }
 
-        $stmt = $this->groupModel->readAll();
-        $groups = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $groups = $this->groupModel->readAll();
         
         // Fetch permissions for each group
         foreach ($groups as &$group) {

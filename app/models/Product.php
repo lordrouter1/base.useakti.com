@@ -41,7 +41,7 @@ class Product {
                   ORDER BY p.name ASC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
-        return $stmt;
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**

@@ -3,6 +3,7 @@ namespace Akti\Controllers;
 
 use Akti\Models\Financial;
 use Akti\Core\ModuleBootloader;
+use Akti\Core\Log;
 use Akti\Services\FinancialImportService;
 use Akti\Utils\Input;
 use Database;
@@ -71,6 +72,16 @@ class FinancialImportController
 
         $file = $_FILES['import_file'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+        // Validação MIME por magic bytes (SEC-006)
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+        $allowedMimes = ['text/plain', 'text/csv', 'application/csv', 'application/octet-stream',
+                         'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+        if (!in_array($mime, $allowedMimes)) {
+            echo json_encode(['success' => false, 'message' => 'Tipo de arquivo não permitido.']);
+            exit;
+        }
 
         if ($ext === 'ofx' || $ext === 'ofc') {
             $content = file_get_contents($file['tmp_name']);
@@ -184,7 +195,8 @@ class FinancialImportController
         try {
             $result = $this->importService->importCsvMapped($rows, $resolvedMapping, $selectedRows, $mode, $userId);
         } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
+            Log::error('FinancialImportController: importCsv', ['exception' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno na importação. Tente novamente.']);
             exit;
         }
 
@@ -277,7 +289,8 @@ class FinancialImportController
                 )
             ]);
         } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro na importação: ' . $e->getMessage()]);
+            Log::error('FinancialImportController: validateRows', ['exception' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno na importação. Tente novamente.']);
         }
         exit;
     }

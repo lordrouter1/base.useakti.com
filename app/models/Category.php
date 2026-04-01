@@ -29,13 +29,45 @@ class Category {
 
     /**
      * Retorna todas as categorias ordenadas por nome
-     * @return PDOStatement Statement com resultado (fetchAll/fetch)
+     * @return array Array de categorias
      */
     public function readAll() {
         $query = "SELECT * FROM " . $this->table_name . " ORDER BY name ASC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
-        return $stmt;
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Retorna a quantidade total de categorias.
+     * @return int
+     */
+    public function countAll(): int
+    {
+        $query = "SELECT COUNT(*) FROM " . $this->table_name;
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Retorna categorias paginadas.
+     *
+     * @param int $page   Página atual (1-based)
+     * @param int $perPage Registros por página
+     * @return array
+     */
+    public function readPaginated(int $page = 1, int $perPage = 15): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $query = "SELECT * FROM {$this->table_name}
+                  ORDER BY name ASC
+                  LIMIT :limit OFFSET :offset";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**
