@@ -44,7 +44,15 @@ $entityId   = $_GET['entity_id'] ?? '';
                             <td><i class="fas fa-file me-1 text-muted"></i><?= e($a['original_name'] ?? $a['filename']) ?></td>
                             <td><span class="badge bg-light text-dark"><?= e($a['mime_type'] ?? '-') ?></span></td>
                             <td><?= number_format(($a['size'] ?? 0) / 1024, 1) ?> KB</td>
-                            <td><?= e(($a['entity_type'] ?? '-') . ' #' . ($a['entity_id'] ?? '')) ?></td>
+                            <td><?php
+                                $et = $a['entity_type'] ?? '';
+                                $eid = $a['entity_id'] ?? '';
+                                if ($et === 'record' || $et === '') {
+                                    echo 'Registro';
+                                } else {
+                                    echo e($et . ' #' . $eid);
+                                }
+                            ?></td>
                             <td><?= e($a['uploader_name'] ?? '-') ?></td>
                             <td style="font-size:.8rem;"><?= date('d/m/Y H:i', strtotime($a['created_at'])) ?></td>
                             <td class="text-end">
@@ -77,22 +85,21 @@ $entityId   = $_GET['entity_id'] ?? '';
                         <input type="file" name="file" class="form-control" required>
                         <small class="text-muted">Máx. 10 MB</small>
                     </div>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <label class="form-label fw-bold">Entidade</label>
-                            <select name="entity_type" class="form-select form-select-sm">
-                                <option value="">Nenhuma</option>
-                                <option value="order" <?= $entityType === 'order' ? 'selected' : '' ?>>Pedido</option>
-                                <option value="customer" <?= $entityType === 'customer' ? 'selected' : '' ?>>Cliente</option>
-                                <option value="product" <?= $entityType === 'product' ? 'selected' : '' ?>>Produto</option>
-                                <option value="supplier" <?= $entityType === 'supplier' ? 'selected' : '' ?>>Fornecedor</option>
-                                <option value="quote" <?= $entityType === 'quote' ? 'selected' : '' ?>>Orçamento</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-bold">ID da Entidade</label>
-                            <input type="number" name="entity_id" class="form-control form-control-sm" value="<?= eAttr($entityId) ?>">
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Entidade</label>
+                        <select name="entity_type" id="entityTypeSelect" class="form-select form-select-sm">
+                            <option value="record">Registro</option>
+                            <option value="order" <?= $entityType === 'order' ? 'selected' : '' ?>>Pedido</option>
+                            <option value="customer" <?= $entityType === 'customer' ? 'selected' : '' ?>>Cliente</option>
+                            <option value="product" <?= $entityType === 'product' ? 'selected' : '' ?>>Produto</option>
+                            <option value="supplier" <?= $entityType === 'supplier' ? 'selected' : '' ?>>Fornecedor</option>
+                            <option value="quote" <?= $entityType === 'quote' ? 'selected' : '' ?>>Orçamento</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 d-none" id="entityIdGroup">
+                        <label class="form-label fw-bold">Selecionar <span id="entityLabel"></span></label>
+                        <select name="entity_id" id="entityIdSelect" class="form-select form-select-sm" style="width:100%;">
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -106,6 +113,7 @@ $entityId   = $_GET['entity_id'] ?? '';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Delete
     document.querySelectorAll('.btnDeleteFile').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
@@ -115,5 +123,64 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then(r => { if (r.isConfirmed) window.location.href = '?page=attachments&action=delete&id=' + id; });
         });
     });
+
+    // Entity type labels
+    const entityLabels = {
+        order: 'Pedido',
+        customer: 'Cliente',
+        product: 'Produto',
+        supplier: 'Fornecedor',
+        quote: 'Orçamento'
+    };
+
+    const $entityId = $('#entityIdSelect');
+    const entityIdGroup = document.getElementById('entityIdGroup');
+    const entityLabel = document.getElementById('entityLabel');
+    const entityTypeSelect = document.getElementById('entityTypeSelect');
+
+    function initSelect2(type) {
+        if ($entityId.hasClass('select2-hidden-accessible')) {
+            $entityId.select2('destroy');
+        }
+        $entityId.empty();
+        entityLabel.textContent = entityLabels[type] || '';
+        $entityId.select2({
+            dropdownParent: $('#uploadModal'),
+            placeholder: 'Pesquisar ' + (entityLabels[type] || '') + '...',
+            allowClear: true,
+            minimumInputLength: 0,
+            ajax: {
+                url: '?page=attachments&action=searchEntities',
+                dataType: 'json',
+                delay: 300,
+                data: function(params) {
+                    return { type: type, term: params.term || '' };
+                },
+                processResults: function(data) {
+                    return { results: data.results || [] };
+                },
+                cache: true
+            }
+        });
+    }
+
+    function toggleEntityId() {
+        const type = entityTypeSelect.value;
+        if (type === 'record') {
+            entityIdGroup.classList.add('d-none');
+            if ($entityId.hasClass('select2-hidden-accessible')) {
+                $entityId.select2('destroy');
+            }
+            $entityId.empty();
+        } else {
+            entityIdGroup.classList.remove('d-none');
+            initSelect2(type);
+        }
+    }
+
+    entityTypeSelect.addEventListener('change', toggleEntityId);
+
+    // Init on page load if entity_type is pre-selected
+    toggleEntityId();
 });
 </script>

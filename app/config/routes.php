@@ -852,10 +852,11 @@ return [
         'default_action' => 'index',
         'public'         => false,
         'actions'        => [
-            'upload'       => 'upload',
-            'download'     => 'download',
-            'delete'       => 'delete',
-            'listByEntity' => 'listByEntity',
+            'upload'         => 'upload',
+            'download'       => 'download',
+            'delete'         => 'delete',
+            'listByEntity'   => 'listByEntity',
+            'searchEntities' => 'searchEntities',
         ],
     ],
 

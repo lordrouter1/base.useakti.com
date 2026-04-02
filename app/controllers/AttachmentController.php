@@ -39,12 +39,12 @@ class AttachmentController
             return;
         }
 
-        $entityType = Input::post('entity_type', 'string', '');
+        $entityType = Input::post('entity_type', 'string', 'record');
         $entityId = Input::post('entity_id', 'int', 0);
         $description = Input::post('description', 'string', '');
 
-        if (!$entityType || !$entityId) {
-            $this->json(['success' => false, 'message' => 'Entidade inválida']);
+        if ($entityType !== 'record' && !$entityId) {
+            $this->json(['success' => false, 'message' => 'Selecione o registro da entidade']);
             return;
         }
 
@@ -157,6 +157,91 @@ class AttachmentController
         $entityId = Input::get('entity_id', 'int', 0);
         $attachments = $this->model->readByEntity($entityType, $entityId);
         $this->json(['success' => true, 'data' => $attachments]);
+    }
+
+    public function searchEntities()
+    {
+        $type = Input::get('type', 'string', '');
+        $term = Input::get('term', 'string', '');
+        $limit = 10;
+
+        $results = [];
+
+        switch ($type) {
+            case 'order':
+                $sql = "SELECT id, CONCAT('#', id, ' - ', COALESCE(status, '')) AS text
+                        FROM orders
+                        WHERE deleted_at IS NULL
+                          AND (CAST(id AS CHAR) LIKE :term OR status LIKE :term2)
+                        ORDER BY id DESC LIMIT :lim";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
+                $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+                $stmt->execute();
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                break;
+
+            case 'customer':
+                $sql = "SELECT id, name AS text
+                        FROM customers
+                        WHERE deleted_at IS NULL AND status = 'active'
+                          AND (name LIKE :term OR CAST(id AS CHAR) LIKE :term2)
+                        ORDER BY name ASC LIMIT :lim";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
+                $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+                $stmt->execute();
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                break;
+
+            case 'product':
+                $sql = "SELECT id, CONCAT(name, ' (', COALESCE(sku, '-'), ')') AS text
+                        FROM products
+                        WHERE deleted_at IS NULL
+                          AND (name LIKE :term OR sku LIKE :term2 OR CAST(id AS CHAR) LIKE :term3)
+                        ORDER BY name ASC LIMIT :lim";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
+                $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                $stmt->bindValue(':term3', "%{$term}%", PDO::PARAM_STR);
+                $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+                $stmt->execute();
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                break;
+
+            case 'supplier':
+                $sql = "SELECT id, company_name AS text
+                        FROM suppliers
+                        WHERE deleted_at IS NULL AND status = 'active'
+                          AND (company_name LIKE :term OR CAST(id AS CHAR) LIKE :term2)
+                        ORDER BY company_name ASC LIMIT :lim";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
+                $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+                $stmt->execute();
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                break;
+
+            case 'quote':
+                $sql = "SELECT id, CONCAT('#', id, ' - ', COALESCE(status, '')) AS text
+                        FROM quotes
+                        WHERE deleted_at IS NULL
+                          AND status IN ('draft', 'sent', 'approved')
+                          AND (CAST(id AS CHAR) LIKE :term OR status LIKE :term2)
+                        ORDER BY id DESC LIMIT :lim";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
+                $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+                $stmt->execute();
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                break;
+        }
+
+        $this->json(['results' => $results]);
     }
 
     private function json(array $data, int $code = 200): void
