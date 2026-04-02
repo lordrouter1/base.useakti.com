@@ -169,9 +169,9 @@ class AttachmentController
 
         switch ($type) {
             case 'order':
-                $where = "WHERE o.status NOT IN ('concluido', 'cancelado')";
+                $where = "";
                 if ($term !== '') {
-                    $where .= " AND (CAST(o.id AS CHAR) LIKE :term OR c.name LIKE :term2 OR o.pipeline_stage LIKE :term3)";
+                    $where = "WHERE (CAST(o.id AS CHAR) LIKE :term OR c.name LIKE :term2 OR o.pipeline_stage LIKE :term3)";
                 }
                 $sql = "SELECT o.id, CONCAT('#', o.id, '(', COALESCE(o.pipeline_stage, ''), ') - ', COALESCE(c.name, '')) AS text
                         FROM orders o
@@ -248,15 +248,15 @@ class AttachmentController
                 break;
 
             case 'quote':
-                $where = "WHERE q.deleted_at IS NULL AND q.status NOT IN ('converted', 'rejected', 'expired')";
+                $where = "WHERE o.status NOT IN ('concluido', 'cancelado')";
                 if ($term !== '') {
-                    $where .= " AND (CAST(q.id AS CHAR) LIKE :term OR c.name LIKE :term2)";
+                    $where .= " AND (CAST(o.id AS CHAR) LIKE :term OR c.name LIKE :term2)";
                 }
-                $sql = "SELECT q.id, CONCAT('#', q.id, ' - ', COALESCE(c.name, '')) AS text
-                        FROM quotes q
-                        LEFT JOIN customers c ON c.id = q.customer_id
+                $sql = "SELECT o.id, CONCAT('#', o.id, ' - ', COALESCE(c.name, '')) AS text
+                        FROM orders o
+                        LEFT JOIN customers c ON c.id = o.customer_id
                         {$where}
-                        ORDER BY q.id DESC LIMIT :lim";
+                        ORDER BY o.id DESC LIMIT :lim";
                 $stmt = $this->db->prepare($sql);
                 if ($term !== '') {
                     $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
