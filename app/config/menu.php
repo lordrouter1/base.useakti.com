@@ -215,6 +215,12 @@ return [
         'icon'     => 'fas fa-toolbox',
         'menu'     => true,
         'children' => [
+            'site_builder' => [
+                'label'      => 'Site Builder',
+                'icon'       => 'fas fa-palette',
+                'menu'       => true,
+                'permission' => true,
+            ],
             'custom_reports' => [
                 'label'      => 'Relatórios Custom.',
                 'icon'       => 'fas fa-chart-line',

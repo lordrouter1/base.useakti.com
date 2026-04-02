@@ -79,17 +79,22 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadColumns(entity) {
         columnsList.innerHTML = '';
         if (!entity || !entities[entity]) return;
-        const cols = entities[entity].columns || [];
-        cols.forEach(col => {
-            const checked = selectedCols.includes(col) ? 'checked' : '';
+        const cols = entities[entity].columns || {};
+        Object.entries(cols).forEach(([key, meta]) => {
+            const checked = selectedCols.includes(key) ? 'checked' : '';
+            const label = meta.label || key;
+            const desc = meta.description || '';
             columnsList.innerHTML += `
                 <div class="col-md-3">
-                    <div class="form-check">
-                        <input class="form-check-input colCheck" type="checkbox" value="${col}" ${checked}>
-                        <label class="form-check-label">${col}</label>
+                    <div class="form-check d-flex align-items-center">
+                        <input class="form-check-input colCheck" type="checkbox" value="${key}" ${checked}>
+                        <label class="form-check-label ms-1">${label}</label>
+                        ${desc ? `<i class="fas fa-info-circle text-muted ms-1" style="cursor:help;font-size:.75rem" data-bs-toggle="tooltip" title="${desc}"></i>` : ''}
                     </div>
                 </div>`;
         });
+        const tooltips = columnsList.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltips.forEach(el => new bootstrap.Tooltip(el));
     }
 
     entitySelect.addEventListener('change', () => loadColumns(entitySelect.value));

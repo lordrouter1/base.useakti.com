@@ -973,6 +973,7 @@ return [
             'delete' => 'delete',
             'toggle' => 'toggle',
             'logs'   => 'logs',
+            'reorder' => 'reorder',
         ],
     ],
 

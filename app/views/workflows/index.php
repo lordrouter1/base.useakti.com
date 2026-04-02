@@ -1,7 +1,7 @@
 <?php
 /**
  * Workflows — Listagem de regras
- * FEAT-010
+ * FEAT-010 (melhorado: drag & drop prioridade)
  * Variáveis: $rules
  */
 ?>
@@ -15,7 +15,7 @@
     <div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-2 mb-4 border-bottom">
         <div>
             <h1 class="h2 mb-1"><i class="fas fa-cogs me-2 text-primary"></i>Automação de Workflows</h1>
-            <p class="text-muted mb-0" style="font-size:.82rem;">Regras automáticas que executam ações com base em eventos do sistema.</p>
+            <p class="text-muted mb-0" style="font-size:.82rem;">Regras automáticas que executam ações com base em eventos do sistema. Arraste para reordenar a prioridade.</p>
         </div>
         <a href="?page=workflows&action=create" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Nova Regra</a>
     </div>
@@ -23,23 +23,25 @@
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover mb-0" id="rulesTable">
                     <thead class="table-light">
                         <tr>
+                            <th style="width:30px"></th>
                             <th>Nome</th>
                             <th>Evento</th>
-                            <th>Prioridade</th>
+                            <th style="width:50px">#</th>
                             <th>Execuções</th>
                             <th>Status</th>
                             <th class="text-end">Ações</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="rulesBody">
                     <?php if (empty($rules)): ?>
-                        <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma regra cadastrada.</td></tr>
+                        <tr><td colspan="7" class="text-center text-muted py-4">Nenhuma regra cadastrada.</td></tr>
                     <?php else: ?>
-                        <?php foreach ($rules as $r): ?>
-                        <tr>
+                        <?php foreach ($rules as $idx => $r): ?>
+                        <tr data-id="<?= (int) $r['id'] ?>">
+                            <td class="drag-handle" style="cursor:grab"><i class="fas fa-grip-vertical text-muted"></i></td>
                             <td>
                                 <div class="fw-bold"><?= e($r['name']) ?></div>
                                 <?php if (!empty($r['description'])): ?>
@@ -47,7 +49,7 @@
                                 <?php endif; ?>
                             </td>
                             <td><code style="font-size:.8rem;"><?= e($r['event']) ?></code></td>
-                            <td><span class="badge bg-light text-dark"><?= (int) $r['priority'] ?></span></td>
+                            <td><span class="badge bg-light text-dark priority-badge"><?= $idx + 1 ?></span></td>
                             <td><?= (int) ($r['trigger_count'] ?? 0) ?></td>
                             <td>
                                 <div class="form-check form-switch">
@@ -69,16 +71,43 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
+    // ─── Drag & Drop ───
+    const rulesBody = document.getElementById('rulesBody');
+    if (rulesBody && rulesBody.querySelectorAll('tr[data-id]').length > 0) {
+        Sortable.create(rulesBody, {
+            handle: '.drag-handle',
+            animation: 150,
+            ghostClass: 'table-active',
+            onEnd: function() {
+                document.querySelectorAll('.priority-badge').forEach((badge, i) => { badge.textContent = i + 1; });
+                const order = [];
+                rulesBody.querySelectorAll('tr[data-id]').forEach((row, i) => {
+                    order.push({ id: parseInt(row.dataset.id), priority: i });
+                });
+                fetch('?page=workflows&action=reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({ order: order })
+                }).then(r => r.json()).then(data => {
+                    if (data.success && typeof AktiToast !== 'undefined') AktiToast.success('Prioridade atualizada');
+                });
+            }
+        });
+    }
+
+    // ─── Toggle ───
     document.querySelectorAll('.toggleRule').forEach(sw => {
         sw.addEventListener('change', function() {
             fetch('?page=workflows&action=toggle&id=' + this.dataset.id, {headers: {'X-CSRF-TOKEN': csrfToken}});
         });
     });
 
+    // ─── Delete ───
     document.querySelectorAll('.btnDelete').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
@@ -89,6 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // ─── Logs ───
     document.querySelectorAll('.btnLogs').forEach(btn => {
         btn.addEventListener('click', function() {
             fetch('?page=workflows&action=logs&rule_id=' + this.dataset.id)

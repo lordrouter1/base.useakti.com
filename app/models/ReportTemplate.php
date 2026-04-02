@@ -85,12 +85,77 @@ class ReportTemplate
     public function getAvailableEntities(): array
     {
         return [
-            'orders'     => ['label' => 'Pedidos', 'columns' => ['id', 'customer_name', 'total', 'status', 'created_at', 'delivery_date']],
-            'customers'  => ['label' => 'Clientes', 'columns' => ['id', 'name', 'email', 'phone', 'document', 'city', 'state', 'created_at']],
-            'products'   => ['label' => 'Produtos', 'columns' => ['id', 'name', 'sku', 'price', 'category_name', 'stock_qty', 'created_at']],
-            'financial'  => ['label' => 'Financeiro', 'columns' => ['id', 'type', 'amount', 'category', 'description', 'date', 'status']],
-            'suppliers'  => ['label' => 'Fornecedores', 'columns' => ['id', 'company_name', 'document', 'email', 'phone', 'city', 'status']],
-            'quotes'     => ['label' => 'Orçamentos', 'columns' => ['id', 'customer_name', 'total', 'status', 'valid_until', 'created_at']],
+            'orders' => [
+                'label' => 'Pedidos',
+                'columns' => [
+                    'id'            => ['label' => 'Código',              'description' => 'Identificador único do pedido no sistema.'],
+                    'customer_name' => ['label' => 'Cliente',             'description' => 'Nome do cliente associado ao pedido.'],
+                    'total'         => ['label' => 'Valor Total',         'description' => 'Soma de todos os itens do pedido (R$).'],
+                    'status'        => ['label' => 'Status',              'description' => 'Situação atual: pendente, em produção, concluído ou cancelado.'],
+                    'created_at'    => ['label' => 'Data de Criação',     'description' => 'Data e hora em que o pedido foi registrado.'],
+                    'delivery_date' => ['label' => 'Previsão de Entrega', 'description' => 'Data prevista para entrega ao cliente.'],
+                ],
+            ],
+            'customers' => [
+                'label' => 'Clientes',
+                'columns' => [
+                    'id'         => ['label' => 'Código',   'description' => 'Identificador único do cliente.'],
+                    'name'       => ['label' => 'Nome',     'description' => 'Nome completo ou razão social.'],
+                    'email'      => ['label' => 'E-mail',   'description' => 'E-mail principal de contato.'],
+                    'phone'      => ['label' => 'Telefone', 'description' => 'Telefone principal com DDD.'],
+                    'document'   => ['label' => 'CPF/CNPJ', 'description' => 'Documento fiscal do cliente.'],
+                    'city'       => ['label' => 'Cidade',   'description' => 'Cidade do endereço principal.'],
+                    'state'      => ['label' => 'Estado',   'description' => 'UF do endereço (sigla com 2 letras).'],
+                    'created_at' => ['label' => 'Cadastro', 'description' => 'Data de cadastro no sistema.'],
+                ],
+            ],
+            'products' => [
+                'label' => 'Produtos',
+                'columns' => [
+                    'id'            => ['label' => 'Código',    'description' => 'Identificador único do produto.'],
+                    'name'          => ['label' => 'Nome',      'description' => 'Nome comercial do produto.'],
+                    'sku'           => ['label' => 'SKU',       'description' => 'Código de referência interno (Stock Keeping Unit).'],
+                    'price'         => ['label' => 'Preço',     'description' => 'Preço unitário de venda (R$).'],
+                    'category_name' => ['label' => 'Categoria', 'description' => 'Categoria principal do produto.'],
+                    'stock_qty'     => ['label' => 'Estoque',   'description' => 'Quantidade em estoque atual.'],
+                    'created_at'    => ['label' => 'Cadastro',  'description' => 'Data de cadastro do produto.'],
+                ],
+            ],
+            'financial' => [
+                'label' => 'Financeiro',
+                'columns' => [
+                    'id'          => ['label' => 'Código',    'description' => 'Identificador da transação.'],
+                    'type'        => ['label' => 'Tipo',      'description' => 'Receita (income) ou Despesa (expense).'],
+                    'amount'      => ['label' => 'Valor',     'description' => 'Valor da transação (R$).'],
+                    'category'    => ['label' => 'Categoria', 'description' => 'Categoria contábil (ex: vendas, material).'],
+                    'description' => ['label' => 'Descrição', 'description' => 'Texto descritivo da transação.'],
+                    'date'        => ['label' => 'Data',      'description' => 'Data de competência da transação.'],
+                    'status'      => ['label' => 'Status',    'description' => 'Estado: pendente, pago, cancelado.'],
+                ],
+            ],
+            'suppliers' => [
+                'label' => 'Fornecedores',
+                'columns' => [
+                    'id'           => ['label' => 'Código',       'description' => 'Identificador do fornecedor.'],
+                    'company_name' => ['label' => 'Razão Social', 'description' => 'Nome empresarial do fornecedor.'],
+                    'document'     => ['label' => 'CNPJ',         'description' => 'CNPJ do fornecedor.'],
+                    'email'        => ['label' => 'E-mail',       'description' => 'E-mail de contato comercial.'],
+                    'phone'        => ['label' => 'Telefone',     'description' => 'Telefone de contato.'],
+                    'city'         => ['label' => 'Cidade',       'description' => 'Cidade do fornecedor.'],
+                    'status'       => ['label' => 'Situação',     'description' => 'Ativo ou inativo.'],
+                ],
+            ],
+            'quotes' => [
+                'label' => 'Orçamentos',
+                'columns' => [
+                    'id'            => ['label' => 'Código',      'description' => 'Identificador do orçamento.'],
+                    'customer_name' => ['label' => 'Cliente',     'description' => 'Nome do cliente solicitante.'],
+                    'total'         => ['label' => 'Valor Total', 'description' => 'Valor total do orçamento (R$).'],
+                    'status'        => ['label' => 'Status',      'description' => 'Situação: rascunho, enviado, aprovado, recusado, convertido.'],
+                    'valid_until'   => ['label' => 'Validade',    'description' => 'Data limite para aprovação do orçamento.'],
+                    'created_at'    => ['label' => 'Criação',     'description' => 'Data de criação do orçamento.'],
+                ],
+            ],
         ];
     }
 
@@ -120,7 +185,7 @@ class ReportTemplate
             return ['data' => [], 'error' => 'Invalid entity'];
         }
 
-        $allowedColumns = $this->getAvailableEntities()[$entity]['columns'] ?? [];
+        $allowedColumns = array_keys($this->getAvailableEntities()[$entity]['columns'] ?? []);
         $safeColumns = array_intersect($columns, $allowedColumns);
         if (empty($safeColumns)) {
             $safeColumns = ['*'];

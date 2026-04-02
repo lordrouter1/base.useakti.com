@@ -2,9 +2,10 @@
 /**
  * Relatórios Customizados — Resultados
  * FEAT-008
- * Variáveis: $template, $reportData
+ * Variáveis: $template, $reportData, $entities
  */
 $cols = !empty($template['columns']) ? (is_string($template['columns']) ? json_decode($template['columns'], true) : $template['columns']) : [];
+$columnDict = ($entities[$template['entity'] ?? '']['columns'] ?? []);
 ?>
 
 <div class="container-fluid py-3">
@@ -29,7 +30,12 @@ $cols = !empty($template['columns']) ? (is_string($template['columns']) ? json_d
                     <thead class="table-light">
                         <tr>
                             <?php foreach ($cols as $col): ?>
-                            <th><?= e($col) ?></th>
+                            <th>
+                                <?= e($columnDict[$col]['label'] ?? $col) ?>
+                                <?php if (!empty($columnDict[$col]['description'])): ?>
+                                <i class="fas fa-info-circle text-muted ms-1" style="cursor:help;font-size:.75rem" data-bs-toggle="tooltip" title="<?= eAttr($columnDict[$col]['description']) ?>"></i>
+                                <?php endif; ?>
+                            </th>
                             <?php endforeach; ?>
                         </tr>
                     </thead>
@@ -53,12 +59,17 @@ $cols = !empty($template['columns']) ? (is_string($template['columns']) ? json_d
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltips.forEach(el => new bootstrap.Tooltip(el));
+});
+
 document.getElementById('btnExportCsv')?.addEventListener('click', function() {
     const table = document.getElementById('reportTable');
     let csv = [];
     for (const row of table.rows) {
         let cols = [];
-        for (const cell of row.cells) cols.push('"' + cell.textContent.replace(/"/g, '""') + '"');
+        for (const cell of row.cells) cols.push('"' + cell.textContent.trim().replace(/"/g, '""') + '"');
         csv.push(cols.join(','));
     }
     const blob = new Blob(["\uFEFF" + csv.join("\n")], {type: 'text/csv;charset=utf-8;'});

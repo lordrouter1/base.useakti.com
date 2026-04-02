@@ -139,3 +139,7 @@
 [2026-04-02 13:55:18] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
 [2026-04-02 16:49:03] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
 [2026-04-02 16:49:03] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
+[2026-04-02 18:50:06] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
+[2026-04-02 18:50:06] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
+[2026-04-02 18:51:51] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
+[2026-04-02 18:51:51] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous

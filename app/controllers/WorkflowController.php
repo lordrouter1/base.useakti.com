@@ -32,6 +32,7 @@ class WorkflowController
     {
         $rule = null;
         $availableEvents = $this->getAvailableEvents();
+        $eventFields = $this->getEventFields();
 
         require 'app/views/layout/header.php';
         require 'app/views/workflows/form.php';
@@ -67,6 +68,7 @@ class WorkflowController
             return;
         }
         $availableEvents = $this->getAvailableEvents();
+        $eventFields = $this->getEventFields();
 
         require 'app/views/layout/header.php';
         require 'app/views/workflows/form.php';
@@ -115,6 +117,24 @@ class WorkflowController
         echo json_encode(['success' => true, 'data' => $logs]);
     }
 
+    public function reorder()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $order = $input['order'] ?? [];
+
+        foreach ($order as $item) {
+            $id = (int) ($item['id'] ?? 0);
+            $priority = (int) ($item['priority'] ?? 0);
+            if ($id > 0) {
+                $this->model->updatePriority($id, $priority);
+            }
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
     private function getAvailableEvents(): array
     {
         return [
@@ -130,6 +150,73 @@ class WorkflowController
             'model.quote.approved'       => 'Orçamento aprovado',
             'model.nfe_document.authorized' => 'NF-e autorizada',
             'auth.login.failed'          => 'Falha no login',
+        ];
+    }
+
+    private function getEventFields(): array
+    {
+        return [
+            'model.order.created' => [
+                'id'             => ['label' => 'ID do Pedido',         'type' => 'int'],
+                'customer_id'    => ['label' => 'ID do Cliente',        'type' => 'int'],
+                'total_amount'   => ['label' => 'Valor Total (R$)',     'type' => 'decimal'],
+                'pipeline_stage' => ['label' => 'Etapa do Pipeline',    'type' => 'string'],
+            ],
+            'model.order.updated' => [
+                'id'           => ['label' => 'ID do Pedido',       'type' => 'int'],
+                'customer_id'  => ['label' => 'ID do Cliente',      'type' => 'int'],
+                'total_amount' => ['label' => 'Valor Total (R$)',   'type' => 'decimal'],
+                'status'       => ['label' => 'Status',             'type' => 'string'],
+            ],
+            'model.order.stage_changed' => [
+                'id'         => ['label' => 'ID do Pedido',       'type' => 'int'],
+                'from_stage' => ['label' => 'Etapa Anterior',     'type' => 'string'],
+                'to_stage'   => ['label' => 'Nova Etapa',         'type' => 'string'],
+                'user_id'    => ['label' => 'Usuário que Moveu',  'type' => 'int'],
+            ],
+            'model.customer.created' => [
+                'id'    => ['label' => 'ID do Cliente', 'type' => 'int'],
+                'name'  => ['label' => 'Nome',          'type' => 'string'],
+                'email' => ['label' => 'E-mail',        'type' => 'string'],
+                'code'  => ['label' => 'Código',        'type' => 'string'],
+            ],
+            'model.customer.updated' => [
+                'id'    => ['label' => 'ID do Cliente', 'type' => 'int'],
+                'name'  => ['label' => 'Nome',          'type' => 'string'],
+                'email' => ['label' => 'E-mail',        'type' => 'string'],
+            ],
+            'model.installment.paid' => [
+                'installment_id' => ['label' => 'ID da Parcela',            'type' => 'int'],
+                'order_id'       => ['label' => 'ID do Pedido',             'type' => 'int'],
+                'paid_amount'    => ['label' => 'Valor Pago (R$)',          'type' => 'decimal'],
+                'auto_confirmed' => ['label' => 'Confirmação Automática',   'type' => 'bool'],
+                'user_id'        => ['label' => 'Usuário',                  'type' => 'int'],
+            ],
+            'model.installment.overdue' => [
+                'installment_id' => ['label' => 'ID da Parcela',       'type' => 'int'],
+                'order_id'       => ['label' => 'ID do Pedido',        'type' => 'int'],
+                'due_date'       => ['label' => 'Data de Vencimento',  'type' => 'date'],
+                'amount'         => ['label' => 'Valor (R$)',          'type' => 'decimal'],
+            ],
+            'model.supplier.created' => [
+                'id'   => ['label' => 'ID do Fornecedor', 'type' => 'int'],
+                'name' => ['label' => 'Nome',              'type' => 'string'],
+            ],
+            'model.quote.created' => [
+                'id' => ['label' => 'ID do Orçamento', 'type' => 'int'],
+            ],
+            'model.quote.approved' => [
+                'id' => ['label' => 'ID do Orçamento', 'type' => 'int'],
+            ],
+            'model.nfe_document.authorized' => [
+                'id'       => ['label' => 'ID do Documento',  'type' => 'int'],
+                'order_id' => ['label' => 'ID do Pedido',     'type' => 'int'],
+                'numero'   => ['label' => 'Número da NF-e',   'type' => 'string'],
+            ],
+            'auth.login.failed' => [
+                'ip'       => ['label' => 'IP do Acesso',      'type' => 'string'],
+                'username' => ['label' => 'Usuário Tentado',   'type' => 'string'],
+            ],
         ];
     }
 }

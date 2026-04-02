@@ -138,4 +138,12 @@ class WorkflowRule
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function updatePriority(int $id, int $priority): bool
+    {
+        $stmt = $this->conn->prepare(
+            "UPDATE workflow_rules SET priority = :priority WHERE id = :id"
+        );
+        return $stmt->execute([':priority' => $priority, ':id' => $id]);
+    }
 }
