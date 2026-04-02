@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS `nome_tabela` (
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX `idx_tenant` (`tenant_id`),
-    CONSTRAINT `fk_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`)
+    CONSTRAINT `fk_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `akti_master`.`tenant_clients`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Exemplo ALTER TABLE:
