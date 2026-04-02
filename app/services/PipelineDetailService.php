@@ -51,13 +51,11 @@ class PipelineDetailService
 
         // Usuários para atribuição
         $userModel = new User($this->db);
-        $usersStmt = $userModel->readAll();
-        $users = $usersStmt->fetchAll(PDO::FETCH_ASSOC);
+        $users = $userModel->readAll();
 
         // Produtos e combinações de grade
         $productModel = new Product($this->db);
-        $stmt_products = $productModel->readAll();
-        $products = $stmt_products->fetchAll(PDO::FETCH_ASSOC);
+        $products = $productModel->readAll();
 
         $productCombinations = [];
         foreach ($products as $p) {

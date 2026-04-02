@@ -474,8 +474,7 @@ class ProductImportService
             return $cache[$catName];
         }
 
-        $stmt = $this->categoryModel->readAll();
-        $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $categories = $this->categoryModel->readAll();
         foreach ($categories as $cat) {
             if (mb_strtolower($cat['name']) === mb_strtolower($catName)) {
                 $cache[$catName] = $cat['id'];
