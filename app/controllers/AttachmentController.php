@@ -171,8 +171,7 @@ class AttachmentController
             case 'order':
                 $sql = "SELECT id, CONCAT('#', id, ' - ', COALESCE(status, '')) AS text
                         FROM orders
-                        WHERE deleted_at IS NULL
-                          AND (CAST(id AS CHAR) LIKE :term OR status LIKE :term2)
+                        WHERE (CAST(id AS CHAR) LIKE :term OR status LIKE :term2)
                         ORDER BY id DESC LIMIT :lim";
                 $stmt = $this->db->prepare($sql);
                 $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
@@ -199,8 +198,7 @@ class AttachmentController
             case 'product':
                 $sql = "SELECT id, CONCAT(name, ' (', COALESCE(sku, '-'), ')') AS text
                         FROM products
-                        WHERE deleted_at IS NULL
-                          AND (name LIKE :term OR sku LIKE :term2 OR CAST(id AS CHAR) LIKE :term3)
+                        WHERE (name LIKE :term OR sku LIKE :term2 OR CAST(id AS CHAR) LIKE :term3)
                         ORDER BY name ASC LIMIT :lim";
                 $stmt = $this->db->prepare($sql);
                 $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
