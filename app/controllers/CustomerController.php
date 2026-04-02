@@ -956,7 +956,7 @@ class CustomerController {
         }
 
         $userId = $_SESSION['user_id'] ?? 0;
-        $tenantId = $_SESSION['tenant_id'] ?? 0;
+        $tenantId = $_SESSION['tenant']['id'] ?? 0;
 
         $result = $this->importService->executeImport($mapping, $importMode, $userId, $tenantId);
         echo json_encode($result);
@@ -1047,7 +1047,7 @@ class CustomerController {
     public function getImportHistory() {
         header('Content-Type: application/json');
 
-        $tenantId = $_SESSION['tenant_id'] ?? 0;
+        $tenantId = $_SESSION['tenant']['id'] ?? 0;
         $batches = $this->importBatchModel->listByTenant($tenantId);
 
         echo json_encode([
@@ -1065,7 +1065,7 @@ class CustomerController {
         header('Content-Type: application/json');
 
         $batchId  = (int) ($_GET['batch_id'] ?? 0);
-        $tenantId = $_SESSION['tenant_id'] ?? 0;
+        $tenantId = $_SESSION['tenant']['id'] ?? 0;
 
         if ($batchId <= 0) {
             echo json_encode(['success' => false, 'message' => 'Lote inválido.']);
@@ -1130,7 +1130,7 @@ class CustomerController {
     public function getMappingProfiles() {
         header('Content-Type: application/json');
 
-        $tenantId = $_SESSION['tenant_id'] ?? 0;
+        $tenantId = $_SESSION['tenant']['id'] ?? 0;
         $profiles = $this->mappingProfileModel->listByTenant($tenantId, 'customers');
 
         echo json_encode([
@@ -1165,7 +1165,7 @@ class CustomerController {
         }
 
         try {
-            $tenantId = $_SESSION['tenant_id'] ?? 0;
+            $tenantId = $_SESSION['tenant']['id'] ?? 0;
             $importMode = Input::post('import_mode', 'string', 'create');
 
             if ($profileId > 0) {

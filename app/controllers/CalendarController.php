@@ -61,7 +61,7 @@ class CalendarController
     public function store()
     {
         $data = [
-            'tenant_id'        => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id'        => $_SESSION['tenant']['id'] ?? 0,
             'user_id'          => $_SESSION['user_id'] ?? null,
             'title'            => Input::post('title', 'string', ''),
             'description'      => Input::post('description', 'string', ''),
@@ -111,7 +111,7 @@ class CalendarController
 
     public function sync()
     {
-        $tenantId = $_SESSION['tenant_id'] ?? 0;
+        $tenantId = $_SESSION['tenant']['id'] ?? 0;
         $ordersSync = $this->model->syncFromOrders($tenantId);
         $installmentsSync = $this->model->syncFromInstallments($tenantId);
 

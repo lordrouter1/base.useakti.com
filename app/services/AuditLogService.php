@@ -39,7 +39,7 @@ class AuditLogService
     ): void {
         $userId = $userId ?? ($_SESSION['user_id'] ?? null);
         $ipAddress = $ipAddress ?? ($_SERVER['REMOTE_ADDR'] ?? null);
-        $tenantId = $_SESSION['tenant_id'] ?? 0;
+        $tenantId = $_SESSION['tenant']['id'] ?? 0;
 
         $stmt = $this->db->prepare(
             "INSERT INTO audit_logs (tenant_id, user_id, action, entity_type, entity_id, old_values, new_values, ip_address, created_at)

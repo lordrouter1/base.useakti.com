@@ -46,7 +46,7 @@ class SupplierController
     public function store()
     {
         $data = [
-            'tenant_id'          => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id'          => $_SESSION['tenant']['id'] ?? 0,
             'company_name'       => Input::post('company_name', 'string', ''),
             'trade_name'         => Input::post('trade_name', 'string', ''),
             'document'           => Input::post('document', 'string', ''),
@@ -162,7 +162,7 @@ class SupplierController
     public function storePurchase()
     {
         $data = [
-            'tenant_id'     => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id'     => $_SESSION['tenant']['id'] ?? 0,
             'supplier_id'   => Input::post('supplier_id', 'int', 0),
             'user_id'       => $_SESSION['user_id'] ?? null,
             'code'          => Input::post('code', 'string', ''),

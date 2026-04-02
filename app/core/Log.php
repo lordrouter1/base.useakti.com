@@ -124,7 +124,7 @@ class Log
             'level'      => strtoupper($level),
             'channel'    => $this->channel,
             'message'    => $message,
-            'tenant_id'  => $_SESSION['tenant_id'] ?? ($_SESSION['tenant_slug'] ?? null),
+            'tenant_id'  => $_SESSION['tenant']['id'] ?? ($_SESSION['tenant_slug'] ?? null),
             'user_id'    => $_SESSION['user_id'] ?? null,
         ];
 

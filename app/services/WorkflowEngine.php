@@ -110,7 +110,7 @@ class WorkflowEngine
         $userId  = $action['user_id'] ?? ($payload['user_id'] ?? null);
         $title   = $this->interpolate($action['title'] ?? 'Notificação', $payload);
         $message = $this->interpolate($action['message'] ?? '', $payload);
-        $tenantId = $payload['tenant_id'] ?? ($_SESSION['tenant_id'] ?? 0);
+        $tenantId = $payload['tenant_id'] ?? ($_SESSION['tenant']['id'] ?? 0);
 
         if (!$userId) return;
 

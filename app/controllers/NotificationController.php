@@ -92,7 +92,7 @@ class NotificationController extends BaseController
     public function stream(): void
     {
         $userId = $_SESSION['user_id'] ?? 0;
-        $tenantId = $_SESSION['tenant_id'] ?? 0;
+        $tenantId = $_SESSION['tenant']['id'] ?? 0;
         if (!$userId) {
             http_response_code(401);
             exit;

@@ -40,7 +40,7 @@ class QualityController
     public function store()
     {
         $data = [
-            'tenant_id'         => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id'         => $_SESSION['tenant']['id'] ?? 0,
             'name'              => Input::post('name', 'string', ''),
             'description'       => Input::post('description', 'string', ''),
             'pipeline_stage_id' => Input::post('pipeline_stage_id', 'int', 0) ?: null,
@@ -93,7 +93,7 @@ class QualityController
     public function addItem()
     {
         $data = [
-            'tenant_id'    => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id'    => $_SESSION['tenant']['id'] ?? 0,
             'checklist_id' => Input::post('checklist_id', 'int', 0),
             'description'  => Input::post('description', 'string', ''),
             'required'     => Input::post('required', 'int', 1),
@@ -127,7 +127,7 @@ class QualityController
     public function storeInspection()
     {
         $data = [
-            'tenant_id'    => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id'    => $_SESSION['tenant']['id'] ?? 0,
             'checklist_id' => Input::post('checklist_id', 'int', 0),
             'order_id'     => Input::post('order_id', 'int', 0) ?: null,
             'inspector_id' => $_SESSION['user_id'] ?? null,
@@ -158,7 +158,7 @@ class QualityController
     public function storeNonConformity()
     {
         $data = [
-            'tenant_id'     => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id'     => $_SESSION['tenant']['id'] ?? 0,
             'inspection_id' => Input::post('inspection_id', 'int', 0) ?: null,
             'order_id'      => Input::post('order_id', 'int', 0) ?: null,
             'title'         => Input::post('title', 'string', ''),

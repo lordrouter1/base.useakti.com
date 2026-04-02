@@ -54,7 +54,7 @@ class QuoteController
     public function store()
     {
         $data = [
-            'tenant_id'      => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id'      => $_SESSION['tenant']['id'] ?? 0,
             'customer_id'    => Input::post('customer_id', 'int', 0),
             'user_id'        => $_SESSION['user_id'] ?? null,
             'code'           => Input::post('code', 'string', ''),
@@ -196,7 +196,7 @@ class QuoteController
     public function addItem()
     {
         $data = [
-            'tenant_id'  => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id'  => $_SESSION['tenant']['id'] ?? 0,
             'quote_id'   => Input::post('quote_id', 'int', 0),
             'product_id' => Input::post('product_id', 'int', 0) ?: null,
             'description' => Input::post('description', 'string', ''),

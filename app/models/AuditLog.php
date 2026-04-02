@@ -20,7 +20,7 @@ class AuditLog
              VALUES (:tenant_id, :user_id, :user_name, :action, :entity_type, :entity_id, :old_values, :new_values, :ip_address, :user_agent, :description)"
         );
         $stmt->execute([
-            ':tenant_id'   => $data['tenant_id'] ?? ($_SESSION['tenant_id'] ?? 0),
+            ':tenant_id'   => $data['tenant_id'] ?? ($_SESSION['tenant']['id'] ?? 0),
             ':user_id'     => $data['user_id'] ?? ($_SESSION['user_id'] ?? null),
             ':user_name'   => $data['user_name'] ?? ($_SESSION['user_name'] ?? null),
             ':action'      => $data['action'],

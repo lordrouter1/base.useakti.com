@@ -75,7 +75,7 @@ class AttachmentController
             return;
         }
 
-        $tenantId = $_SESSION['tenant_id'] ?? 0;
+        $tenantId = $_SESSION['tenant']['id'] ?? 0;
         $uploadBase = \Akti\Config\TenantManager::getTenantUploadBase();
         $dir = $uploadBase . '/attachments/' . $entityType;
         if (!is_dir($dir)) {
