@@ -43,7 +43,7 @@ class CustomReportController
     public function store()
     {
         $data = [
-            'tenant_id' => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id' => $_SESSION['tenant']['id'] ?? 0,
             'user_id'   => $_SESSION['user_id'] ?? null,
             'name'      => Input::post('name', 'string', ''),
             'entity'    => Input::post('entity', 'string', ''),
