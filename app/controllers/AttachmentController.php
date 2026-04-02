@@ -105,7 +105,19 @@ class AttachmentController
             'description'   => $description,
         ]);
 
-        $this->json(['success' => true, 'id' => $id, 'message' => 'Arquivo enviado com sucesso']);
+        if ($this->isAjax()) {
+            $this->json(['success' => true, 'id' => $id, 'message' => 'Arquivo enviado com sucesso']);
+            return;
+        }
+
+        $_SESSION['flash_success'] = 'Arquivo enviado com sucesso.';
+        header('Location: ?page=attachments');
+    }
+
+    private function isAjax(): bool
+    {
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+            && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
     }
 
     public function download()
