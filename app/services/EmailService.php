@@ -97,14 +97,11 @@ class EmailService
     }
 
     /**
-     * Send a test email for preview
+     * Send a test email using content passed directly (from the editor)
      */
-    public function sendTest(int $campaignId, string $testEmail): array
+    public function sendTestDirect(string $testEmail, string $subject, string $bodyHtml): array
     {
-        $campaign = $this->getCampaign($campaignId);
-        if (!$campaign) {
-            return ['success' => false, 'error' => 'Campanha não encontrada.'];
-        }
+        $tenantId = $_SESSION['tenant']['id'] ?? 0;
 
         $sampleRecipient = [
             'name'      => 'Teste',
@@ -115,8 +112,8 @@ class EmailService
             'state'     => 'UF',
         ];
 
-        $personalizedBody = $this->replaceVariables($campaign['body_html'], $sampleRecipient, $campaign['tenant_id']);
-        $personalizedSubject = '[TESTE] ' . $this->replaceVariables($campaign['subject'], $sampleRecipient, $campaign['tenant_id']);
+        $personalizedBody = $this->replaceVariables($bodyHtml, $sampleRecipient, $tenantId);
+        $personalizedSubject = '[TESTE] ' . $this->replaceVariables($subject, $sampleRecipient, $tenantId);
 
         return $this->send($testEmail, 'Teste', $personalizedSubject, $personalizedBody);
     }
