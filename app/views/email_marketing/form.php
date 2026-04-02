@@ -165,6 +165,11 @@ $recipientType = !empty($segmentFilters['customer_ids']) ? 'selected' : 'all';
                     <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Salvar Campanha</button>
                     <?php if ($isEdit): ?>
                     <button type="button" class="btn btn-outline-info" id="btnPreviewCampaign"><i class="fas fa-eye me-1"></i>Visualizar Preview</button>
+                    <?php if (($c['status'] ?? 'draft') !== 'sent'): ?>
+                    <hr class="my-1">
+                    <button type="button" class="btn btn-outline-warning" id="btnSendTest"><i class="fas fa-paper-plane me-1"></i>Enviar Teste</button>
+                    <button type="button" class="btn btn-success" id="btnSendCampaign"><i class="fas fa-rocket me-1"></i>Enviar Campanha</button>
+                    <?php endif; ?>
                     <?php endif; ?>
                     <a href="?page=email_marketing" class="btn btn-outline-secondary">Cancelar</a>
                 </div>
@@ -330,5 +335,74 @@ document.addEventListener('DOMContentLoaded', function() {
 
         document.getElementById('segmentFiltersInput').value = JSON.stringify(filters);
     });
+
+    // Send Test Email
+    const btnSendTest = document.getElementById('btnSendTest');
+    if (btnSendTest) {
+        btnSendTest.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Enviar e-mail de teste',
+                input: 'email',
+                inputLabel: 'Digite o e-mail para receber o teste:',
+                inputPlaceholder: 'email@exemplo.com',
+                showCancelButton: true,
+                confirmButtonText: 'Enviar teste',
+                cancelButtonText: 'Cancelar',
+                showLoaderOnConfirm: true,
+                preConfirm: (email) => {
+                    return fetch('?page=email_marketing&action=sendTest&id=<?= (int) ($c['id'] ?? 0) ?>&email=' + encodeURIComponent(email))
+                        .then(r => r.json())
+                        .then(data => {
+                            if (!data.success) throw new Error(data.error || 'Erro ao enviar.');
+                            return data;
+                        })
+                        .catch(err => Swal.showValidationMessage(err.message));
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then(result => {
+                if (result.isConfirmed) {
+                    Swal.fire('Enviado!', 'E-mail de teste enviado com sucesso.', 'success');
+                }
+            });
+        });
+    }
+
+    // Send Campaign
+    const btnSendCampaign = document.getElementById('btnSendCampaign');
+    if (btnSendCampaign) {
+        btnSendCampaign.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Enviar campanha?',
+                html: 'Os e-mails serão enviados para todos os destinatários selecionados.<br><strong>Esta ação não pode ser desfeita.</strong>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                confirmButtonText: '<i class="fas fa-rocket me-1"></i>Sim, enviar agora',
+                cancelButtonText: 'Cancelar',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return fetch('?page=email_marketing&action=sendCampaign&id=<?= (int) ($c['id'] ?? 0) ?>')
+                        .then(r => r.json())
+                        .then(data => {
+                            if (!data.success) throw new Error(data.error || 'Erro ao enviar campanha.');
+                            return data;
+                        })
+                        .catch(err => Swal.showValidationMessage(err.message));
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then(result => {
+                if (result.isConfirmed) {
+                    const d = result.value;
+                    Swal.fire({
+                        title: 'Campanha enviada!',
+                        html: `<p>Total: <strong>${d.total}</strong> destinatários</p>
+                               <p class="text-success">Enviados: <strong>${d.sent}</strong></p>
+                               ${d.failed > 0 ? `<p class="text-danger">Falharam: <strong>${d.failed}</strong></p>` : ''}`,
+                        icon: 'success'
+                    }).then(() => location.reload());
+                }
+            });
+        });
+    }
 });
 </script>

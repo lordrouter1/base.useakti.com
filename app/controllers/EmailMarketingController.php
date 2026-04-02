@@ -3,6 +3,7 @@
 namespace Akti\Controllers;
 
 use Akti\Models\EmailCampaign;
+use Akti\Services\EmailService;
 use Akti\Utils\Input;
 use Database;
 use PDO;
@@ -283,5 +284,43 @@ class EmailMarketingController
             . '<div class="email-header"><strong>Assunto:</strong> ' . htmlspecialchars($previewSubject, ENT_QUOTES, 'UTF-8') . '</div>'
             . '<div class="email-body">' . $previewBody . '</div>'
             . '</div></body></html>';
+    }
+
+    public function sendCampaign()
+    {
+        $id = Input::get('id', 'int', 0);
+
+        $campaign = $this->model->readOne($id);
+        if (!$campaign) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Campanha não encontrada.']);
+            exit;
+        }
+
+        $emailService = new EmailService($this->db);
+        $result = $emailService->sendCampaign($id);
+
+        header('Content-Type: application/json');
+        echo json_encode($result);
+        exit;
+    }
+
+    public function sendTest()
+    {
+        $id = Input::get('id', 'int', 0);
+        $testEmail = Input::get('email', 'string', '');
+
+        if (empty($testEmail) || !filter_var($testEmail, FILTER_VALIDATE_EMAIL)) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'E-mail de teste inválido.']);
+            exit;
+        }
+
+        $emailService = new EmailService($this->db);
+        $result = $emailService->sendTest($id, $testEmail);
+
+        header('Content-Type: application/json');
+        echo json_encode($result);
+        exit;
     }
 }

@@ -61,7 +61,10 @@
                             <td style="font-size:.8rem;"><?= !empty($c['scheduled_at']) ? date('d/m/Y H:i', strtotime($c['scheduled_at'])) : '-' ?></td>
                             <td class="text-end">
                                 <button class="btn btn-sm btn-outline-info btnPreview" data-id="<?= (int) $c['id'] ?>" title="Preview"><i class="fas fa-eye"></i></button>
-                                <a href="?page=email_marketing&action=edit&id=<?= (int) $c['id'] ?>" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                                <a href="?page=email_marketing&action=edit&id=<?= (int) $c['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar"><i class="fas fa-edit"></i></a>
+                                <?php if (in_array($cs, ['draft', 'scheduled'])): ?>
+                                <button class="btn btn-sm btn-outline-success btnSend" data-id="<?= (int) $c['id'] ?>" title="Enviar"><i class="fas fa-paper-plane"></i></button>
+                                <?php endif; ?>
                                 <button class="btn btn-sm btn-outline-danger btnDelete" data-id="<?= (int) $c['id'] ?>"><i class="fas fa-trash"></i></button>
                             </td>
                         </tr>
@@ -108,6 +111,42 @@ document.addEventListener('DOMContentLoaded', function() {
             const id = this.dataset.id;
             Swal.fire({ title: 'Excluir campanha?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Sim', cancelButtonText: 'Não' })
             .then(r => { if (r.isConfirmed) window.location.href = '?page=email_marketing&action=delete&id=' + id; });
+        });
+    });
+
+    // Send campaign
+    document.querySelectorAll('.btnSend').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            Swal.fire({
+                title: 'Enviar campanha?',
+                html: 'Os e-mails serão enviados para todos os destinatários.<br><strong>Esta ação não pode ser desfeita.</strong>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                confirmButtonText: '<i class="fas fa-paper-plane me-1"></i>Enviar',
+                cancelButtonText: 'Cancelar',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return fetch('?page=email_marketing&action=sendCampaign&id=' + id)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (!data.success) throw new Error(data.error || 'Erro ao enviar.');
+                            return data;
+                        })
+                        .catch(err => Swal.showValidationMessage(err.message));
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then(result => {
+                if (result.isConfirmed) {
+                    const d = result.value;
+                    Swal.fire({
+                        title: 'Campanha enviada!',
+                        html: `Total: ${d.total} | Enviados: ${d.sent}` + (d.failed > 0 ? ` | Falharam: ${d.failed}` : ''),
+                        icon: 'success'
+                    }).then(() => location.reload());
+                }
+            });
         });
     });
 });
