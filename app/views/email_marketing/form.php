@@ -350,16 +350,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelButtonText: 'Cancelar',
                 showLoaderOnConfirm: true,
                 preConfirm: (email) => {
-                    const formData = new FormData();
-                    formData.append('email', email);
-                    formData.append('subject', document.getElementById('subjectField').value || '');
-                    formData.append('body_html', $('#bodyHtml').summernote('code') || '');
-                    formData.append('csrf_token', document.querySelector('input[name="csrf_token"]')?.value || '');
-
-                    return fetch('?page=email_marketing&action=sendTest', {
-                        method: 'POST',
-                        body: formData
-                    })
+                    return fetch('?page=email_marketing&action=sendTest&id=<?= (int) ($c['id'] ?? 0) ?>&email=' + encodeURIComponent(email))
                         .then(r => r.json())
                         .then(data => {
                             if (!data.success) throw new Error(data.error || 'Erro ao enviar.');

@@ -307,9 +307,8 @@ class EmailMarketingController
 
     public function sendTest()
     {
-        $testEmail = Input::post('email', 'string', '') ?: Input::get('email', 'string', '');
-        $bodyHtml  = $_POST['body_html'] ?? '';
-        $subject   = Input::post('subject', 'string', '');
+        $id = Input::get('id', 'int', 0);
+        $testEmail = Input::get('email', 'string', '');
 
         if (empty($testEmail) || !filter_var($testEmail, FILTER_VALIDATE_EMAIL)) {
             header('Content-Type: application/json');
@@ -317,14 +316,8 @@ class EmailMarketingController
             exit;
         }
 
-        if (empty(trim(strip_tags($bodyHtml)))) {
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'O conteúdo do e-mail está vazio. Escreva o conteúdo antes de enviar o teste.']);
-            exit;
-        }
-
         $emailService = new EmailService($this->db);
-        $result = $emailService->sendTestDirect($testEmail, $subject, $bodyHtml);
+        $result = $emailService->sendTest($id, $testEmail);
 
         header('Content-Type: application/json');
         echo json_encode($result);
