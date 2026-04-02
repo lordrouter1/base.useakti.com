@@ -180,6 +180,19 @@ class ReportTemplate
             'quotes'    => 'quotes',
         ];
 
+        // Colunas virtuais que requerem JOIN e alias
+        $columnExpressions = [
+            'orders' => [
+                'customer_name' => ['expr' => 'c.name', 'join' => 'LEFT JOIN customers c ON orders.customer_id = c.id'],
+            ],
+            'products' => [
+                'category_name' => ['expr' => 'cat.name', 'join' => 'LEFT JOIN categories cat ON products.category_id = cat.id'],
+            ],
+            'quotes' => [
+                'customer_name' => ['expr' => 'c.name', 'join' => 'LEFT JOIN customers c ON quotes.customer_id = c.id'],
+            ],
+        ];
+
         $table = $tableMap[$entity] ?? null;
         if (!$table) {
             return ['data' => [], 'error' => 'Invalid entity'];
@@ -190,7 +203,21 @@ class ReportTemplate
         if (empty($safeColumns)) {
             $safeColumns = ['*'];
         }
-        $selectColumns = implode(', ', array_map(fn($c) => "`{$c}`", $safeColumns));
+
+        $joins = [];
+        $selectParts = [];
+        $entityExpressions = $columnExpressions[$entity] ?? [];
+        foreach ($safeColumns as $col) {
+            if ($col === '*') {
+                $selectParts[] = "`{$table}`.*";
+            } elseif (isset($entityExpressions[$col])) {
+                $selectParts[] = $entityExpressions[$col]['expr'] . ' AS `' . $col . '`';
+                $joins[$entityExpressions[$col]['join']] = true;
+            } else {
+                $selectParts[] = "`{$table}`.`{$col}`";
+            }
+        }
+        $selectColumns = implode(', ', $selectParts);
 
         $where = ' WHERE 1=1';
         $params = [];
@@ -205,7 +232,11 @@ class ReportTemplate
             $paramKey = ":f{$i}";
             $value = $filter['value'] ?? '';
             if ($op === 'LIKE') $value = "%{$value}%";
-            $where .= " AND `{$field}` {$op} {$paramKey}";
+            $fieldRef = isset($entityExpressions[$field]) ? $entityExpressions[$field]['expr'] : "`{$table}`.`{$field}`";
+            if (isset($entityExpressions[$field])) {
+                $joins[$entityExpressions[$field]['join']] = true;
+            }
+            $where .= " AND {$fieldRef} {$op} {$paramKey}";
             $params[$paramKey] = $value;
         }
 
@@ -216,13 +247,18 @@ class ReportTemplate
                 $sortField = preg_replace('/[^a-zA-Z0-9_]/', '', $sort['field'] ?? '');
                 if ($sortField && in_array($sortField, $allowedColumns)) {
                     $dir = strtoupper($sort['direction'] ?? 'ASC') === 'DESC' ? 'DESC' : 'ASC';
-                    $sortParts[] = "`{$sortField}` {$dir}";
+                    $sortRef = isset($entityExpressions[$sortField]) ? $entityExpressions[$sortField]['expr'] : "`{$table}`.`{$sortField}`";
+                    if (isset($entityExpressions[$sortField])) {
+                        $joins[$entityExpressions[$sortField]['join']] = true;
+                    }
+                    $sortParts[] = "{$sortRef} {$dir}";
                 }
             }
             if ($sortParts) $orderBy = ' ORDER BY ' . implode(', ', $sortParts);
         }
 
-        $sql = "SELECT {$selectColumns} FROM `{$table}`{$where}{$orderBy} LIMIT 1000";
+        $joinClause = !empty($joins) ? ' ' . implode(' ', array_keys($joins)) : '';
+        $sql = "SELECT {$selectColumns} FROM `{$table}`{$joinClause}{$where}{$orderBy} LIMIT 1000";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute($params);
 
