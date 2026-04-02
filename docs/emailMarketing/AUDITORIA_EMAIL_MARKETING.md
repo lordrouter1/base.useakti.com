@@ -163,9 +163,9 @@ Baseado na tabela `customers`, as variáveis que devem estar disponíveis para s
 
 ### Prioridade 2 — Melhorias Futuras
 
-7. Preview do e-mail renderizado (iframe)
-8. Motor de envio via PHPMailer/SMTP
-9. Rastreamento de aberturas e cliques
+7. ~~Preview do e-mail renderizado (iframe)~~ ✅ Implementado
+8. ~~Motor de envio via PHPMailer/SMTP~~ ✅ Implementado
+9. Rastreamento de aberturas e cliques (tracking pixel + redirect)
 10. Agendamento via cron job
 
 ---
@@ -257,12 +257,17 @@ Cada variável é um botão clicável que insere o texto no cursor do Summernote
 
 | Arquivo | Alteração |
 |---|---|
-| `app/controllers/EmailMarketingController.php` | Novos métodos: `createTemplate()`, `editTemplate()`, `updateTemplate()`, `deleteTemplate()`, `getTemplateJson()`, `searchCustomers()` |
-| `app/models/EmailCampaign.php` | Novo método: `updateTemplate()` |
-| `app/views/email_marketing/templates.php` | Botões editar/excluir nos cards |
-| `app/views/email_marketing/template_form.php` | **NOVO** — Página dedicada com Summernote + variáveis |
-| `app/views/email_marketing/form.php` | Summernote, preenchimento por template, seleção de destinatários |
-| `app/config/routes.php` | Novas actions: createTemplate, editTemplate, updateTemplate, deleteTemplate, getTemplateJson, searchCustomers |
+| `app/controllers/EmailMarketingController.php` | Novos métodos: `createTemplate()`, `editTemplate()`, `updateTemplate()`, `deleteTemplate()`, `getTemplateJson()`, `searchCustomers()`, `previewTemplate()`, `previewCampaign()`, `sendCampaign()`, `sendTest()` |
+| `app/models/EmailCampaign.php` | Novo método: `updateTemplate()`, `getStats()` retorna array com chaves nomeadas |
+| `app/views/email_marketing/templates.php` | Botões editar/excluir/preview nos cards, modal preview com iframe |
+| `app/views/email_marketing/template_form.php` | **NOVO** — Página dedicada com Summernote + variáveis + preview |
+| `app/views/email_marketing/form.php` | Summernote, preenchimento por template, seleção de destinatários, preview, envio teste, envio campanha |
+| `app/views/email_marketing/index.php` | Preview, envio direto, correção `total_sent`/`total_opened`/`total_clicked` |
+| `app/config/routes.php` | Novas actions: createTemplate, editTemplate, updateTemplate, deleteTemplate, getTemplateJson, searchCustomers, previewTemplate, previewCampaign, sendCampaign, sendTest |
+| `app/config/mail.php` | **NOVO** — Configuração SMTP via env vars |
+| `app/services/EmailService.php` | **NOVO** — Serviço de envio de e-mails (PHPMailer), substituição de variáveis, logs |
+| `composer.json` | Adicionado `phpmailer/phpmailer ^6.9` |
+| `.env.example` | Variáveis de e-mail: MAIL_HOST, MAIL_PORT, MAIL_USERNAME, etc. |
 
 ### Novas Rotas
 
