@@ -7,6 +7,12 @@
 
     function el(id) { return document.getElementById(id); }
 
+    function escHtml(str) {
+        var d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
     /* ═══════════════════════════════════════
        Algoritmos de Validação
        ═══════════════════════════════════════ */
@@ -239,8 +245,8 @@
                         var span = document.createElement('span');
                         span.className = 'cst-field-msg invalid';
                         span.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Já existe: <strong>' +
-                            (data.customer.name || '') + '</strong> (' + (data.customer.code || '') + ') ' +
-                            '<a href="?page=customers&action=view&id=' + data.customer.id + '" target="_blank">Ver cadastro</a>';
+                            escHtml(data.customer.name || '') + '</strong> (' + escHtml(data.customer.code || '') + ') ' +
+                            '<a href="?page=customers&action=view&id=' + parseInt(data.customer.id, 10) + '" target="_blank">Ver cadastro</a>';
                         f.parentNode.appendChild(span);
                         f.classList.add('cst-field-invalid');
                         f.classList.remove('cst-field-valid');

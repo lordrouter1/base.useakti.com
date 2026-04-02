@@ -368,7 +368,7 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                             </div>
                             <div class="col-auto">
                                 <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-search"></i></button>
-                                <a href="?page=nfe_documents" class="btn btn-sm btn-outline-secondary"><i class="fas fa-times"></i></a>
+                                <a href="?page=nfe_documents" class="btn btn-sm btn-outline-secondary" aria-label="Limpar filtros"><i class="fas fa-times" aria-hidden="true"></i></a>
                             </div>
                         </form>
                     </div>
@@ -439,17 +439,17 @@ $totalRejCanc = ($statusCounts['rejeitada'] ?? 0) + ($statusCounts['cancelada'] 
                                     <td><small style="font-size:.75rem;"><?= date('d/m/Y H:i', strtotime($doc['created_at'])) ?></small></td>
                                     <td class="text-center">
                                         <div class="btn-group btn-group-sm">
-                                            <a href="?page=nfe_documents&action=detail&id=<?= $doc['id'] ?>" class="btn btn-outline-primary" title="Detalhe"><i class="fas fa-eye"></i></a>
+                                            <a href="?page=nfe_documents&action=detail&id=<?= $doc['id'] ?>" class="btn btn-outline-primary" title="Detalhe" aria-label="Ver detalhe"><i class="fas fa-eye" aria-hidden="true"></i></a>
                                             <?php if ($doc['xml_autorizado']): ?>
-                                            <a href="?page=nfe_documents&action=download&id=<?= $doc['id'] ?>&type=danfe" class="btn btn-danger" title="DANFE" target="_blank"><i class="fas fa-print"></i></a>
-                                            <a href="?page=nfe_documents&action=download&id=<?= $doc['id'] ?>&type=xml" class="btn btn-outline-secondary" title="XML"><i class="fas fa-file-code"></i></a>
+                                            <a href="?page=nfe_documents&action=download&id=<?= $doc['id'] ?>&type=danfe" class="btn btn-danger" title="DANFE" aria-label="Baixar DANFE" target="_blank"><i class="fas fa-print" aria-hidden="true"></i></a>
+                                            <a href="?page=nfe_documents&action=download&id=<?= $doc['id'] ?>&type=xml" class="btn btn-outline-secondary" title="XML" aria-label="Baixar XML"><i class="fas fa-file-code" aria-hidden="true"></i></a>
                                             <?php endif; ?>
                                             <?php if ($doc['status'] === 'autorizada'): ?>
-                                            <button type="button" class="btn btn-outline-dark btn-cancel-nfe" data-id="<?= $doc['id'] ?>" data-numero="<?= e($doc['numero']) ?>" title="Cancelar"><i class="fas fa-ban"></i></button>
-                                            <button type="button" class="btn btn-outline-info btn-correcao-nfe" data-id="<?= $doc['id'] ?>" data-numero="<?= e($doc['numero']) ?>" title="CC-e"><i class="fas fa-pen"></i></button>
+                                            <button type="button" class="btn btn-outline-dark btn-cancel-nfe" data-id="<?= $doc['id'] ?>" data-numero="<?= e($doc['numero']) ?>" title="Cancelar" aria-label="Cancelar NF-e"><i class="fas fa-ban" aria-hidden="true"></i></button>
+                                            <button type="button" class="btn btn-outline-info btn-correcao-nfe" data-id="<?= $doc['id'] ?>" data-numero="<?= e($doc['numero']) ?>" title="CC-e" aria-label="Carta de correção"><i class="fas fa-pen" aria-hidden="true"></i></button>
                                             <?php endif; ?>
                                             <?php if ($doc['status'] === 'rejeitada'): ?>
-                                            <button type="button" class="btn btn-outline-warning btn-retry-nfe" data-id="<?= $doc['id'] ?>" data-numero="<?= e($doc['numero']) ?>" title="Reenviar NF-e"><i class="fas fa-redo"></i></button>
+                                            <button type="button" class="btn btn-outline-warning btn-retry-nfe" data-id="<?= $doc['id'] ?>" data-numero="<?= e($doc['numero']) ?>" title="Reenviar NF-e" aria-label="Reenviar NF-e"><i class="fas fa-redo" aria-hidden="true"></i></button>
                                             <?php endif; ?>
                                         </div>
                                     </td>

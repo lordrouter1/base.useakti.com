@@ -28,6 +28,7 @@
 
 <div class="table-responsive bg-white rounded shadow-sm">
     <table class="table table-hover align-middle mb-0">
+        <caption class="visually-hidden">Lista de usuários</caption>
         <thead class="bg-light">
             <tr>
                 <th class="py-3 ps-4">Nome</th>
@@ -65,12 +66,12 @@
                 </td>
                 <td class="text-end pe-4">
                     <div class="btn-group">
-                        <a href="?page=users&action=edit&id=<?= (int)$user['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
-                            <i class="fas fa-edit"></i>
+                        <a href="?page=users&action=edit&id=<?= (int)$user['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar" aria-label="Editar">
+                            <i class="fas fa-edit" aria-hidden="true"></i>
                         </a>
                         <?php if($user['id'] != $_SESSION['user_id']): ?>
-                            <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-user" data-id="<?= (int)$user['id'] ?>" data-name="<?= eAttr($user['name']) ?>" title="Excluir">
-                                <i class="fas fa-trash"></i>
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-delete-user" data-id="<?= (int)$user['id'] ?>" data-name="<?= eAttr($user['name']) ?>" title="Excluir" aria-label="Excluir">
+                                <i class="fas fa-trash" aria-hidden="true"></i>
                             </button>
                         <?php endif; ?>
                     </div>

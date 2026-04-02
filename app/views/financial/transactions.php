@@ -134,7 +134,7 @@ $methodLabels = [
     </div>
     <div class="col-auto">
         <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-filter me-1"></i> Filtrar</button>
-        <a href="?page=financial&action=transactions" class="btn btn-sm btn-outline-secondary"><i class="fas fa-times"></i></a>
+        <a href="?page=financial&action=transactions" class="btn btn-sm btn-outline-secondary" aria-label="Limpar filtros"><i class="fas fa-times" aria-hidden="true"></i></a>
     </div>
 </form>
 
@@ -151,6 +151,7 @@ $methodLabels = [
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" id="transactionsTable">
+                <caption class="visually-hidden">Transações financeiras</caption>
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-3 py-3">Data</th>
@@ -205,8 +206,8 @@ $methodLabels = [
                             <form method="post" action="?page=financial&action=deleteTransaction" class="d-inline">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="transaction_id" value="<?= $t['id'] ?>">
-                                <button type="submit" class="btn btn-sm btn-outline-danger btn-delete-tx" title="Excluir">
-                                    <i class="fas fa-trash"></i>
+                                <button type="submit" class="btn btn-sm btn-outline-danger btn-delete-tx" title="Excluir" aria-label="Excluir transação">
+                                    <i class="fas fa-trash" aria-hidden="true"></i>
                                 </button>
                             </form>
                             <?php else: ?>

@@ -2215,14 +2215,17 @@
    ═══════════════════════════════════════════════════════════════ */
 [data-theme="dark"] input::placeholder {
     color: white;
-    opacity: 0.6;
+    opacity: 0.65;
 }
 [data-theme="dark"] td {
     color: white;
 }
 [data-theme="dark"] textarea::placeholder {
     color: white;
-    opacity: 0.6;
+    opacity: 0.65;
+}
+[data-theme="dark"] .form-text {
+    color: #a1b0c4;
 }
 [data-theme="dark"] .cst-view-toggle {
     background: var(--bg-secondary);

@@ -155,6 +155,7 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                 <!-- Tabela de Produtos -->
                 <div class="table-responsive bg-white rounded shadow-sm">
                     <table class="table table-hover align-middle mb-0" id="productsTable">
+                        <caption class="visually-hidden">Lista de produtos</caption>
                         <thead class="bg-light">
                             <tr>
                                 <th class="py-3 ps-4" style="width:50px;">Imagem</th>
@@ -570,7 +571,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var html = '';
                 data.items.forEach(function(p) {
                     var imgCell = p.main_image_path
-                        ? '<img src="' + escHtml(p.main_image_path) + '" class="w-100 h-100 object-fit-cover">'
+                        ? '<img src="' + escHtml(p.main_image_path) + '" class="w-100 h-100 object-fit-cover" loading="lazy" alt="' + escHtml(p.name) + '">'
                         : '<i class="fas fa-image text-secondary"></i>';
 
                     var catCell = '<span class="badge bg-light text-dark border">' + (p.category_name ? escHtml(p.category_name) : 'Geral') + '</span>';

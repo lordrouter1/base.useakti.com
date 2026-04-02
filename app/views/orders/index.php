@@ -23,6 +23,7 @@
 
 <div class="table-responsive bg-white rounded shadow-sm">
     <table class="table table-hover align-middle mb-0">
+        <caption class="visually-hidden">Lista de pedidos</caption>
         <thead class="bg-light">
             <tr>
                 <th class="py-3 ps-4">Nº Pedido</th>
@@ -130,14 +131,14 @@
                 </td>
                 <td class="text-end pe-4">
                     <div class="btn-group">
-                        <a href="?page=pipeline&action=detail&id=<?= $order['id'] ?>" class="btn btn-sm btn-outline-info" title="Ver Pedido">
-                            <i class="fas fa-eye"></i>
+                        <a href="?page=pipeline&action=detail&id=<?= $order['id'] ?>" class="btn btn-sm btn-outline-info" title="Ver Pedido" aria-label="Ver Pedido">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
                         </a>
-                        <a href="?page=orders&action=edit&id=<?= (int)$order['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
-                            <i class="fas fa-edit"></i>
+                        <a href="?page=orders&action=edit&id=<?= (int)$order['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar" aria-label="Editar">
+                            <i class="fas fa-edit" aria-hidden="true"></i>
                         </a>
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-order" data-id="<?= (int)$order['id'] ?>" title="Excluir">
-                            <i class="fas fa-trash"></i>
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-order" data-id="<?= (int)$order['id'] ?>" title="Excluir" aria-label="Excluir">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
                         </button>
                     </div>
                 </td>

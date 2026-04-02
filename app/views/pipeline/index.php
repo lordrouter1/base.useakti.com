@@ -1,8 +1,8 @@
-<div class="container-fluid py-3">
-    <!-- ═══ Page Header — Clean, Linear-style ═══ -->
+﻿<div id="pipelineApp" class="container-fluid py-3" data-status="<?= e($_GET['status'] ?? '') ?>" data-delayed-count="<?= isset($delayedOrders) ? count($delayedOrders) : 0 ?>">
+    <!-- â•â•â• Page Header â€” Clean, Linear-style â•â•â• -->
     <div class="pipeline-page-header">
         <div>
-            <h1><i class="fas fa-stream me-2"></i>Linha de Produção</h1>
+            <h1><i class="fas fa-stream me-2"></i>Linha de ProduÃ§Ã£o</h1>
             <small class="text-muted" style="font-size:0.72rem;"><i class="fas fa-calendar-alt me-1"></i><?= date('d/m/Y H:i') ?></small>
         </div>
         <div class="pipeline-header-actions">
@@ -12,10 +12,10 @@
             </div>
             <select class="form-select form-select-sm" id="pipelinePriorityFilter" style="max-width:140px;font-size:0.78rem;">
                 <option value="">Prioridade</option>
-                <option value="urgente">🔴 Urgente</option>
-                <option value="alta">🟡 Alta</option>
-                <option value="normal">🔵 Normal</option>
-                <option value="baixa">⚪ Baixa</option>
+                <option value="urgente">ðŸ”´ Urgente</option>
+                <option value="alta">ðŸŸ¡ Alta</option>
+                <option value="normal">ðŸ”µ Normal</option>
+                <option value="baixa">âšª Baixa</option>
             </select>
             <?php if(!empty($delayedOrders)): ?>
             <button class="btn btn-sm btn-danger btn-delayed-alert" data-bs-toggle="modal" data-bs-target="#delayedModal">
@@ -32,18 +32,18 @@
     </div>
 
     <?php if(!empty($delayedOrders)): ?>
-    <!-- ═══ Delayed Orders Alert Banner ═══ -->
+    <!-- â•â•â• Delayed Orders Alert Banner â•â•â• -->
     <div class="pipeline-delayed-banner">
         <i class="fas fa-exclamation-triangle"></i>
         <div>
             <strong><?= count($delayedOrders) ?> pedido<?= count($delayedOrders) > 1 ? 's' : '' ?></strong> 
             ultrapassaram a meta de tempo. 
-            <a href="#" data-bs-toggle="modal" data-bs-target="#delayedModal" class="text-danger fw-bold text-decoration-underline">Ver detalhes →</a>
+            <a href="#" data-bs-toggle="modal" data-bs-target="#delayedModal" class="text-danger fw-bold text-decoration-underline">Ver detalhes â†’</a>
         </div>
     </div>
     <?php endif; ?>
 
-    <!-- ═══ KPI Metric Widgets ═══ -->
+    <!-- â•â•â• KPI Metric Widgets â•â•â• -->
     <div class="pipeline-metrics">
         <div class="pipeline-metric-card metric-active">
             <div class="pipeline-metric-icon icon-active">
@@ -62,7 +62,7 @@
             <div class="pipeline-metric-data">
                 <div class="pipeline-metric-label">Atrasados</div>
                 <div class="pipeline-metric-value <?= $stats['total_delayed'] > 0 ? 'text-danger' : '' ?>"><?= $stats['total_delayed'] ?></div>
-                <div class="pipeline-metric-sub"><?= $stats['total_delayed'] > 0 ? 'ação necessária' : 'tudo em dia ✓' ?></div>
+                <div class="pipeline-metric-sub"><?= $stats['total_delayed'] > 0 ? 'aÃ§Ã£o necessÃ¡ria' : 'tudo em dia âœ“' ?></div>
             </div>
         </div>
         <div class="pipeline-metric-card metric-completed">
@@ -70,9 +70,9 @@
                 <i class="fas fa-check-circle"></i>
             </div>
             <div class="pipeline-metric-data">
-                <div class="pipeline-metric-label">Concluídos</div>
+                <div class="pipeline-metric-label">ConcluÃ­dos</div>
                 <div class="pipeline-metric-value"><?= $stats['completed_month'] ?></div>
-                <div class="pipeline-metric-sub">neste mês</div>
+                <div class="pipeline-metric-sub">neste mÃªs</div>
             </div>
         </div>
         <div class="pipeline-metric-card metric-value">
@@ -87,9 +87,9 @@
         </div>
     </div>
 
-    <!-- ═══ Pipeline Kanban Board ═══ -->
+    <!-- â•â•â• Pipeline Kanban Board â•â•â• -->
     <?php
-    // Filtra etapas por permissão do grupo do usuário
+    // Filtra etapas por permissÃ£o do grupo do usuÃ¡rio
     $isAdminPipeline = (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin');
     $allowedStages = [];
     if (!$isAdminPipeline && isset($_SESSION['user_id'])) {
@@ -140,7 +140,7 @@
                 }
             ?>
             <div class="pipeline-column" data-stage-key="<?= $stageKey ?>">
-                <!-- Cabeçalho da Coluna -->
+                <!-- CabeÃ§alho da Coluna -->
                 <div class="pipeline-column-header rounded-top p-2 px-3 d-flex align-items-center justify-content-between" 
                      style="background: <?= $stageInfo['color'] ?>; color: #fff;">
                     <div class="d-flex align-items-center" style="min-width:0;">
@@ -270,7 +270,7 @@
                                     </span>
                                     <?php endif; ?>
                                     <?php
-                                        // ═══ Badge NF-e — Integração Pipeline × Fiscal ═══
+                                        // â•â•â• Badge NF-e â€” IntegraÃ§Ã£o Pipeline Ã— Fiscal â•â•â•
                                         $nfeStatus = $order['nfe_status'] ?? $order['nf_status'] ?? null;
                                         if ($nfeStatus):
                                             $_nfeBadge = [
@@ -339,14 +339,14 @@
                             <th class="text-center" style="font-size:0.78rem;">Meta</th>
                             <th class="text-center" style="font-size:0.78rem;">Tempo Real</th>
                             <th class="text-center" style="font-size:0.78rem;">Atraso</th>
-                            <th class="text-end pe-3" style="font-size:0.78rem;">Ação</th>
+                            <th class="text-end pe-3" style="font-size:0.78rem;">AÃ§Ã£o</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($delayedOrders as $dOrder): ?>
                         <tr>
                             <td class="ps-3 fw-bold" style="font-size:0.82rem;">#<?= str_pad($dOrder['id'], 4, '0', STR_PAD_LEFT) ?></td>
-                            <td style="font-size:0.82rem;"><?= e($dOrder['customer_name'] ?? '—') ?></td>
+                            <td style="font-size:0.82rem;"><?= e($dOrder['customer_name'] ?? 'â€”') ?></td>
                             <td>
                                 <?php $dStage = $dOrder['pipeline_stage'] ?? 'contato'; ?>
                                 <span class="badge" style="background:<?= $stages[$dStage]['color'] ?? '#999' ?>;font-size:0.7rem;">
@@ -377,466 +377,4 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    <?php if(isset($_GET['status'])): ?>
-    if (window.history.replaceState) { const url = new URL(window.location); url.searchParams.delete('status'); window.history.replaceState({}, '', url); }
-    <?php endif; ?>
-    <?php if(isset($_GET['status']) && $_GET['status'] == 'moved'): ?>
-    Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true })
-        .fire({ icon: 'success', title: 'Pedido movido com sucesso!' });
-    <?php endif; ?>
-
-    <?php if(isset($_GET['status']) && $_GET['status'] == 'success'): ?>
-    Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true })
-        .fire({ icon: 'success', title: 'Operação realizada!' });
-    <?php endif; ?>
-
-    // ── Alerta automático de atrasados ──
-    <?php if(count($delayedOrders) > 0): ?>
-    Swal.fire({
-        title: '<strong class="fs-3">Atenção!</strong>',
-        toast: true,
-        position: 'bottom-end',
-        html: '<small><b><?= count($delayedOrders) ?></b> pedido(s) estão <strong class="text-light">atrasados</strong>!</small>',
-        showCancelButton: false,
-        confirmButtonText: '<span class="text-red"><i class="fas fa-eye me-1"></i> Ver Detalhes</span>',
-        confirmButtonColor: '#ffffff',
-        background: '#ef4444',
-        color:'#ffffff',
-        timer: 5000,
-        timerProgressBar: true,
-        customClass:{ popup: 'shadow' }
-    }).then(function(result) {
-        if (result.isConfirmed) {
-            var modal = new bootstrap.Modal(document.getElementById('delayedModal'));
-            modal.show();
-        }
-    });
-    <?php endif; ?>
-
-    // ══════════════════════════════════════════
-    // ══ Search & Filter (client-side)       ══
-    // ══════════════════════════════════════════
-    var searchInput = document.getElementById('pipelineSearch');
-    var priorityFilter = document.getElementById('pipelinePriorityFilter');
-
-    function applyFilters() {
-        var query = (searchInput ? searchInput.value : '').toLowerCase().trim();
-        var prio = priorityFilter ? priorityFilter.value : '';
-
-        document.querySelectorAll('.pipeline-card').forEach(function(card) {
-            var orderId = (card.dataset.orderId || '').toLowerCase();
-            var customer = (card.dataset.customer || '').toLowerCase();
-            var cardPrio = card.dataset.priority || '';
-
-            var matchSearch = !query || orderId.indexOf(query) !== -1 || customer.indexOf(query) !== -1;
-            var matchPrio = !prio || cardPrio === prio;
-
-            card.style.display = (matchSearch && matchPrio) ? '' : 'none';
-        });
-
-        // Update column counts after filter
-        document.querySelectorAll('.pipeline-column').forEach(function(col) {
-            var badge = col.querySelector('.pipeline-column-header .badge.bg-white');
-            var cards = col.querySelectorAll('.pipeline-card:not([style*="display: none"])');
-            if (badge) badge.textContent = cards.length;
-
-            // Show/hide empty state
-            var emptyState = col.querySelector('.pipeline-empty-state');
-            var allCards = col.querySelectorAll('.pipeline-card');
-            var visibleCards = col.querySelectorAll('.pipeline-card:not([style*="display: none"])');
-            if (visibleCards.length === 0 && allCards.length > 0) {
-                if (!emptyState) {
-                    emptyState = document.createElement('div');
-                    emptyState.className = 'pipeline-empty-state';
-                    emptyState.innerHTML = '<i class="fas fa-filter"></i>Nenhum resultado';
-                    col.querySelector('.pipeline-dropzone').appendChild(emptyState);
-                } else {
-                    emptyState.style.display = '';
-                }
-            } else if (emptyState && visibleCards.length > 0) {
-                emptyState.style.display = 'none';
-            }
-        });
-    }
-
-    if (searchInput) {
-        var searchTimeout;
-        searchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(applyFilters, 200);
-        });
-    }
-    if (priorityFilter) {
-        priorityFilter.addEventListener('change', applyFilters);
-    }
-
-    // ── Pipeline Scroll Navigation ──
-    (function initPipelineScroll() {
-        const wrapper = document.getElementById('pipelineBoardWrapper');
-        const board = document.getElementById('pipelineBoard');
-        const navLeft = document.getElementById('pipelineNavLeft');
-        const navRight = document.getElementById('pipelineNavRight');
-        if (!wrapper || !board) return;
-
-        function checkScroll() {
-            const hasScroll = wrapper.scrollWidth > wrapper.clientWidth + 2;
-            wrapper.classList.toggle('has-scroll', hasScroll);
-            if (navLeft) navLeft.style.opacity = wrapper.scrollLeft > 10 ? '1' : '0.3';
-            if (navRight) navRight.style.opacity = (wrapper.scrollLeft + wrapper.clientWidth < wrapper.scrollWidth - 10) ? '1' : '0.3';
-        }
-
-        if (navLeft) navLeft.addEventListener('click', () => { wrapper.scrollBy({ left: -250, behavior: 'smooth' }); });
-        if (navRight) navRight.addEventListener('click', () => { wrapper.scrollBy({ left: 250, behavior: 'smooth' }); });
-
-        wrapper.addEventListener('scroll', checkScroll);
-        window.addEventListener('resize', checkScroll);
-        checkScroll();
-
-        // Minimap click-to-scroll
-        document.querySelectorAll('.pipeline-minimap-item').forEach(item => {
-            item.addEventListener('click', function() {
-                const targetStage = this.dataset.target;
-                const col = board.querySelector(`.pipeline-column[data-stage-key="${targetStage}"]`);
-                if (col) {
-                    col.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                }
-            });
-        });
-    })();
-
-    // ── Drag-and-Drop com SortableJS ──
-    // Zonas de estoque: pré-produção vs produção+
-    const preProductionStages = ['contato', 'orcamento', 'venda'];
-    const productionStages = ['producao', 'preparacao', 'envio', 'financeiro', 'concluido'];
-
-    function needsWarehouseSelection(fromStage, toStage) {
-        return preProductionStages.includes(fromStage) && productionStages.includes(toStage);
-    }
-
-    function needsStockReturn(fromStage, toStage) {
-        return productionStages.includes(fromStage) && preProductionStages.includes(toStage);
-    }
-
-    // ── CSRF token para fetch (não é coberto pelo $.ajaxSetup do jQuery) ──
-    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-    const csrfTokenValue = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
-
-    function performMoveAjax(orderId, newStage, warehouseId, evtItem, evtFrom) {
-        const formData = new FormData();
-        formData.append('order_id', orderId);
-        formData.append('stage', newStage);
-        formData.append('csrf_token', csrfTokenValue);
-        if (warehouseId) formData.append('warehouse_id', warehouseId);
-
-        return fetch('?page=pipeline&action=moveAjax', {
-            method: 'POST',
-            body: formData
-        })
-        .then(r => {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            return r.json();
-        })
-        .then(data => {
-            if (data.success) {
-                evtItem.classList.add('pipeline-card-moved');
-                setTimeout(() => evtItem.classList.remove('pipeline-card-moved'), 1500);
-                updateColumnCounts();
-                if (data.stock_notes) {
-                    Swal.fire({ icon: 'info', title: 'Estoque atualizado', text: data.stock_notes, timer: 3000, showConfirmButton: false });
-                }
-            } else if (data.needs_warehouse) {
-                // Precisa selecionar armazém — mostrar modal
-                showWarehouseSelectionModal(orderId, newStage, evtItem, evtFrom);
-            } else if (data.blocked_by_paid) {
-                // Bloqueado por parcelas pagas — alerta específico
-                Swal.fire({
-                    icon: 'error',
-                    title: '<i class="fas fa-lock me-2"></i>Movimentação bloqueada',
-                    html: '<p>' + (data.message || 'Existem parcelas já pagas.') + '</p>'
-                        + '<p class="small text-muted mt-2">Estorne todos os pagamentos primeiro no módulo <strong>Financeiro</strong>.</p>',
-                    confirmButtonText: '<i class="fas fa-external-link-alt me-1"></i> Ir para Financeiro',
-                    showCancelButton: true,
-                    cancelButtonText: 'Fechar',
-                    confirmButtonColor: '#e74c3c'
-                }).then(function(r) {
-                    if (r.isConfirmed) {
-                        window.open('?page=financial&action=payments', '_blank');
-                    }
-                });
-                revertCard(evtItem, evtFrom);
-            } else {
-                Swal.fire({ icon: 'error', title: 'Erro', text: data.message || 'Não foi possível mover o pedido.', timer: 3000 });
-                revertCard(evtItem, evtFrom);
-            }
-        })
-        .catch((err) => {
-            console.error('moveAjax error:', err);
-            Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro de conexão ao mover pedido. ' + (err.message || ''), timer: 4000 });
-            revertCard(evtItem, evtFrom);
-        });
-    }
-
-    function revertCard(item, fromZone) {
-        fromZone.appendChild(item);
-        updateColumnCounts();
-        refreshEmptyStates();
-    }
-
-    function refreshEmptyStates() {
-        document.querySelectorAll('.pipeline-dropzone').forEach(function(dz) {
-            var cards = dz.querySelectorAll('.pipeline-card');
-            var emptyMsg = dz.querySelector('.pipeline-empty-state');
-            if (cards.length === 0) {
-                if (!emptyMsg) {
-                    emptyMsg = document.createElement('div');
-                    emptyMsg.className = 'pipeline-empty-state text-center text-muted py-4 small';
-                    emptyMsg.innerHTML = '<i class="fas fa-inbox d-block mb-2" style="font-size: 1.5rem;"></i>Nenhum pedido';
-                    dz.appendChild(emptyMsg);
-                } else {
-                    emptyMsg.style.display = '';
-                }
-            } else if (emptyMsg) {
-                emptyMsg.style.display = 'none';
-            }
-        });
-    }
-
-    function showWarehouseSelectionModal(orderId, newStage, evtItem, evtFrom) {
-        // Buscar dados de estoque do pedido
-        Swal.fire({
-            title: '<i class="fas fa-warehouse me-2"></i>Selecionar Armazém',
-            html: '<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><br><small class="text-muted mt-2 d-block">Verificando estoque...</small></div>',
-            showConfirmButton: false,
-            showCancelButton: false,
-            allowOutsideClick: false,
-            didOpen: () => {
-                fetch(`?page=pipeline&action=checkOrderStock&order_id=${orderId}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (!data.success) {
-                            Swal.fire({ icon: 'error', title: 'Erro', text: data.message || 'Erro ao verificar estoque.' });
-                            revertCard(evtItem, evtFrom);
-                            return;
-                        }
-
-                        let warehouseOptions = '';
-                        if (data.warehouses && data.warehouses.length > 0) {
-                            data.warehouses.forEach(w => {
-                                const isDefault = (w.id == data.default_warehouse_id);
-                                const selected = isDefault ? 'selected' : '';
-                                const badge = isDefault ? ' ★ Padrão' : '';
-                                warehouseOptions += `<option value="${w.id}" ${selected}>${w.name}${badge}</option>`;
-                            });
-                        }
-
-                        let hasStockItems = false;
-                        let itemsHtml = '';
-                        if (data.items) {
-                            data.items.forEach(item => {
-                                if (item.use_stock_control) {
-                                    hasStockItems = true;
-                                    const icon = item.sufficient ? '<i class="fas fa-check-circle text-success"></i>' : '<i class="fas fa-exclamation-triangle text-danger"></i>';
-                                    const label = item.combination_label ? `${item.product_name} — ${item.combination_label}` : item.product_name;
-                                    const cls = item.sufficient ? 'text-success' : 'text-danger fw-bold';
-                                    itemsHtml += `<tr><td class="small">${icon} ${label}</td><td class="text-center small">${item.quantity}</td><td class="text-center small ${cls}">${item.stock_available}</td></tr>`;
-                                }
-                            });
-                        }
-
-                        let html = `<p class="mb-2 small text-muted">O pedido está saindo da área comercial para produção. O estoque será deduzido automaticamente.</p>`;
-                        if (warehouseOptions) {
-                            html += `<div class="mb-3 text-start"><label class="form-label small fw-bold"><i class="fas fa-warehouse me-1"></i>Armazém:</label>
-                                <select id="swalWarehouseSelect" class="form-select form-select-sm">${warehouseOptions}</select></div>`;
-                        }
-                        if (hasStockItems) {
-                            html += `<table class="table table-sm table-bordered mb-1" style="font-size:0.8rem;">
-                                <thead class="table-light"><tr><th>Produto</th><th class="text-center">Necessário</th><th class="text-center">Disponível</th></tr></thead>
-                                <tbody id="swalStockTableBody">${itemsHtml}</tbody></table>`;
-                            if (!data.all_from_stock) {
-                                html += `<div class="alert alert-warning py-1 small mb-0"><i class="fas fa-exclamation-triangle me-1"></i><small>Alguns itens não possuem estoque suficiente.</small></div>`;
-                            }
-                        } else {
-                            html += `<div class="alert alert-light py-1 small mb-0"><i class="fas fa-info-circle me-1"></i><small>Nenhum item com controle de estoque ativo.</small></div>`;
-                        }
-
-                        Swal.fire({
-                            title: '<i class="fas fa-warehouse me-2"></i>Selecionar Armazém',
-                            html: html,
-                            showCancelButton: true,
-                            confirmButtonText: '<i class="fas fa-check me-1"></i> Confirmar',
-                            cancelButtonText: 'Cancelar',
-                            confirmButtonColor: '#27ae60',
-                            width: hasStockItems ? '500px' : undefined,
-                            preConfirm: () => {
-                                const whSelect = document.getElementById('swalWarehouseSelect');
-                                return whSelect ? whSelect.value : null;
-                            }
-                        }).then((result) => {
-                            if (result.isConfirmed && result.value) {
-                                performMoveAjax(orderId, newStage, result.value, evtItem, evtFrom);
-                            } else {
-                                // Cancelou — reverter card
-                                revertCard(evtItem, evtFrom);
-                            }
-                        });
-
-                        // Atualizar estoque ao mudar armazém no select
-                        setTimeout(() => {
-                            const whSelect = document.getElementById('swalWarehouseSelect');
-                            if (whSelect) {
-                                whSelect.addEventListener('change', function() {
-                                    fetch(`?page=pipeline&action=checkOrderStock&order_id=${orderId}&warehouse_id=${this.value}`)
-                                        .then(r => r.json())
-                                        .then(d => {
-                                            if (d.success && d.items) {
-                                                const tbody = document.getElementById('swalStockTableBody');
-                                                if (tbody) {
-                                                    let rows = '';
-                                                    d.items.forEach(item => {
-                                                        if (item.use_stock_control) {
-                                                            const ic = item.sufficient ? '<i class="fas fa-check-circle text-success"></i>' : '<i class="fas fa-exclamation-triangle text-danger"></i>';
-                                                            const lb = item.combination_label ? `${item.product_name} — ${item.combination_label}` : item.product_name;
-                                                            const cl = item.sufficient ? 'text-success' : 'text-danger fw-bold';
-                                                            rows += `<tr><td class="small">${ic} ${lb}</td><td class="text-center small">${item.quantity}</td><td class="text-center small ${cl}">${item.stock_available}</td></tr>`;
-                                                        }
-                                                    });
-                                                    tbody.innerHTML = rows;
-                                                }
-                                            }
-                                        });
-                                });
-                            }
-                        }, 100);
-                    })
-                    .catch(() => {
-                        Swal.fire({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar o estoque.' });
-                        revertCard(evtItem, evtFrom);
-                    });
-            }
-        });
-    }
-
-    (function initDragAndDrop() {
-        const dropzones = document.querySelectorAll('.pipeline-dropzone');
-        
-        dropzones.forEach(zone => {
-            new Sortable(zone, {
-                group: 'pipeline-orders',
-                animation: 200,
-                ghostClass: 'pipeline-card-ghost',
-                chosenClass: 'pipeline-card-chosen',
-                dragClass: 'pipeline-card-dragging',
-                handle: '.card-body',
-                filter: '.pipeline-empty-state, a',
-                preventOnFilter: false,
-                delay: 120,
-                delayOnTouchOnly: true,
-                fallbackOnBody: true,
-                swapThreshold: 0.65,
-                onStart: function(evt) {
-                    document.body.classList.add('pipeline-dragging');
-                    document.querySelectorAll('.pipeline-empty-state').forEach(el => el.style.display = 'none');
-                },
-                onEnd: function(evt) {
-                    document.body.classList.remove('pipeline-dragging');
-                    // Atualiza estados vazios de todas as colunas
-                    refreshEmptyStates();
-
-                    const orderId = evt.item.dataset.orderId;
-                    const newStage = evt.to.dataset.stage;
-                    const oldStage = evt.from.dataset.stage;
-
-                    if (newStage === oldStage) return;
-
-                    updateColumnCounts();
-
-                    // Se precisa de armazém, mostrar modal antes
-                    if (needsWarehouseSelection(oldStage, newStage)) {
-                        showWarehouseSelectionModal(orderId, newStage, evt.item, evt.from);
-                    } else if (needsStockReturn(oldStage, newStage)) {
-                        // Produção+ → Pré-produção: confirmar devolução de estoque
-                        Swal.fire({
-                            title: '<i class="fas fa-undo me-2 text-warning"></i>Devolver ao estoque?',
-                            html: '<p>Ao retornar o pedido para a área comercial, os produtos deduzidos do estoque serão <strong>devolvidos automaticamente</strong> ao armazém.</p>',
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonText: '<i class="fas fa-check me-1"></i> Confirmar',
-                            cancelButtonText: 'Cancelar',
-                            confirmButtonColor: '#e67e22'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                performMoveAjax(orderId, newStage, null, evt.item, evt.from);
-                            } else {
-                                revertCard(evt.item, evt.from);
-                            }
-                        });
-                    } else {
-                        performMoveAjax(orderId, newStage, null, evt.item, evt.from);
-                    }
-                }
-            });
-        });
-    })();
-
-    function updateColumnCounts() {
-        document.querySelectorAll('.pipeline-column').forEach(function(col) {
-            var badge = col.querySelector('.pipeline-column-header .badge.bg-white');
-            var cards = col.querySelector('.pipeline-dropzone').querySelectorAll('.pipeline-card');
-            if (badge) badge.textContent = cards.length;
-
-            // Update delayed count badge
-            var delayedBadge = col.querySelector('.pipeline-column-header .badge.bg-danger');
-            // We can't recompute delay server-side, so just update total count
-        });
-
-        // Recalculate auto-expand after counts change
-        autoExpandColumns();
-    }
-
-    // ── Auto-expand cards in columns with ≤ 4 orders ──
-    var CARDS_THRESHOLD_COLLAPSE = 4;
-
-    function autoExpandColumns() {
-        document.querySelectorAll('.pipeline-column').forEach(function(col) {
-            var allCards = col.querySelectorAll('.pipeline-card');
-            var visibleCards = col.querySelectorAll('.pipeline-card:not([style*="display: none"])');
-            var countForThreshold = visibleCards.length > 0 ? visibleCards.length : allCards.length;
-            var shouldExpand = (countForThreshold <= CARDS_THRESHOLD_COLLAPSE);
-
-            allCards.forEach(function(card) {
-                // Skip manually toggled cards
-                if (card.dataset.manualToggle) return;
-
-                if (shouldExpand) {
-                    card.classList.add('pipeline-card-expanded');
-                } else {
-                    card.classList.remove('pipeline-card-expanded');
-                }
-            });
-        });
-    }
-
-    // Run on load
-    autoExpandColumns();
-
-    // ── Card collapse/expand toggle ──
-    document.querySelectorAll('.pipeline-card-toggle').forEach(function(header) {
-        header.addEventListener('click', function(e) {
-            e.stopPropagation();
-            var card = this.closest('.pipeline-card');
-            card.classList.toggle('pipeline-card-expanded');
-            // Mark as manually toggled so autoExpand won't override
-            card.dataset.manualToggle = '1';
-        });
-    });
-
-    // ── Card hover preview (tooltip with value) ──
-    document.querySelectorAll('.pipeline-card').forEach(function(card) {
-        card.addEventListener('mouseenter', function() {
-            this.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
-        });
-    });
-});
-</script>
+<script src="<?= asset('assets/js/modules/pipeline.js') ?>"></script>

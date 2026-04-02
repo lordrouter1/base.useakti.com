@@ -74,8 +74,8 @@
                                 <i class="fas fa-camera me-1"></i> Alterar
                             </div>
                         </div>
-                        <input type="file" id="photo" name="photo" class="d-none" accept="image/jpeg,image/png,image/gif">
-                        <small class="text-muted d-block mt-2" style="font-size:.7rem;">JPG, PNG ou GIF (máx 5MB)</small>
+                        <input type="file" id="photo" name="photo" class="d-none" accept="image/jpeg,image/png,image/gif" aria-describedby="photo_help">
+                        <small class="text-muted d-block mt-2" id="photo_help" style="font-size:.7rem;">JPG, PNG ou GIF (máx 5MB)</small>
 
                         <div class="mt-3">
                             <label class="form-label fw-bold" style="font-size:.78rem;">Status</label>
@@ -227,10 +227,10 @@
                     <div class="col-md-3">
                         <label for="zipcode" class="form-label">CEP</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" id="zipcode" name="zipcode" placeholder="00000-000">
+                            <input type="text" class="form-control" id="zipcode" name="zipcode" placeholder="00000-000" aria-describedby="zipcode_help">
                             <span class="input-group-text" id="cep-spinner" style="display:none;"><i class="fas fa-spinner fa-spin"></i></span>
                         </div>
-                        <small class="text-muted" style="font-size:.68rem;">Digite o CEP para preencher automaticamente</small>
+                        <small class="text-muted" id="zipcode_help" style="font-size:.68rem;">Digite o CEP para preencher automaticamente</small>
                     </div>
                     <div class="col-md-7">
                         <label for="address_street" class="form-label">Logradouro</label>
@@ -350,9 +350,9 @@
                         <div class="position-relative">
                             <div class="cst-tag-input-wrapper" id="tags-wrapper">
                             </div>
-                            <input type="hidden" id="tags" name="tags" value="">
+                            <input type="hidden" id="tags" name="tags" value="" aria-describedby="tags_help">
                         </div>
-                        <small class="text-muted" style="font-size:.68rem;">Digite e pressione Enter para adicionar. Ex: VIP, Atacado, Indústria</small>
+                        <small class="text-muted" id="tags_help" style="font-size:.68rem;">Digite e pressione Enter para adicionar. Ex: VIP, Atacado, Indústria</small>
                     </div>
                     <div class="col-12">
                         <label for="observations" class="form-label">Observações</label>

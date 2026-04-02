@@ -220,7 +220,8 @@ if (!in_array($activeSectorId, $validSectorIds) && !empty($sectorList)) {
                                         <img src="<?= eAttr($productImg) ?>"
                                              alt="<?= eAttr($item['product_name']) ?>"
                                              class="rounded border"
-                                             style="width:56px;height:56px;object-fit:cover;">
+                                             style="width:56px;height:56px;object-fit:cover;"
+                                             loading="lazy">
                                     </div>
                                     <?php else: ?>
                                     <div class="board-item-thumb flex-shrink-0">

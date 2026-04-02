@@ -457,6 +457,68 @@
     position: relative !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — Walkthrough / Onboarding Tour
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .wt-popover {
+    background: var(--bg-card, #16213E);
+    box-shadow:
+        0 30px 70px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .wt-popover-body {
+    color: var(--text-muted, #94a3b8);
+}
+
+[data-theme="dark"] .wt-popover-body strong {
+    color: var(--text-main, #E8E8E8);
+}
+
+[data-theme="dark"] .wt-popover-footer {
+    border-top-color: var(--border-color, #2C3E50);
+}
+
+[data-theme="dark"] .wt-btn-secondary {
+    background: var(--bg-secondary, #1A1A2E);
+    color: var(--text-muted, #94a3b8);
+}
+
+[data-theme="dark"] .wt-btn-secondary:hover {
+    background: var(--bg-tertiary, #2C3E50);
+    color: var(--text-main, #E8E8E8);
+}
+
+[data-theme="dark"] .wt-btn-skip {
+    color: var(--text-muted, #94a3b8);
+}
+
+[data-theme="dark"] .wt-btn-skip:hover {
+    color: var(--text-main, #E8E8E8);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .wt-progress-dot {
+    background: var(--border-color, #2C3E50);
+}
+
+[data-theme="dark"] .wt-progress-ellipsis {
+    color: var(--text-muted, #94a3b8);
+}
+
+[data-theme="dark"] .wt-modal {
+    background: var(--bg-card, #16213E);
+    box-shadow: 0 35px 90px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .wt-modal-body {
+    color: var(--text-muted, #94a3b8);
+}
+
+[data-theme="dark"] .wt-modal-overlay {
+    background: rgba(0, 0, 0, 0.88);
+}
+
 /* ── Responsivo ── */
 @media (max-width: 768px) {
     .wt-popover {

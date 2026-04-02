@@ -133,6 +133,7 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0 align-middle">
+                <caption class="visually-hidden">Pedidos com atraso</caption>
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-3 small fw-bold">Pedido</th>

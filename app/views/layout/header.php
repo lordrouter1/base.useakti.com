@@ -98,11 +98,23 @@
     <link rel="stylesheet" href="<?= asset($__moduleCssMap[$__currentPageCss]) ?>">
     <?php endif; ?>
     <!-- Dark Mode: apply theme BEFORE render to prevent FOUC -->
+    <style>
+    /* Critical CSS — inline above-the-fold styles to prevent FOUC */
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg-body,#f1f5f9);color:var(--text-main,#1e293b);margin:0}
+    .app-navbar{height:var(--navbar-height,64px);background:var(--primary-color,#1e293b);position:sticky;top:0;z-index:1030;display:flex;align-items:center}
+    .app-sidebar{width:260px;background:var(--bg-card,#fff);border-right:1px solid var(--border-color,#e2e8f0);position:fixed;top:var(--navbar-height,64px);bottom:0;overflow-y:auto;z-index:1020}
+    .app-content{margin-left:260px;padding:1.5rem;min-height:calc(100vh - var(--navbar-height,64px))}
+    @media(max-width:991.98px){.app-sidebar{transform:translateX(-100%)}.app-content{margin-left:0}}
+    [data-theme="dark"] body,.dark body{background:#1A1A2E;color:#E8E8E8}
+    [data-theme="dark"] .app-sidebar{background:#16213E;border-color:#2C3E50}
+    </style>
     <script src="<?= asset('assets/js/components/theme-toggle.js') ?>"></script>
     <script src="<?= asset('assets/js/utils/fetch-timeout.js') ?>"></script>
     <?= \Akti\Core\ModuleBootloader::injectJS() ?>
 </head>
 <body>
+<!-- Skip to main content link for keyboard navigation -->
+<a href="#main-content" class="visually-hidden-focusable position-fixed top-0 start-0 p-3 bg-primary text-white z-3">Ir para o conteúdo principal</a>
 
 <?php
     $currentPage = isset($_GET['page']) ? $_GET['page'] : 'home';

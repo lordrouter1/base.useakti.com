@@ -21,8 +21,8 @@
                         
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Senha</label>
-                            <input type="password" class="form-control" name="password" placeholder="Deixe em branco para manter a atual">
-                            <div class="form-text">Preencha apenas se desejar alterar.</div>
+                            <input type="password" class="form-control" name="password" id="password" placeholder="Deixe em branco para manter a atual" aria-describedby="password_help">
+                            <div class="form-text" id="password_help">Preencha apenas se desejar alterar.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Nível de Acesso</label>
@@ -34,13 +34,13 @@
                         
                         <div class="col-12" id="group-select-container" style="<?= $user['role'] == 'admin' ? 'opacity:0.5; pointer-events:none;' : '' ?>">
                             <label class="form-label fw-bold small text-muted">Grupo de Permissões</label>
-                            <select class="form-select" name="group_id">
+                            <select class="form-select" name="group_id" id="group_id" aria-describedby="group_id_help">
                                 <option value="">Selecione um grupo...</option>
                                 <?php foreach($groups as $grp): ?>
                                     <option value="<?= (int)$grp['id'] ?>" <?= $user['group_id'] == $grp['id'] ? 'selected' : '' ?>><?= e($grp['name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <div class="form-text">Define quais páginas este usuário pode acessar.</div>
+                            <div class="form-text" id="group_id_help">Define quais páginas este usuário pode acessar.</div>
                         </div>
 
                         <div class="col-12 text-end mt-4">

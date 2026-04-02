@@ -259,10 +259,10 @@
                     <div class="col-md-3">
                         <label for="zipcode" class="form-label">CEP</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" id="zipcode" name="zipcode" placeholder="00000-000" value="<?= eAttr($c['zipcode'] ?? '') ?>">
+                            <input type="text" class="form-control" id="zipcode" name="zipcode" placeholder="00000-000" value="<?= eAttr($c['zipcode'] ?? '') ?>" aria-describedby="zipcode_help">
                             <span class="input-group-text" id="cep-spinner" style="display:none;"><i class="fas fa-spinner fa-spin"></i></span>
                         </div>
-                        <small class="text-muted" style="font-size:.68rem;">Digite o CEP para preencher automaticamente</small>
+                        <small class="text-muted" id="zipcode_help" style="font-size:.68rem;">Digite o CEP para preencher automaticamente</small>
                     </div>
                     <div class="col-md-7">
                         <label for="address_street" class="form-label">Logradouro</label>
@@ -385,10 +385,10 @@
                             <div class="cst-tag-input-wrapper" id="tags-wrapper">
                                 <input type="text" class="cst-tag-input" id="tagInput" placeholder="Digite e pressione Enter..." autocomplete="off">
                             </div>
-                            <input type="hidden" id="tags" name="tags" value="<?= eAttr($c['tags'] ?? '') ?>">
+                            <input type="hidden" id="tags" name="tags" value="<?= eAttr($c['tags'] ?? '') ?>" aria-describedby="tags_help">
                             <div class="cst-tag-suggestions" id="tagSuggestions"></div>
                         </div>
-                        <small class="text-muted" style="font-size:.68rem;">Pressione Enter para adicionar. Ex: VIP, Atacado, Indústria</small>
+                        <small class="text-muted" id="tags_help" style="font-size:.68rem;">Pressione Enter para adicionar. Ex: VIP, Atacado, Indústria</small>
                     </div>
                     <div class="col-12">
                         <label for="observations" class="form-label">Observações</label>

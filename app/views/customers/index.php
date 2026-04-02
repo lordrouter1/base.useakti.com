@@ -178,6 +178,7 @@ if (!in_array($activeSection, $validSections)) $activeSection = 'overview';
                 <div class="cst-table-wrap active" id="customersTableWrap">
                     <div class="table-responsive bg-white rounded shadow-sm">
                         <table class="table table-hover align-middle mb-0" id="customersTable">
+                            <caption class="visually-hidden">Lista de clientes</caption>
                             <thead class="bg-light">
                                 <tr>
                                     <th class="py-3 ps-3" style="width:40px;">

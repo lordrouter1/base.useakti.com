@@ -20,13 +20,13 @@
                     <!-- Nome do Produto -->
                     <div class="col-md-8">
                         <label for="name" class="form-label fw-bold">Nome do Produto <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-lg" id="name" name="name" required placeholder="Ex: Cartão de Visita, Banner, Adesivo..." value="<?= eAttr($product['name']) ?>">
-                        <div class="form-text"><i class="fas fa-info-circle me-1"></i>Nome principal que identifica o produto.</div>
+                        <input type="text" class="form-control form-control-lg" id="name" name="name" required placeholder="Ex: Cartão de Visita, Banner, Adesivo..." value="<?= eAttr($product['name']) ?>" aria-describedby="name_help">
+                        <div class="form-text" id="name_help"><i class="fas fa-info-circle me-1"></i>Nome principal que identifica o produto.</div>
                     </div>
                     <div class="col-md-4">
                         <label for="sku" class="form-label fw-bold">SKU</label>
-                        <input type="text" class="form-control form-control-lg" id="sku" name="sku" placeholder="Ex: CART-VIS-001" value="<?= eAttr($product['sku'] ?? '') ?>">
-                        <div class="form-text"><i class="fas fa-barcode me-1"></i>Código único do produto (opcional).</div>
+                        <input type="text" class="form-control form-control-lg" id="sku" name="sku" placeholder="Ex: CART-VIS-001" value="<?= eAttr($product['sku'] ?? '') ?>" aria-describedby="sku_help">
+                        <div class="form-text" id="sku_help"><i class="fas fa-barcode me-1"></i>Código único do produto (opcional).</div>
                     </div>
 
                     <!-- Preço e Estoque -->
@@ -34,9 +34,9 @@
                         <label for="price" class="form-label fw-bold">Preço Padrão (R$) <span class="text-danger">*</span></label>
                         <div class="input-group input-group-lg">
                             <span class="input-group-text">R$</span>
-                            <input type="number" step="0.01" class="form-control" id="price" name="price" required placeholder="0.00" value="<?= $product['price'] ?>">
+                            <input type="number" step="0.01" class="form-control" id="price" name="price" required placeholder="0.00" value="<?= $product['price'] ?>" aria-describedby="price_help">
                         </div>
-                        <div class="form-text">Usado quando não há preço específico na tabela.</div>
+                        <div class="form-text" id="price_help">Usado quando não há preço específico na tabela.</div>
                     </div>
                     <div class="col-md-4">
                         <label for="cost_price" class="form-label fw-bold">Preço de Custo (R$)</label>
@@ -48,12 +48,12 @@
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Controle de Estoque</label>
                         <div class="form-check form-switch mt-2">
-                            <input class="form-check-input" type="checkbox" id="use_stock_control" name="use_stock_control" value="1" <?= !empty($product['use_stock_control']) ? 'checked' : '' ?>>
+                            <input class="form-check-input" type="checkbox" id="use_stock_control" name="use_stock_control" value="1" <?= !empty($product['use_stock_control']) ? 'checked' : '' ?> aria-describedby="stock_help">
                             <label class="form-check-label small text-muted" for="use_stock_control">
                                 <i class="fas fa-boxes-stacked me-1"></i>Usar controle de estoque
                             </label>
                         </div>
-                        <div class="form-text"><i class="fas fa-info-circle me-1"></i>Se ativado e houver estoque no armazém, o pedido pode pular a produção.</div>
+                        <div class="form-text" id="stock_help"><i class="fas fa-info-circle me-1"></i>Se ativado e houver estoque no armazém, o pedido pode pular a produção.</div>
                     </div>
 
                     <!-- Categoria e Subcategoria -->

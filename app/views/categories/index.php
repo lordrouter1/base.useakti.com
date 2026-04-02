@@ -121,6 +121,7 @@
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle mb-0">
+                                    <caption class="visually-hidden">Lista de categorias</caption>
                                     <thead class="bg-light">
                                         <tr>
                                             <th class="py-3 ps-4">Categoria</th>
@@ -170,15 +171,15 @@
                                                         <?php if(!empty($categoryGradesMap[$cat['id']]) || !empty($catSectorsData)): ?>
                                                         <button class="btn btn-outline-info btn-export-to-products" 
                                                                 data-type="category" data-id="<?= $cat['id'] ?>" data-name="<?= eAttr($cat['name']) ?>"
-                                                                title="Exportar grades/setores para produtos">
-                                                            <i class="fas fa-share-alt"></i>
+                                                                title="Exportar grades/setores para produtos" aria-label="Exportar grades/setores para produtos">
+                                                            <i class="fas fa-share-alt" aria-hidden="true"></i>
                                                         </button>
                                                         <?php endif; ?>
-                                                        <a href="?page=categories&action=edit&id=<?= $cat['id'] ?>" class="btn btn-outline-primary" title="Editar">
-                                                            <i class="fas fa-edit"></i>
+                                                        <a href="?page=categories&action=edit&id=<?= $cat['id'] ?>" class="btn btn-outline-primary" title="Editar" aria-label="Editar categoria">
+                                                            <i class="fas fa-edit" aria-hidden="true"></i>
                                                         </a>
-                                                        <button class="btn btn-outline-danger btn-delete-cat" data-id="<?= $cat['id'] ?>" data-name="<?= eAttr($cat['name']) ?>" data-products="<?= $cat['product_count'] ?>" title="Excluir">
-                                                            <i class="fas fa-trash"></i>
+                                                        <button class="btn btn-outline-danger btn-delete-cat" data-id="<?= $cat['id'] ?>" data-name="<?= eAttr($cat['name']) ?>" data-products="<?= $cat['product_count'] ?>" title="Excluir" aria-label="Excluir categoria">
+                                                            <i class="fas fa-trash" aria-hidden="true"></i>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -304,6 +305,7 @@
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle mb-0">
+                                    <caption class="visually-hidden">Lista de subcategorias</caption>
                                     <thead class="bg-light">
                                         <tr>
                                             <th class="py-3 ps-4">Subcategoria</th>
@@ -349,15 +351,15 @@
                                                         <?php if(!empty($subcategoryGradesMap[$sub['id']]) || !empty($subSectorsData)): ?>
                                                         <button class="btn btn-outline-info btn-export-to-products" 
                                                                 data-type="subcategory" data-id="<?= $sub['id'] ?>" data-name="<?= eAttr($sub['name']) ?>"
-                                                                title="Exportar grades/setores para produtos">
-                                                            <i class="fas fa-share-alt"></i>
+                                                                title="Exportar grades/setores para produtos" aria-label="Exportar grades/setores para produtos">
+                                                            <i class="fas fa-share-alt" aria-hidden="true"></i>
                                                         </button>
                                                         <?php endif; ?>
-                                                        <a href="?page=categories&action=editSub&id=<?= $sub['id'] ?>&tab=subcategories" class="btn btn-outline-primary" title="Editar">
-                                                            <i class="fas fa-edit"></i>
+                                                        <a href="?page=categories&action=editSub&id=<?= $sub['id'] ?>&tab=subcategories" class="btn btn-outline-primary" title="Editar" aria-label="Editar subcategoria">
+                                                            <i class="fas fa-edit" aria-hidden="true"></i>
                                                         </a>
-                                                        <button class="btn btn-outline-danger btn-delete-sub" data-id="<?= $sub['id'] ?>" data-name="<?= eAttr($sub['name']) ?>" title="Excluir">
-                                                            <i class="fas fa-trash"></i>
+                                                        <button class="btn btn-outline-danger btn-delete-sub" data-id="<?= $sub['id'] ?>" data-name="<?= eAttr($sub['name']) ?>" title="Excluir" aria-label="Excluir subcategoria">
+                                                            <i class="fas fa-trash" aria-hidden="true"></i>
                                                         </button>
                                                     </div>
                                                 </td>

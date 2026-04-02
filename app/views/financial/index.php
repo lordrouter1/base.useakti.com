@@ -171,8 +171,8 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="installment_id" value="<?= $pc['id'] ?>">
                                 <input type="hidden" name="redirect" value="?page=financial">
-                                <button type="submit" class="btn btn-sm btn-outline-success btn-confirm-payment" title="Confirmar">
-                                    <i class="fas fa-check"></i>
+                                <button type="submit" class="btn btn-sm btn-outline-success btn-confirm-payment" title="Confirmar" aria-label="Confirmar pagamento">
+                                    <i class="fas fa-check" aria-hidden="true"></i>
                                 </button>
                             </form>
                         </div>
@@ -215,6 +215,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0 align-middle">
+                <caption class="visually-hidden">Parcelas em atraso</caption>
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-3 small fw-bold">Pedido</th>
@@ -260,6 +261,7 @@ $monthNames = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','N
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0 align-middle">
+                <caption class="visually-hidden">Próximos vencimentos</caption>
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-3 small fw-bold">Pedido</th>

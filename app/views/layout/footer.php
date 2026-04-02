@@ -41,6 +41,7 @@
 <script src="<?= asset('assets/js/components/command-palette.js') ?>"></script>
 <script src="<?= asset('assets/js/components/notification-bell.js') ?>"></script>
 <script src="<?= asset('assets/js/components/dashboard-widgets.js') ?>"></script>
+<script src="<?= asset('assets/js/components/focus-trap.js') ?>"></script>
 
 <?php
 // ── Session Timeout: injetar dados JS para modal de aviso ──
@@ -51,101 +52,15 @@ if (isset($_SESSION['user_id'])) {
 }
 ?>
 <?php if (isset($_SESSION['user_id'])): ?>
-<script>
-(function() {
-    'use strict';
-
-    var SESSION_TIMEOUT = <?= $__sessionData['timeout_seconds'] ?>;
-    var SESSION_WARNING = <?= $__sessionData['warning_seconds'] ?>;
-    var remaining = <?= $__sessionData['remaining_seconds'] ?>;
-    var warningShown = false;
-    var countdownInterval = null;
-    var mainInterval = null;
-
-    function formatTime(secs) {
-        var m = Math.floor(secs / 60);
-        var s = secs % 60;
-        return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-    }
-
-    function renewSession() {
-        fetch('?page=session&action=keepalive', {
-            method: 'GET',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                remaining = data.remaining_seconds || SESSION_TIMEOUT;
-                warningShown = false;
-                if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-                Swal.close();
-            } else if (data.session_expired) {
-                window.location.href = '?page=login&session_expired=1';
-            }
-        })
-        .catch(function() {});
-    }
-
-    function showWarningModal() {
-        if (warningShown) return;
-        warningShown = true;
-
-        Swal.fire({
-            title: '<i class="fas fa-hourglass-half text-warning me-2"></i>Sessão Expirando',
-            html: '<div style="font-size:0.95rem;">' +
-                  '<p class="mb-2">Sua sessão será encerrada por inatividade em:</p>' +
-                  '<div id="swal-session-countdown" class="text-red" style="font-size:2.2rem;font-weight:700;font-family:monospace;">' +
-                  formatTime(remaining) + '</div>' +
-                  '<p class="text-muted small mt-2 mb-0">Clique em <strong>Continuar</strong> para manter sua sessão ativa.</p>' +
-                  '</div>',
-            icon: null,
-            showConfirmButton: true,
-            confirmButtonText: '<i class="fas fa-sync-alt me-1"></i> Continuar Trabalhando',
-            confirmButtonColor: '#3b82f6',
-            showCancelButton: false,
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            customClass: { popup: 'shadow-lg' }
-        }).then(function(result) {
-            if (result.isConfirmed) {
-                renewSession();
-            }
-        });
-
-        // Contagem regressiva dentro do modal
-        countdownInterval = setInterval(function() {
-            remaining--;
-            var el = document.getElementById('swal-session-countdown');
-            if (el) {
-                el.textContent = formatTime(Math.max(0, remaining));
-                if (remaining <= 30) el.style.color = '#dc2626';
-            }
-            if (remaining <= 0) {
-                clearInterval(countdownInterval);
-                Swal.close();
-                window.location.href = '?page=login&session_expired=1';
-            }
-        }, 1000);
-    }
-
-    // Timer principal: decrementa a cada segundo e checa se deve mostrar aviso
-    mainInterval = setInterval(function() {
-        remaining--;
-        if (remaining <= SESSION_WARNING && remaining > 0 && !warningShown) {
-            showWarningModal();
-        }
-        if (remaining <= 0 && !warningShown) {
-            window.location.href = '?page=login&session_expired=1';
-        }
-    }, 1000);
-
-})();
-</script>
+<div id="sessionTimeoutCfg" class="d-none"
+     data-timeout="<?= $__sessionData['timeout_seconds'] ?>"
+     data-warning="<?= $__sessionData['warning_seconds'] ?>"
+     data-remaining="<?= $__sessionData['remaining_seconds'] ?>"></div>
+<script src="<?= asset('assets/js/components/session-timeout.js') ?>" defer></script>
 <?php endif; ?>
 
 <!-- Walkthrough -->
-<script src="assets/js/walkthrough.js"></script>
+<script src="assets/js/walkthrough.js" defer></script>
 <!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" integrity="sha384-d3UHjPdzJkZuk5H3qKYMLRyWLAQBJbby2yr2Q58hXXtAGF8RSNO9jpLDlKKPv5v3" crossorigin="anonymous"></script>
 <!-- Product Select2 integration -->

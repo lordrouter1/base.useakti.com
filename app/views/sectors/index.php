@@ -114,6 +114,7 @@
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
+                            <caption class="visually-hidden">Lista de setores de produção</caption>
                             <thead class="bg-light">
                                 <tr>
                                     <th class="py-3 ps-4" style="width:50px;">Ordem</th>
@@ -151,11 +152,11 @@
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-end pe-4">
-                                            <a href="?page=sectors&action=edit&id=<?= (int)$sector['id'] ?>" class="btn btn-sm btn-outline-primary me-1" title="Editar">
-                                                <i class="fas fa-edit"></i>
+                                            <a href="?page=sectors&action=edit&id=<?= (int)$sector['id'] ?>" class="btn btn-sm btn-outline-primary me-1" title="Editar" aria-label="Editar setor">
+                                                <i class="fas fa-edit" aria-hidden="true"></i>
                                             </a>
-                                            <button class="btn btn-sm btn-outline-danger btn-delete-sector" data-id="<?= (int)$sector['id'] ?>" data-name="<?= eAttr($sector['name']) ?>" title="Excluir">
-                                                <i class="fas fa-trash"></i>
+                                            <button class="btn btn-sm btn-outline-danger btn-delete-sector" data-id="<?= (int)$sector['id'] ?>" data-name="<?= eAttr($sector['name']) ?>" title="Excluir" aria-label="Excluir setor">
+                                                <i class="fas fa-trash" aria-hidden="true"></i>
                                             </button>
                                         </td>
                                     </tr>
