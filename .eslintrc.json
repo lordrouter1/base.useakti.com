@@ -1,0 +1,38 @@
+{
+    "env": {
+        "browser": true,
+        "jquery": true,
+        "es2020": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+        "ecmaVersion": 2020,
+        "sourceType": "script"
+    },
+    "globals": {
+        "Swal": "readonly",
+        "Chart": "readonly",
+        "Sortable": "readonly",
+        "bootstrap": "readonly",
+        "csrfToken": "readonly",
+        "escHtml": "readonly",
+        "aktiTrapFocus": "readonly"
+    },
+    "rules": {
+        "no-unused-vars": "warn",
+        "no-undef": "error",
+        "eqeqeq": ["error", "always"],
+        "no-eval": "error",
+        "no-implied-eval": "error",
+        "no-new-func": "error",
+        "no-alert": "error",
+        "no-var": "warn",
+        "prefer-const": "warn"
+    },
+    "ignorePatterns": [
+        "vendor/",
+        "node_modules/",
+        "assets/dist/",
+        "api/"
+    ]
+}

@@ -30,7 +30,8 @@ class CompanySettings {
      * @return array Array associativo de configurações
      */
     public function getAll() {
-        $stmt = $this->conn->query("SELECT setting_key, setting_value FROM {$this->table}");
+        $stmt = $this->conn->prepare("SELECT setting_key, setting_value FROM {$this->table}");
+        $stmt->execute();
         $settings = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $settings[$row['setting_key']] = $row['setting_value'];

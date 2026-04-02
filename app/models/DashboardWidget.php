@@ -3,6 +3,7 @@ namespace Akti\Models;
 
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
+use Akti\Core\Log;
 use PDO;
 
 /**
@@ -202,6 +203,11 @@ class DashboardWidget
 
             return true;
         } catch (\Exception $e) {
+            Log::error('DashboardWidget saveForGroup rollback', [
+                'method' => __METHOD__,
+                'error'  => $e->getMessage(),
+                'code'   => $e->getCode(),
+            ]);
             $this->conn->rollBack();
             return false;
         }

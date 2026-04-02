@@ -36,6 +36,52 @@ class ProductionSector {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Retorna setores paginados com busca opcional.
+     *
+     * @param int    $page    Página atual (1-based)
+     * @param int    $perPage Registros por página
+     * @param string $search  Termo de busca (nome)
+     * @return array{data: array, total: int, pages: int, current_page: int}
+     */
+    public function readPaginated(int $page = 1, int $perPage = 15, string $search = ''): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $where = [];
+        $params = [];
+
+        if ($search !== '') {
+            $where[] = "name LIKE :search";
+            $params[':search'] = "%{$search}%";
+        }
+
+        $whereStr = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        $countSql = "SELECT COUNT(*) FROM {$this->table} {$whereStr}";
+        $countStmt = $this->conn->prepare($countSql);
+        foreach ($params as $k => $v) {
+            $countStmt->bindValue($k, $v);
+        }
+        $countStmt->execute();
+        $total = (int) $countStmt->fetchColumn();
+
+        $sql = "SELECT * FROM {$this->table} {$whereStr} ORDER BY sort_order ASC, name ASC LIMIT :limit OFFSET :offset";
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'data'         => $stmt->fetchAll(PDO::FETCH_ASSOC),
+            'total'        => $total,
+            'pages'        => (int) ceil($total / $perPage),
+            'current_page' => $page,
+        ];
+    }
+
     public function readOne($id) {
         $stmt = $this->conn->prepare("SELECT * FROM {$this->table} WHERE id = :id");
         $stmt->execute([':id' => $id]);

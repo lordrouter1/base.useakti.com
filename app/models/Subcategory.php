@@ -48,10 +48,11 @@ class Subcategory {
     }
 
     public function readAll() {
-        $stmt = $this->conn->query("SELECT s.*, c.name as category_name 
+        $stmt = $this->conn->prepare("SELECT s.*, c.name as category_name 
             FROM subcategories s 
             JOIN categories c ON s.category_id = c.id 
             ORDER BY c.name ASC, s.name ASC");
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
