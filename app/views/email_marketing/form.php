@@ -112,16 +112,21 @@ $recipientType = !empty($segmentFilters['customer_ids']) ? 'selected' : 'all';
                         <i class="fas fa-code me-1 text-primary"></i>Variáveis
                     </div>
                     <div class="card-body">
-                        <p class="text-muted small mb-2">Clique para inserir no editor.</p>
+                        <p class="text-muted small mb-2">Clique para inserir no editor. No envio, cada variável será substituída pelos dados reais do cliente destinatário.</p>
                         <div class="d-flex flex-wrap gap-1" id="variableButtons">
-                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{nome}}"><i class="fas fa-user me-1"></i>{{nome}}</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{email}}"><i class="fas fa-envelope me-1"></i>{{email}}</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{telefone}}"><i class="fas fa-phone me-1"></i>{{telefone}}</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{documento}}"><i class="fas fa-id-card me-1"></i>{{documento}}</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{cidade}}"><i class="fas fa-map-marker-alt me-1"></i>{{cidade}}</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{estado}}"><i class="fas fa-map me-1"></i>{{estado}}</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{empresa}}"><i class="fas fa-building me-1"></i>{{empresa}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{nome}}" title="Nome completo ou razão social do cliente"><i class="fas fa-user me-1"></i>{{nome}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{email}}" title="E-mail principal de contato do cliente"><i class="fas fa-envelope me-1"></i>{{email}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{telefone}}" title="Telefone principal com DDD"><i class="fas fa-phone me-1"></i>{{telefone}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{documento}}" title="CPF ou CNPJ do cliente"><i class="fas fa-id-card me-1"></i>{{documento}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{cidade}}" title="Cidade do endereço principal"><i class="fas fa-map-marker-alt me-1"></i>{{cidade}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{estado}}" title="Estado (UF) do endereço"><i class="fas fa-map me-1"></i>{{estado}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{empresa}}" title="Nome da empresa (tenant)"><i class="fas fa-building me-1"></i>{{empresa}}</button>
                         </div>
+                        <hr class="my-2">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Exemplo:</strong> "Olá <code>{{nome}}</code>, confira!" → "Olá <strong>João Silva</strong>, confira!"
+                        </small>
                     </div>
                 </div>
 
@@ -167,78 +172,87 @@ $recipientType = !empty($segmentFilters['customer_ids']) ? 'selected' : 'all';
     </form>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/lang/summernote-pt-BR.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Summernote
-    $('#bodyHtml').summernote({
-        lang: 'pt-BR',
-        height: 400,
-        toolbar: [
-            ['style', ['style']],
-            ['font', ['bold', 'italic', 'underline', 'strikethrough', 'clear']],
-            ['fontname', ['fontname']],
-            ['fontsize', ['fontsize']],
-            ['color', ['color']],
-            ['para', ['ul', 'ol', 'paragraph']],
-            ['table', ['table']],
-            ['insert', ['link', 'picture', 'hr']],
-            ['view', ['fullscreen', 'codeview', 'help']]
-        ],
-        placeholder: 'Escreva o conteúdo do e-mail aqui...'
-    });
+    function loadScript(src, callback) {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = callback;
+        document.body.appendChild(s);
+    }
 
-    // Variáveis clicáveis
-    document.querySelectorAll('.var-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const tag = this.dataset.var;
-            $('#bodyHtml').summernote('editor.insertText', tag);
-        });
-    });
+    // Carregar Summernote após jQuery (footer)
+    loadScript('https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js', function() {
+        loadScript('https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/lang/summernote-pt-BR.min.js', function() {
+            $('#bodyHtml').summernote({
+                lang: 'pt-BR',
+                height: 400,
+                toolbar: [
+                    ['style', ['style']],
+                    ['font', ['bold', 'italic', 'underline', 'strikethrough', 'clear']],
+                    ['fontname', ['fontname']],
+                    ['fontsize', ['fontsize']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['table', ['table']],
+                    ['insert', ['link', 'picture', 'hr']],
+                    ['view', ['fullscreen', 'codeview', 'help']]
+                ],
+                placeholder: 'Escreva o conteúdo do e-mail aqui...'
+            });
 
-    // Template auto-fill
-    const templateSelect = document.getElementById('templateSelect');
-    templateSelect.addEventListener('change', function() {
-        const tplId = this.value;
-        if (!tplId) return;
-
-        Swal.fire({
-            title: 'Carregar template?',
-            text: 'O assunto e conteúdo serão substituídos pelo modelo do template selecionado.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Sim, carregar',
-            cancelButtonText: 'Não'
-        }).then(result => {
-            if (!result.isConfirmed) return;
-
-            fetch('?page=email_marketing&action=getTemplateJson&id=' + tplId)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('subjectField').value = data.subject || '';
-                        $('#bodyHtml').summernote('code', data.body_html || '');
-
-                        if (typeof AktiToast !== 'undefined') {
-                            AktiToast.success('Template carregado!');
-                        }
-                    }
+            // Variáveis clicáveis
+            document.querySelectorAll('.var-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const tag = this.dataset.var;
+                    $('#bodyHtml').summernote('editor.insertText', tag);
                 });
+            });
+
+            // Template auto-fill
+            const templateSelect = document.getElementById('templateSelect');
+            templateSelect.addEventListener('change', function() {
+                const tplId = this.value;
+                if (!tplId) return;
+
+                Swal.fire({
+                    title: 'Carregar template?',
+                    text: 'O assunto e conteúdo serão substituídos pelo modelo do template selecionado.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sim, carregar',
+                    cancelButtonText: 'Não'
+                }).then(result => {
+                    if (!result.isConfirmed) return;
+
+                    fetch('?page=email_marketing&action=getTemplateJson&id=' + tplId)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                document.getElementById('subjectField').value = data.subject || '';
+                                $('#bodyHtml').summernote('code', data.body_html || '');
+                                if (typeof AktiToast !== 'undefined') {
+                                    AktiToast.success('Template carregado!');
+                                }
+                            }
+                        });
+                });
+            });
         });
     });
 
     // Destinatários — toggle Select2
-    const $customerSelect = $('#customerSelect');
     const customerGroup = document.getElementById('customerSelectGroup');
 
     function initCustomerSelect2() {
-        if ($customerSelect.hasClass('select2-hidden-accessible')) return;
-        $customerSelect.select2({
+        const $cs = $('#customerSelect');
+        if ($cs.hasClass('select2-hidden-accessible')) return;
+        $cs.select2({
             placeholder: 'Pesquisar clientes...',
             allowClear: true,
             minimumInputLength: 0,
+            width: '100%',
             ajax: {
                 url: '?page=email_marketing&action=searchCustomers',
                 dataType: 'json',
@@ -276,8 +290,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const filters = { type: recipientType };
 
         if (recipientType === 'selected') {
-            const selectedData = $customerSelect.select2('data') || [];
-            filters.customer_ids = selectedData.map(item => ({ id: parseInt(item.id), text: item.text }));
+            const $cs = $('#customerSelect');
+            if ($cs.hasClass('select2-hidden-accessible')) {
+                const selectedData = $cs.select2('data') || [];
+                filters.customer_ids = selectedData.map(item => ({ id: parseInt(item.id), text: item.text }));
+            }
         }
 
         document.getElementById('segmentFiltersInput').value = JSON.stringify(filters);
