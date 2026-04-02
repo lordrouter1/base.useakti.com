@@ -1,0 +1,87 @@
+<?php
+/**
+ * Main system translations — English
+ * FEAT-009: Internationalization
+ */
+return [
+    // ── General ──
+    'app_name'         => 'Akti — Production Management',
+    'dashboard'        => 'Dashboard',
+    'save'             => 'Save',
+    'cancel'           => 'Cancel',
+    'delete'           => 'Delete',
+    'edit'             => 'Edit',
+    'create'           => 'Create',
+    'back'             => 'Back',
+    'search'           => 'Search',
+    'filter'           => 'Filter',
+    'actions'          => 'Actions',
+    'loading'          => 'Loading...',
+    'confirm'          => 'Confirm',
+    'yes'              => 'Yes',
+    'no'               => 'No',
+    'close'            => 'Close',
+    'export'           => 'Export',
+    'import'           => 'Import',
+    'print'            => 'Print',
+    'all'              => 'All',
+    'none'             => 'None',
+    'active'           => 'Active',
+    'inactive'         => 'Inactive',
+    'status'           => 'Status',
+    'date'             => 'Date',
+    'type'             => 'Type',
+    'name'             => 'Name',
+    'description'      => 'Description',
+    'value'            => 'Value',
+    'total'            => 'Total',
+    'quantity'         => 'Quantity',
+    'success'          => 'Success',
+    'error'            => 'Error',
+    'warning'          => 'Warning',
+    'info'             => 'Information',
+    'no_records'       => 'No records found.',
+    'confirm_delete'   => 'Do you really want to delete this record?',
+    'operation_success' => 'Operation completed successfully!',
+    'operation_error'   => 'Error performing the operation.',
+
+    // ── Pagination ──
+    'previous'         => 'Previous',
+    'next'             => 'Next',
+    'showing'          => 'Showing',
+    'of'               => 'of',
+    'records'          => 'records',
+
+    // ── Authentication ──
+    'login'            => 'Log In',
+    'logout'           => 'Log Out',
+    'email'            => 'Email',
+    'password'         => 'Password',
+    'remember_me'      => 'Remember me',
+    'forgot_password'  => 'Forgot password',
+
+    // ── Modules ──
+    'customers'        => 'Customers',
+    'orders'           => 'Orders',
+    'products'         => 'Products',
+    'categories'       => 'Categories',
+    'suppliers'        => 'Suppliers',
+    'quotes'           => 'Quotes',
+    'calendar'         => 'Calendar',
+    'reports'          => 'Reports',
+    'financial'        => 'Financial',
+    'production'       => 'Production',
+    'settings'         => 'Settings',
+    'users'            => 'Users',
+    'audit'            => 'Audit',
+    'notifications'    => 'Notifications',
+    'workflows'        => 'Workflows',
+    'quality'          => 'Quality',
+    'email_marketing'  => 'Email Marketing',
+    'attachments'      => 'Attachments',
+
+    // ── Currencies ──
+    'currency_brl'     => 'Brazilian Real (R$)',
+    'currency_usd'     => 'US Dollar ($)',
+    'currency_eur'     => 'Euro (€)',
+];

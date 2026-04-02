@@ -82,6 +82,13 @@ if (isset($_SESSION['user_id'])) {
         if (window.aktiWalkthrough) {
             window.aktiWalkthrough.autoStart();
         }
+
+        // ── PWA: Registrar Service Worker ──
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(function (err) {
+                console.warn('SW register failed:', err);
+            });
+        }
     });
 </script>
 </body>

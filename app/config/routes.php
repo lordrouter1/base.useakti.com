@@ -173,6 +173,15 @@ return [
         'redirect' => '?',
     ],
 
+    // FEAT-016: Dashboard em tempo real
+    'dashboard_realtime' => [
+        'controller'     => 'DashboardController',
+        'default_action' => 'realtime',
+        'actions'        => [
+            'data' => 'realtimeData',
+        ],
+    ],
+
     'profile' => [
         'controller'     => 'UserController',
         'default_action' => 'profile',
@@ -705,6 +714,7 @@ return [
             'count'       => 'count',
             'markRead'    => 'markRead',
             'markAllRead' => 'markAllRead',
+            'stream'      => 'stream',
         ],
     ],
 
@@ -831,6 +841,179 @@ return [
             'removeComponent'   => 'removeComponent',
             'saveThemeSettings' => 'saveThemeSettings',
             'preview'           => 'preview',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════
+    // FEAT-003 — Anexos / Documentos
+    // ══════════════════════════════════════════════════════════
+    'attachments' => [
+        'controller'     => 'AttachmentController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'upload'       => 'upload',
+            'download'     => 'download',
+            'delete'       => 'delete',
+            'listByEntity' => 'listByEntity',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════
+    // FEAT-004 — Log de Auditoria
+    // ══════════════════════════════════════════════════════════
+    'audit' => [
+        'controller'     => 'AuditController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'detail'    => 'detail',
+            'exportCsv' => 'exportCsv',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════
+    // FEAT-005 — Fornecedores e Compras
+    // ══════════════════════════════════════════════════════════
+    'suppliers' => [
+        'controller'     => 'SupplierController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create'         => 'create',
+            'store'          => 'store',
+            'edit'           => 'edit',
+            'update'         => 'update',
+            'delete'         => 'delete',
+            'purchases'      => 'purchases',
+            'createPurchase' => 'createPurchase',
+            'storePurchase'  => 'storePurchase',
+            'editPurchase'   => 'editPurchase',
+            'receivePurchase' => 'receivePurchase',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════
+    // FEAT-006 — Orçamentos Avançados
+    // ══════════════════════════════════════════════════════════
+    'quotes' => [
+        'controller'     => 'QuoteController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create'        => 'create',
+            'store'         => 'store',
+            'edit'          => 'edit',
+            'update'        => 'update',
+            'delete'        => 'delete',
+            'approve'       => 'approve',
+            'convertToOrder' => 'convertToOrder',
+            'addItem'       => 'addItem',
+            'removeItem'    => 'removeItem',
+        ],
+    ],
+
+    // Aprovação pública de orçamento (sem auth)
+    'quote_approve' => [
+        'controller'     => 'QuoteController',
+        'default_action' => 'approve',
+        'public'         => true,
+        'before_auth'    => true,
+        'actions'        => [
+            'approve' => 'approve',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════
+    // FEAT-007 — Agenda / Calendário
+    // ══════════════════════════════════════════════════════════
+    'calendar' => [
+        'controller'     => 'CalendarController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'events' => 'events',
+            'store'  => 'store',
+            'update' => 'update',
+            'delete' => 'delete',
+            'sync'   => 'sync',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════
+    // FEAT-008 — Relatórios Customizados
+    // ══════════════════════════════════════════════════════════
+    'custom_reports' => [
+        'controller'     => 'CustomReportController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create'      => 'create',
+            'store'       => 'store',
+            'edit'        => 'edit',
+            'update'      => 'update',
+            'delete'      => 'delete',
+            'run'         => 'run',
+            'getEntities' => 'getEntities',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════
+    // FEAT-010 — Automação de Workflows
+    // ══════════════════════════════════════════════════════════
+    'workflows' => [
+        'controller'     => 'WorkflowController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create' => 'create',
+            'store'  => 'store',
+            'edit'   => 'edit',
+            'update' => 'update',
+            'delete' => 'delete',
+            'toggle' => 'toggle',
+            'logs'   => 'logs',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════
+    // FEAT-013 — E-mail Marketing
+    // ══════════════════════════════════════════════════════════
+    'email_marketing' => [
+        'controller'     => 'EmailMarketingController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create'        => 'create',
+            'store'         => 'store',
+            'edit'          => 'edit',
+            'update'        => 'update',
+            'delete'        => 'delete',
+            'templates'     => 'templates',
+            'storeTemplate' => 'storeTemplate',
+        ],
+    ],
+
+    // ══════════════════════════════════════════════════════════
+    // FEAT-017 — Controle de Qualidade
+    // ══════════════════════════════════════════════════════════
+    'quality' => [
+        'controller'     => 'QualityController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create'             => 'create',
+            'store'              => 'store',
+            'edit'               => 'edit',
+            'update'             => 'update',
+            'delete'             => 'delete',
+            'addItem'            => 'addItem',
+            'removeItem'         => 'removeItem',
+            'inspect'            => 'inspect',
+            'storeInspection'    => 'storeInspection',
+            'nonConformities'    => 'nonConformities',
+            'storeNonConformity' => 'storeNonConformity',
+            'resolveNonConformity' => 'resolveNonConformity',
         ],
     ],
 

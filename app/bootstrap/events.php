@@ -1403,3 +1403,76 @@ EventDispatcher::listen('middleware.csrf.failed', function (Event $event) use ($
         // best-effort
     }
 });
+
+// ══════════════════════════════════════════════════════════════
+// FEAT-004 — Audit Log Universal Listener
+// Persiste alterações em audit_logs via AuditLogService
+// ══════════════════════════════════════════════════════════════
+
+$auditEvents = [
+    'model.order.created'     => ['entity' => 'order',    'action' => 'created'],
+    'model.order.updated'     => ['entity' => 'order',    'action' => 'updated'],
+    'model.customer.created'  => ['entity' => 'customer', 'action' => 'created'],
+    'model.customer.updated'  => ['entity' => 'customer', 'action' => 'updated'],
+    'model.supplier.created'  => ['entity' => 'supplier', 'action' => 'created'],
+    'model.supplier.updated'  => ['entity' => 'supplier', 'action' => 'updated'],
+    'model.supplier.deleted'  => ['entity' => 'supplier', 'action' => 'deleted'],
+    'model.quote.created'     => ['entity' => 'quote',    'action' => 'created'],
+    'model.quote.updated'     => ['entity' => 'quote',    'action' => 'updated'],
+    'model.quote.approved'    => ['entity' => 'quote',    'action' => 'approved'],
+    'model.product.created'   => ['entity' => 'product',  'action' => 'created'],
+    'model.product.updated'   => ['entity' => 'product',  'action' => 'updated'],
+];
+
+foreach ($auditEvents as $eventName => $meta) {
+    EventDispatcher::listen($eventName, function (Event $event) use ($meta) {
+        try {
+            $db = (new \Database())->getConnection();
+            $service = new \Akti\Services\AuditLogService($db);
+            $data = $event->getData();
+            $service->log(
+                $meta['action'],
+                $meta['entity'],
+                $data['id'] ?? 0,
+                $data['old_values'] ?? [],
+                $data['new_values'] ?? ($data ?? [])
+            );
+        } catch (\Throwable $e) {
+            // best-effort — never break the main flow
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+// FEAT-010 — Workflow Engine Global Listener
+// Dispatches events to the WorkflowEngine for rule evaluation
+// ══════════════════════════════════════════════════════════════
+
+$workflowEvents = [
+    'model.order.created',
+    'model.order.updated',
+    'model.order.stage_changed',
+    'model.customer.created',
+    'model.customer.updated',
+    'model.installment.paid',
+    'model.installment.overdue',
+    'model.supplier.created',
+    'model.quote.created',
+    'model.quote.approved',
+    'model.nfe_document.authorized',
+    'auth.login.failed',
+];
+
+foreach ($workflowEvents as $wfEvent) {
+    EventDispatcher::listen($wfEvent, function (Event $event) use ($wfEvent) {
+        try {
+            $db = (new \Database())->getConnection();
+            $engine = new \Akti\Services\WorkflowEngine($db);
+            $engine->process($wfEvent, $event->getData());
+        } catch (\Throwable $e) {
+            // best-effort — workflow failures must not break main flow
+            $logFile = (defined('AKTI_BASE_PATH') ? AKTI_BASE_PATH : '') . 'storage/logs/workflow.log';
+            @file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "[WorkflowEngine Error] {$wfEvent}: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
+        }
+    });
+}

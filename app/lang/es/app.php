@@ -1,0 +1,87 @@
+<?php
+/**
+ * Traducciones del sistema — Español
+ * FEAT-009: Internacionalización
+ */
+return [
+    // ── General ──
+    'app_name'         => 'Akti — Gestión de Producción',
+    'dashboard'        => 'Panel',
+    'save'             => 'Guardar',
+    'cancel'           => 'Cancelar',
+    'delete'           => 'Eliminar',
+    'edit'             => 'Editar',
+    'create'           => 'Crear',
+    'back'             => 'Volver',
+    'search'           => 'Buscar',
+    'filter'           => 'Filtrar',
+    'actions'          => 'Acciones',
+    'loading'          => 'Cargando...',
+    'confirm'          => 'Confirmar',
+    'yes'              => 'Sí',
+    'no'               => 'No',
+    'close'            => 'Cerrar',
+    'export'           => 'Exportar',
+    'import'           => 'Importar',
+    'print'            => 'Imprimir',
+    'all'              => 'Todos',
+    'none'             => 'Ninguno',
+    'active'           => 'Activo',
+    'inactive'         => 'Inactivo',
+    'status'           => 'Estado',
+    'date'             => 'Fecha',
+    'type'             => 'Tipo',
+    'name'             => 'Nombre',
+    'description'      => 'Descripción',
+    'value'            => 'Valor',
+    'total'            => 'Total',
+    'quantity'         => 'Cantidad',
+    'success'          => 'Éxito',
+    'error'            => 'Error',
+    'warning'          => 'Atención',
+    'info'             => 'Información',
+    'no_records'       => 'No se encontraron registros.',
+    'confirm_delete'   => '¿Desea realmente eliminar este registro?',
+    'operation_success' => '¡Operación realizada con éxito!',
+    'operation_error'   => 'Error al realizar la operación.',
+
+    // ── Paginación ──
+    'previous'         => 'Anterior',
+    'next'             => 'Siguiente',
+    'showing'          => 'Mostrando',
+    'of'               => 'de',
+    'records'          => 'registros',
+
+    // ── Autenticación ──
+    'login'            => 'Ingresar',
+    'logout'           => 'Salir',
+    'email'            => 'Correo electrónico',
+    'password'         => 'Contraseña',
+    'remember_me'      => 'Recordarme',
+    'forgot_password'  => 'Olvidé mi contraseña',
+
+    // ── Módulos ──
+    'customers'        => 'Clientes',
+    'orders'           => 'Pedidos',
+    'products'         => 'Productos',
+    'categories'       => 'Categorías',
+    'suppliers'        => 'Proveedores',
+    'quotes'           => 'Presupuestos',
+    'calendar'         => 'Agenda',
+    'reports'          => 'Reportes',
+    'financial'        => 'Financiero',
+    'production'       => 'Producción',
+    'settings'         => 'Configuración',
+    'users'            => 'Usuarios',
+    'audit'            => 'Auditoría',
+    'notifications'    => 'Notificaciones',
+    'workflows'        => 'Flujos de Trabajo',
+    'quality'          => 'Calidad',
+    'email_marketing'  => 'Email Marketing',
+    'attachments'      => 'Adjuntos',
+
+    // ── Monedas ──
+    'currency_brl'     => 'Real brasileño (R$)',
+    'currency_usd'     => 'Dólar estadounidense (US$)',
+    'currency_eur'     => 'Euro (€)',
+];

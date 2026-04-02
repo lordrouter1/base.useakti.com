@@ -48,4 +48,58 @@ class DashboardController {
         require 'app/views/dashboard/index.php';
         require 'app/views/layout/footer.php';
     }
+
+    /**
+     * FEAT-016: Dashboard em tempo real com SSE.
+     */
+    public function realtime()
+    {
+        $database = new Database();
+        $db = $database->getConnection();
+
+        $stages = Pipeline::$stages;
+
+        require 'app/views/layout/header.php';
+        require 'app/views/dashboard/realtime.php';
+        require 'app/views/layout/footer.php';
+    }
+
+    /**
+     * FEAT-016: Endpoint JSON para dados do dashboard (polling/SSE).
+     */
+    public function realtimeData()
+    {
+        $database = new Database();
+        $db = $database->getConnection();
+
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+            $pipelineModel = new Pipeline($db);
+            $pipelineStats = $pipelineModel->getStats();
+
+            $orderModel = new Order($db);
+            $totalOrders = $orderModel->countAll();
+            $ordersByStatus = $orderModel->countByStatus();
+            $totalActiveValue = $orderModel->totalActiveValue();
+
+            $customerModel = new Customer($db);
+            $totalCustomers = $customerModel->countAll();
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'pipeline'       => $pipelineStats,
+                    'total_orders'   => $totalOrders,
+                    'orders_status'  => $ordersByStatus,
+                    'active_value'   => $totalActiveValue,
+                    'total_customers' => $totalCustomers,
+                    'timestamp'      => date('Y-m-d H:i:s'),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'error' => 'Erro ao buscar dados']);
+        }
+        exit;
+    }
 }

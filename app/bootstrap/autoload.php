@@ -107,6 +107,9 @@ require_once AKTI_BASE_PATH . 'app/bootstrap/events.php';
 // asset_helper.php define asset() para cache busting de CSS/JS/imagens
 require_once AKTI_BASE_PATH . 'app/utils/asset_helper.php';
 
+// i18n_helper.php define __() para internacionalização (FEAT-009)
+require_once AKTI_BASE_PATH . 'app/utils/i18n_helper.php';
+
 // ── Carregar helpers do Portal do Cliente ──
 // portal_helper.php define __p(), portal_money(), portal_date() etc.
 require_once AKTI_BASE_PATH . 'app/utils/portal_helper.php';

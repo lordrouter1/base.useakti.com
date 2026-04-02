@@ -58,15 +58,33 @@ return [
                 'menu'       => true,
                 'permission' => true,
             ],
+            'quotes' => [
+                'label'      => 'Orçamentos',
+                'icon'       => 'fas fa-file-alt',
+                'menu'       => true,
+                'permission' => true,
+            ],
             'agenda' => [
                 'label'      => 'Agenda de Contatos',
                 'icon'       => 'fas fa-calendar-alt',
                 'menu'       => true,
                 'permission' => true,
             ],
+            'calendar' => [
+                'label'      => 'Calendário',
+                'icon'       => 'fas fa-calendar',
+                'menu'       => true,
+                'permission' => true,
+            ],
             'price_tables' => [
                 'label'      => 'Tabelas de Preço',
                 'icon'       => 'fas fa-tags',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'suppliers' => [
+                'label'      => 'Fornecedores',
+                'icon'       => 'fas fa-truck',
                 'menu'       => true,
                 'permission' => true,
             ],
@@ -121,6 +139,12 @@ return [
             'sectors' => [
                 'label'      => 'Setores',
                 'icon'       => 'fas fa-industry',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'quality' => [
+                'label'      => 'Qualidade',
+                'icon'       => 'fas fa-clipboard-check',
                 'menu'       => true,
                 'permission' => true,
             ],
@@ -183,6 +207,45 @@ return [
         'icon'       => 'fas fa-chart-bar',
         'menu'       => true,
         'permission' => true,
+    ],
+
+    // ─── Grupo: Ferramentas ───
+    'ferramentas' => [
+        'label'    => 'Ferramentas',
+        'icon'     => 'fas fa-toolbox',
+        'menu'     => true,
+        'children' => [
+            'custom_reports' => [
+                'label'      => 'Relatórios Custom.',
+                'icon'       => 'fas fa-chart-line',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'workflows' => [
+                'label'      => 'Automações',
+                'icon'       => 'fas fa-cogs',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'email_marketing' => [
+                'label'      => 'E-mail Marketing',
+                'icon'       => 'fas fa-envelope',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'attachments' => [
+                'label'      => 'Anexos',
+                'icon'       => 'fas fa-paperclip',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'audit' => [
+                'label'      => 'Auditoria',
+                'icon'       => 'fas fa-history',
+                'menu'       => true,
+                'permission' => true,
+            ],
+        ],
     ],
 
     // ─── Itens ocultos do menu principal (ficam no menu direito) ───

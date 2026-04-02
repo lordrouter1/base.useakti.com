@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { tenantMiddleware } from '../middlewares/tenantMiddleware.js';
 import productRoutes from './productRoutes.js';
+import customerRoutes from './customerRoutes.js';
+import orderRoutes from './orderRoutes.js';
+import financialRoutes from './financialRoutes.js';
 
 const router = Router();
 /**
@@ -35,8 +38,9 @@ v1Router.use(tenantMiddleware);
 
 // ── Resource routes (v1) ──
 v1Router.use('/products', productRoutes);
-// v1Router.use('/orders', orderRoutes);
-// v1Router.use('/customers', customerRoutes);
+v1Router.use('/customers', customerRoutes);
+v1Router.use('/orders', orderRoutes);
+v1Router.use('/financial', financialRoutes);
 
 // Mount versioned routes
 router.use('/v1', v1Router);
@@ -45,7 +49,8 @@ router.use('/v1', v1Router);
 router.use(authMiddleware);
 router.use(tenantMiddleware);
 router.use('/products', productRoutes);
-// router.use('/orders', orderRoutes);
-// router.use('/customers', customerRoutes);
+router.use('/customers', customerRoutes);
+router.use('/orders', orderRoutes);
+router.use('/financial', financialRoutes);
 
 export default router;
