@@ -104,7 +104,7 @@ class EmailMarketingController
 
         $this->model->update($id, $data);
         $_SESSION['flash_success'] = 'Campanha atualizada.';
-        header('Location: ?page=email_marketing&action=edit&id=' . $id);
+        header('Location: ?page=email_marketing');
     }
 
     public function delete()

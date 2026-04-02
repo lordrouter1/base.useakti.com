@@ -14,7 +14,7 @@ if ($isEdit && !empty($c['segment_filters'])) {
 $recipientType = !empty($segmentFilters['customer_ids']) ? 'selected' : 'all';
 ?>
 
-<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css" rel="stylesheet">
 
 <div class="container-fluid py-3">
 
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Carregar Summernote após jQuery (footer)
-    loadScript('https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js', function() {
+    loadScript('https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js', function() {
         loadScript('https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/lang/summernote-pt-BR.min.js', function() {
             $('#bodyHtml').summernote({
                 lang: 'pt-BR',
