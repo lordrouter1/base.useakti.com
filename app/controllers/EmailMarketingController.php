@@ -45,7 +45,7 @@ class EmailMarketingController
     public function store()
     {
         $data = [
-            'tenant_id'       => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id'       => $_SESSION['tenant']['id'] ?? 0,
             'template_id'     => Input::post('template_id', 'int', 0) ?: null,
             'name'            => Input::post('name', 'string', ''),
             'subject'         => Input::post('subject', 'string', ''),
@@ -114,7 +114,7 @@ class EmailMarketingController
     public function storeTemplate()
     {
         $data = [
-            'tenant_id'  => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id'  => $_SESSION['tenant']['id'] ?? 0,
             'name'       => Input::post('name', 'string', ''),
             'subject'    => Input::post('subject', 'string', ''),
             'body_html'  => Input::post('body_html', 'string', ''),
