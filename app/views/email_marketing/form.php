@@ -163,6 +163,9 @@ $recipientType = !empty($segmentFilters['customer_ids']) ? 'selected' : 'all';
                 <!-- Ações -->
                 <div class="d-grid gap-2">
                     <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Salvar Campanha</button>
+                    <?php if ($isEdit): ?>
+                    <button type="button" class="btn btn-outline-info" id="btnPreviewCampaign"><i class="fas fa-eye me-1"></i>Visualizar Preview</button>
+                    <?php endif; ?>
                     <a href="?page=email_marketing" class="btn btn-outline-secondary">Cancelar</a>
                 </div>
             </div>
@@ -171,6 +174,23 @@ $recipientType = !empty($segmentFilters['customer_ids']) ? 'selected' : 'all';
         <input type="hidden" name="segment_filters" id="segmentFiltersInput" value="">
     </form>
 </div>
+
+<?php if ($isEdit): ?>
+<!-- Modal Preview -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-eye me-1"></i>Preview da Campanha</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="previewFrame" style="width:100%;height:500px;border:none;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -239,6 +259,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                 });
             });
+
+            // Preview button (edit mode)
+            const btnPreview = document.getElementById('btnPreviewCampaign');
+            if (btnPreview) {
+                btnPreview.addEventListener('click', function() {
+                    const frame = document.getElementById('previewFrame');
+                    frame.src = '?page=email_marketing&action=previewCampaign&id=<?= (int) ($c['id'] ?? 0) ?>';
+                    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+                    modal.show();
+                });
+            }
         });
     });
 

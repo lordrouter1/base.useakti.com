@@ -999,6 +999,10 @@ return [
             'deleteTemplate'  => 'deleteTemplate',
             'getTemplateJson' => 'getTemplateJson',
             'searchCustomers' => 'searchCustomers',
+            'previewTemplate' => 'previewTemplate',
+            'previewCampaign' => 'previewCampaign',
+            'sendCampaign'    => 'sendCampaign',
+            'sendTest'        => 'sendTest',
         ],
     ],
 

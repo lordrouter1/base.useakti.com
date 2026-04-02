@@ -35,6 +35,7 @@
                         <small class="text-muted">Criado em <?= date('d/m/Y', strtotime($t['created_at'])) ?></small>
                     </div>
                     <div class="card-footer bg-transparent border-0 pt-0 d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-info btnPreviewTpl" data-id="<?= (int) $t['id'] ?>" title="Visualizar"><i class="fas fa-eye me-1"></i>Preview</button>
                         <a href="?page=email_marketing&action=editTemplate&id=<?= (int) $t['id'] ?>" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit me-1"></i>Editar</a>
                         <button class="btn btn-sm btn-outline-danger btnDeleteTpl" data-id="<?= (int) $t['id'] ?>"><i class="fas fa-trash me-1"></i>Excluir</button>
                     </div>
@@ -45,8 +46,35 @@
     </div>
 </div>
 
+<!-- Modal Preview -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-eye me-1"></i>Preview do Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="previewFrame" style="width:100%;height:500px;border:none;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Preview
+    document.querySelectorAll('.btnPreviewTpl').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const frame = document.getElementById('previewFrame');
+            frame.src = '?page=email_marketing&action=previewTemplate&id=' + id;
+            const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+            modal.show();
+        });
+    });
+
+    // Delete
     document.querySelectorAll('.btnDeleteTpl').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;

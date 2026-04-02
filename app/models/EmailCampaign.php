@@ -174,6 +174,16 @@ class EmailCampaign
             "SELECT status, COUNT(*) as count FROM email_logs WHERE campaign_id = :campaign_id GROUP BY status"
         );
         $stmt->execute([':campaign_id' => $campaignId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $stats = ['sent' => 0, 'opened' => 0, 'clicked' => 0, 'bounced' => 0, 'failed' => 0];
+        foreach ($rows as $row) {
+            $status = $row['status'];
+            $count = (int) $row['count'];
+            if (isset($stats[$status])) {
+                $stats[$status] = $count;
+            }
+        }
+        return $stats;
     }
 }

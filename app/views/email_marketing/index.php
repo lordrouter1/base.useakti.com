@@ -55,11 +55,12 @@
                                 ?>
                                 <span class="badge <?= $sBadges[$cs] ?? 'bg-secondary' ?>"><?= $sLabels[$cs] ?? $cs ?></span>
                             </td>
-                            <td><?= (int) ($c['sent_count'] ?? 0) ?></td>
-                            <td><?= (int) ($c['open_count'] ?? 0) ?></td>
-                            <td><?= (int) ($c['click_count'] ?? 0) ?></td>
+                            <td><?= (int) ($c['total_sent'] ?? 0) ?></td>
+                            <td><?= (int) ($c['total_opened'] ?? 0) ?></td>
+                            <td><?= (int) ($c['total_clicked'] ?? 0) ?></td>
                             <td style="font-size:.8rem;"><?= !empty($c['scheduled_at']) ? date('d/m/Y H:i', strtotime($c['scheduled_at'])) : '-' ?></td>
                             <td class="text-end">
+                                <button class="btn btn-sm btn-outline-info btnPreview" data-id="<?= (int) $c['id'] ?>" title="Preview"><i class="fas fa-eye"></i></button>
                                 <a href="?page=email_marketing&action=edit&id=<?= (int) $c['id'] ?>" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
                                 <button class="btn btn-sm btn-outline-danger btnDelete" data-id="<?= (int) $c['id'] ?>"><i class="fas fa-trash"></i></button>
                             </td>
@@ -73,8 +74,35 @@
     </div>
 </div>
 
+<!-- Modal Preview -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-eye me-1"></i>Preview da Campanha</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="previewFrame" style="width:100%;height:500px;border:none;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Preview
+    document.querySelectorAll('.btnPreview').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const frame = document.getElementById('previewFrame');
+            frame.src = '?page=email_marketing&action=previewCampaign&id=' + id;
+            const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+            modal.show();
+        });
+    });
+
+    // Delete
     document.querySelectorAll('.btnDelete').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;

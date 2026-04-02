@@ -225,4 +225,63 @@ class EmailMarketingController
         echo json_encode(['results' => $results]);
         exit;
     }
+
+    public function previewTemplate()
+    {
+        $id = Input::get('id', 'int', 0);
+        $template = $this->model->getTemplate($id);
+        if (!$template) {
+            http_response_code(404);
+            echo 'Template não encontrado.';
+            exit;
+        }
+
+        $html = $this->renderPreview($template['body_html'] ?? '', $template['subject'] ?? '');
+        echo $html;
+        exit;
+    }
+
+    public function previewCampaign()
+    {
+        $id = Input::get('id', 'int', 0);
+        $campaign = $this->model->readOne($id);
+        if (!$campaign) {
+            http_response_code(404);
+            echo 'Campanha não encontrada.';
+            exit;
+        }
+
+        $html = $this->renderPreview($campaign['body_html'] ?? '', $campaign['subject'] ?? '');
+        echo $html;
+        exit;
+    }
+
+    private function renderPreview(string $bodyHtml, string $subject): string
+    {
+        $sampleVars = [
+            '{{nome}}'      => 'João Silva',
+            '{{email}}'     => 'joao@email.com',
+            '{{telefone}}'  => '(11) 99999-0000',
+            '{{documento}}' => '123.456.789-00',
+            '{{cidade}}'    => 'São Paulo',
+            '{{estado}}'    => 'SP',
+            '{{empresa}}'   => $_SESSION['tenant']['company_name'] ?? 'Sua Empresa',
+        ];
+
+        $previewBody = str_replace(array_keys($sampleVars), array_values($sampleVars), $bodyHtml);
+        $previewSubject = str_replace(array_keys($sampleVars), array_values($sampleVars), $subject);
+
+        return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . htmlspecialchars($previewSubject, ENT_QUOTES, 'UTF-8') . '</title>'
+            . '<style>body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;background:#f5f5f5;}'
+            . '.email-wrapper{max-width:700px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;}'
+            . '.email-header{background:#4a90d9;color:#fff;padding:15px 20px;font-size:14px;}'
+            . '.email-body{padding:20px 25px;line-height:1.6;color:#333;}'
+            . '.preview-banner{background:#fff3cd;color:#856404;text-align:center;padding:8px;font-size:12px;border-bottom:1px solid #ffc107;}'
+            . '</style></head><body>'
+            . '<div class="preview-banner"><strong>PREVIEW</strong> — Variáveis substituídas por dados de exemplo</div>'
+            . '<div class="email-wrapper">'
+            . '<div class="email-header"><strong>Assunto:</strong> ' . htmlspecialchars($previewSubject, ENT_QUOTES, 'UTF-8') . '</div>'
+            . '<div class="email-body">' . $previewBody . '</div>'
+            . '</div></body></html>';
+    }
 }

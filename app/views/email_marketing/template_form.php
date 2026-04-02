@@ -92,12 +92,32 @@ if ($isEdit && !empty($t['variables'])) {
                 <!-- Ações -->
                 <div class="d-grid gap-2">
                     <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Salvar Template</button>
+                    <?php if ($isEdit): ?>
+                    <button type="button" class="btn btn-outline-info" id="btnPreviewTpl"><i class="fas fa-eye me-1"></i>Visualizar Preview</button>
+                    <?php endif; ?>
                     <a href="?page=email_marketing&action=templates" class="btn btn-outline-secondary">Cancelar</a>
                 </div>
             </div>
         </div>
     </form>
 </div>
+
+<?php if ($isEdit): ?>
+<!-- Modal Preview -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-eye me-1"></i>Preview do Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="previewFrame" style="width:100%;height:500px;border:none;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -135,6 +155,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     $('#bodyHtml').summernote('editor.insertText', tag);
                 });
             });
+
+            // Preview button (edit mode)
+            const btnPreview = document.getElementById('btnPreviewTpl');
+            if (btnPreview) {
+                btnPreview.addEventListener('click', function() {
+                    const frame = document.getElementById('previewFrame');
+                    frame.src = '?page=email_marketing&action=previewTemplate&id=<?= (int) ($t['id'] ?? 0) ?>';
+                    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+                    modal.show();
+                });
+            }
         });
     });
 });
