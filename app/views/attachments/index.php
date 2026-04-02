@@ -160,6 +160,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     return { results: data.results || [] };
                 },
                 cache: true
+            },
+            templateResult: function(item) {
+                if (item.loading) return item.text;
+                if ((type === 'order' || type === 'quote') && item.text) {
+                    const parts = item.text.split(' - ', 2);
+                    if (parts.length === 2) {
+                        const $el = $('<span>').append(
+                            $('<strong>').text(parts[0]),
+                            $('<small>').addClass('text-muted ms-1').text(parts[1])
+                        );
+                        return $el;
+                    }
+                }
+                return item.text;
+            },
+            templateSelection: function(item) {
+                return item.text || item.id;
             }
         });
     }

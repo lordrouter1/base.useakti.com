@@ -169,70 +169,99 @@ class AttachmentController
 
         switch ($type) {
             case 'order':
-                $sql = "SELECT id, CONCAT('#', id, ' - ', COALESCE(status, '')) AS text
-                        FROM orders
-                        WHERE (CAST(id AS CHAR) LIKE :term OR status LIKE :term2)
-                        ORDER BY id DESC LIMIT :lim";
+                $where = "WHERE o.status NOT IN ('concluido', 'cancelado')";
+                if ($term !== '') {
+                    $where .= " AND (CAST(o.id AS CHAR) LIKE :term OR c.name LIKE :term2 OR o.pipeline_stage LIKE :term3)";
+                }
+                $sql = "SELECT o.id, CONCAT('#', o.id, '(', COALESCE(o.pipeline_stage, ''), ') - ', COALESCE(c.name, '')) AS text
+                        FROM orders o
+                        LEFT JOIN customers c ON c.id = o.customer_id
+                        {$where}
+                        ORDER BY o.id DESC LIMIT :lim";
                 $stmt = $this->db->prepare($sql);
-                $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
-                $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                if ($term !== '') {
+                    $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
+                    $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                    $stmt->bindValue(':term3', "%{$term}%", PDO::PARAM_STR);
+                }
                 $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 break;
 
             case 'customer':
+                $where = "WHERE deleted_at IS NULL AND status = 'active'";
+                if ($term !== '') {
+                    $where .= " AND (name LIKE :term OR CAST(id AS CHAR) LIKE :term2)";
+                }
                 $sql = "SELECT id, name AS text
                         FROM customers
-                        WHERE deleted_at IS NULL AND status = 'active'
-                          AND (name LIKE :term OR CAST(id AS CHAR) LIKE :term2)
-                        ORDER BY name ASC LIMIT :lim";
+                        {$where}
+                        ORDER BY id DESC LIMIT :lim";
                 $stmt = $this->db->prepare($sql);
-                $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
-                $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                if ($term !== '') {
+                    $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
+                    $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                }
                 $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 break;
 
             case 'product':
+                $where = "";
+                if ($term !== '') {
+                    $where = "WHERE (name LIKE :term OR sku LIKE :term2 OR CAST(id AS CHAR) LIKE :term3)";
+                }
                 $sql = "SELECT id, CONCAT(name, ' (', COALESCE(sku, '-'), ')') AS text
                         FROM products
-                        WHERE (name LIKE :term OR sku LIKE :term2 OR CAST(id AS CHAR) LIKE :term3)
-                        ORDER BY name ASC LIMIT :lim";
+                        {$where}
+                        ORDER BY id DESC LIMIT :lim";
                 $stmt = $this->db->prepare($sql);
-                $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
-                $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
-                $stmt->bindValue(':term3', "%{$term}%", PDO::PARAM_STR);
+                if ($term !== '') {
+                    $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
+                    $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                    $stmt->bindValue(':term3', "%{$term}%", PDO::PARAM_STR);
+                }
                 $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 break;
 
             case 'supplier':
+                $where = "WHERE deleted_at IS NULL AND status = 'active'";
+                if ($term !== '') {
+                    $where .= " AND (company_name LIKE :term OR CAST(id AS CHAR) LIKE :term2)";
+                }
                 $sql = "SELECT id, company_name AS text
                         FROM suppliers
-                        WHERE deleted_at IS NULL AND status = 'active'
-                          AND (company_name LIKE :term OR CAST(id AS CHAR) LIKE :term2)
-                        ORDER BY company_name ASC LIMIT :lim";
+                        {$where}
+                        ORDER BY id DESC LIMIT :lim";
                 $stmt = $this->db->prepare($sql);
-                $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
-                $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                if ($term !== '') {
+                    $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
+                    $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                }
                 $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 break;
 
             case 'quote':
-                $sql = "SELECT id, CONCAT('#', id, ' - ', COALESCE(status, '')) AS text
-                        FROM quotes
-                        WHERE deleted_at IS NULL
-                          AND status IN ('draft', 'sent', 'approved')
-                          AND (CAST(id AS CHAR) LIKE :term OR status LIKE :term2)
-                        ORDER BY id DESC LIMIT :lim";
+                $where = "WHERE q.deleted_at IS NULL AND q.status NOT IN ('converted', 'rejected', 'expired')";
+                if ($term !== '') {
+                    $where .= " AND (CAST(q.id AS CHAR) LIKE :term OR c.name LIKE :term2)";
+                }
+                $sql = "SELECT q.id, CONCAT('#', q.id, ' - ', COALESCE(c.name, '')) AS text
+                        FROM quotes q
+                        LEFT JOIN customers c ON c.id = q.customer_id
+                        {$where}
+                        ORDER BY q.id DESC LIMIT :lim";
                 $stmt = $this->db->prepare($sql);
-                $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
-                $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                if ($term !== '') {
+                    $stmt->bindValue(':term', "%{$term}%", PDO::PARAM_STR);
+                    $stmt->bindValue(':term2', "%{$term}%", PDO::PARAM_STR);
+                }
                 $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
