@@ -1,3 +1,4 @@
+<?php date_default_timezone_set('America/Sao_Paulo'); ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
