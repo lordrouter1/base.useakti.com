@@ -33,7 +33,8 @@ if (empty($breadcrumb)) {
         'users'       => ['Início', 'Admin', 'Usuários'],
         'profile'     => ['Início', 'Meu Perfil'],
         'nfe'         => ['Início', 'Fiscal', 'NF-e'],
-        'sectors'     => ['Início', 'Produção', 'Setores'],
+        'sectors'         => ['Início', 'Produção', 'Setores'],
+        'email_marketing' => ['Início', 'Marketing', 'E-mail Marketing'],
     ];
 
     $breadcrumb = $__breadcrumbMap[$__page] ?? ['Início', ucfirst($__page)];
@@ -73,7 +74,9 @@ $__linkMap = [
     'Configurações'=> '?page=settings',
     'Usuários'     => '?page=users',
     'NF-e'         => '?page=nfe',
-    'Setores'      => '?page=sectors',
+    'Setores'          => '?page=sectors',
+    'Marketing'        => '#',
+    'E-mail Marketing' => '?page=email_marketing',
 ];
 ?>
 

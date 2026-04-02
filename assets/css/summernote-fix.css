@@ -1,0 +1,20 @@
+/**
+ * Summernote Icon Font Override
+ * Forces local font loading to avoid CDN/CORS issues
+ */
+@font-face {
+    font-display: swap;
+    font-family: "summernote";
+    font-style: normal;
+    font-weight: 400;
+    src: url("../fonts/summernote/summernote.eot");
+    src: url("../fonts/summernote/summernote.eot?#iefix") format("embedded-opentype"),
+         url("../fonts/summernote/summernote.woff2") format("woff2"),
+         url("../fonts/summernote/summernote.woff") format("woff"),
+         url("../fonts/summernote/summernote.ttf") format("truetype");
+}
+
+[class^="note-icon"]:before,
+[class*=" note-icon"]:before {
+    font-family: "summernote" !important;
+}

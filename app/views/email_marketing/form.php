@@ -15,6 +15,7 @@ $recipientType = !empty($segmentFilters['customer_ids']) ? 'selected' : 'all';
 ?>
 
 <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css" rel="stylesheet">
+<link rel="stylesheet" href="<?= asset('assets/css/summernote-fix.css') ?>">
 
 <div class="container-fluid py-3">
 
@@ -350,13 +351,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelButtonText: 'Cancelar',
                 showLoaderOnConfirm: true,
                 preConfirm: (email) => {
-                    return fetch('?page=email_marketing&action=sendTest&id=<?= (int) ($c['id'] ?? 0) ?>&email=' + encodeURIComponent(email))
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000);
+                    return fetch('?page=email_marketing&action=sendTest&id=<?= (int) ($c['id'] ?? 0) ?>&email=' + encodeURIComponent(email), { signal: controller.signal })
                         .then(r => r.json())
                         .then(data => {
+                            clearTimeout(timeoutId);
                             if (!data.success) throw new Error(data.error || 'Erro ao enviar.');
                             return data;
                         })
-                        .catch(err => Swal.showValidationMessage(err.message));
+                        .catch(err => {
+                            clearTimeout(timeoutId);
+                            if (err.name === 'AbortError') {
+                                Swal.showValidationMessage('Tempo esgotado. Verifique as configurações SMTP em .env (MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD).');
+                            } else {
+                                Swal.showValidationMessage(err.message);
+                            }
+                        });
                 },
                 allowOutsideClick: () => !Swal.isLoading()
             }).then(result => {
@@ -381,13 +392,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelButtonText: 'Cancelar',
                 showLoaderOnConfirm: true,
                 preConfirm: () => {
-                    return fetch('?page=email_marketing&action=sendCampaign&id=<?= (int) ($c['id'] ?? 0) ?>')
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 60000);
+                    return fetch('?page=email_marketing&action=sendCampaign&id=<?= (int) ($c['id'] ?? 0) ?>', { signal: controller.signal })
                         .then(r => r.json())
                         .then(data => {
+                            clearTimeout(timeoutId);
                             if (!data.success) throw new Error(data.error || 'Erro ao enviar campanha.');
                             return data;
                         })
-                        .catch(err => Swal.showValidationMessage(err.message));
+                        .catch(err => {
+                            clearTimeout(timeoutId);
+                            if (err.name === 'AbortError') {
+                                Swal.showValidationMessage('Tempo esgotado. Verifique as configurações SMTP.');
+                            } else {
+                                Swal.showValidationMessage(err.message);
+                            }
+                        });
                 },
                 allowOutsideClick: () => !Swal.isLoading()
             }).then(result => {

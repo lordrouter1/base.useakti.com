@@ -14,6 +14,7 @@ if ($isEdit && !empty($t['variables'])) {
 ?>
 
 <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css" rel="stylesheet">
+<link rel="stylesheet" href="<?= asset('assets/css/summernote-fix.css') ?>">
 
 <div class="container-fluid py-3">
 

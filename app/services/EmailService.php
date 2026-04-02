@@ -23,9 +23,8 @@ class EmailService
      */
     public function send(string $toEmail, string $toName, string $subject, string $bodyHtml): array
     {
-        $mail = $this->createMailer();
-
         try {
+            $mail = $this->createMailer();
             $mail->addAddress($toEmail, $toName);
             $mail->Subject = $subject;
             $mail->Body = $bodyHtml;
@@ -34,7 +33,9 @@ class EmailService
 
             return ['success' => true];
         } catch (PHPMailerException $e) {
-            return ['success' => false, 'error' => $mail->ErrorInfo];
+            return ['success' => false, 'error' => $e->getMessage()];
+        } catch (\Exception $e) {
+            return ['success' => false, 'error' => 'Falha na conexão SMTP: ' . $e->getMessage()];
         }
     }
 
@@ -294,6 +295,8 @@ class EmailService
         $mail = new PHPMailer(true);
         $mail->isSMTP();
         $mail->CharSet = 'UTF-8';
+        $mail->Timeout = 10;
+        $mail->SMTPDebug = 0;
         $mail->Host = $this->config['host'];
         $mail->Port = $this->config['port'];
 
