@@ -57,7 +57,7 @@ class EmailMarketingController
 
         $id = $this->model->create($data);
         $_SESSION['flash_success'] = 'Campanha criada com sucesso.';
-        header('Location: ?page=email_marketing&action=edit&id=' . $id);
+        header('Location: ?page=email_marketing');
     }
 
     public function edit()
