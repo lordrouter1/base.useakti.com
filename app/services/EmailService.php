@@ -33,10 +33,54 @@ class EmailService
 
             return ['success' => true];
         } catch (PHPMailerException $e) {
-            return ['success' => false, 'error' => $e->getMessage()];
+            return ['success' => false, 'error' => $this->diagnoseSmtpError($e->getMessage())];
         } catch (\Exception $e) {
-            return ['success' => false, 'error' => 'Falha na conexão SMTP: ' . $e->getMessage()];
+            return ['success' => false, 'error' => $this->diagnoseSmtpError($e->getMessage())];
         }
+    }
+
+    /**
+     * Diagnose SMTP errors and return user-friendly messages
+     */
+    private function diagnoseSmtpError(string $rawError): string
+    {
+        $lower = mb_strtolower($rawError);
+        $host = $this->config['host'] ?? 'localhost';
+        $port = $this->config['port'] ?? 587;
+
+        // Authentication failure
+        if (str_contains($lower, 'authentication') || str_contains($lower, '535')
+            || str_contains($lower, 'credentials') || str_contains($lower, 'username and password')
+            || str_contains($lower, 'auth') && str_contains($lower, 'fail')) {
+            return "Falha na autenticação SMTP: usuário ou senha incorretos. Verifique MAIL_USERNAME e MAIL_PASSWORD no arquivo .env.";
+        }
+
+        // Connection refused / timed out
+        if (str_contains($lower, 'connection refused') || str_contains($lower, 'could not connect')
+            || str_contains($lower, 'connection timed out') || str_contains($lower, 'failed to connect')
+            || str_contains($lower, 'errno=10061') || str_contains($lower, 'errno=110')) {
+            return "Não foi possível conectar ao servidor SMTP ({$host}:{$port}). Verifique MAIL_HOST e MAIL_PORT no arquivo .env.";
+        }
+
+        // TLS/SSL errors
+        if (str_contains($lower, 'starttls') || str_contains($lower, 'ssl')
+            || str_contains($lower, 'crypto') || str_contains($lower, 'certificate')) {
+            return "Erro de criptografia ao conectar ao SMTP ({$host}:{$port}). Verifique MAIL_ENCRYPTION no .env (tls, ssl ou vazio).";
+        }
+
+        // DNS resolution
+        if (str_contains($lower, 'getaddrinfo') || str_contains($lower, 'name or service not known')
+            || str_contains($lower, 'no such host')) {
+            return "Servidor SMTP não encontrado ({$host}). Verifique se MAIL_HOST está correto no .env.";
+        }
+
+        // From address rejected
+        if (str_contains($lower, 'sender') || str_contains($lower, 'from address')
+            || str_contains($lower, '550') || str_contains($lower, '553')) {
+            return "O servidor SMTP rejeitou o remetente. Verifique MAIL_FROM_EMAIL no .env.";
+        }
+
+        return "Erro SMTP: {$rawError}";
     }
 
     /**
