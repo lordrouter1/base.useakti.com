@@ -2,6 +2,7 @@
 
 namespace Akti\Services;
 
+use Akti\Controllers\EmailTrackingController;
 use PDO;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
@@ -67,15 +68,21 @@ class EmailService
             $personalizedBody = $this->replaceVariables($campaign['body_html'], $recipient, $tenantId);
             $personalizedSubject = $this->replaceVariables($campaign['subject'], $recipient, $tenantId);
 
+            // Create log first to get ID for tracking
+            $logId = $this->createLog($campaignId, $tenantId, $recipient, 'pending', null);
+
+            // Inject tracking pixel and wrap links
+            $trackedBody = $this->injectTracking($personalizedBody, $logId);
+
             $result = $this->send(
                 $recipient['email'],
                 $recipient['name'],
                 $personalizedSubject,
-                $personalizedBody
+                $trackedBody
             );
 
             $logStatus = $result['success'] ? 'sent' : 'failed';
-            $this->createLog($campaignId, $tenantId, $recipient, $logStatus, $result['error'] ?? null);
+            $this->updateLogStatus($logId, $logStatus, $result['error'] ?? null);
 
             if ($result['success']) {
                 $sentCount++;
@@ -215,7 +222,7 @@ class EmailService
         ]);
     }
 
-    private function createLog(int $campaignId, int $tenantId, array $recipient, string $status, ?string $error): void
+    private function createLog(int $campaignId, int $tenantId, array $recipient, string $status, ?string $error): int
     {
         $stmt = $this->db->prepare(
             "INSERT INTO email_logs (tenant_id, campaign_id, recipient_email, recipient_name, customer_id, status, error_message, created_at)
@@ -230,6 +237,56 @@ class EmailService
             ':status'      => $status,
             ':error'       => $error,
         ]);
+        return (int) $this->db->lastInsertId();
+    }
+
+    private function updateLogStatus(int $logId, string $status, ?string $error): void
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE email_logs SET status = :status, error_message = :error WHERE id = :id"
+        );
+        $stmt->execute([':status' => $status, ':error' => $error, ':id' => $logId]);
+    }
+
+    /**
+     * Inject tracking pixel and wrap links for click tracking
+     */
+    private function injectTracking(string $html, int $logId): string
+    {
+        $hash = EmailTrackingController::generateHash($logId);
+        $baseUrl = $this->getBaseUrl();
+
+        // Wrap <a href="..."> links for click tracking
+        $html = preg_replace_callback(
+            '/<a\s([^>]*?)href=["\']((https?:\/\/[^"\']*))["\']([^>]*)>/i',
+            function ($matches) use ($logId, $hash, $baseUrl) {
+                $before = $matches[1];
+                $originalUrl = $matches[2];
+                $after = $matches[4];
+                $trackUrl = $baseUrl . '?page=email_track&action=click&lid=' . $logId . '&h=' . $hash . '&url=' . urlencode($originalUrl);
+                return '<a ' . $before . 'href="' . $trackUrl . '"' . $after . '>';
+            },
+            $html
+        );
+
+        // Append tracking pixel before </body> or at end
+        $pixelUrl = $baseUrl . '?page=email_track&action=open&lid=' . $logId . '&h=' . $hash;
+        $pixel = '<img src="' . htmlspecialchars($pixelUrl, ENT_QUOTES, 'UTF-8') . '" width="1" height="1" alt="" style="display:none;border:0;" />';
+
+        if (stripos($html, '</body>') !== false) {
+            $html = str_ireplace('</body>', $pixel . '</body>', $html);
+        } else {
+            $html .= $pixel;
+        }
+
+        return $html;
+    }
+
+    private function getBaseUrl(): string
+    {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        return $scheme . '://' . $host . '/';
     }
 
     private function createMailer(): PHPMailer

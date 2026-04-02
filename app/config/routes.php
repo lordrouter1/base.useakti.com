@@ -1006,6 +1006,18 @@ return [
         ],
     ],
 
+    // ── Tracking de E-mail (público — sem autenticação) ──────
+    'email_track' => [
+        'controller'     => 'EmailTrackingController',
+        'default_action' => 'open',
+        'public'         => true,
+        'before_auth'    => true,
+        'actions'        => [
+            'open'  => 'open',
+            'click' => 'click',
+        ],
+    ],
+
     // ══════════════════════════════════════════════════════════
     // FEAT-017 — Controle de Qualidade
     // ══════════════════════════════════════════════════════════

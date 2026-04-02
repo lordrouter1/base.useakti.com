@@ -56,6 +56,11 @@ class EmailMarketingController
             'created_by'      => $_SESSION['user_id'] ?? null,
         ];
 
+        // Auto-set status to scheduled if date is set
+        if (!empty($data['scheduled_at'])) {
+            $data['status'] = 'scheduled';
+        }
+
         $id = $this->model->create($data);
         $_SESSION['flash_success'] = 'Campanha criada com sucesso.';
         header('Location: ?page=email_marketing');
@@ -89,6 +94,13 @@ class EmailMarketingController
             'scheduled_at'    => Input::post('scheduled_at', 'string', '') ?: null,
             'segment_filters' => json_decode(Input::post('segment_filters', 'string', '{}'), true) ?: [],
         ];
+
+        // Auto-set status based on scheduled_at
+        if (!empty($data['scheduled_at']) && $data['status'] === 'draft') {
+            $data['status'] = 'scheduled';
+        } elseif (empty($data['scheduled_at']) && $data['status'] === 'scheduled') {
+            $data['status'] = 'draft';
+        }
 
         $this->model->update($id, $data);
         $_SESSION['flash_success'] = 'Campanha atualizada.';

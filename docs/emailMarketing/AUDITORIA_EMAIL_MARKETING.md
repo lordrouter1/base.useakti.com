@@ -165,8 +165,8 @@ Baseado na tabela `customers`, as variáveis que devem estar disponíveis para s
 
 7. ~~Preview do e-mail renderizado (iframe)~~ ✅ Implementado
 8. ~~Motor de envio via PHPMailer/SMTP~~ ✅ Implementado
-9. Rastreamento de aberturas e cliques (tracking pixel + redirect)
-10. Agendamento via cron job
+9. ~~Rastreamento de aberturas e cliques (tracking pixel + redirect)~~ ✅ Implementado
+10. ~~Agendamento via cron job~~ ✅ Implementado
 
 ---
 
@@ -263,9 +263,11 @@ Cada variável é um botão clicável que insere o texto no cursor do Summernote
 | `app/views/email_marketing/template_form.php` | **NOVO** — Página dedicada com Summernote + variáveis + preview |
 | `app/views/email_marketing/form.php` | Summernote, preenchimento por template, seleção de destinatários, preview, envio teste, envio campanha |
 | `app/views/email_marketing/index.php` | Preview, envio direto, correção `total_sent`/`total_opened`/`total_clicked` |
-| `app/config/routes.php` | Novas actions: createTemplate, editTemplate, updateTemplate, deleteTemplate, getTemplateJson, searchCustomers, previewTemplate, previewCampaign, sendCampaign, sendTest |
+| `app/config/routes.php` | Novas actions: createTemplate, editTemplate, updateTemplate, deleteTemplate, getTemplateJson, searchCustomers, previewTemplate, previewCampaign, sendCampaign, sendTest + rota pública email_track (open, click) |
 | `app/config/mail.php` | **NOVO** — Configuração SMTP via env vars |
-| `app/services/EmailService.php` | **NOVO** — Serviço de envio de e-mails (PHPMailer), substituição de variáveis, logs |
+| `app/services/EmailService.php` | **NOVO** — Serviço de envio de e-mails (PHPMailer), substituição de variáveis, logs, tracking pixel/link |
+| `app/controllers/EmailTrackingController.php` | **NOVO** — Tracking de aberturas (pixel 1x1) e cliques (redirect com HMAC) |
+| `scripts/email_cron.php` | **NOVO** — Cron job para envio de campanhas agendadas |
 | `composer.json` | Adicionado `phpmailer/phpmailer ^6.9` |
 | `.env.example` | Variáveis de e-mail: MAIL_HOST, MAIL_PORT, MAIL_USERNAME, etc. |
 
@@ -279,4 +281,29 @@ email_marketing:
   + deleteTemplate  → GET  → Excluir template (com confirmação)
   + getTemplateJson → GET  → AJAX: retorna template em JSON
   + searchCustomers → GET  → AJAX: busca clientes para Select2
+  + previewTemplate → GET  → Renderiza preview do template
+  + previewCampaign → GET  → Renderiza preview da campanha
+  + sendCampaign    → GET  → Dispara envio da campanha
+  + sendTest        → GET  → Envia e-mail de teste
+
+email_track (público, sem autenticação):
+  + open  → GET  → Tracking pixel (1x1 GIF) — registra abertura
+  + click → GET  → Tracking de clique — registra e redireciona
+```
+
+### Cron Job
+
+Script: `scripts/email_cron.php`
+
+Processa campanhas com `status = 'scheduled'` e `scheduled_at <= NOW()`.
+
+**Configuração:**
+```bash
+# Linux (crontab)
+* * * * * php /path/to/scripts/email_cron.php >> /path/to/storage/logs/email_cron.log 2>&1
+
+# Windows (Task Scheduler)
+# Ação: php.exe
+# Argumentos: D:\path\to\scripts\email_cron.php
+# Disparar: A cada 1 minuto
 ```
