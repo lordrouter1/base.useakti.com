@@ -6,7 +6,15 @@
  */
 $isEdit = !empty($campaign);
 $c = $campaign ?? [];
+$segmentFilters = [];
+if ($isEdit && !empty($c['segment_filters'])) {
+    $decoded = is_string($c['segment_filters']) ? json_decode($c['segment_filters'], true) : $c['segment_filters'];
+    $segmentFilters = is_array($decoded) ? $decoded : [];
+}
+$recipientType = !empty($segmentFilters['customer_ids']) ? 'selected' : 'all';
 ?>
+
+<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css" rel="stylesheet">
 
 <div class="container-fluid py-3">
 
@@ -54,47 +62,225 @@ $c = $campaign ?? [];
     </div>
     <?php endif; ?>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body">
-            <form method="post" action="?page=email_marketing&action=<?= $isEdit ? 'update' : 'store' ?>">
-                <?= csrf_field() ?>
-                <?php if ($isEdit): ?>
-                    <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
-                <?php endif; ?>
+    <form method="post" action="?page=email_marketing&action=<?= $isEdit ? 'update' : 'store' ?>">
+        <?= csrf_field() ?>
+        <?php if ($isEdit): ?>
+            <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
+        <?php endif; ?>
 
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Nome da Campanha <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control" value="<?= eAttr($c['name'] ?? '') ?>" required>
+        <div class="row g-4">
+            <!-- Coluna Principal -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Nome da Campanha <span class="text-danger">*</span></label>
+                                <input type="text" name="name" class="form-control" value="<?= eAttr($c['name'] ?? '') ?>" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Template</label>
+                                <select name="template_id" id="templateSelect" class="form-select">
+                                    <option value="">Sem template</option>
+                                    <?php foreach ($templates ?? [] as $t): ?>
+                                    <option value="<?= (int) $t['id'] ?>" <?= ($c['template_id'] ?? 0) == $t['id'] ? 'selected' : '' ?>><?= e($t['name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Agendamento</label>
+                                <input type="datetime-local" name="scheduled_at" class="form-control" value="<?= eAttr($c['scheduled_at'] ?? '') ?>">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Assunto <span class="text-danger">*</span></label>
+                                <input type="text" name="subject" id="subjectField" class="form-control" value="<?= eAttr($c['subject'] ?? '') ?>" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Conteúdo HTML</label>
+                                <textarea name="body_html" id="bodyHtml" class="form-control"><?= e($c['body_html'] ?? '') ?></textarea>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Template</label>
-                        <select name="template_id" class="form-select">
-                            <option value="">Nenhum</option>
-                            <?php foreach ($templates ?? [] as $t): ?>
-                            <option value="<?= (int) $t['id'] ?>" <?= ($c['template_id'] ?? 0) == $t['id'] ? 'selected' : '' ?>><?= e($t['name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                </div>
+            </div>
+
+            <!-- Coluna Lateral -->
+            <div class="col-lg-4">
+                <!-- Variáveis -->
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white fw-bold">
+                        <i class="fas fa-code me-1 text-primary"></i>Variáveis
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Agendamento</label>
-                        <input type="datetime-local" name="scheduled_at" class="form-control" value="<?= eAttr($c['scheduled_at'] ?? '') ?>">
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-bold">Assunto <span class="text-danger">*</span></label>
-                        <input type="text" name="subject" class="form-control" value="<?= eAttr($c['subject'] ?? '') ?>" required>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-bold">Conteúdo HTML</label>
-                        <textarea name="body_html" class="form-control" rows="10"><?= e($c['body_html'] ?? '') ?></textarea>
+                    <div class="card-body">
+                        <p class="text-muted small mb-2">Clique para inserir no editor.</p>
+                        <div class="d-flex flex-wrap gap-1" id="variableButtons">
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{nome}}"><i class="fas fa-user me-1"></i>{{nome}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{email}}"><i class="fas fa-envelope me-1"></i>{{email}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{telefone}}"><i class="fas fa-phone me-1"></i>{{telefone}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{documento}}"><i class="fas fa-id-card me-1"></i>{{documento}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{cidade}}"><i class="fas fa-map-marker-alt me-1"></i>{{cidade}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{estado}}"><i class="fas fa-map me-1"></i>{{estado}}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary var-btn" data-var="{{empresa}}"><i class="fas fa-building me-1"></i>{{empresa}}</button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Salvar</button>
-                    <a href="?page=email_marketing" class="btn btn-outline-secondary ms-2">Cancelar</a>
+                <!-- Destinatários -->
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white fw-bold">
+                        <i class="fas fa-users me-1 text-success"></i>Destinatários
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="recipient_type" id="recipientAll" value="all" <?= $recipientType === 'all' ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="recipientAll">
+                                <i class="fas fa-globe me-1"></i>Todos os clientes ativos
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="recipient_type" id="recipientSelected" value="selected" <?= $recipientType === 'selected' ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="recipientSelected">
+                                <i class="fas fa-user-check me-1"></i>Selecionar clientes
+                            </label>
+                        </div>
+                        <div id="customerSelectGroup" class="mt-2 <?= $recipientType === 'selected' ? '' : 'd-none' ?>">
+                            <select name="customer_ids[]" id="customerSelect" class="form-select form-select-sm" multiple style="width:100%;">
+                                <?php if (!empty($segmentFilters['customer_ids'])): ?>
+                                    <?php foreach ($segmentFilters['customer_ids'] as $cid): ?>
+                                    <option value="<?= (int) $cid['id'] ?>" selected><?= e($cid['text'] ?? "Cliente #{$cid['id']}") ?></option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-            </form>
+
+                <!-- Ações -->
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Salvar Campanha</button>
+                    <a href="?page=email_marketing" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </div>
         </div>
-    </div>
+
+        <input type="hidden" name="segment_filters" id="segmentFiltersInput" value="">
+    </form>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/lang/summernote-pt-BR.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Summernote
+    $('#bodyHtml').summernote({
+        lang: 'pt-BR',
+        height: 400,
+        toolbar: [
+            ['style', ['style']],
+            ['font', ['bold', 'italic', 'underline', 'strikethrough', 'clear']],
+            ['fontname', ['fontname']],
+            ['fontsize', ['fontsize']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph']],
+            ['table', ['table']],
+            ['insert', ['link', 'picture', 'hr']],
+            ['view', ['fullscreen', 'codeview', 'help']]
+        ],
+        placeholder: 'Escreva o conteúdo do e-mail aqui...'
+    });
+
+    // Variáveis clicáveis
+    document.querySelectorAll('.var-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tag = this.dataset.var;
+            $('#bodyHtml').summernote('editor.insertText', tag);
+        });
+    });
+
+    // Template auto-fill
+    const templateSelect = document.getElementById('templateSelect');
+    templateSelect.addEventListener('change', function() {
+        const tplId = this.value;
+        if (!tplId) return;
+
+        Swal.fire({
+            title: 'Carregar template?',
+            text: 'O assunto e conteúdo serão substituídos pelo modelo do template selecionado.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sim, carregar',
+            cancelButtonText: 'Não'
+        }).then(result => {
+            if (!result.isConfirmed) return;
+
+            fetch('?page=email_marketing&action=getTemplateJson&id=' + tplId)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('subjectField').value = data.subject || '';
+                        $('#bodyHtml').summernote('code', data.body_html || '');
+
+                        if (typeof AktiToast !== 'undefined') {
+                            AktiToast.success('Template carregado!');
+                        }
+                    }
+                });
+        });
+    });
+
+    // Destinatários — toggle Select2
+    const $customerSelect = $('#customerSelect');
+    const customerGroup = document.getElementById('customerSelectGroup');
+
+    function initCustomerSelect2() {
+        if ($customerSelect.hasClass('select2-hidden-accessible')) return;
+        $customerSelect.select2({
+            placeholder: 'Pesquisar clientes...',
+            allowClear: true,
+            minimumInputLength: 0,
+            ajax: {
+                url: '?page=email_marketing&action=searchCustomers',
+                dataType: 'json',
+                delay: 300,
+                data: function(params) {
+                    return { term: params.term || '' };
+                },
+                processResults: function(data) {
+                    return { results: data.results || [] };
+                },
+                cache: true
+            }
+        });
+    }
+
+    document.querySelectorAll('input[name="recipient_type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'selected') {
+                customerGroup.classList.remove('d-none');
+                initCustomerSelect2();
+            } else {
+                customerGroup.classList.add('d-none');
+            }
+        });
+    });
+
+    // Init Select2 if pre-selected
+    if (document.getElementById('recipientSelected').checked) {
+        initCustomerSelect2();
+    }
+
+    // Before submit — build segment_filters JSON
+    document.querySelector('form').addEventListener('submit', function() {
+        const recipientType = document.querySelector('input[name="recipient_type"]:checked')?.value || 'all';
+        const filters = { type: recipientType };
+
+        if (recipientType === 'selected') {
+            const selectedData = $customerSelect.select2('data') || [];
+            filters.customer_ids = selectedData.map(item => ({ id: parseInt(item.id), text: item.text }));
+        }
+
+        document.getElementById('segmentFiltersInput').value = JSON.stringify(filters);
+    });
+});
+</script>

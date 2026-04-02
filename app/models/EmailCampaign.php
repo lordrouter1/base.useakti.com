@@ -139,6 +139,24 @@ class EmailCampaign
         return $stmt->execute([':id' => $id]);
     }
 
+    public function updateTemplate(int $id, array $data): bool
+    {
+        $stmt = $this->conn->prepare(
+            "UPDATE email_templates SET
+                name = :name, subject = :subject, body_html = :body_html,
+                body_text = :body_text, variables = :variables
+             WHERE id = :id"
+        );
+        return $stmt->execute([
+            ':id'        => $id,
+            ':name'      => $data['name'],
+            ':subject'   => $data['subject'],
+            ':body_html' => $data['body_html'],
+            ':body_text' => $data['body_text'] ?? null,
+            ':variables' => json_encode($data['variables'] ?? []),
+        ]);
+    }
+
     // ──── Logs ────
 
     public function getLogs(int $campaignId): array

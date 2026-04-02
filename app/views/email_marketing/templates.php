@@ -6,6 +6,10 @@
  */
 ?>
 
+<?php if (!empty($_SESSION['flash_success'])): ?>
+<script>document.addEventListener('DOMContentLoaded',()=>{if(typeof AktiToast!=='undefined')AktiToast.success('<?= addslashes($_SESSION['flash_success']) ?>');});</script>
+<?php unset($_SESSION['flash_success']); endif; ?>
+
 <div class="container-fluid py-3">
 
     <div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-2 mb-4 border-bottom">
@@ -14,7 +18,7 @@
         </div>
         <div class="btn-toolbar gap-2">
             <a href="?page=email_marketing" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Campanhas</a>
-            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newTemplateModal"><i class="fas fa-plus me-1"></i>Novo Template</button>
+            <a href="?page=email_marketing&action=createTemplate" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Novo Template</a>
         </div>
     </div>
 
@@ -30,6 +34,10 @@
                         <p class="text-muted small mb-1">Assunto: <?= e($t['subject'] ?? '-') ?></p>
                         <small class="text-muted">Criado em <?= date('d/m/Y', strtotime($t['created_at'])) ?></small>
                     </div>
+                    <div class="card-footer bg-transparent border-0 pt-0 d-flex gap-2">
+                        <a href="?page=email_marketing&action=editTemplate&id=<?= (int) $t['id'] ?>" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit me-1"></i>Editar</a>
+                        <button class="btn btn-sm btn-outline-danger btnDeleteTpl" data-id="<?= (int) $t['id'] ?>"><i class="fas fa-trash me-1"></i>Excluir</button>
+                    </div>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -37,39 +45,17 @@
     </div>
 </div>
 
-<!-- Modal Novo Template -->
-<div class="modal fade" id="newTemplateModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form method="post" action="?page=email_marketing&action=storeTemplate">
-                <?= csrf_field() ?>
-                <div class="modal-header">
-                    <h5 class="modal-title">Novo Template</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Nome</label>
-                        <input type="text" name="name" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Assunto</label>
-                        <input type="text" name="subject" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Conteúdo HTML</label>
-                        <textarea name="body_html" class="form-control" rows="8"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Variáveis (JSON)</label>
-                        <input type="text" name="variables" class="form-control" placeholder='["nome","email"]'>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btnDeleteTpl').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            Swal.fire({
+                title: 'Excluir template?', text: 'Esta ação não pode ser desfeita.',
+                icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#d33', confirmButtonText: 'Sim, excluir', cancelButtonText: 'Cancelar'
+            }).then(r => { if (r.isConfirmed) window.location.href = '?page=email_marketing&action=deleteTemplate&id=' + id; });
+        });
+    });
+});
+</script>
