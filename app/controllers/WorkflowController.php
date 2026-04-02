@@ -42,7 +42,7 @@ class WorkflowController
     public function store()
     {
         $data = [
-            'tenant_id'   => $_SESSION['tenant_id'] ?? 0,
+            'tenant_id'   => $_SESSION['tenant']['id'] ?? 0,
             'name'        => Input::post('name', 'string', ''),
             'description' => Input::post('description', 'string', ''),
             'event'       => Input::post('event', 'string', ''),
