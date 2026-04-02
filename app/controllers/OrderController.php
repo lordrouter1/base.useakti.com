@@ -50,8 +50,7 @@ class OrderController {
         $db = $database->getConnection();
         
         $productModel = new Product($db);
-        $stmt_products = $productModel->readAll();
-        $products = $stmt_products->fetchAll(PDO::FETCH_ASSOC);
+        $products = $productModel->readAll();
 
         // Buscar combinações de grade ativas para cada produto
         $productCombinations = [];
@@ -157,8 +156,7 @@ class OrderController {
 
         // Buscar produtos para o select
         $productModel = new Product($db);
-        $stmt_products = $productModel->readAll();
-        $products = $stmt_products->fetchAll(PDO::FETCH_ASSOC);
+        $products = $productModel->readAll();
 
         // Buscar combinações de grade ativas para cada produto
         $productCombinations = [];
