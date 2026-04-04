@@ -153,6 +153,11 @@
                             <i class="fas fa-exclamation-triangle"></i> <?= $delayedInCol ?>
                         </span>
                         <?php endif; ?>
+                        <button class="btn btn-sm p-0 border-0 bg-transparent text-white pipeline-expand-all-btn" 
+                                title="Expandir todos os cards" 
+                                style="font-size:0.7rem;opacity:0.8;line-height:1;">
+                            <i class="fas fa-expand-alt"></i>
+                        </button>
                         <span class="badge bg-white rounded-pill" style="color: <?= $stageInfo['color'] ?>;"><?= count($stageOrders) ?></span>
                     </div>
                 </div>

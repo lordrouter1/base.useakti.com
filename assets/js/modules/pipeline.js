@@ -468,4 +468,43 @@ document.addEventListener('DOMContentLoaded', function() {
             this.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
         });
     });
+
+    // ══════════════════════════════════════════
+    // ══ Expand/Collapse All per Column       ══
+    // ══════════════════════════════════════════
+    document.querySelectorAll('.pipeline-expand-all-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var col = this.closest('.pipeline-column');
+            var cards = col.querySelectorAll('.pipeline-card');
+            if (cards.length === 0) return;
+
+            // Check if any card is collapsed (not expanded)
+            var hasCollapsed = false;
+            cards.forEach(function(card) {
+                if (!card.classList.contains('pipeline-card-expanded')) {
+                    hasCollapsed = true;
+                }
+            });
+
+            var icon = this.querySelector('i');
+            if (hasCollapsed) {
+                // Expand all
+                cards.forEach(function(card) {
+                    card.classList.add('pipeline-card-expanded');
+                    card.dataset.manualToggle = '1';
+                });
+                this.title = 'Recolher todos os cards';
+                if (icon) { icon.className = 'fas fa-compress-alt'; }
+            } else {
+                // Collapse all
+                cards.forEach(function(card) {
+                    card.classList.remove('pipeline-card-expanded');
+                    card.dataset.manualToggle = '1';
+                });
+                this.title = 'Expandir todos os cards';
+                if (icon) { icon.className = 'fas fa-expand-alt'; }
+            }
+        });
+    });
 });
