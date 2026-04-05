@@ -487,7 +487,7 @@ tests/
 - **Uploads:** `TenantManager::getTenantUploadBase()` → `assets/uploads/{db_name}/`.
 - **Módulos:** `ModuleBootloader` verifica `enabled_modules` (JSON) por tenant.
 
-Toda tabela de dados do cliente deve incluir `tenant_id` com FK para `tenants(id)`.
+Toda tabela de dados do cliente deve incluir `tenant_id` com FK para `tenants(id)` (FOREIGN KEY (`tenant_id`) REFERENCES `akti_master`.`tenant_clients`(`id`)).
 
 ---
 
