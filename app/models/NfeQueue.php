@@ -14,7 +14,7 @@ class NfeQueue
     private $conn;
     private $table = 'nfe_queue';
 
-    public function __construct($db)
+    public function __construct(\PDO $db)
     {
         $this->conn = $db;
     }

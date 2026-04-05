@@ -13,47 +13,40 @@ use Akti\Services\ProductGradeService;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
 use Akti\Utils\Validator;
-use Database;
-use PDO;
 use TenantManager;
 
 class ProductController {
-    
-    private $productModel;
-    private $categoryModel;
-    private $subcategoryModel;
-    private $sectorModel;
-    private $gradeModel;
-    private $logger;
-    private $importService;
-    private $gradeService;
-    private $db;
 
-    public function __construct() {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->productModel = new Product($this->db);
-        $this->categoryModel = new Category($this->db);
-        $this->subcategoryModel = new Subcategory($this->db);
-        $this->sectorModel = new ProductionSector($this->db);
-        $this->gradeModel = new ProductGrade($this->db);
-        $this->logger = new Logger($this->db);
-        $this->importService = new ProductImportService(
-            $this->db, $this->productModel, $this->categoryModel, $this->subcategoryModel, $this->logger
-        );
-        $this->gradeService = new ProductGradeService($this->gradeModel);
-    }
+    private Product $productModel;
+    private Category $categoryModel;
+    private Subcategory $subcategoryModel;
+    private ProductionSector $sectorModel;
+    private ProductGrade $gradeModel;
+    private Logger $logger;
+    private ProductImportService $importService;
+    private ProductGradeService $gradeService;
+    private \PDO $db;
 
-    public function index() {
-        // Contagem total
-        $totalItems  = (int) $this->productModel->countAll();
-
-        // Verificar limite de produtos do tenant
-        $maxProducts = TenantManager::getTenantLimit('max_products');
-        $currentProducts = $totalItems;
-        $limitReached = ($maxProducts !== null && $currentProducts >= $maxProducts);
-        $limitInfo = $limitReached ? ['current' => $currentProducts, 'max' => $maxProducts] : null;
-
+    public function __construct(
+        \PDO $db,
+        Product $productModel,
+        Category $categoryModel,
+        Subcategory $subcategoryModel,
+        ProductionSector $sectorModel,
+        ProductGrade $gradeModel,
+        Logger $logger,
+        ProductImportService $importService,
+        ProductGradeService $gradeService
+    ) {
+        $this->db = $db;
+        $this->productModel = $productModel;
+        $this->categoryModel = $categoryModel;
+        $this->subcategoryModel = $subcategoryModel;
+        $this->sectorModel = $sectorModel;
+        $this->gradeModel = $gradeModel;
+        $this->logger = $logger;
+        $this->importService = $importService;
+        $this->gradeService = $gradeService;
         // Categorias para filtro
         $categories = $this->categoryModel->readAll();
 
@@ -81,9 +74,7 @@ class ProductController {
         $categories = $this->categoryModel->readAll();
 
         // Fetch price tables
-        $database = new Database();
-        $db = $database->getConnection();
-        $priceTableModel = new PriceTable($db);
+        $priceTableModel = new PriceTable($this->db);
         $priceTables = $priceTableModel->readAll();
         $productPrices = []; // Nenhum preço salvo ainda (produto novo)
 
@@ -175,8 +166,7 @@ class ProductController {
                 // Salvar preços das tabelas de preço
                 $tablePrices = Input::postArray('table_prices');
                 if (!empty($tablePrices)) {
-                                $dbPT = (new Database())->getConnection();
-                    $ptModel = new PriceTable($dbPT);
+                    $ptModel = new PriceTable($this->db);
                     $ptModel->saveProductPrices($productId, $tablePrices);
                 }
 
@@ -240,9 +230,7 @@ class ProductController {
         }
 
         // Fetch price tables and existing prices for this product
-        $database = new Database();
-        $db = $database->getConnection();
-        $priceTableModel = new PriceTable($db);
+        $priceTableModel = new PriceTable($this->db);
         $priceTables = $priceTableModel->readAll();
         $productPrices = $priceTableModel->getPricesForProduct($id);
 
@@ -331,8 +319,7 @@ class ProductController {
                 // Salvar preços das tabelas de preço
                 $tablePrices = Input::postArray('table_prices');
                 if (!empty($tablePrices)) {
-                                $dbPT = (new Database())->getConnection();
-                    $ptModel = new PriceTable($dbPT);
+                    $ptModel = new PriceTable($this->db);
                     $ptModel->saveProductPrices($data['id'], $tablePrices);
                 }
 

@@ -9,24 +9,28 @@ use Akti\Services\StockMovementService;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
 use Akti\Utils\Sanitizer;
-use Database;
 use TenantManager;
 
 class StockController {
 
-    private $stockModel;
-    private $productModel;
-    private $logger;
-    private $db;
+    private Stock $stockModel;
+    private Product $productModel;
+    private Logger $logger;
+    private \PDO $db;
     private StockMovementService $movementService;
 
-    public function __construct() {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->stockModel = new Stock($this->db);
-        $this->productModel = new Product($this->db);
-        $this->logger = new Logger($this->db);
-        $this->movementService = new StockMovementService($this->db, $this->stockModel, $this->logger);
+    public function __construct(
+        \PDO $db,
+        Stock $stockModel,
+        Product $productModel,
+        Logger $logger,
+        StockMovementService $movementService
+    ) {
+        $this->db = $db;
+        $this->stockModel = $stockModel;
+        $this->productModel = $productModel;
+        $this->logger = $logger;
+        $this->movementService = $movementService;
 
         // Auto-migrate: garantir colunas e tabelas novas
         $this->stockModel->ensureDefaultColumn();

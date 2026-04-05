@@ -5,8 +5,6 @@ use Akti\Models\Financial;
 use Akti\Core\ModuleBootloader;
 use Akti\Services\TransactionService;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 /**
  * TransactionController — Controller dedicado a transações financeiras (entradas/saídas).
@@ -27,10 +25,10 @@ use PDO;
  */
 class TransactionController
 {
-    private PDO $db;
+    private \PDO $db;
     private TransactionService $transactionService;
 
-    public function __construct()
+    public function __construct(\PDO $db, TransactionService $transactionService)
     {
         if (!ModuleBootloader::isModuleEnabled('financial')) {
             http_response_code(403);
@@ -40,11 +38,8 @@ class TransactionController
             exit;
         }
 
-        $database = new Database();
-        $this->db = $database->getConnection();
-
-        $financial = new Financial($this->db);
-        $this->transactionService = new TransactionService($this->db, $financial);
+        $this->db = $db;
+        $this->transactionService = $transactionService;
     }
 
     // ═══════════════════════════════════════════

@@ -9,7 +9,6 @@ use Akti\Core\Log;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
 use Akti\Models\User;
-use Database;
 use TenantManager;
 
 /**
@@ -20,10 +19,10 @@ use TenantManager;
  */
 class NfeCredentialController
 {
-    private $db;
+    private \PDO $db;
     private NfeCredential $credModel;
 
-    public function __construct()
+    public function __construct(\PDO $db, NfeCredential $credModel)
     {
         if (!ModuleBootloader::isModuleEnabled('nfe')) {
             http_response_code(403);
@@ -33,9 +32,8 @@ class NfeCredentialController
             exit;
         }
 
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->credModel = new NfeCredential($this->db);
+        $this->db = $db;
+        $this->credModel = $credModel;
 
         // Verificar permissão de visualização (nfe_credentials)
         $this->checkPermission('nfe_credentials');

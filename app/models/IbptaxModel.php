@@ -20,7 +20,7 @@ class IbptaxModel
     private $conn;
     private string $table = 'tax_ibptax';
 
-    public function __construct($db)
+    public function __construct(\PDO $db)
     {
         $this->conn = $db;
     }

@@ -11,27 +11,36 @@ use Akti\Models\Product;
 use Akti\Core\Log;
 use Akti\Services\CategoryService;
 use Akti\Utils\Input;
-use Database;
 
 class CategoryController {
     
-    private $categoryModel;
-    private $subcategoryModel;
-    private $sectorModel;
-    private $gradeModel;
-    private $categoryGradeModel;
-    private $logger;
+    private Category $categoryModel;
+    private Subcategory $subcategoryModel;
+    private ProductionSector $sectorModel;
+    private ProductGrade $gradeModel;
+    private CategoryGrade $categoryGradeModel;
+    private Logger $logger;
     private CategoryService $categoryService;
+    private \PDO $db;
 
-    public function __construct() {
-        $db = (new Database())->getConnection();
-        $this->categoryModel = new Category($db);
-        $this->subcategoryModel = new Subcategory($db);
-        $this->sectorModel = new ProductionSector($db);
-        $this->gradeModel = new ProductGrade($db);
-        $this->categoryGradeModel = new CategoryGrade($db);
-        $this->logger = new Logger($db);
-        $this->categoryService = new CategoryService($db, $this->categoryGradeModel, $this->sectorModel);
+    public function __construct(
+        \PDO $db,
+        Category $categoryModel,
+        Subcategory $subcategoryModel,
+        ProductionSector $sectorModel,
+        ProductGrade $gradeModel,
+        CategoryGrade $categoryGradeModel,
+        Logger $logger,
+        CategoryService $categoryService
+    ) {
+        $this->db = $db;
+        $this->categoryModel = $categoryModel;
+        $this->subcategoryModel = $subcategoryModel;
+        $this->sectorModel = $sectorModel;
+        $this->gradeModel = $gradeModel;
+        $this->categoryGradeModel = $categoryGradeModel;
+        $this->logger = $logger;
+        $this->categoryService = $categoryService;
     }
 
     public function index() {
@@ -262,8 +271,7 @@ class CategoryController {
         }
 
         try {
-            $db = (new Database())->getConnection();
-            $productModel = new Product($db);
+            $productModel = new Product($this->db);
 
             if ($type === 'category') {
                 $products = $productModel->getByCategory($id);

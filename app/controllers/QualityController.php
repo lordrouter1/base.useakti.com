@@ -4,19 +4,16 @@ namespace Akti\Controllers;
 
 use Akti\Models\QualityChecklist;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 class QualityController
 {
-    private PDO $db;
+    private \PDO $db;
     private QualityChecklist $model;
 
-    public function __construct()
+    public function __construct(\PDO $db, QualityChecklist $model)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->model = new QualityChecklist($this->db);
+        $this->db = $db;
+        $this->model = $model;
     }
 
     public function index()

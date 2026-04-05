@@ -4,18 +4,18 @@ namespace Akti\Controllers;
 use Akti\Models\ProductionSector;
 use Akti\Models\Logger;
 use Akti\Utils\Input;
-use Database;
 use TenantManager;
 
 class SectorController {
     
-    private $sectorModel;
-    private $logger;
+    private ProductionSector $sectorModel;
+    private Logger $logger;
+    private \PDO $db;
 
-    public function __construct() {
-        $db = (new Database())->getConnection();
-        $this->sectorModel = new ProductionSector($db);
-        $this->logger = new Logger($db);
+    public function __construct(\PDO $db, ProductionSector $sectorModel, Logger $logger) {
+        $this->db = $db;
+        $this->sectorModel = $sectorModel;
+        $this->logger = $logger;
     }
 
     public function index() {
@@ -25,7 +25,7 @@ class SectorController {
         $isAdmin = (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin');
         $allowedSectorIds = [];
         if (!$isAdmin && isset($_SESSION['user_id'])) {
-            $dbPerm = (new Database())->getConnection();
+            $dbPerm = $this->db;
             $userModel = new User($dbPerm);
             $allowedSectorIds = $userModel->getAllowedSectorIds($_SESSION['user_id']);
             if (!empty($allowedSectorIds)) {

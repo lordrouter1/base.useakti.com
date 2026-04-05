@@ -10,7 +10,6 @@ use Akti\Core\Event;
 use Akti\Core\Security;
 use Akti\Services\PortalAdminService;
 use Akti\Utils\Input;
-use PDO;
 
 /**
  * Controller: PortalAdminController
@@ -23,15 +22,15 @@ use PDO;
  */
 class PortalAdminController
 {
-    private PDO $db;
+    private \PDO $db;
     private PortalAccess $portalAccess;
     private PortalAdminService $service;
 
-    public function __construct()
+    public function __construct(\PDO $db, PortalAccess $portalAccess, PortalAdminService $service)
     {
-        $this->db = (new \Database())->getConnection();
-        $this->portalAccess = new PortalAccess($this->db);
-        $this->service = new PortalAdminService($this->db);
+        $this->db = $db;
+        $this->portalAccess = $portalAccess;
+        $this->service = $service;
     }
 
     // ══════════════════════════════════════════════

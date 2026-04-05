@@ -16,7 +16,7 @@ class NfeLog
     private $conn;
     private $table = 'nfe_logs';
 
-    public function __construct($db)
+    public function __construct(\PDO $db)
     {
         $this->conn = $db;
     }

@@ -12,19 +12,17 @@ use Akti\Models\Financial;
 use Akti\Services\OrderItemService;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
-use Database;
-use PDO;
 
 class OrderController {
     
-    private $orderModel;
+    private Order $orderModel;
     private OrderItemService $itemService;
+    private \PDO $db;
 
-    public function __construct() {
-        $database = new Database();
-        $db = $database->getConnection();
-        $this->orderModel = new Order($db);
-        $this->itemService = new OrderItemService($db, $this->orderModel);
+    public function __construct(\PDO $db, Order $orderModel, OrderItemService $itemService) {
+        $this->db = $db;
+        $this->orderModel = $orderModel;
+        $this->itemService = $itemService;
     }
 
     public function index() {
@@ -46,10 +44,7 @@ class OrderController {
 
     public function create() {
         
-        $database = new Database();
-        $db = $database->getConnection();
-        
-        $productModel = new Product($db);
+        $productModel = new Product($this->db);
         $products = $productModel->readAll();
 
         // Buscar combinações de grade ativas para cada produto
@@ -61,7 +56,7 @@ class OrderController {
             }
         }
 
-        $customerModel = new Customer($db);
+        $customerModel = new Customer($this->db);
         $stmt_customers = $customerModel->readAll();
         $customers = $stmt_customers->fetchAll(PDO::FETCH_ASSOC);
 
@@ -115,14 +110,12 @@ class OrderController {
                 }
 
                 // Registrar entrada no pipeline
-                $database = new Database();
-                $db = $database->getConnection();
-                $pipeline = new Pipeline($db);
+                $pipeline = new Pipeline($this->db);
                 $stageLabel = $initialStage === 'contato' ? 'Pedido criado como Contato' : 'Pedido criado como Orçamento';
                 $pipeline->addHistory($this->orderModel->id, null, $initialStage, $_SESSION['user_id'] ?? null, $stageLabel);
 
                 // Log
-                $logger = new Logger($db);
+                $logger = new Logger($this->db);
                 $logger->log('ORDER_CREATE', "Pedido #{$this->orderModel->id} criado na etapa " . ucfirst($initialStage));
 
                 header('Location: ?page=orders&status=success');
@@ -145,9 +138,7 @@ class OrderController {
             exit;
         }
 
-        $database = new Database();
-        $db = $database->getConnection();
-        $customerModel = new Customer($db);
+        $customerModel = new Customer($this->db);
         $stmt_customers = $customerModel->readAll();
         $customers = $stmt_customers->fetchAll(PDO::FETCH_ASSOC);
 
@@ -155,7 +146,7 @@ class OrderController {
         $orderItems = $this->orderModel->getItems($order['id']);
 
         // Buscar produtos para o select
-        $productModel = new Product($db);
+        $productModel = new Product($this->db);
         $products = $productModel->readAll();
 
         // Buscar combinações de grade ativas para cada produto
@@ -170,7 +161,7 @@ class OrderController {
         // Carregar preços específicos do cliente (tabela de preço)
         $customerPrices = [];
         if (!empty($order['customer_id'])) {
-            $priceTableModel = new PriceTable($db);
+            $priceTableModel = new PriceTable($this->db);
             $customerPrices = $priceTableModel->getAllPricesForCustomer($order['customer_id']);
         }
 
@@ -389,9 +380,7 @@ class OrderController {
         $extraCosts = $this->orderModel->getExtraCosts($orderId);
 
         // Carregar dados da empresa
-        $database = new Database();
-        $db = $database->getConnection();
-        $companyModel = new CompanySettings($db);
+        $companyModel = new CompanySettings($this->db);
         $company = $companyModel->getAll();
         $companyAddress = $companyModel->getFormattedAddress();
         
@@ -417,14 +406,12 @@ class OrderController {
         $extraCosts = $this->orderModel->getExtraCosts($orderId);
 
         // Carregar dados da empresa
-        $database = new Database();
-        $db = $database->getConnection();
-        $companyModel = new CompanySettings($db);
+        $companyModel = new CompanySettings($this->db);
         $company = $companyModel->getAll();
         $companyAddress = $companyModel->getFormattedAddress();
 
         // Carregar parcelas (se existirem)
-        $financialModel = new Financial($db);
+        $financialModel = new Financial($this->db);
         $installments = $financialModel->getInstallments($orderId);
 
         require 'app/views/orders/print_order.php';

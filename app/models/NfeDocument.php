@@ -21,7 +21,7 @@ class NfeDocument
     private $conn;
     private $table = 'nfe_documents';
 
-    public function __construct($db)
+    public function __construct(\PDO $db)
     {
         $this->conn = $db;
     }

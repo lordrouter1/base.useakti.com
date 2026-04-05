@@ -14,11 +14,11 @@ use Database;
 abstract class BaseController
 {
     /** @var \PDO */
-    protected $db;
+    protected \PDO $db;
 
-    public function __construct()
+    public function __construct(?\PDO $db = null)
     {
-        $this->db = \Database::getInstance();
+        $this->db = $db ?? \Database::getInstance();
     }
 
     /**

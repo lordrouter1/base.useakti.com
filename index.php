@@ -130,7 +130,8 @@ register_shutdown_function(function() {
 // ══════════════════════════════════════════════════════════════════
 // Application — boot, handle, dispatch
 // ══════════════════════════════════════════════════════════════════
-$app = new Application(__DIR__);
+$container = require __DIR__ . '/app/bootstrap/container.php';
+$app = new Application(__DIR__, $container);
 $app->boot();
 
 if ($app->handle()) {

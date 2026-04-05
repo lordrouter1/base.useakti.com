@@ -8,8 +8,6 @@ use Akti\Core\ModuleBootloader;
 use Akti\Services\InstallmentService;
 use Akti\Services\TransactionService;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 use TenantManager;
 
 /**
@@ -73,8 +71,12 @@ class InstallmentController
         return $default;
     }
 
-    public function __construct()
-    {
+    public function __construct(
+        \PDO $db,
+        Installment $installmentModel,
+        InstallmentService $installmentService,
+        TransactionService $transactionService
+    ) {
         if (!ModuleBootloader::isModuleEnabled('financial')) {
             http_response_code(403);
             require 'app/views/layout/header.php';
@@ -83,13 +85,10 @@ class InstallmentController
             exit;
         }
 
-        $database = new Database();
-        $this->db = $database->getConnection();
-
-        $financial = new Financial($this->db);
-        $this->installmentModel = new Installment($this->db);
-        $this->transactionService = new TransactionService($this->db, $financial);
-        $this->installmentService = new InstallmentService($this->db, $this->installmentModel, $this->transactionService);
+        $this->db = $db;
+        $this->installmentModel = $installmentModel;
+        $this->transactionService = $transactionService;
+        $this->installmentService = $installmentService;
     }
 
     // ═══════════════════════════════════════════

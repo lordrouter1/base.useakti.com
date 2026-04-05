@@ -7,7 +7,7 @@ class Logger {
     private $conn;
     private $table_name = "system_logs";
 
-    public function __construct($db) {
+    public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 

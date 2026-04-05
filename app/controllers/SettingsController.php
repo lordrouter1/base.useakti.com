@@ -10,25 +10,28 @@ use Akti\Models\UserGroup;
 use Akti\Core\ModuleBootloader;
 use Akti\Utils\Input;
 use Akti\Services\SettingsService;
-use Database;
-use PDO;
 use TenantManager;
 
 class SettingsController {
 
-    private $db;
-    private $companySettings;
-    private $priceTable;
-    private $preparationStep;
+    private \PDO $db;
+    private CompanySettings $companySettings;
+    private PriceTable $priceTable;
+    private PreparationStep $preparationStep;
     private SettingsService $settingsService;
 
-    public function __construct() {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->companySettings = new CompanySettings($this->db);
-        $this->priceTable = new PriceTable($this->db);
-        $this->preparationStep = new PreparationStep($this->db);
-        $this->settingsService = new SettingsService($this->db, $this->companySettings);
+    public function __construct(
+        \PDO $db,
+        CompanySettings $companySettings,
+        PriceTable $priceTable,
+        PreparationStep $preparationStep,
+        SettingsService $settingsService
+    ) {
+        $this->db = $db;
+        $this->companySettings = $companySettings;
+        $this->priceTable = $priceTable;
+        $this->preparationStep = $preparationStep;
+        $this->settingsService = $settingsService;
     }
 
     // ──────── CONFIGURAÇÕES DA EMPRESA ────────

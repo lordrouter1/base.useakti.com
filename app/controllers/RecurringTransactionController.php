@@ -4,8 +4,6 @@ namespace Akti\Controllers;
 use Akti\Models\RecurringTransaction;
 use Akti\Core\ModuleBootloader;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 /**
  * RecurringTransactionController — CRUD + processamento de recorrências.
@@ -16,14 +14,13 @@ use PDO;
  */
 class RecurringTransactionController
 {
-    private PDO $db;
+    private \PDO $db;
     private RecurringTransaction $model;
 
-    public function __construct()
+    public function __construct(\PDO $db, RecurringTransaction $model)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->model = new RecurringTransaction($this->db);
+        $this->db = $db;
+        $this->model = $model;
     }
 
     /**

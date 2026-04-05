@@ -4,19 +4,16 @@ namespace Akti\Controllers;
 
 use Akti\Models\ReportTemplate;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 class CustomReportController
 {
-    private PDO $db;
+    private \PDO $db;
     private ReportTemplate $model;
 
-    public function __construct()
+    public function __construct(\PDO $db, ReportTemplate $model)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->model = new ReportTemplate($this->db);
+        $this->db = $db;
+        $this->model = $model;
     }
 
     public function index()

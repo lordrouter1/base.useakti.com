@@ -13,29 +13,28 @@ use Akti\Middleware\PortalAuthMiddleware;
 use Akti\Services\AuthService;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
-use Database;
-use PDO;
 use TenantManager;
 
 class UserController {
-    
-    private $userModel;
-    private $groupModel;
-    private $logger;
-    private $loginAttempt;
+
+    private User $userModel;
+    private UserGroup $groupModel;
+    private Logger $logger;
+    private LoginAttempt $loginAttempt;
     private AuthService $authService;
 
-    public function __construct() {
-        $database = new Database();
-        $db = $database->getConnection();
-        $this->userModel = new User($db);
-        $this->groupModel = new UserGroup($db);
-        $this->loginAttempt = new LoginAttempt($db);
-        $this->logger = new Logger($db);
-        $this->authService = new AuthService($db, $this->userModel, $this->loginAttempt, $this->logger);
-    }
-
-    public function index() {
+    public function __construct(
+        User $userModel,
+        UserGroup $groupModel,
+        LoginAttempt $loginAttempt,
+        Logger $logger,
+        AuthService $authService
+    ) {
+        $this->userModel = $userModel;
+        $this->groupModel = $groupModel;
+        $this->loginAttempt = $loginAttempt;
+        $this->logger = $logger;
+        $this->authService = $authService;
         // Apenas admin
         $this->checkAdmin();
         

@@ -17,33 +17,38 @@ use Akti\Services\PipelinePaymentService;
 use Akti\Services\PipelineDetailService;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
-use Database;
-use PDO;
 
 class PipelineController {
 
-    private $pipelineModel;
-    private $db;
-    private $stockModel;
-    private $pipelineService;
-    private $alertService;
-    private $paymentService;
-    private $detailService;
+    private Pipeline $pipelineModel;
+    private \PDO $db;
+    private Stock $stockModel;
+    private PipelineService $pipelineService;
+    private PipelineAlertService $alertService;
+    private PipelinePaymentService $paymentService;
+    private PipelineDetailService $detailService;
 
-    public function __construct() {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->pipelineModel = new Pipeline($this->db);
-        $this->stockModel = new Stock($this->db);
+    public function __construct(
+        \PDO $db,
+        Pipeline $pipelineModel,
+        Stock $stockModel,
+        PipelineService $pipelineService,
+        PipelineAlertService $alertService,
+        PipelinePaymentService $paymentService,
+        PipelineDetailService $detailService
+    ) {
+        $this->db = $db;
+        $this->pipelineModel = $pipelineModel;
+        $this->stockModel = $stockModel;
         // Auto-migrate stock tables/columns
         $this->stockModel->ensureDeductionsTable();
         $this->stockModel->ensureDefaultColumn();
         $this->stockModel->ensureOrderWarehouseColumn();
         // Services
-        $this->pipelineService = new PipelineService($this->db, $this->pipelineModel, $this->stockModel);
-        $this->alertService = new PipelineAlertService($this->db, $this->pipelineModel);
-        $this->paymentService = new PipelinePaymentService($this->db);
-        $this->detailService = new PipelineDetailService($this->db, $this->pipelineModel, $this->stockModel);
+        $this->pipelineService = $pipelineService;
+        $this->alertService = $alertService;
+        $this->paymentService = $paymentService;
+        $this->detailService = $detailService;
     }
 
     /**

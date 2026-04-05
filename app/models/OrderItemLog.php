@@ -23,7 +23,7 @@ class OrderItemLog {
     
     public static $maxFileSize = 10485760; // 10MB
 
-    public function __construct($db) {
+    public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 

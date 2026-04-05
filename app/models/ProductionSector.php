@@ -9,7 +9,7 @@ class ProductionSector {
     private $conn;
     private $table = 'production_sectors';
 
-    public function __construct($db) {
+    public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 

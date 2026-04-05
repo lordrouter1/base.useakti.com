@@ -30,7 +30,7 @@ class LoginAttempt
     const RECAPTCHA_SITE_KEY   = ''; // Preenchido via getenv ou hard-coded
     const RECAPTCHA_SECRET_KEY = '';
 
-    public function __construct($db)
+    public function __construct(\PDO $db)
     {
         $this->conn = $db;
     }

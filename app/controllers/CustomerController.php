@@ -16,8 +16,6 @@ use Akti\Services\CustomerFormService;
 use Akti\Services\ExternalApiService;
 use Akti\Services\CustomerOrderHistoryService;
 use Akti\Services\CustomerContactService;
-use Database;
-use PDO;
 use TenantManager;
 
 /**
@@ -32,29 +30,39 @@ use TenantManager;
  */
 class CustomerController {
     
-    private $customerModel;
-    private $contactModel;
-    private $importBatchModel;
-    private $mappingProfileModel;
-    private $logger;
-    private $db;
-    private $importService;
-    private $exportService;
-    private $formService;
-    private $externalApiService;
+    private Customer $customerModel;
+    private CustomerContact $contactModel;
+    private ImportBatch $importBatchModel;
+    private ImportMappingProfile $mappingProfileModel;
+    private Logger $logger;
+    private \PDO $db;
+    private CustomerImportService $importService;
+    private CustomerExportService $exportService;
+    private CustomerFormService $formService;
+    private ExternalApiService $externalApiService;
 
-    public function __construct() {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->customerModel = new Customer($this->db);
-        $this->contactModel  = new CustomerContact($this->db);
-        $this->importBatchModel = new ImportBatch($this->db);
-        $this->mappingProfileModel = new ImportMappingProfile($this->db);
-        $this->logger = new Logger($this->db);
-        $this->importService = new CustomerImportService($this->db, $this->customerModel, $this->importBatchModel, $this->logger);
-        $this->exportService = new CustomerExportService($this->customerModel, $this->logger);
-        $this->formService = new CustomerFormService();
-        $this->externalApiService = new ExternalApiService();
+    public function __construct(
+        \PDO $db,
+        Customer $customerModel,
+        CustomerContact $contactModel,
+        ImportBatch $importBatchModel,
+        ImportMappingProfile $mappingProfileModel,
+        Logger $logger,
+        CustomerImportService $importService,
+        CustomerExportService $exportService,
+        CustomerFormService $formService,
+        ExternalApiService $externalApiService
+    ) {
+        $this->db = $db;
+        $this->customerModel = $customerModel;
+        $this->contactModel = $contactModel;
+        $this->importBatchModel = $importBatchModel;
+        $this->mappingProfileModel = $mappingProfileModel;
+        $this->logger = $logger;
+        $this->importService = $importService;
+        $this->exportService = $exportService;
+        $this->formService = $formService;
+        $this->externalApiService = $externalApiService;
     }
 
     // ═══════════════════════════════════════════════

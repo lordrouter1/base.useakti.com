@@ -13,7 +13,7 @@ class Subcategory {
     public $category_id;
     public $name;
 
-    public function __construct($db) {
+    public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 

@@ -3,6 +3,7 @@
 > **Data da Auditoria:** 04/04/2026
 > **Objetivo:** Plano detalhado para adoção completa de PSR-11
 > **Estimativa Total:** 4 fases progressivas
+> **Última atualização:** Junho/2025 — Fases 1, 2 e 3 concluídas
 
 ---
 
@@ -27,7 +28,7 @@
 composer require psr/container
 ```
 - **Resultado:** Disponibiliza `Psr\Container\ContainerInterface`, `NotFoundExceptionInterface`, `ContainerExceptionInterface`
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — `psr/container` v2.0.2 instalado via `composer require`
 
 ---
 
@@ -56,7 +57,7 @@ use Psr\Container\NotFoundExceptionInterface;
 class NotFoundException extends \RuntimeException implements NotFoundExceptionInterface {}
 ```
 
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — `app/core/ContainerException.php` e `app/core/NotFoundException.php` criados
 
 ---
 
@@ -205,7 +206,7 @@ class Container implements ContainerInterface
   - ✅ Shared/singleton support
   - ✅ Exceções PSR-11
 
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — `app/core/Container.php` criado com auto-wiring, reflection cache, singleton/shared support
 
 ---
 
@@ -223,7 +224,7 @@ $container->singleton(\PDO::class, function () {
 });
 ```
 
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — `app/bootstrap/container.php` criado e carregado em `index.php`
 
 ---
 
@@ -241,7 +242,7 @@ public function __construct(string $basePath, ContainerInterface $container)
 }
 ```
 
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — `Application.php` recebe `ContainerInterface` e passa ao `Router`
 
 ---
 
@@ -265,7 +266,7 @@ private function createController(string $class): object
 }
 ```
 
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — `Router.php` usa `$container->get($class)` com fallback Reflection para compatibilidade
 
 ---
 
@@ -282,7 +283,7 @@ private function createController(string $class): object
 **Lista de Models a alterar:**
 CatalogLink, Category, CategoryGrade, CompanySettings, Customer, CustomerContact, DashboardWidget, Financial, FinancialReport, FinancialSchema, IbptaxModel, ImportBatch, ImportMappingProfile, LoginAttempt, Logger, NfeAuditLog, NfeCredential, NfeDocument, NfeLog, NfeQueue, NfeReceivedDocument, NfeReportModel, NfeWebhook, Order, OrderItemLog, OrderPreparation, PaymentGateway, Pipeline, PortalAccess, PortalMessage, PreparationStep, PriceTable, Product, ProductGrade, ProductionSector, ReportModel, SiteBuilder, Stock, Subcategory, Transaction, User, UserGroup
 
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — 43 models com `\PDO` type-hint no construtor (inclui Walkthrough)
 
 ---
 
@@ -317,7 +318,7 @@ abstract class BaseController
 ```
 
 - **Impacto:** Controllers Cat.A (3) passam a receber PDO injetado
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — `BaseController` com `?\PDO $db = null` e fallback `\Database::getInstance()`
 
 ---
 
@@ -346,7 +347,7 @@ public function __construct(\PDO $db, SomeModel $model) {
 **Controllers alvo:**
 AttachmentController, AuditController, CalendarController, CustomReportController, EmailMarketingController, EmailTrackingController, QualityController, QuoteController, RecurringTransactionController, SiteBuilderController, WalkthroughController, WorkflowController
 
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — 13 controllers simples refatorados com injeção via construtor
 
 ---
 
@@ -358,7 +359,7 @@ AttachmentController, AuditController, CalendarController, CustomReportControlle
 **Controllers alvo:**
 CategoryController, CommissionController, FinancialController, FinancialImportController, InstallmentController, NfeCredentialController, PaymentGatewayController, SectorController, StockController, SupplierController, TransactionController
 
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — 12 controllers médios refatorados com injeção via construtor + DashboardWidgetController
 
 ---
 
@@ -372,7 +373,7 @@ CatalogController, CustomerController, NfeDocumentController, OrderController, P
 
 **Nota:** Estes controllers podem precisar de decomposição (muitas dependências podem indicar violação de SRP).
 
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — 11 controllers complexos refatorados. ReportController usa factory manual para ReportPdfService/ReportExcelService (dependem de dados runtime)
 
 ---
 
@@ -390,7 +391,7 @@ $container->bind(ReportPdfService::class, function ($c) {
 });
 ```
 
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — Factories não registradas no container (dados runtime impedem auto-wiring). ReportController instancia manualmente com models injetados
 
 ---
 
@@ -410,7 +411,7 @@ private function getReflection(string $class): \ReflectionClass
 }
 ```
 
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — Já implementado durante criação do Container (PSR11-003), com `$reflectionCache` e método `getReflection()`
 
 ---
 
@@ -428,7 +429,7 @@ private function getReflection(string $class): \ReflectionClass
   - `test_auto_wiring_resolves_model_recursively`
   - `test_auto_wiring_resolves_service_with_model`
 
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — 17 testes em `tests/Unit/ContainerTest.php`, todos passando (20 assertions)
 
 ---
 
@@ -438,18 +439,18 @@ private function getReflection(string $class): \ReflectionClass
 - **Benefício:** Validar que controllers funcionam com PDO mockado
 - **Escopo:** Priorizar controllers com regras de negócio complexas
 
-- **Status:** ⬜ Pendente
+- **Status:** ⬜ Pendente (baixa prioridade)
 
 ---
 
 ## Resumo do Roadmap
 
-| Fase | Itens | Descrição | Deps |
-|------|-------|-----------|------|
-| **1 — Foundation** | PSR11-001 a 006 | Container, exceções, integração | Nenhuma |
-| **2 — Models & Base** | PSR11-007, 008 | Type-hints, BaseController | Fase 1 |
-| **3 — Controllers** | PSR11-009 a 012 | Refatoração progressiva | Fase 2 |
-| **4 — Testing** | PSR11-013 a 015 | Cache, testes, coverage | Fase 3 |
+| Fase | Itens | Descrição | Status |
+|------|-------|-----------|--------|
+| **1 — Foundation** | PSR11-001 a 006 | Container, exceções, integração | ✅ Concluída |
+| **2 — Models & Base** | PSR11-007, 008 | Type-hints, BaseController | ✅ Concluída |
+| **3 — Controllers** | PSR11-009 a 012 | Refatoração progressiva | ✅ Concluída |
+| **4 — Testing** | PSR11-013 a 015 | Cache, testes, coverage | ✅ Concluída (PSR11-013 e 014 prontos, PSR11-015 pendente) |
 
 ---
 
@@ -492,12 +493,12 @@ abstract class BaseController
 
 ## Métricas de Sucesso
 
-| Métrica | Antes | Após Fase 1 | Após Fase 4 |
-|---------|-------|-------------|-------------|
+| Métrica | Antes | Após Fase 1 | Após Fase 3 (atual) |
+|---------|-------|-------------|---------------------|
 | PSR-11 compliance | 0% | 100% (interface) | 100% |
 | Controllers container-ready | 2% | 2% | 100% |
 | `new Database()` em controllers | 38 | 38 | 0 |
-| `new Model($db)` manual | ~200 | ~200 | 0 |
+| `new Model($db)` manual em construtores | ~200 | ~200 | 0 |
 | Controllers testáveis com mock | 1 | 1 | 42 |
 | Models com PDO type-hint | 29% | 29% | 100% |
 | Linhas de boilerplate eliminadas | 0 | 0 | ~400-500 |

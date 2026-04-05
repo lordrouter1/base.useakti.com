@@ -4,19 +4,16 @@ namespace Akti\Controllers;
 
 use Akti\Models\AuditLog;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 class AuditController
 {
-    private PDO $db;
+    private \PDO $db;
     private AuditLog $model;
 
-    public function __construct()
+    public function __construct(\PDO $db, AuditLog $model)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->model = new AuditLog($this->db);
+        $this->db = $db;
+        $this->model = $model;
     }
 
     public function index()

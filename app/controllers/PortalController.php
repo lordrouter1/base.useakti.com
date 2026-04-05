@@ -18,7 +18,6 @@ use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use Akti\Core\Security;
 use Akti\Utils\Input;
-use PDO;
 
 /**
  * Controller: PortalController
@@ -31,20 +30,20 @@ use PDO;
  */
 class PortalController
 {
-    private PDO $db;
+    private \PDO $db;
     private PortalAccess $portalAccess;
     private ?CompanySettings $companySettings = null;
     private Logger $logger;
     private array $company = [];
 
-    public function __construct()
+    public function __construct(\PDO $db, PortalAccess $portalAccess, Logger $logger, CompanySettings $companySettings)
     {
-        $this->db = (new \Database())->getConnection();
-        $this->portalAccess = new PortalAccess($this->db);
-        $this->logger = new Logger($this->db);
+        $this->db = $db;
+        $this->portalAccess = $portalAccess;
+        $this->logger = $logger;
 
         // Carregar configurações da empresa
-        $this->companySettings = new CompanySettings($this->db);
+        $this->companySettings = $companySettings;
         $this->company = $this->companySettings->getAll();
 
         // Inicializar sistema de tradução

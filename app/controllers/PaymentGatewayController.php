@@ -8,8 +8,6 @@ use Akti\Core\ModuleBootloader;
 use Akti\Core\Log;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
-use Database;
-use PDO;
 use TenantManager;
 
 /**
@@ -21,14 +19,13 @@ use TenantManager;
  */
 class PaymentGatewayController
 {
-    private $db;
-    private $gatewayModel;
+    private \PDO $db;
+    private PaymentGateway $gatewayModel;
 
-    public function __construct()
+    public function __construct(\PDO $db, PaymentGateway $gatewayModel)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->gatewayModel = new PaymentGateway($this->db);
+        $this->db = $db;
+        $this->gatewayModel = $gatewayModel;
     }
 
     // ══════════════════════════════════════════════════════════════

@@ -4,19 +4,16 @@ namespace Akti\Controllers;
 
 use Akti\Models\Quote;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 class QuoteController
 {
-    private PDO $db;
+    private \PDO $db;
     private Quote $model;
 
-    public function __construct()
+    public function __construct(\PDO $db, Quote $model)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->model = new Quote($this->db);
+        $this->db = $db;
+        $this->model = $model;
     }
 
     public function index()

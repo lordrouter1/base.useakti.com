@@ -4,7 +4,6 @@ namespace Akti\Controllers;
 use Akti\Models\Product;
 use Akti\Models\SiteBuilder;
 use Akti\Utils\Input;
-use Database;
 
 /**
  * Controller do Site Builder.
@@ -14,15 +13,14 @@ use Database;
  */
 class SiteBuilderController
 {
-    private $db;
+    private \PDO $db;
     private SiteBuilder $siteBuilder;
     private int $tenantId;
 
-    public function __construct()
+    public function __construct(\PDO $db, SiteBuilder $siteBuilder)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->siteBuilder = new SiteBuilder($this->db);
+        $this->db = $db;
+        $this->siteBuilder = $siteBuilder;
         $this->tenantId = (int) ($_SESSION['tenant']['id'] ?? 0);
     }
 

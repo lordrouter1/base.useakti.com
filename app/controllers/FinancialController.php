@@ -12,8 +12,6 @@ use Akti\Services\FinancialImportService;
 use Akti\Services\FinancialReportService;
 use Akti\Services\FinancialAuditService;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 /**
  * FinancialController — Controller principal do módulo financeiro (SLIM).
@@ -38,14 +36,19 @@ use PDO;
  */
 class FinancialController
 {
-    private PDO $db;
+    private \PDO $db;
     private Financial $financial;
     private Installment $installmentModel;
     private InstallmentService $installmentService;
     private FinancialReportService $reportService;
 
-    public function __construct()
-    {
+    public function __construct(
+        \PDO $db,
+        Financial $financial,
+        Installment $installmentModel,
+        InstallmentService $installmentService,
+        FinancialReportService $reportService
+    ) {
         if (!ModuleBootloader::isModuleEnabled('financial')) {
             http_response_code(403);
             require 'app/views/layout/header.php';
@@ -54,17 +57,11 @@ class FinancialController
             exit;
         }
 
-        $database = new Database();
-        $this->db = $database->getConnection();
-
-        // Models
-        $this->financial = new Financial($this->db);
-        $this->installmentModel = new Installment($this->db);
-
-        // Services
-        $transactionService = new TransactionService($this->db, $this->financial);
-        $this->installmentService = new InstallmentService($this->db, $this->installmentModel, $transactionService);
-        $this->reportService = new FinancialReportService($this->db, $this->financial, $this->installmentModel);
+        $this->db = $db;
+        $this->financial = $financial;
+        $this->installmentModel = $installmentModel;
+        $this->installmentService = $installmentService;
+        $this->reportService = $reportService;
     }
 
     // ═══════════════════════════════════════════

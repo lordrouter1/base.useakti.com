@@ -13,7 +13,7 @@ class Transaction
 {
     private $conn;
 
-    public function __construct($db)
+    public function __construct(\PDO $db)
     {
         $this->conn = $db;
     }

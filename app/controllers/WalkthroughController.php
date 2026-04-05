@@ -4,16 +4,15 @@ namespace Akti\Controllers;
 use Akti\Models\Walkthrough;
 use Akti\Models\UserGroup;
 use Akti\Utils\Input;
-use Database;
 
 class WalkthroughController {
 
-    private $walkthroughModel;
+    private Walkthrough $walkthroughModel;
+    private \PDO $db;
 
-    public function __construct() {
-        $database = new Database();
-        $db = $database->getConnection();
-        $this->walkthroughModel = new Walkthrough($db);
+    public function __construct(\PDO $db, Walkthrough $walkthroughModel) {
+        $this->db = $db;
+        $this->walkthroughModel = $walkthroughModel;
     }
 
     /**
@@ -145,9 +144,7 @@ class WalkthroughController {
 
         // Buscar permissões do grupo
         if ($groupId) {
-            $database = new Database();
-            $db = $database->getConnection();
-            $groupModel = new UserGroup($db);
+            $groupModel = new UserGroup($this->db);
             $permissions = $groupModel->getPermissions((int) $groupId);
         }
 

@@ -11,7 +11,7 @@ class SiteBuilder
 {
     private $db;
 
-    public function __construct($db)
+    public function __construct(\PDO $db)
     {
         $this->db = $db;
     }

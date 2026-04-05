@@ -5,21 +5,18 @@ namespace Akti\Controllers;
 use Akti\Models\Supplier;
 use Akti\Models\PurchaseOrder;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 class SupplierController
 {
-    private PDO $db;
+    private \PDO $db;
     private Supplier $supplierModel;
     private PurchaseOrder $purchaseModel;
 
-    public function __construct()
+    public function __construct(\PDO $db, Supplier $supplierModel, PurchaseOrder $purchaseModel)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->supplierModel = new Supplier($this->db);
-        $this->purchaseModel = new PurchaseOrder($this->db);
+        $this->db = $db;
+        $this->supplierModel = $supplierModel;
+        $this->purchaseModel = $purchaseModel;
     }
 
     public function index()

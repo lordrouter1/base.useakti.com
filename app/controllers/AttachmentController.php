@@ -4,19 +4,16 @@ namespace Akti\Controllers;
 
 use Akti\Models\Attachment;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 class AttachmentController
 {
-    private PDO $db;
+    private \PDO $db;
     private Attachment $model;
 
-    public function __construct()
+    public function __construct(\PDO $db, Attachment $model)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->model = new Attachment($this->db);
+        $this->db = $db;
+        $this->model = $model;
     }
 
     public function index()

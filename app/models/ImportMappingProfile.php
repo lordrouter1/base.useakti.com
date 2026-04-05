@@ -12,7 +12,7 @@ class ImportMappingProfile
     private $conn;
     private $table = 'import_mapping_profiles';
 
-    public function __construct($db)
+    public function __construct(\PDO $db)
     {
         $this->conn = $db;
     }

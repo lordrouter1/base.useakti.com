@@ -14,7 +14,7 @@ class ImportBatch
     private $table = 'import_batches';
     private $itemsTable = 'import_batch_items';
 
-    public function __construct($db)
+    public function __construct(\PDO $db)
     {
         $this->conn = $db;
     }

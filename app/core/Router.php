@@ -2,6 +2,7 @@
 namespace Akti\Core;
 
 use Akti\Models\IpGuard;
+use Psr\Container\ContainerInterface;
 
 /**
  * Router baseado em mapa de rotas — Akti
@@ -33,14 +34,18 @@ class Router
     /** @var string Action atual (?action=xxx) */
     private string $action;
 
+    /** @var ContainerInterface|null PSR-11 Container */
+    private ?ContainerInterface $container;
+
     // ══════════════════════════════════════════════════════════════
     // Construtor
     // ══════════════════════════════════════════════════════════════
 
     /**
      * @param string $routesFile  Caminho absoluto para o arquivo routes.php
+     * @param ContainerInterface|null $container  Container PSR-11 para resolução de dependências
      */
-    public function __construct(string $routesFile)
+    public function __construct(string $routesFile, ?ContainerInterface $container = null)
     {
         if (!file_exists($routesFile)) {
             throw new \RuntimeException("Arquivo de rotas não encontrado: {$routesFile}");
@@ -49,6 +54,7 @@ class Router
         $this->routes = require $routesFile;
         $this->page   = $_GET['page'] ?? 'home';
         $this->action = $_GET['action'] ?? 'index';
+        $this->container = $container;
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -250,22 +256,26 @@ class Router
     }
 
     // ══════════════════════════════════════════════════════════════
-    // DI Container leve (ARQ-012)
+    // DI Container PSR-11
     // ══════════════════════════════════════════════════════════════
 
     /**
-     * Instancia um controller injetando dependências no construtor.
+     * Instancia um controller via Container PSR-11 (auto-wiring).
      *
-     * Se o construtor aceita um parâmetro tipado como PDO, injeta a
-     * conexão de banco atual via Database::getInstance().
-     * Controllers sem construtor ou sem parâmetros continuam funcionando.
+     * Se o container estiver disponível, delega a resolução para ele.
+     * Caso contrário, mantém o fallback com Reflection manual (ARQ-012).
      */
     private function createController(string $class): object
     {
+        // PSR-11: usar container se disponível
+        if ($this->container !== null) {
+            return $this->container->get($class);
+        }
+
+        // Fallback legado (ARQ-012): Reflection manual para PDO
         $ref = new \ReflectionClass($class);
         $ctor = $ref->getConstructor();
 
-        // Sem construtor ou sem parâmetros → instanciar direto
         if ($ctor === null || $ctor->getNumberOfParameters() === 0) {
             return new $class();
         }
@@ -282,7 +292,6 @@ class Router
             } elseif ($param->isDefaultValueAvailable()) {
                 $args[] = $param->getDefaultValue();
             } else {
-                // Parâmetro não resolvível — instanciar sem args (fallback)
                 return new $class();
             }
         }

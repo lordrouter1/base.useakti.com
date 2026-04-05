@@ -14,7 +14,7 @@ use PDO;
 class OrderPreparation {
     private $conn;
 
-    public function __construct($db) {
+    public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 

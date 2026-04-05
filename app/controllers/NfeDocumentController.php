@@ -38,9 +38,7 @@ use Akti\Utils\Validator;
 use Akti\Middleware\RateLimitMiddleware;
 use Akti\Models\User;
 use Akti\Models\IbptaxModel;
-use Database;
 use TenantManager;
-use PDO;
 
 /**
  * Controller: NfeDocumentController
@@ -50,11 +48,11 @@ use PDO;
  */
 class NfeDocumentController
 {
-    private $db;
+    private \PDO $db;
     private NfeDocument $docModel;
     private NfeLog $logModel;
 
-    public function __construct()
+    public function __construct(\PDO $db, NfeDocument $docModel, NfeLog $logModel)
     {
         if (!ModuleBootloader::isModuleEnabled('nfe')) {
             http_response_code(403);
@@ -64,10 +62,9 @@ class NfeDocumentController
             exit;
         }
 
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->docModel = new NfeDocument($this->db);
-        $this->logModel = new NfeLog($this->db);
+        $this->db = $db;
+        $this->docModel = $docModel;
+        $this->logModel = $logModel;
 
         // Verificar permissão de visualização (nfe_documents)
         $this->checkPermission('nfe_documents');

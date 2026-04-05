@@ -4,19 +4,16 @@ namespace Akti\Controllers;
 
 use Akti\Models\CalendarEvent;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 class CalendarController
 {
-    private PDO $db;
+    private \PDO $db;
     private CalendarEvent $model;
 
-    public function __construct()
+    public function __construct(\PDO $db, CalendarEvent $model)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->model = new CalendarEvent($this->db);
+        $this->db = $db;
+        $this->model = $model;
     }
 
     public function index()

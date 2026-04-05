@@ -26,7 +26,7 @@ class Product {
         'fiscal_aliq_pis', 'fiscal_aliq_cofins', 'fiscal_beneficio', 'fiscal_info_adicional'
     ];
 
-    public function __construct($db) {
+    public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 

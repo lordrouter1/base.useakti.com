@@ -14,7 +14,7 @@ class NfeAuditLog
     private $conn;
     private $table = 'nfe_audit_log';
 
-    public function __construct($db)
+    public function __construct(\PDO $db)
     {
         $this->conn = $db;
     }

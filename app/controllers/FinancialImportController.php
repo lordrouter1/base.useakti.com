@@ -6,8 +6,6 @@ use Akti\Core\ModuleBootloader;
 use Akti\Core\Log;
 use Akti\Services\FinancialImportService;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 /**
  * FinancialImportController — Controller dedicado a importação financeira (OFX/CSV/Excel).
@@ -25,10 +23,10 @@ use PDO;
  */
 class FinancialImportController
 {
-    private PDO $db;
+    private \PDO $db;
     private FinancialImportService $importService;
 
-    public function __construct()
+    public function __construct(\PDO $db, FinancialImportService $importService)
     {
         if (!ModuleBootloader::isModuleEnabled('financial')) {
             http_response_code(403);
@@ -37,11 +35,8 @@ class FinancialImportController
             exit;
         }
 
-        $database = new Database();
-        $this->db = $database->getConnection();
-
-        $financial = new Financial($this->db);
-        $this->importService = new FinancialImportService($this->db, $financial);
+        $this->db = $db;
+        $this->importService = $importService;
     }
 
     /**

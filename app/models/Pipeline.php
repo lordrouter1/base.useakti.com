@@ -22,7 +22,7 @@ class Pipeline {
         'cancelado'  => ['label' => 'Cancelado',     'icon' => 'fas fa-ban',                   'color' => '#95a5a6', 'order' => 9],
     ];
 
-    public function __construct($db) {
+    public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 

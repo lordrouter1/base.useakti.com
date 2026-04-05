@@ -8,7 +8,6 @@ use Akti\Services\ReportPdfService;
 use Akti\Services\ReportExcelService;
 use Akti\Utils\Input;
 use Akti\Utils\Validator;
-use Database;
 
 /**
  * Controller: ReportController
@@ -21,25 +20,23 @@ use Database;
  */
 class ReportController
 {
-    private $db;
-    private $report;
-    private $nfeReport;
-    private $company;
+    private \PDO $db;
+    private ReportModel $report;
+    private NfeReportModel $nfeReport;
+    private array $company;
 
     /** @var ReportPdfService */
-    private $pdfService;
+    private ReportPdfService $pdfService;
 
     /** @var ReportExcelService */
-    private $excelService;
+    private ReportExcelService $excelService;
 
-    public function __construct()
+    public function __construct(\PDO $db, ReportModel $report, NfeReportModel $nfeReport, CompanySettings $companySettings)
     {
-        $database   = new Database();
-        $this->db   = $database->getConnection();
-        $this->report    = new ReportModel($this->db);
-        $this->nfeReport = new NfeReportModel($this->db);
+        $this->db = $db;
+        $this->report    = $report;
+        $this->nfeReport = $nfeReport;
 
-        $companySettings = new CompanySettings($this->db);
         $this->company   = $companySettings->getAll();
 
         $responsibleUser = $_SESSION['user_name'] ?? 'Sistema';

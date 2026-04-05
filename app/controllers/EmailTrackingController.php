@@ -3,17 +3,14 @@
 namespace Akti\Controllers;
 
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 class EmailTrackingController
 {
-    private PDO $db;
+    private \PDO $db;
 
-    public function __construct()
+    public function __construct(\PDO $db)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
+        $this->db = $db;
     }
 
     /**

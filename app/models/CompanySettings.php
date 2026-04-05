@@ -21,7 +21,7 @@ class CompanySettings {
      * Construtor do model
      * @param PDO $db Conexão PDO
      */
-    public function __construct($db) {
+    public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 

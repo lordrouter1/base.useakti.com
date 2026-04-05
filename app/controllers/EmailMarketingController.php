@@ -5,19 +5,16 @@ namespace Akti\Controllers;
 use Akti\Models\EmailCampaign;
 use Akti\Services\EmailService;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 class EmailMarketingController
 {
-    private PDO $db;
+    private \PDO $db;
     private EmailCampaign $model;
 
-    public function __construct()
+    public function __construct(\PDO $db, EmailCampaign $model)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->model = new EmailCampaign($this->db);
+        $this->db = $db;
+        $this->model = $model;
     }
 
     public function index()

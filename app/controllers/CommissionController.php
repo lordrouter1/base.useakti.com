@@ -7,8 +7,6 @@ use Akti\Models\Category;
 use Akti\Services\CommissionEngine;
 use Akti\Services\CommissionService;
 use Akti\Utils\Input;
-use Database;
-use PDO;
 
 /**
  * CommissionController — Controller do Módulo de Comissões
@@ -22,18 +20,15 @@ use PDO;
  */
 class CommissionController
 {
-    private PDO $db;
+    private \PDO $db;
     private CommissionService $service;
     private Commission $model;
 
-    public function __construct()
+    public function __construct(\PDO $db, Commission $model, CommissionEngine $engine, CommissionService $service)
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->model = new Commission($this->db);
-
-        $engine = new CommissionEngine($this->db, $this->model);
-        $this->service = new CommissionService($this->db, $engine, $this->model);
+        $this->db = $db;
+        $this->model = $model;
+        $this->service = $service;
     }
 
     // ═══════════════════════════════════════════════════

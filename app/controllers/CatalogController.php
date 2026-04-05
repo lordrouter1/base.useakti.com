@@ -12,9 +12,7 @@ use Akti\Services\CatalogCartService;
 use Akti\Services\CatalogQuoteService;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
-use Database;
 use PDOException;
-use PDO;
 
 /**
  * Controller: CatalogController
@@ -25,15 +23,14 @@ use PDO;
  */
 class CatalogController {
 
-    private $db;
+    private \PDO $db;
     private CatalogCartService $cartService;
     private CatalogQuoteService $quoteService;
 
-    public function __construct() {
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->cartService = new CatalogCartService($this->db);
-        $this->quoteService = new CatalogQuoteService($this->db);
+    public function __construct(\PDO $db, CatalogCartService $cartService, CatalogQuoteService $quoteService) {
+        $this->db = $db;
+        $this->cartService = $cartService;
+        $this->quoteService = $quoteService;
     }
 
     /**

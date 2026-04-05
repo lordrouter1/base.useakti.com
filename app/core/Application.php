@@ -5,6 +5,7 @@ use Akti\Middleware\CsrfMiddleware;
 use Akti\Middleware\PortalAuthMiddleware;
 use Akti\Middleware\SecurityHeadersMiddleware;
 use Akti\Models\User;
+use Psr\Container\ContainerInterface;
 
 /**
  * Application — encapsula o ciclo de vida da requisição HTTP.
@@ -21,13 +22,15 @@ class Application
     private Router $router;
     private string $page;
     private string $action;
+    private ContainerInterface $container;
 
     /** @var \PDO|null PDO de sessão */
     private $sessionDb;
 
-    public function __construct(string $basePath)
+    public function __construct(string $basePath, ContainerInterface $container)
     {
         $this->basePath = $basePath;
+        $this->container = $container;
     }
 
     /**
@@ -52,7 +55,7 @@ class Application
         }
 
         // Inicializar router
-        $this->router = new Router($this->basePath . '/app/config/routes.php');
+        $this->router = new Router($this->basePath . '/app/config/routes.php', $this->container);
         $this->page   = $this->router->getPage();
         $this->action = $this->router->getAction();
     }

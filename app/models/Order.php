@@ -20,7 +20,7 @@ class Order {
     public $scheduled_date;
     public $created_at;
 
-    public function __construct($db) {
+    public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 

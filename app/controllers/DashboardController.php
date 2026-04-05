@@ -5,12 +5,17 @@ use Akti\Models\Pipeline;
 use Akti\Models\Order;
 use Akti\Models\Customer;
 use Akti\Core\Log;
-use Database;
 
 class DashboardController {
+
+    private \PDO $db;
+
+    public function __construct(\PDO $db) {
+        $this->db = $db;
+    }
+
     public function index() {
-        $database = new Database();
-        $db = $database->getConnection();
+        $db = $this->db;
 
         // Valores padrão (caso alguma query falhe)
         $pipelineStats = ['total_active' => 0, 'total_delayed' => 0, 'completed_month' => 0, 'total_value' => 0, 'by_stage' => [], 'delayed_orders' => []];
@@ -54,8 +59,7 @@ class DashboardController {
      */
     public function realtime()
     {
-        $database = new Database();
-        $db = $database->getConnection();
+        $db = $this->db;
 
         $stages = Pipeline::$stages;
 
@@ -69,8 +73,7 @@ class DashboardController {
      */
     public function realtimeData()
     {
-        $database = new Database();
-        $db = $database->getConnection();
+        $db = $this->db;
 
         header('Content-Type: application/json; charset=utf-8');
 
