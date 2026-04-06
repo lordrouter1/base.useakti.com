@@ -35,7 +35,9 @@ class UserController {
         $this->loginAttempt = $loginAttempt;
         $this->logger = $logger;
         $this->authService = $authService;
-        // Apenas admin
+    }
+
+    public function index() {
         $this->checkAdmin();
         
         $users = $this->userModel->readAll();
