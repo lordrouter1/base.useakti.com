@@ -13,7 +13,7 @@ $companyLogo = $company['company_logo'] ?? '';
         <!-- Logo / Marca -->
         <div class="portal-auth-header">
             <?php if ($companyLogo): ?>
-                <img src="<?= eAttr($companyLogo) ?>" alt="<?= eAttr($companyName) ?>" class="portal-auth-logo">
+                <img src="<?= eAttr(thumb_url($companyLogo, 150)) ?>" alt="<?= eAttr($companyName) ?>" class="portal-auth-logo">
             <?php else: ?>
                 <div class="portal-auth-icon">
                     <i class="fas fa-user-circle"></i>

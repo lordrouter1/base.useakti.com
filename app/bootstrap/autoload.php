@@ -110,6 +110,9 @@ require_once AKTI_BASE_PATH . 'app/utils/asset_helper.php';
 // i18n_helper.php define __() para internacionalização (FEAT-009)
 require_once AKTI_BASE_PATH . 'app/utils/i18n_helper.php';
 
+// file_helper.php define file_url(), thumb_url(), is_file_image(), file_url_or()
+require_once AKTI_BASE_PATH . 'app/utils/file_helper.php';
+
 // ── Carregar helpers do Portal do Cliente ──
 // portal_helper.php define __p(), portal_money(), portal_date() etc.
 require_once AKTI_BASE_PATH . 'app/utils/portal_helper.php';

@@ -2691,15 +2691,15 @@
                                 <?php if (!empty($log['file_path'])): ?>
                                     <?php if ($isImage): ?>
                                     <div class="mt-2">
-                                        <a href="<?= $log['file_path'] ?>" target="_blank">
-                                            <img src="<?= $log['file_path'] ?>" class="rounded border" 
+                                        <a href="<?= eAttr($log['file_path']) ?>" target="_blank">
+                                            <img src="<?= eAttr(thumb_url($log['file_path'], 300, 150)) ?>" class="rounded border" 
                                                  style="max-width:100%;max-height:150px;" alt="<?= e($log['file_name']) ?>">
                                         </a>
                                         <div class="small text-muted mt-1"><i class="fas fa-image me-1"></i><?= e($log['file_name']) ?></div>
                                     </div>
                                     <?php elseif ($isPdf): ?>
                                     <div class="mt-2">
-                                        <a href="<?= $log['file_path'] ?>" target="_blank" class="btn btn-sm btn-outline-danger">
+                                        <a href="<?= eAttr($log['file_path']) ?>" target="_blank" class="btn btn-sm btn-outline-danger">
                                             <i class="fas fa-file-pdf me-1"></i><?= e($log['file_name']) ?>
                                         </a>
                                     </div>

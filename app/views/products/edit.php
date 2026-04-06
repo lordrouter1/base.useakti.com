@@ -116,7 +116,7 @@
                     <div class="d-flex flex-wrap gap-2 mb-3" id="existing-images">
                         <?php foreach($images as $img): ?>
                         <div class="position-relative border rounded p-1" id="img-cont-<?= $img['id'] ?>" style="width: 80px; height: 80px;">
-                            <img src="<?= eAttr($img['image_path']) ?>" class="w-100 h-100 object-fit-cover rounded">
+                            <img src="<?= eAttr(thumb_url($img['image_path'], 80, 80)) ?>" class="w-100 h-100 object-fit-cover rounded">
                             <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 p-0 d-flex align-items-center justify-content-center" 
                                     style="width: 20px; height: 20px; transform: translate(30%, -30%); border-radius: 50%;"
                                     onclick="deleteImage(<?= $img['id'] ?>)">

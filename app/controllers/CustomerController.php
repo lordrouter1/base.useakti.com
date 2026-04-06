@@ -16,6 +16,7 @@ use Akti\Services\CustomerFormService;
 use Akti\Services\ExternalApiService;
 use Akti\Services\CustomerOrderHistoryService;
 use Akti\Services\CustomerContactService;
+use Akti\Services\FileManager;
 use TenantManager;
 
 /**
@@ -1545,29 +1546,16 @@ class CustomerController {
      */
     private function handlePhotoUpload(): ?string
     {
-        if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-            $maxSize = 5 * 1024 * 1024;
-            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
-            $fileType = mime_content_type($_FILES['photo']['tmp_name']);
-            
-            if ($_FILES['photo']['size'] > $maxSize || !in_array($fileType, $allowedTypes)) {
-                return null;
-            }
-
-            $uploadDir = TenantManager::getTenantUploadBase() . 'customers/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
-            
-            $fileExtension = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
-            $fileName = uniqid() . '.' . $fileExtension;
-            $targetFile = $uploadDir . $fileName;
-
-            if (move_uploaded_file($_FILES['photo']['tmp_name'], $targetFile)) {
-                return $targetFile;
-            }
+        if (!isset($_FILES['photo']) || $_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+            return null;
         }
-        return null;
+
+        $fileManager = new FileManager($this->db);
+        $result = $fileManager->upload($_FILES['photo'], 'customers', [
+            'entityType' => 'customer',
+        ]);
+
+        return $result['success'] ? $result['path'] : null;
     }
 
     /**

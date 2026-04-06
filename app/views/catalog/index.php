@@ -240,7 +240,7 @@ a{-webkit-tap-highlight-color:transparent}
         <div class="d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-2">
                 <?php if ($companyLogo): ?>
-                    <img src="<?= eAttr($companyLogo) ?>" alt="Logo" class="logo-img">
+                    <img src="<?= eAttr(thumb_url($companyLogo, 80)) ?>" alt="Logo" class="logo-img">
                 <?php else: ?>
                     <div class="d-flex align-items-center justify-content-center rounded-circle bg-white " style="width:34px;height:34px;">
                         <i class="fas fa-store text-white"></i>
@@ -309,7 +309,7 @@ a{-webkit-tap-highlight-color:transparent}
                 </div>
                 <div class="img-wrap">
                     <?php if ($mainImage): ?>
-                        <img src="<?= eAttr($mainImage) ?>" alt="<?= eAttr($prod['name']) ?>" loading="lazy">
+                        <img src="<?= eAttr(thumb_url($mainImage, 300)) ?>" alt="<?= eAttr($prod['name']) ?>" loading="lazy">
                     <?php else: ?>
                         <div class="no-img"><i class="fas fa-image"></i></div>
                     <?php endif; ?>
@@ -453,7 +453,7 @@ a{-webkit-tap-highlight-color:transparent}
                 ?>
                 <div class="cart-item" data-item-id="<?= $ci['id'] ?>" data-product-id="<?= $ci['product_id'] ?>">
                     <?php if ($ciMainImg): ?>
-                        <img src="<?= eAttr($ciMainImg) ?>" class="cart-item-img" alt="">
+                        <img src="<?= eAttr(thumb_url($ciMainImg, 80, 80)) ?>" class="cart-item-img" alt="">
                     <?php else: ?>
                         <div class="cart-item-img d-flex align-items-center justify-content-center"><i class="fas fa-image text-muted"></i></div>
                     <?php endif; ?>
@@ -644,7 +644,7 @@ a{-webkit-tap-highlight-color:transparent}
                 ?>
                 <div class="cart-item" data-item-id="<?= $ci['id'] ?>" data-product-id="<?= $ci['product_id'] ?>">
                     <?php if ($ciMainImg): ?>
-                        <img src="<?= eAttr($ciMainImg) ?>" class="cart-item-img" alt="">
+                        <img src="<?= eAttr(thumb_url($ciMainImg, 80, 80)) ?>" class="cart-item-img" alt="">
                     <?php else: ?>
                         <div class="cart-item-img d-flex align-items-center justify-content-center"><i class="fas fa-image text-muted"></i></div>
                     <?php endif; ?>

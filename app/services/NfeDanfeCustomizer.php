@@ -102,38 +102,20 @@ class NfeDanfeCustomizer
      */
     public function uploadLogo(array $file): array
     {
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            return ['success' => false, 'path' => null, 'message' => 'Erro no upload.'];
+        $fileManager = new FileManager($this->db);
+
+        $oldLogo = $this->settings->get('nfe_danfe_logo_path');
+        $result = $fileManager->replace($oldLogo ?: null, $file, 'nfe', [
+            'prefix'     => 'danfe_logo',
+            'entityType' => 'nfe_danfe',
+        ]);
+
+        if ($result['success']) {
+            $this->settings->set('nfe_danfe_logo_path', $result['path']);
+            return ['success' => true, 'path' => $result['path'], 'message' => 'Logo do DANFE atualizado.'];
         }
 
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, ['png', 'jpg', 'jpeg'])) {
-            return ['success' => false, 'path' => null, 'message' => 'Formato inválido. Use PNG ou JPG.'];
-        }
-
-        // Limite 2MB
-        if ($file['size'] > 2 * 1024 * 1024) {
-            return ['success' => false, 'path' => null, 'message' => 'Arquivo muito grande (máx. 2MB).'];
-        }
-
-        $basePath = defined('AKTI_BASE_PATH') ? AKTI_BASE_PATH : __DIR__ . '/../../';
-        $tenantDb = $_SESSION['tenant']['database'] ?? ($_SESSION['tenant']['db_name'] ?? 'default');
-        $safeName = preg_replace('/[^a-zA-Z0-9_]/', '_', $tenantDb);
-        $dir = $basePath . 'storage/danfe_logos/' . $safeName . '/';
-
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-
-        $filename = 'danfe_logo.' . $ext;
-        $fullPath = $dir . $filename;
-
-        if (move_uploaded_file($file['tmp_name'], $fullPath)) {
-            $this->settings->set('nfe_danfe_logo_path', $fullPath);
-            return ['success' => true, 'path' => $fullPath, 'message' => 'Logo do DANFE atualizado.'];
-        }
-
-        return ['success' => false, 'path' => null, 'message' => 'Erro ao salvar arquivo.'];
+        return ['success' => false, 'path' => null, 'message' => $result['error'] ?? 'Erro ao salvar arquivo.'];
     }
 
     /**

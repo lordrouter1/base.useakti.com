@@ -34,6 +34,24 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" integrity="sha384-QjoPbdj/93O7LUz0wqTxepA3tIabUD3jzfZX+x5QLvqFtHBzSw4eYFLSVthB+EDT" crossorigin="anonymous"></script>
 <!-- Script global do sistema (CSRF, atalhos, máscaras) -->
 <script src="<?= asset('assets/js/script.js') ?>"></script>
+<!-- FileManager: JS helpers para thumbnail URLs -->
+<script>
+function thumbUrl(path, w, h) {
+    if (!path) return '';
+    var ext = path.split('.').pop().toLowerCase();
+    if (['svg','pdf','doc','docx','xls','xlsx','csv','txt','zip'].indexOf(ext) !== -1) return path;
+    var url = '?page=files&action=thumb&path=' + encodeURIComponent(path) + '&w=' + (w || 150);
+    if (h) url += '&h=' + h;
+    return url;
+}
+function fileUrl(path, size) {
+    if (!path) return '';
+    if (!size) return path;
+    var presets = {xs:40,sm:80,md:150,lg:300,xl:600};
+    var w = presets[size] || parseInt(size) || 150;
+    return thumbUrl(path, w, w);
+}
+</script>
 <!-- Design System Components -->
 <script src="<?= asset('assets/js/components/toast.js') ?>"></script>
 <script src="<?= asset('assets/js/components/skeleton.js') ?>"></script>

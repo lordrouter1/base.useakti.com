@@ -10,6 +10,7 @@ use Akti\Models\Logger;
 use Akti\Models\PriceTable;
 use Akti\Services\ProductImportService;
 use Akti\Services\ProductGradeService;
+use Akti\Services\FileManager;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
 use Akti\Utils\Validator;
@@ -339,78 +340,45 @@ class ProductController {
             return;
         }
 
-        // Verificar se há pelo menos um arquivo válido enviado
-        $hasValidFile = false;
-        for ($i = 0; $i < count($files['name']); $i++) {
-            if ($files['error'][$i] === UPLOAD_ERR_OK) {
-                $hasValidFile = true;
-                break;
-            }
-        }
-        if (!$hasValidFile) {
+        $fileManager = new FileManager($this->db);
+        $result = $fileManager->uploadMultiple($files, 'products', [
+            'prefix'     => 'prod_' . $productId,
+            'entityType' => 'product',
+            'entityId'   => $productId,
+        ]);
+
+        if ($result['uploaded'] === 0) {
             return;
         }
 
-        $uploadDir = TenantManager::getTenantUploadBase() . 'products/';
+        $uploadedIndex = 0;
+        foreach ($result['results'] as $item) {
+            if (!$item['success']) {
+                $uploadedIndex++;
+                continue;
+            }
 
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+            $isMain = ($mainImageIndex !== null && $uploadedIndex == (int) $mainImageIndex) ? 1 : 0;
+
+            if ($isMain) {
+                $this->productModel->setMainImage($productId, 0);
+            }
+
+            $this->productModel->addImage($productId, $item['path'], $isMain);
+            $uploadedIndex++;
         }
 
-        $maxSize = 5 * 1024 * 1024; // 5 MB
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'];
-
-        $uploadedCount = 0;
-        for ($i = 0; $i < count($files['name']); $i++) {
-            if ($files['error'][$i] !== UPLOAD_ERR_OK) {
-                continue;
-            }
-
-            // Validar tamanho
-            if ($files['size'][$i] > $maxSize) {
-                continue;
-            }
-
-            // Validar tipo MIME
-            $fileType = mime_content_type($files['tmp_name'][$i]);
-            if (!in_array($fileType, $allowedTypes)) {
-                continue;
-            }
-
-            $fileExt = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
-            // Normalizar extensão
-            if ($fileExt === 'jpeg') {
-                $fileExt = 'jpg';
-            }
-            $newFileName = uniqid('prod_' . $productId . '_') . '.' . $fileExt;
-            $targetPath = $uploadDir . $newFileName;
-
-            if (move_uploaded_file($files['tmp_name'][$i], $targetPath)) {
-                $isMain = ($mainImageIndex !== null && $i == (int) $mainImageIndex) ? 1 : 0;
-
-                // Se definindo como principal, resetar as outras primeiro
-                if ($isMain) {
-                    $this->productModel->setMainImage($productId, 0); // Reset all
-                }
-
-                $this->productModel->addImage($productId, $targetPath, $isMain);
-                $uploadedCount++;
+        // Se enviou fotos mas nenhuma foi marcada como principal, definir a primeira
+        $images = $this->productModel->getImages($productId);
+        $hasMain = false;
+        foreach ($images as $img) {
+            if ($img['is_main']) {
+                $hasMain = true;
+                break;
             }
         }
-
-        // Se enviou fotos mas nenhuma foi marcada como principal, e o produto não tem nenhuma principal, definir a primeira
-        if ($uploadedCount > 0) {
-            $images = $this->productModel->getImages($productId);
-            $hasMain = false;
-            foreach ($images as $img) {
-                if ($img['is_main']) {
-                    $hasMain = true;
-                    break;
-                }
-            }
-            if (!$hasMain && !empty($images)) {
-                $this->productModel->setMainImage($productId, $images[0]['id']);
-            }
+        if (!$hasMain && !empty($images)) {
+            $this->productModel->setMainImage($productId, $images[0]['id']);
         }
     }
 

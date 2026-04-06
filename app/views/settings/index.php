@@ -163,7 +163,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     </legend>
                     <div class="text-center mb-3">
                         <?php if (!empty($settings['company_logo']) && file_exists($settings['company_logo'])): ?>
-                            <img src="<?= $settings['company_logo'] ?>" alt="Logo" class="img-fluid rounded shadow-sm" style="max-height: 200px;">
+                            <img src="<?= eAttr(thumb_url($settings['company_logo'], 300)) ?>" alt="Logo" class="img-fluid rounded shadow-sm" style="max-height: 200px;">
                             <div class="mt-2">
                                 <label class="form-check-label small text-danger">
                                     <input type="checkbox" name="remove_logo" value="1" class="form-check-input"> Remover logo atual
@@ -190,7 +190,7 @@ $canUseFiscalModule = \Akti\Core\ModuleBootloader::isModuleEnabled('fiscal');
                     </div>
                     <div class="card-body text-center">
                         <?php if (!empty($settings['company_logo']) && file_exists($settings['company_logo'])): ?>
-                            <img src="<?= $settings['company_logo'] ?>" alt="Logo" style="max-height: 60px;" class="mb-2">
+                            <img src="<?= eAttr(thumb_url($settings['company_logo'], 150)) ?>" alt="Logo" style="max-height: 60px;" class="mb-2">
                         <?php else: ?>
                             <i class="fas fa-print me-2 text-primary" style="font-size:1.5rem;"></i>
                         <?php endif; ?>

@@ -64,7 +64,7 @@ $isAjax = $isAjax ?? false;
 
                             <?php if (!empty($danfeSettings['logo_path'])): ?>
                             <div class="mb-3 p-3 bg-light rounded text-center">
-                                <img src="<?= e($danfeSettings['logo_path']) ?>" alt="Logo DANFE" 
+                                <img src="<?= eAttr(thumb_url($danfeSettings['logo_path'], 300, 100)) ?>" alt="Logo DANFE" 
                                      class="img-fluid border rounded" style="max-height: 80px;">
                                 <div class="mt-2">
                                     <small class="text-success"><i class="fas fa-check-circle me-1"></i> Logo configurado</small>
@@ -122,7 +122,7 @@ $isAjax = $isAjax ?? false;
                                     <div class="col-4 text-center">
                                         <div id="previewLogo" class="bg-light border rounded p-2" style="min-height:60px; display:flex; align-items:center; justify-content:center;">
                                             <?php if (!empty($danfeSettings['logo_path'])): ?>
-                                            <img src="<?= e($danfeSettings['logo_path']) ?>" alt="Logo" class="img-fluid" style="max-height:50px;">
+                                            <img src="<?= eAttr(thumb_url($danfeSettings['logo_path'], 150)) ?>" alt="Logo" class="img-fluid" style="max-height:50px;">
                                             <?php else: ?>
                                             <small class="text-muted">LOGO</small>
                                             <?php endif; ?>

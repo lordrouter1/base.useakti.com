@@ -74,7 +74,7 @@
         <div class="row align-items-center">
             <div class="col-auto">
                 <?php if (!empty($c['photo'])): ?>
-                    <img src="<?= eAttr($c['photo']) ?>" alt="Foto de <?= eAttr($c['name']) ?>" class="cst-profile-avatar">
+                    <img src="<?= eAttr(thumb_url($c['photo'], 150, 150)) ?>" alt="Foto de <?= eAttr($c['name']) ?>" class="cst-profile-avatar">
                 <?php else: ?>
                     <div class="cst-profile-avatar-placeholder" aria-label="Avatar">
                         <?= strtoupper(mb_substr($c['name'], 0, 1)) ?>

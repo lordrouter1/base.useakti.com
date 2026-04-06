@@ -16,7 +16,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="d-flex align-items-center gap-3">
             <?php if (!empty($c['photo'])): ?>
-                <img src="<?= eAttr($c['photo']) ?>" alt="Foto" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;border:2px solid var(--cst-border);">
+                <img src="<?= eAttr(thumb_url($c['photo'], 48, 48)) ?>" alt="Foto" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;border:2px solid var(--cst-border);">
             <?php else: ?>
                 <div class="icon-circle icon-circle-48 icon-circle-blue text-blue" style="font-size:1.2rem;font-weight:700;">
                     <?= strtoupper(mb_substr($c['name'], 0, 1)) ?>
@@ -97,7 +97,7 @@
                     <!-- Coluna Esquerda: Foto + Status -->
                     <div class="col-md-3 text-center mb-3">
                         <div class="cst-photo-upload <?= !empty($c['photo']) ? 'has-photo' : '' ?>" title="Clique ou arraste para adicionar foto">
-                            <img id="preview-photo" src="<?= !empty($c['photo']) ? eAttr($c['photo']) : 'assets/img/default-avatar.png' ?>" alt="Foto" style="<?= !empty($c['photo']) ? '' : 'display:none;' ?>">
+                            <img id="preview-photo" src="<?= !empty($c['photo']) ? eAttr(thumb_url($c['photo'], 150, 150)) : 'assets/img/default-avatar.png' ?>" alt="Foto" style="<?= !empty($c['photo']) ? '' : 'display:none;' ?>">
                             <div class="cst-photo-placeholder" style="<?= !empty($c['photo']) ? 'display:none;' : '' ?>">
                                 <i class="fas fa-camera"></i>
                                 <span>Arraste ou clique</span>

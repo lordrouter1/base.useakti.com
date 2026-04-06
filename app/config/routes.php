@@ -1041,4 +1041,17 @@ return [
         ],
     ],
 
+    // ── Gestão de Arquivos ──
+    'files' => [
+        'controller'     => 'FileController',
+        'default_action' => 'serve',
+        'public'         => true,
+        'actions'        => [
+            'serve'    => 'serve',
+            'thumb'    => 'thumb',
+            'download' => 'download',
+            'upload'   => 'upload',
+        ],
+    ],
+
 ];

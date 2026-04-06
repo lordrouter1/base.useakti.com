@@ -5,6 +5,7 @@ use Akti\Core\Log;
 
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
+use Akti\Services\FileManager;
 use PDO;
 use TenantManager;
 
@@ -140,12 +141,10 @@ class OrderItemLog {
         $log = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$log) return false;
 
-        // Remover arquivo do disco
+        // Remover arquivo via FileManager
         if (!empty($log['file_path'])) {
-            $fullPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . ltrim($log['file_path'], '/');
-            if (file_exists($fullPath)) {
-                @unlink($fullPath);
-            }
+            $fileManager = new FileManager($this->conn);
+            $fileManager->delete($log['file_path']);
         }
 
         $del = $this->conn->prepare("DELETE FROM order_item_logs WHERE id = :id");
@@ -169,37 +168,21 @@ class OrderItemLog {
             return null;
         }
 
-        // Validar tipo
-        if (!in_array($file['type'], self::$allowedTypes)) {
-            return ['error' => 'Tipo de arquivo não permitido. Use JPG, PNG, GIF, WebP ou PDF.'];
+        $fileManager = new FileManager($this->conn);
+        $result = $fileManager->upload($file, 'item_logs', [
+            'subdirectory' => 'item_logs/' . $orderId . '/' . $orderItemId,
+            'entityType'   => 'order_item',
+            'entityId'     => $orderItemId,
+        ]);
+
+        if (!$result['success']) {
+            return ['error' => $result['error'] ?? 'Falha ao mover o arquivo.'];
         }
 
-        // Validar tamanho
-        if ($file['size'] > self::$maxFileSize) {
-            return ['error' => 'Arquivo muito grande. Máximo: 10MB.'];
-        }
-
-        // Criar diretório
-        $uploadDir = TenantManager::getTenantUploadBase() . 'item_logs/' . $orderId . '/' . $orderItemId;
-        $fullDir = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . $uploadDir;
-        if (!is_dir($fullDir)) {
-            mkdir($fullDir, 0755, true);
-        }
-
-        // Nome único
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $safeName = time() . '_' . bin2hex(random_bytes(4)) . '.' . strtolower($ext);
-        $destPath = $fullDir . '/' . $safeName;
-        $webPath = $uploadDir . '/' . $safeName;
-
-        if (move_uploaded_file($file['tmp_name'], $destPath)) {
-            return [
-                'file_path' => $webPath,
-                'file_name' => $file['name'],
-                'file_type' => $file['type'],
-            ];
-        }
-
-        return ['error' => 'Falha ao mover o arquivo.'];
+        return [
+            'file_path' => $result['path'],
+            'file_name' => $result['original_name'],
+            'file_type' => $result['mime_type'],
+        ];
     }
 }

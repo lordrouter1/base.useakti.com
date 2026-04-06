@@ -3,6 +3,7 @@
 namespace Akti\Controllers;
 
 use Akti\Models\Attachment;
+use Akti\Services\FileManager;
 use Akti\Utils\Input;
 
 class AttachmentController
@@ -50,54 +51,29 @@ class AttachmentController
             return;
         }
 
-        $file = $_FILES['file'];
-        $allowedMimes = [
-            'application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-            'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'text/csv', 'text/plain', 'application/zip',
-        ];
+        $fileManager = new FileManager($this->db);
+        $result = $fileManager->upload($_FILES['file'], 'attachments', [
+            'subdirectory' => 'attachments/' . $entityType,
+            'prefix'       => 'att',
+            'entityType'   => $entityType,
+            'entityId'     => $entityId,
+        ]);
 
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $finfo->file($file['tmp_name']);
-
-        if (!in_array($mimeType, $allowedMimes)) {
-            $this->json(['success' => false, 'message' => 'Tipo de arquivo não permitido']);
-            return;
-        }
-
-        $maxSize = 10 * 1024 * 1024;
-        if ($file['size'] > $maxSize) {
-            $this->json(['success' => false, 'message' => 'Arquivo excede 10MB']);
+        if (!$result['success']) {
+            $this->json(['success' => false, 'message' => $result['error'] ?? 'Erro ao salvar arquivo']);
             return;
         }
 
         $tenantId = $_SESSION['tenant']['id'] ?? 0;
-        $uploadBase = \Akti\Config\TenantManager::getTenantUploadBase();
-        $dir = $uploadBase . '/attachments/' . $entityType;
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $safeExt = preg_replace('/[^a-zA-Z0-9]/', '', $ext);
-        $filename = uniqid('att_') . '.' . $safeExt;
-        $path = $dir . '/' . $filename;
-
-        if (!move_uploaded_file($file['tmp_name'], $path)) {
-            $this->json(['success' => false, 'message' => 'Erro ao salvar arquivo']);
-            return;
-        }
-
         $id = $this->model->create([
             'tenant_id'     => $tenantId,
             'entity_type'   => $entityType,
             'entity_id'     => $entityId,
-            'filename'      => $filename,
-            'original_name' => basename($file['name']),
-            'path'          => $path,
-            'mime_type'     => $mimeType,
-            'size'          => $file['size'],
+            'filename'      => $result['stored_name'],
+            'original_name' => $result['original_name'],
+            'path'          => $result['path'],
+            'mime_type'     => $result['mime_type'],
+            'size'          => $result['size'],
             'uploaded_by'   => $_SESSION['user_id'] ?? null,
             'description'   => $description,
         ]);
@@ -122,17 +98,14 @@ class AttachmentController
         $id = Input::get('id', 'int', 0);
         $attachment = $this->model->readOne($id);
 
-        if (!$attachment || !file_exists($attachment['path'])) {
+        if (!$attachment) {
             http_response_code(404);
             echo 'Arquivo não encontrado';
             return;
         }
 
-        header('Content-Type: ' . $attachment['mime_type']);
-        header('Content-Disposition: attachment; filename="' . $attachment['original_name'] . '"');
-        header('Content-Length: ' . filesize($attachment['path']));
-        readfile($attachment['path']);
-        exit;
+        $fileManager = new FileManager($this->db);
+        $fileManager->download($attachment['path'], $attachment['original_name']);
     }
 
     public function delete()
@@ -140,8 +113,9 @@ class AttachmentController
         $id = Input::get('id', 'int', 0);
         $attachment = $this->model->readOne($id);
 
-        if ($attachment && file_exists($attachment['path'])) {
-            unlink($attachment['path']);
+        if ($attachment && !empty($attachment['path'])) {
+            $fileManager = new FileManager($this->db);
+            $fileManager->delete($attachment['path']);
         }
 
         $this->model->delete($id);

@@ -77,7 +77,7 @@
             <div>
                 <?php if (!empty($company['company_logo']) && file_exists($company['company_logo'])): ?>
                 <div class="company-logo mb-1">
-                    <img src="<?= $company['company_logo'] ?>" alt="Logo">
+                    <img src="<?= eAttr(file_url($company['company_logo'])) ?>" alt="Logo">
                 </div>
                 <?php endif; ?>
                 <div class="company-name"><?= e($company['company_name'] ?? 'Minha Empresa') ?></div>

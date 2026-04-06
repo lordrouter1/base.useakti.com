@@ -62,7 +62,7 @@ if (!isset($unreadMessages)) {
         <div class="portal-topbar-inner">
             <div class="portal-topbar-left">
                 <?php if ($companyLogo): ?>
-                    <img src="<?= eAttr($companyLogo) ?>" alt="<?= eAttr($companyName) ?>" class="portal-topbar-logo">
+                    <img src="<?= eAttr(thumb_url($companyLogo, 150)) ?>" alt="<?= eAttr($companyName) ?>" class="portal-topbar-logo">
                 <?php else: ?>
                     <span class="portal-topbar-brand"><?= e($companyName) ?></span>
                 <?php endif; ?>
@@ -107,7 +107,7 @@ if (!isset($unreadMessages)) {
             <div class="portal-topbar-right">
                 <span class="portal-topbar-greeting d-none d-sm-inline">
                     <?php if (!empty($customerAvatar) && file_exists($customerAvatar)): ?>
-                        <img src="<?= eAttr($customerAvatar) ?>" alt="" class="portal-topbar-avatar">
+                        <img src="<?= eAttr(thumb_url($customerAvatar, 32, 32)) ?>" alt="" class="portal-topbar-avatar">
                     <?php endif; ?>
                     <?= e($customerName) ?>
                 </span>

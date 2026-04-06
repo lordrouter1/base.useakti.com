@@ -262,7 +262,7 @@ $prioMap = [
         <div>
             <?php if (!empty($company['company_logo']) && file_exists($company['company_logo'])): ?>
                 <div class="company-logo mb-1">
-                    <img src="<?= $company['company_logo'] ?>" alt="Logo">
+                    <img src="<?= eAttr(file_url($company['company_logo'])) ?>" alt="Logo">
                 </div>
             <?php endif; ?>
 
@@ -361,7 +361,7 @@ $prioMap = [
                                 $itemMainImage = $productImages[$item['product_id']] ?? null;
                             ?>
                             <?php if ($itemMainImage && file_exists($itemMainImage)): ?>
-                                <img src="<?= e($itemMainImage) ?>" alt="" class="production-product-img">
+                                <img src="<?= eAttr(thumb_url($itemMainImage, 80, 80)) ?>" alt="" class="production-product-img">
                             <?php else: ?>
                                 <div class="production-product-noimg">
                                     <i class="fas fa-image"></i>

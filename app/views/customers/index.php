@@ -861,7 +861,7 @@ document.addEventListener('DOMContentLoaded', function() {
         items.forEach(function(c) {
             var initial = c.name ? c.name.charAt(0).toUpperCase() : '?';
             var photoCell = c.photo
-                ? '<img src="' + escHtml(c.photo) + '" class="rounded-circle" style="width:32px;height:32px;object-fit:cover;">'
+                ? '<img src="' + escHtml(thumbUrl(c.photo, 32, 32)) + '" class="rounded-circle" style="width:32px;height:32px;object-fit:cover;">'
                 : '<div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;font-size:.8rem;">' + escHtml(initial) + '</div>';
 
             var docCell = c.document ? '<span class="badge bg-light text-dark border" style="font-size:.72rem;">' + formatDoc(c.document) + '</span>' : '<span class="text-muted">—</span>';
@@ -912,7 +912,7 @@ document.addEventListener('DOMContentLoaded', function() {
         items.forEach(function(c) {
             var initial = c.name ? c.name.charAt(0).toUpperCase() : '?';
             var avatar = c.photo
-                ? '<img src="' + escHtml(c.photo) + '" class="cst-card-avatar">'
+                ? '<img src="' + escHtml(thumbUrl(c.photo, 80, 80)) + '" class="cst-card-avatar">'
                 : '<div class="cst-card-avatar-placeholder">' + escHtml(initial) + '</div>';
 
             var typeLabel = (c.person_type === 'PJ') ? 'PJ' : 'PF';

@@ -217,7 +217,7 @@ if (!in_array($activeSectorId, $validSectorIds) && !empty($sectorList)) {
                                 <div class="d-flex gap-3 mb-2">
                                     <?php if ($productImg): ?>
                                     <div class="board-item-thumb flex-shrink-0">
-                                        <img src="<?= eAttr($productImg) ?>"
+                                        <img src="<?= eAttr(thumb_url($productImg, 56, 56)) ?>"
                                              alt="<?= eAttr($item['product_name']) ?>"
                                              class="rounded border"
                                              style="width:56px;height:56px;object-fit:cover;"
@@ -369,7 +369,7 @@ if (!in_array($activeSectorId, $validSectorIds) && !empty($sectorList)) {
                                 <div class="d-flex gap-3 mb-2">
                                     <?php if ($productImg): ?>
                                     <div class="board-item-thumb flex-shrink-0">
-                                        <img src="<?= eAttr($productImg) ?>"
+                                        <img src="<?= eAttr(thumb_url($productImg, 48, 48)) ?>"
                                              alt="<?= eAttr($item['product_name']) ?>"
                                              class="rounded border"
                                              style="width:48px;height:48px;object-fit:cover;opacity:0.7;">
@@ -991,14 +991,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (log.file_path) {
             if (isImage) {
                 html += '<div class="mt-2">';
-                html += '<a href="' + log.file_path + '" target="_blank" title="' + escapeHtml(log.file_name) + '">';
-                html += '<img src="' + log.file_path + '" class="rounded border" style="max-width:100%;max-height:200px;cursor:pointer;" alt="' + escapeHtml(log.file_name) + '">';
+                html += '<a href="' + escapeHtml(log.file_path) + '" target="_blank" title="' + escapeHtml(log.file_name) + '">';
+                html += '<img src="' + thumbUrl(log.file_path, 300, 200) + '" class="rounded border" style="max-width:100%;max-height:200px;cursor:pointer;" alt="' + escapeHtml(log.file_name) + '">';
                 html += '</a>';
                 html += '<div class="small text-muted mt-1"><i class="fas fa-image me-1"></i>' + escapeHtml(log.file_name) + '</div>';
                 html += '</div>';
             } else if (isPdf) {
                 html += '<div class="mt-2">';
-                html += '<a href="' + log.file_path + '" target="_blank" class="btn btn-sm btn-outline-danger">';
+                html += '<a href="' + escapeHtml(log.file_path) + '" target="_blank" class="btn btn-sm btn-outline-danger">';
                 html += '<i class="fas fa-file-pdf me-1"></i>' + escapeHtml(log.file_name) + '</a>';
                 html += '</div>';
             }

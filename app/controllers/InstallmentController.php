@@ -8,6 +8,7 @@ use Akti\Core\ModuleBootloader;
 use Akti\Services\InstallmentService;
 use Akti\Services\TransactionService;
 use Akti\Utils\Input;
+use Akti\Services\FileManager;
 use TenantManager;
 
 /**
@@ -510,32 +511,17 @@ class InstallmentController
      */
     private function handleAttachmentUpload(int $installmentId): ?string
     {
-        $uploadDir = TenantManager::getTenantUploadBase() . 'comprovantes/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
-
-        $ext = strtolower(pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
-        if (!in_array($ext, $allowed)) {
+        if (!isset($_FILES['attachment']) || $_FILES['attachment']['error'] !== UPLOAD_ERR_OK) {
             return null;
         }
 
-        // Validação MIME por magic bytes (SEC-006)
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mime = $finfo->file($_FILES['attachment']['tmp_name']);
-        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
-        if (!in_array($mime, $allowedMimes)) {
-            return null;
-        }
+        $fileManager = new FileManager($this->db);
+        $result = $fileManager->upload($_FILES['attachment'], 'comprovantes', [
+            'prefix'     => 'comprovante_' . $installmentId,
+            'entityType' => 'installment',
+            'entityId'   => $installmentId,
+        ]);
 
-        $filename = 'comprovante_' . $installmentId . '_' . time() . '.' . $ext;
-        $filepath = $uploadDir . $filename;
-
-        if (move_uploaded_file($_FILES['attachment']['tmp_name'], $filepath)) {
-            return $filepath;
-        }
-
-        return null;
+        return $result['success'] ? $result['path'] : null;
     }
 }

@@ -53,7 +53,7 @@ $customerInitial = strtoupper(substr($customer['name'] ?? 'C', 0, 1));
             <div class="portal-avatar-section">
                 <div class="portal-avatar-wrapper">
                     <?php if (!empty($avatarPath) && file_exists($avatarPath)): ?>
-                        <img src="<?= eAttr($avatarPath) ?>" alt="Avatar" class="portal-avatar" id="portalAvatarPreview">
+                        <img src="<?= eAttr(thumb_url($avatarPath, 150, 150)) ?>" alt="Avatar" class="portal-avatar" id="portalAvatarPreview">
                         <span id="portalAvatarPlaceholder" style="display:none" class="portal-avatar-placeholder"><?= e($customerInitial) ?></span>
                     <?php else: ?>
                         <img src="" alt="Avatar" class="portal-avatar" id="portalAvatarPreview" style="display:none">

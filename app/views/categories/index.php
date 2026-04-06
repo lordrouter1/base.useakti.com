@@ -662,7 +662,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const hasS = parseInt(p.sector_count) > 0;
                         const highlightClass = (!hasG && !hasS) ? 'bg-warning ' : '';
                         const imgHtml = p.main_image_path 
-                            ? `<img src="${p.main_image_path}" class="rounded" style="width:32px; height:32px; object-fit:cover;">` 
+                            ? `<img src="${thumbUrl(p.main_image_path, 32, 32)}" class="rounded" style="width:32px; height:32px; object-fit:cover;">` 
                             : `<div class="rounded bg-light d-flex align-items-center justify-content-center" style="width:32px; height:32px;"><i class="fas fa-box text-muted" style="font-size:0.8rem;"></i></div>`;
 
                         html += `

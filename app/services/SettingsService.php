@@ -66,35 +66,17 @@ class SettingsService
      */
     public function handleLogoUpload(array $file): bool
     {
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            return false;
-        }
+        $fileManager = new FileManager($this->db);
+        $oldLogo = $this->companySettings->get('company_logo');
 
-        $uploadDir = TenantManager::getTenantUploadBase();
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
+        $result = $fileManager->replace($oldLogo ?: null, $file, 'logos', [
+            'prefix'       => 'company_logo',
+            'subdirectory' => '',
+            'entityType'   => 'settings',
+        ]);
 
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-        if (!in_array($ext, $allowedExts)) {
-            return false;
-        }
-
-        // Validação MIME por magic bytes (SEC-006)
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mime = $finfo->file($file['tmp_name']);
-        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-        if (!in_array($mime, $allowedMimes)) {
-            return false;
-        }
-
-        $filename = 'company_logo_' . time() . '.' . $ext;
-        $filepath = $uploadDir . $filename;
-
-        if (move_uploaded_file($file['tmp_name'], $filepath)) {
-            $this->removeOldLogo();
-            $this->companySettings->set('company_logo', $filepath);
+        if ($result['success']) {
+            $this->companySettings->set('company_logo', $result['path']);
             return true;
         }
 
@@ -106,19 +88,12 @@ class SettingsService
      */
     public function removeLogo(): void
     {
-        $this->removeOldLogo();
-        $this->companySettings->set('company_logo', '');
-    }
-
-    /**
-     * Remove o arquivo do logo antigo do disco.
-     */
-    private function removeOldLogo(): void
-    {
+        $fileManager = new FileManager($this->db);
         $oldLogo = $this->companySettings->get('company_logo');
-        if ($oldLogo && file_exists($oldLogo)) {
-            unlink($oldLogo);
+        if ($oldLogo) {
+            $fileManager->delete($oldLogo);
         }
+        $this->companySettings->set('company_logo', '');
     }
 
     // ═══════════════════════════════════════════

@@ -80,7 +80,7 @@ foreach ($cart as $ci) {
                 <div class="portal-product-card" data-product-id="<?= (int) $prod['id'] ?>">
                     <div class="portal-product-image">
                         <?php if (!empty($prod['main_image_path'])): ?>
-                            <img src="<?= eAttr($prod['main_image_path']) ?>" alt="<?= eAttr($prod['name']) ?>" loading="lazy">
+                            <img src="<?= eAttr(thumb_url($prod['main_image_path'], 300)) ?>" alt="<?= eAttr($prod['name']) ?>" loading="lazy">
                         <?php else: ?>
                             <div class="portal-product-no-image">
                                 <i class="fas fa-image"></i>

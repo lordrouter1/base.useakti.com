@@ -571,7 +571,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var html = '';
                 data.items.forEach(function(p) {
                     var imgCell = p.main_image_path
-                        ? '<img src="' + escHtml(p.main_image_path) + '" class="w-100 h-100 object-fit-cover" loading="lazy" alt="' + escHtml(p.name) + '">'
+                        ? '<img src="' + escHtml(thumbUrl(p.main_image_path, 40, 40)) + '" class="w-100 h-100 object-fit-cover" loading="lazy" alt="' + escHtml(p.name) + '">'
                         : '<i class="fas fa-image text-secondary"></i>';
 
                     var catCell = '<span class="badge bg-light text-dark border">' + (p.category_name ? escHtml(p.category_name) : 'Geral') + '</span>';
