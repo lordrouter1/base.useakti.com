@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 360 110"
+   width="360"
+   height="110"
+   version="1.1"
+   id="svg34"
+   sodipodi:docname="akti-logo-dark.svg"
+   inkscape:version="1.2 (dc2aedaf03, 2022-05-15)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs38" />
+  <sodipodi:namedview
+     id="namedview36"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="2.4296975"
+     inkscape:cx="132.52679"
+     inkscape:cy="68.732837"
+     inkscape:window-width="1600"
+     inkscape:window-height="837"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg34" />
+  <!-- Card background -->
+  <rect
+     width="360"
+     height="110"
+     rx="6"
+     fill="#1b3d6e"
+     id="rect2" />
+  <!-- segments -->
+  <rect
+     x="36"
+     y="43"
+     width="19"
+     height="2"
+     fill="#ffffff"
+     id="rect4" />
+  <rect
+     x="67"
+     y="43"
+     width="19"
+     height="2"
+     fill="#ffffff"
+     id="rect6" />
+  <path
+     id="rect8"
+     style="fill:#ffffff;fill-opacity:0.18000001"
+     d="M 123 38.5 A 5.5 5.5 0 0 0 117.60352 43 L 100 43 L 100 45 L 117.60352 45 A 5.5 5.5 0 0 0 123 49.5 A 5.5 5.5 0 0 0 128.5 44 A 5.5 5.5 0 0 0 123 38.5 z " />
+  <path
+     id="rect10"
+     style="fill:#ffffff;fill-opacity:0.18000001"
+     d="M 154 38.5 A 5.5 5.5 0 0 0 148.60352 43 L 131 43 L 131 45 L 148.60352 45 A 5.5 5.5 0 0 0 154 49.5 A 5.5 5.5 0 0 0 159.5 44 A 5.5 5.5 0 0 0 154 38.5 z " />
+  <!-- node 1 done -->
+  <circle
+     cx="30"
+     cy="44"
+     r="5.5"
+     fill="#ffffff"
+     id="circle12" />
+  <!-- node 2 done -->
+  <circle
+     cx="61"
+     cy="44"
+     r="5.5"
+     fill="#ffffff"
+     id="circle14" />
+  <!-- node 3 active -->
+  <circle
+     cx="92"
+     cy="44"
+     r="7.5"
+     fill="rgba(255,255,255,0.18)"
+     id="circle16"
+     style="fill:#ffffff;fill-opacity:0.18039216" />
+  <circle
+     cx="92"
+     cy="44"
+     r="5.5"
+     fill="#ffffff"
+     id="circle18" />
+  <!-- node 4 pending -->
+  <!-- node 5 pending -->
+  <!-- progress track -->
+  <rect
+     x="24"
+     y="59"
+     width="136"
+     height="2"
+     rx="1"
+     fill="rgba(255,255,255,0.15)"
+     id="rect24"
+     style="fill:#ffffff;fill-opacity:0.18039216" />
+  <rect
+     x="24"
+     y="59"
+     width="71"
+     height="2"
+     rx="1"
+     fill="#ffffff"
+     id="rect26" />
+  <!-- divider -->
+  <!-- wordmark -->
+  <text
+     x="202"
+     y="72"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="46"
+     font-weight="700"
+     fill="#ffffff"
+     letter-spacing="-2"
+     id="text30">AKTI</text>
+  <!-- tagline -->
+  <text
+     x="203"
+     y="90"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="8.5"
+     font-weight="500"
+     fill="rgba(255,255,255,0.4)"
+     letter-spacing="3.5"
+     id="text32"
+     style="fill:#ffffff;fill-opacity:0.18000004">GESTÃO DE PRODUÇÃO</text>
+  <line
+     x1="184.41158"
+     y1="28"
+     x2="184.41158"
+     y2="82"
+     stroke="rgba(255,255,255,0.15)"
+     stroke-width="1"
+     id="line28"
+     style="fill:#0d4912;fill-opacity:0.77833754;stroke:#ffffff;stroke-opacity:0.18039216" />
+</svg>

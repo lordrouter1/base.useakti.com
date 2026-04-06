@@ -48,8 +48,14 @@ class ProductController {
         $this->logger = $logger;
         $this->importService = $importService;
         $this->gradeService = $gradeService;
+    }
+
+    public function index() {
         // Categorias para filtro
         $categories = $this->categoryModel->readAll();
+
+        // Total de produtos
+        $totalItems = $this->productModel->countAll();
 
         // Campos disponíveis para mapeamento de importação
         $importFields = [

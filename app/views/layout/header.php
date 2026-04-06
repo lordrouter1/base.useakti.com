@@ -153,6 +153,7 @@
     /**
      * Verifica se o usuário pode ver determinada página no menu.
      */
+    if (!function_exists('canShowInMenu')) {
     function canShowInMenu($pageKey, $pageInfo, $isAdmin, $userPermissions) {
         if (!\Akti\Core\ModuleBootloader::canAccessPage($pageKey)) return false;
         if (empty($pageInfo['permission'])) return true;
@@ -161,10 +162,12 @@
         $checkKey = $pageInfo['permission_alias'] ?? $pageKey;
         return in_array($checkKey, $userPermissions);
     }
+    }
 
     /**
      * Verifica se pelo menos um filho de um submenu é visível para o usuário.
      */
+    if (!function_exists('hasVisibleChild')) {
     function hasVisibleChild($children, $isAdmin, $userPermissions) {
         foreach ($children as $childKey => $childInfo) {
             if (!empty($childInfo['menu']) && canShowInMenu($childKey, $childInfo, $isAdmin, $userPermissions)) {
@@ -173,12 +176,15 @@
         }
         return false;
     }
+    }
 
     /**
      * Verifica se a página atual está dentro de um submenu (para destacar o dropdown).
      */
+    if (!function_exists('isChildActive')) {
     function isChildActive($children, $currentPage) {
         return isset($children[$currentPage]);
+    }
     }
 ?>
 

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 72 72"
+   width="72"
+   height="72"
+   version="1.1"
+   id="svg2359"
+   sodipodi:docname="akti-icon-light.svg"
+   inkscape:version="1.2 (dc2aedaf03, 2022-05-15)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs2363" />
+  <sodipodi:namedview
+     id="namedview2361"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="true"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="4.5625"
+     inkscape:cx="-4.3835616"
+     inkscape:cy="45.150685"
+     inkscape:window-width="1600"
+     inkscape:window-height="837"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2359" />
+  <!-- background -->
+  <rect
+     width="72"
+     height="72"
+     rx="10"
+     fill="#ffffff"
+     id="rect2335" />
+  <!-- AK letters -->
+  <text
+     x="36"
+     y="43"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="30"
+     font-weight="700"
+     fill="#1b3d6e"
+     text-anchor="middle"
+     letter-spacing="-1"
+     id="text2337">AK</text>
+  <!-- Pipeline: 5 nodes + 4 segments -->
+  <!-- seg 1 done -->
+  <rect
+     x="11"
+     y="54"
+     width="8"
+     height="2"
+     rx="1"
+     fill="#1b3d6e"
+     id="rect2339" />
+  <!-- seg 2 done -->
+  <rect
+     x="24"
+     y="54"
+     width="8"
+     height="2"
+     rx="1"
+     fill="#1b3d6e"
+     id="rect2341" />
+  <!-- seg 3 pending -->
+  <rect
+     x="37"
+     y="54"
+     width="8"
+     height="2"
+     rx="1"
+     fill="#d8d8d8"
+     id="rect2343" />
+  <!-- seg 4 pending -->
+  <rect
+     x="50"
+     y="54"
+     width="8"
+     height="2"
+     rx="1"
+     fill="#d8d8d8"
+     id="rect2345" />
+  <!-- node 1 done -->
+  <circle
+     cx="10"
+     cy="55"
+     r="3"
+     fill="#1b3d6e"
+     id="circle2347" />
+  <!-- node 2 done -->
+  <circle
+     cx="23"
+     cy="55"
+     r="3"
+     fill="#1b3d6e"
+     id="circle2349" />
+  <!-- node 3 active -->
+  <circle
+     cx="36"
+     cy="55"
+     r="4"
+     fill="rgba(27,61,110,0.12)"
+     id="circle2351"
+     style="fill:#d8d8d8;fill-opacity:1" />
+  <circle
+     cx="36"
+     cy="55"
+     r="2.5"
+     fill="#1b3d6e"
+     id="circle2353" />
+  <!-- node 4 pending -->
+  <circle
+     cx="49"
+     cy="55"
+     r="3"
+     fill="#d8d8d8"
+     id="circle2355" />
+  <!-- node 5 pending -->
+  <circle
+     cx="62"
+     cy="55"
+     r="3"
+     fill="#d8d8d8"
+     id="circle2357" />
+</svg>

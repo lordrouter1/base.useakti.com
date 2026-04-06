@@ -137,4 +137,74 @@ class Database {
         );
         unset(self::$instances[$dsn]);
     }
+
+    /**
+     * Retorna uma conexão PDO para o banco master (akti_master).
+     *
+     * @return PDO
+     * @throws \RuntimeException Se a conexão falhar
+     */
+    public static function getMasterInstance(): PDO
+    {
+        $masterConfig = TenantManager::getMasterConfig();
+
+        $dsn = sprintf(
+            'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+            $masterConfig['host'],
+            $masterConfig['port'],
+            $masterConfig['db_name'],
+            $masterConfig['charset']
+        );
+
+        if (isset(self::$instances[$dsn]) && self::$instances[$dsn] instanceof PDO) {
+            return self::$instances[$dsn];
+        }
+
+        try {
+            $pdo = new PDO($dsn, $masterConfig['username'], $masterConfig['password']);
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+            $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+            self::$instances[$dsn] = $pdo;
+            return $pdo;
+        } catch (PDOException $exception) {
+            error_log('[Database] Master connection failed: ' . $exception->getMessage());
+            throw new \RuntimeException('Falha na conexão com o banco master.');
+        }
+    }
+
+    /**
+     * Retorna as credenciais do banco master para uso em operações cross-DB.
+     *
+     * @return array{host: string, port: int, username: string, password: string, charset: string, db_name: string}
+     */
+    public static function getMasterCredentials(): array
+    {
+        return TenantManager::getMasterConfig();
+    }
+
+    /**
+     * Cria uma conexão PDO avulsa (não cached) para um banco de dados específico.
+     * Usada por operações cross-tenant (migrations, provisioning).
+     *
+     * @param string      $host
+     * @param int         $port
+     * @param string      $user
+     * @param string      $pass
+     * @param string|null $dbname
+     * @param string      $charset
+     * @return PDO
+     */
+    public static function connectTo(string $host, int $port, string $user, string $pass, ?string $dbname = null, string $charset = 'utf8mb4'): PDO
+    {
+        $dsn = "mysql:host={$host};port={$port};charset={$charset}";
+        if ($dbname) {
+            $dsn .= ";dbname={$dbname}";
+        }
+        return new PDO($dsn, $user, $pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ]);
+    }
 }

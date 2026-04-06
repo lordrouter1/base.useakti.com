@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 200 200"
+   width="200"
+   height="200"
+   version="1.1"
+   id="svg32"
+   sodipodi:docname="akti-square-dark-nBg.svg"
+   inkscape:version="1.2 (dc2aedaf03, 2022-05-15)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs36" />
+  <sodipodi:namedview
+     id="namedview34"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="2.3228458"
+     inkscape:cx="37.884564"
+     inkscape:cy="125.70787"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="1592"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg32" />
+  <!-- AKTI wordmark -->
+  <text
+     x="100"
+     y="112"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="62"
+     font-weight="700"
+     fill="#ffffff"
+     text-anchor="middle"
+     letter-spacing="-2.5"
+     id="text4">AKTI</text>
+  <!-- Tagline -->
+  <text
+     x="100"
+     y="133"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="8"
+     font-weight="500"
+     fill="rgba(255,255,255,0.4)"
+     text-anchor="middle"
+     letter-spacing="3"
+     id="text6"
+     style="fill:#ffffff;fill-opacity:0.18039216">GESTÃO DE PRODUÇÃO</text>
+  <!-- Pipeline -->
+  <rect
+     x="41"
+     y="153"
+     width="16"
+     height="2"
+     rx="1"
+     fill="#ffffff"
+     id="rect8" />
+  <rect
+     x="68"
+     y="153"
+     width="16"
+     height="2"
+     rx="1"
+     fill="#ffffff"
+     id="rect10" />
+  <path
+     id="rect12"
+     style="fill:#ffffff;fill-opacity:0.18039216"
+     d="M 94 148 A 6 6 0 0 0 88 154 A 6 6 0 0 0 94 160 A 6 6 0 0 0 99.908203 155 L 110 155 C 110.554 155 111 154.554 111 154 C 111 153.446 110.554 153 110 153 L 99.914062 153 A 6 6 0 0 0 94 148 z " />
+  <path
+     id="rect14"
+     style="fill:#ffffff;fill-opacity:0.18039216"
+     d="M 121 149.5 A 4.5 4.5 0 0 0 116.5 154 A 4.5 4.5 0 0 0 121 158.5 A 4.5 4.5 0 0 0 125.37695 155 L 137 155 C 137.554 155 138 154.554 138 154 C 138 153.446 137.554 153 137 153 L 125.38672 153 A 4.5 4.5 0 0 0 121 149.5 z " />
+  <circle
+     cx="40"
+     cy="154"
+     r="4.5"
+     fill="#ffffff"
+     id="circle16" />
+  <circle
+     cx="67"
+     cy="154"
+     r="4.5"
+     fill="#ffffff"
+     id="circle18" />
+  <circle
+     cx="94"
+     cy="154"
+     r="4"
+     fill="#ffffff"
+     id="circle22" />
+  <circle
+     cx="148"
+     cy="154"
+     r="4.5"
+     fill="rgba(255,255,255,0.25)"
+     id="circle26"
+     style="fill:#ffffff;fill-opacity:0.18039216" />
+  <!-- progress bar -->
+  <rect
+     x="35"
+     y="163"
+     width="118"
+     height="2"
+     rx="1"
+     fill="rgba(255,255,255,0.15)"
+     id="rect28"
+     style="fill:#ffffff;fill-opacity:0.18039216" />
+  <rect
+     x="35"
+     y="163"
+     width="60"
+     height="2"
+     rx="1"
+     fill="#ffffff"
+     id="rect30" />
+</svg>

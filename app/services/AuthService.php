@@ -104,6 +104,12 @@ class AuthService
             return $this->handleAdminLoginSuccess($email, $ip);
         }
 
+        // Falha no login admin — tentar como master admin
+        $masterResult = $this->attemptMasterLogin($email, $password, $ip);
+        if ($masterResult !== null) {
+            return $masterResult;
+        }
+
         // Falha no login admin — registrar tentativa
         $this->loginAttempt->record($ip, $email, false);
         $this->logger->log('LOGIN_FAIL', 'Failed login attempt for: ' . $email);
@@ -169,6 +175,54 @@ class AuthService
             'redirect'     => '?',
             'type'         => 'admin',
         ];
+    }
+
+    /**
+     * Tentar login como administrador master.
+     *
+     * @return array|null null se não é master admin, array se login ok
+     */
+    private function attemptMasterLogin(string $email, string $password, string $ip): ?array
+    {
+        try {
+            $masterDb = \Database::getMasterInstance();
+            $adminUser = new \Akti\Models\Master\AdminUser($masterDb);
+            $admin = $adminUser->findByEmail($email);
+
+            if (!$admin || !password_verify($password, $admin['password'])) {
+                return null;
+            }
+
+            $this->loginAttempt->record($ip, $email, true);
+            $this->loginAttempt->clearFailures($ip, $email);
+
+            session_regenerate_id(true);
+
+            $_SESSION['user_id']          = $admin['id'];
+            $_SESSION['user_name']        = $admin['name'];
+            $_SESSION['user_role']        = 'master_admin';
+            $_SESSION['group_id']         = 0;
+            $_SESSION['is_master_admin']  = true;
+            $_SESSION['master_admin_id']  = $admin['id'];
+            $_SESSION['last_activity']    = time();
+
+            $adminUser->updateLastLogin($admin['id']);
+
+            $adminLog = new \Akti\Models\Master\AdminLog($masterDb);
+            $adminLog->log($admin['id'], 'login', 'admin_user', $admin['id'], 'Master login from IP: ' . $ip);
+
+            $this->logger->log('MASTER_LOGIN', 'Master admin logged in: ' . $email);
+
+            return [
+                'success'      => true,
+                'error'        => null,
+                'show_captcha' => false,
+                'redirect'     => '?page=master_dashboard',
+                'type'         => 'master',
+            ];
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /**

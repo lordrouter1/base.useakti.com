@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 72 72"
+   width="72"
+   height="72"
+   version="1.1"
+   id="svg26"
+   sodipodi:docname="akti-icon-dark.svg"
+   inkscape:version="1.2 (dc2aedaf03, 2022-05-15)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs30" />
+  <sodipodi:namedview
+     id="namedview28"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="6.4523494"
+     inkscape:cx="16.583107"
+     inkscape:cy="33.631161"
+     inkscape:window-width="1600"
+     inkscape:window-height="837"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg26" />
+  <!-- background -->
+  <rect
+     width="72"
+     height="72"
+     rx="10"
+     fill="#1b3d6e"
+     id="rect2" />
+  <!-- AK letters -->
+  <text
+     x="36"
+     y="43"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="30"
+     font-weight="700"
+     fill="#ffffff"
+     text-anchor="middle"
+     letter-spacing="-1"
+     id="text4">AK</text>
+  <!-- Pipeline: 5 nodes + 4 segments -->
+  <!-- seg 1 done -->
+  <rect
+     x="11"
+     y="54"
+     width="8"
+     height="2"
+     rx="1"
+     fill="#ffffff"
+     id="rect6" />
+  <!-- seg 2 done -->
+  <rect
+     x="24"
+     y="54"
+     width="8"
+     height="2"
+     rx="1"
+     fill="#ffffff"
+     id="rect8" />
+  <!-- seg 3 pending -->
+  <path
+     id="rect10"
+     style="fill:#ffffff;fill-opacity:0.18039216"
+     d="M 36 51 A 4 4 0 0 0 32 55 A 4 4 0 0 0 36 59 A 4 4 0 0 0 39.865234 56 L 44 56 C 44.553999 56 45 55.553999 45 55 C 45 54.446001 44.553999 54 44 54 L 39.873047 54 A 4 4 0 0 0 36 51 z " />
+  <!-- seg 4 pending -->
+  <path
+     id="rect12"
+     style="fill:#ffffff;fill-opacity:0.18039216"
+     d="M 49 52 A 3 3 0 0 0 46 55 A 3 3 0 0 0 49 58 A 3 3 0 0 0 51.820312 56 L 57 56 C 57.553999 56 58 55.553999 58 55 C 58 54.446001 57.553999 54 57 54 L 51.828125 54 A 3 3 0 0 0 49 52 z " />
+  <!-- node 1 done -->
+  <circle
+     cx="10"
+     cy="55"
+     r="3"
+     fill="#ffffff"
+     id="circle14" />
+  <!-- node 2 done -->
+  <circle
+     cx="23"
+     cy="55"
+     r="3"
+     fill="#ffffff"
+     id="circle16" />
+  <!-- node 3 active -->
+  <circle
+     cx="36"
+     cy="55"
+     r="2.5"
+     fill="#ffffff"
+     id="circle20" />
+  <!-- node 4 pending -->
+  <!-- node 5 pending -->
+  <circle
+     cx="62"
+     cy="55"
+     r="3"
+     fill="rgba(255,255,255,0.25)"
+     id="circle24"
+     style="fill:#ffffff;fill-opacity:0.18039216" />
+</svg>

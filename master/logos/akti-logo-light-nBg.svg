@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 360 110"
+   width="360"
+   height="110"
+   version="1.1"
+   id="svg37"
+   sodipodi:docname="akti-logo-light-nBg.svg"
+   inkscape:version="1.2 (dc2aedaf03, 2022-05-15)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview39"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="2.4296975"
+     inkscape:cx="188.50083"
+     inkscape:cy="60.501359"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="1592"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg37" />
+  <defs
+     id="defs3">
+    <filter
+       id="shadow"
+       x="0"
+       y="0"
+       width="1"
+       height="1">
+      <feDropShadow
+         dx="0"
+         dy="1"
+         stdDeviation="3"
+         flood-color="rgba(0,0,0,0.07)" />
+    </filter>
+  </defs>
+  <!-- Card background -->
+  <!-- ── Pipeline icon ── -->
+  <!-- nodes: x positions: 30, 61, 92, 123, 154 | y center: 44 -->
+  <!-- segments -->
+  <!-- seg 1 (done) -->
+  <rect
+     x="36"
+     y="43"
+     width="19"
+     height="2"
+     fill="#1b3d6e"
+     id="rect7" />
+  <!-- seg 2 (done) -->
+  <rect
+     x="67"
+     y="43"
+     width="19"
+     height="2"
+     fill="#1b3d6e"
+     id="rect9" />
+  <!-- seg 3 (pending) -->
+  <rect
+     x="100"
+     y="43"
+     width="19"
+     height="2"
+     fill="#d8d8d8"
+     id="rect11" />
+  <!-- seg 4 (pending) -->
+  <rect
+     x="131"
+     y="43"
+     width="19"
+     height="2"
+     fill="#d8d8d8"
+     id="rect13" />
+  <!-- node 1 done -->
+  <circle
+     cx="30"
+     cy="44"
+     r="5.5"
+     fill="#1b3d6e"
+     id="circle15" />
+  <!-- node 2 done -->
+  <circle
+     cx="61"
+     cy="44"
+     r="5.5"
+     fill="#1b3d6e"
+     id="circle17" />
+  <!-- node 3 active -->
+  <circle
+     cx="92"
+     cy="44"
+     r="7.5"
+     fill="rgba(27,61,110,0.12)"
+     id="circle19"
+     style="fill:none;fill-opacity:1" />
+  <circle
+     cx="92"
+     cy="44"
+     r="5.5"
+     fill="#1b3d6e"
+     id="circle21" />
+  <!-- node 4 pending -->
+  <circle
+     cx="123"
+     cy="44"
+     r="5.5"
+     fill="#d8d8d8"
+     id="circle23" />
+  <!-- node 5 pending -->
+  <circle
+     cx="154"
+     cy="44"
+     r="5.5"
+     fill="#d8d8d8"
+     id="circle25" />
+  <!-- progress track -->
+  <rect
+     x="24"
+     y="59"
+     width="136"
+     height="2"
+     rx="1"
+     fill="#e8e8e8"
+     id="rect27" />
+  <rect
+     x="24"
+     y="59"
+     width="71"
+     height="2"
+     rx="1"
+     fill="#1b3d6e"
+     id="rect29" />
+  <!-- divider -->
+  <line
+     x1="184"
+     y1="28"
+     x2="184"
+     y2="82"
+     stroke="#e8e8e8"
+     stroke-width="1"
+     id="line31" />
+  <!-- wordmark AKTI -->
+  <text
+     x="202"
+     y="72"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="46"
+     font-weight="700"
+     fill="#1b3d6e"
+     letter-spacing="-2"
+     id="text33">AKTI</text>
+  <!-- tagline -->
+  <text
+     x="203"
+     y="90"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="8.5"
+     font-weight="500"
+     fill="#aaaaaa"
+     letter-spacing="3.5"
+     id="text35">GESTÃO DE PRODUÇÃO</text>
+</svg>

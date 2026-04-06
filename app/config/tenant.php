@@ -87,7 +87,7 @@ class TenantManager
         ];
     }
 
-    private static function getMasterConfig(): array
+    public static function getMasterConfig(): array
     {
         $masterPass = getenv('AKTI_MASTER_DB_PASS') ?: getenv('AKTI_DB_PASS');
         if ($masterPass === false) {

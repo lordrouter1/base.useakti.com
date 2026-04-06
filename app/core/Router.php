@@ -71,6 +71,14 @@ class Router
         return $this->action;
     }
 
+    /**
+     * Retorna a configuração completa de uma rota pelo nome da página.
+     */
+    public function getRouteConfig(string $page): ?array
+    {
+        return $this->routes[$page] ?? null;
+    }
+
     // ══════════════════════════════════════════════════════════════
     // Verificações
     // ══════════════════════════════════════════════════════════════

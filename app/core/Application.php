@@ -96,12 +96,25 @@ class Application
 
         // Logado + page=login
         if ($this->page === 'login' && $this->action !== 'logout') {
-            header('Location: ?');
+            $redirect = !empty($_SESSION['is_master_admin']) ? '?page=master_dashboard' : '?';
+            header('Location: ' . $redirect);
             exit;
         }
         if ($this->page === 'login' && $this->action === 'logout') {
             $this->router->dispatch();
             return false;
+        }
+
+        // Master pages — bypass module bootloader and permission check
+        $routeConfig = $this->router->getRouteConfig($this->page);
+        if (!empty($routeConfig['master_only'])) {
+            if (empty($_SESSION['is_master_admin'])) {
+                header('Location: ?page=login');
+                exit;
+            }
+            CsrfMiddleware::handle();
+            Security::generateCsrfToken();
+            return true;
         }
 
         // Module bootloader check

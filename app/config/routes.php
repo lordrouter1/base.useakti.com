@@ -1054,4 +1054,136 @@ return [
         ],
     ],
 
+    // ══════════════════════════════════════════════════════════════
+    // Master Admin Panel
+    // ══════════════════════════════════════════════════════════════
+
+    'master_dashboard' => [
+        'controller'     => 'Master\\DashboardController',
+        'default_action' => 'index',
+        'master_only'    => true,
+        'actions'        => [],
+    ],
+
+    'master_plans' => [
+        'controller'     => 'Master\\PlanController',
+        'default_action' => 'index',
+        'master_only'    => true,
+        'actions'        => [
+            'create' => 'create',
+            'store'  => 'store',
+            'edit'   => 'edit',
+            'update' => 'update',
+            'delete' => 'delete',
+        ],
+    ],
+
+    'master_clients' => [
+        'controller'     => 'Master\\ClientController',
+        'default_action' => 'index',
+        'master_only'    => true,
+        'actions'        => [
+            'create'           => 'create',
+            'store'            => 'store',
+            'edit'             => 'edit',
+            'update'           => 'update',
+            'toggleActive'     => 'toggleActive',
+            'delete'           => 'delete',
+            'createTenantUser' => 'createTenantUser',
+            'getPlanLimits'    => 'getPlanLimits',
+        ],
+    ],
+
+    'master_migrations' => [
+        'controller'     => 'Master\\MigrationController',
+        'default_action' => 'index',
+        'master_only'    => true,
+        'actions'        => [
+            'compareDetail'   => 'compareDetail',
+            'apply'           => 'apply',
+            'applyFile'       => 'applyFile',
+            'applySingleFile' => 'applySingleFile',
+            'applyAllFiles'   => 'applyAllFiles',
+            'previewSqlFile'  => 'previewSqlFile',
+            'results'         => 'results',
+            'history'         => 'history',
+            'historyDetail'   => 'historyDetail',
+            'users'           => 'users',
+            'createUser'      => 'createUser',
+            'toggleUser'      => 'toggleUser',
+            'dbUsers'         => 'dbUsers',
+        ],
+    ],
+
+    'master_git' => [
+        'controller'     => 'Master\\GitController',
+        'default_action' => 'index',
+        'master_only'    => true,
+        'actions'        => [
+            'loadRepos'    => 'loadRepos',
+            'fetchAll'     => 'fetchAll',
+            'fetch'        => 'fetch',
+            'pull'         => 'pull',
+            'forceReset'   => 'forceReset',
+            'detail'       => 'detail',
+            'checkout'     => 'checkout',
+            'pullAll'      => 'pullAll',
+            'diagnoseJson' => 'diagnoseJson',
+        ],
+    ],
+
+    'master_backup' => [
+        'controller'     => 'Master\\BackupController',
+        'default_action' => 'index',
+        'master_only'    => true,
+        'actions'        => [
+            'run'          => 'run',
+            'download'     => 'download',
+            'diagnoseJson' => 'diagnoseJson',
+            'delete'       => 'delete',
+        ],
+    ],
+
+    'master_logs' => [
+        'controller'     => 'Master\\LogController',
+        'default_action' => 'index',
+        'master_only'    => true,
+        'actions'        => [
+            'read'     => 'read',
+            'search'   => 'search',
+            'download' => 'download',
+        ],
+    ],
+
+    'master_health' => [
+        'controller'     => 'Master\\HealthCheckController',
+        'default_action' => 'index',
+        'master_only'    => true,
+        'actions'        => [
+            'statusJson' => 'statusJson',
+        ],
+    ],
+
+    'master_admins' => [
+        'controller'     => 'Master\\AdminController',
+        'default_action' => 'index',
+        'master_only'    => true,
+        'actions'        => [
+            'create' => 'create',
+            'store'  => 'store',
+            'edit'   => 'edit',
+            'update' => 'update',
+            'delete' => 'delete',
+        ],
+    ],
+
+    'master_deploy' => [
+        'controller'     => 'Master\\DeployController',
+        'default_action' => 'index',
+        'master_only'    => true,
+        'actions'        => [
+            'run' => 'run',
+        ],
+    ],
+
 ];
