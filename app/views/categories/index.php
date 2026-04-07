@@ -48,6 +48,26 @@
                                     <input type="text" class="form-control" name="name" required placeholder="Ex: Impressão Digital" value="<?= isset($editCategory) ? eAttr($editCategory['name']) : '' ?>">
                                 </div>
 
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="catShowInStore" name="show_in_store" value="1" <?= (!isset($editCategory) || !empty($editCategory['show_in_store'])) ? 'checked' : '' ?>>
+                                        <label class="form-check-label small fw-bold" for="catShowInStore">
+                                            <i class="fas fa-store me-1 text-primary"></i>Exibir na Loja
+                                        </label>
+                                    </div>
+                                    <small class="text-muted" style="font-size:0.7rem;">Desmarque para ocultar esta categoria da loja online.</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="catFreeShipping" name="free_shipping" value="1" <?= (isset($editCategory) && !empty($editCategory['free_shipping'])) ? 'checked' : '' ?>>
+                                        <label class="form-check-label small fw-bold" for="catFreeShipping">
+                                            <i class="fas fa-truck me-1 text-success"></i>Frete Grátis
+                                        </label>
+                                    </div>
+                                    <small class="text-muted" style="font-size:0.7rem;">Todos os produtos desta categoria serão exibidos com frete grátis na loja.</small>
+                                </div>
+
                                 <!-- Setores de Produção -->
                                 <?php if (!empty($allSectors)): ?>
                                 <div class="mb-3">
@@ -140,6 +160,16 @@
                                                 <td class="ps-4">
                                                     <i class="fas fa-folder text-warning me-2"></i>
                                                     <strong><?= e($cat['name']) ?></strong>
+                                                    <?php if(empty($cat['show_in_store'])): ?>
+                                                        <span class="badge bg-secondary ms-1" style="font-size:0.6rem;" title="Oculta na loja">
+                                                            <i class="fas fa-eye-slash me-1"></i>Oculta
+                                                        </span>
+                                                    <?php endif; ?>
+                                                    <?php if(!empty($cat['free_shipping'])): ?>
+                                                        <span class="badge bg-success ms-1" style="font-size:0.6rem;" title="Frete grátis">
+                                                            <i class="fas fa-truck me-1"></i>Frete Grátis
+                                                        </span>
+                                                    <?php endif; ?>
                                                     <?php if(!empty($categoryGradesMap[$cat['id']])): ?>
                                                         <span class="badge bg-info ms-1" style="font-size:0.6rem;" title="Possui grades padrão">
                                                             <i class="fas fa-th-large me-1"></i>Grades
@@ -230,6 +260,26 @@
                                 <div class="mb-3">
                                     <label class="form-label fw-bold small">Nome da Subcategoria</label>
                                     <input type="text" class="form-control" name="name" required placeholder="Ex: Banner Lona" value="<?= isset($editSubcategory) ? eAttr($editSubcategory['name']) : '' ?>">
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="subShowInStore" name="show_in_store" value="1" <?= (!isset($editSubcategory) || !empty($editSubcategory['show_in_store'])) ? 'checked' : '' ?>>
+                                        <label class="form-check-label small fw-bold" for="subShowInStore">
+                                            <i class="fas fa-store me-1 text-primary"></i>Exibir na Loja
+                                        </label>
+                                    </div>
+                                    <small class="text-muted" style="font-size:0.7rem;">Desmarque para ocultar esta subcategoria da loja online.</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="subFreeShipping" name="free_shipping" value="1" <?= (isset($editSubcategory) && !empty($editSubcategory['free_shipping'])) ? 'checked' : '' ?>>
+                                        <label class="form-check-label small fw-bold" for="subFreeShipping">
+                                            <i class="fas fa-truck me-1 text-success"></i>Frete Grátis
+                                        </label>
+                                    </div>
+                                    <small class="text-muted" style="font-size:0.7rem;">Todos os produtos desta subcategoria serão exibidos com frete grátis na loja.</small>
                                 </div>
 
                                 <!-- Setores de Produção -->
@@ -323,6 +373,16 @@
                                                 <td class="ps-4">
                                                     <i class="fas fa-sitemap text-success me-2"></i>
                                                     <strong><?= e($sub['name']) ?></strong>
+                                                    <?php if(empty($sub['show_in_store'])): ?>
+                                                        <span class="badge bg-secondary ms-1" style="font-size:0.6rem;" title="Oculta na loja">
+                                                            <i class="fas fa-eye-slash me-1"></i>Oculta
+                                                        </span>
+                                                    <?php endif; ?>
+                                                    <?php if(!empty($sub['free_shipping'])): ?>
+                                                        <span class="badge bg-success ms-1" style="font-size:0.6rem;" title="Frete grátis">
+                                                            <i class="fas fa-truck me-1"></i>Frete Grátis
+                                                        </span>
+                                                    <?php endif; ?>
                                                     <?php if(!empty($subcategoryGradesMap[$sub['id']])): ?>
                                                         <span class="badge bg-info ms-1" style="font-size:0.6rem;" title="Possui grades padrão">
                                                             <i class="fas fa-th-large me-1"></i>Grades

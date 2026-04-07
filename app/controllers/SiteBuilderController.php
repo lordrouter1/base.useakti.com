@@ -1,15 +1,16 @@
 <?php
 namespace Akti\Controllers;
 
-use Akti\Models\Product;
 use Akti\Models\SiteBuilder;
+use Akti\Models\Product;
 use Akti\Utils\Input;
 
 /**
  * Controller do Site Builder.
  *
- * Gerencia a interface de construção visual da loja online,
- * incluindo páginas, seções, componentes e configurações de tema.
+ * Gerencia a interface de configuração da loja online.
+ * As páginas são fixas (início, produtos, contato, carrinho, perfil).
+ * O editor permite ajustar tema e conteúdo via settings.
  */
 class SiteBuilderController
 {
@@ -24,8 +25,24 @@ class SiteBuilderController
         $this->tenantId = (int) ($_SESSION['tenant']['id'] ?? 0);
     }
 
+    private function json(array $data, int $status = 200): void
+    {
+        http_response_code($status);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    }
+
+    private function requireTenant(): bool
+    {
+        if ($this->tenantId <= 0) {
+            $this->json(['success' => false, 'message' => 'Tenant inválido'], 403);
+            return false;
+        }
+        return true;
+    }
+
     /**
-     * Página principal do Site Builder (editor visual).
+     * Página principal do Site Builder (editor de configurações + preview).
      */
     public function index(): void
     {
@@ -37,19 +54,8 @@ class SiteBuilderController
             return;
         }
 
-        $pages = $this->siteBuilder->getPages($this->tenantId);
-        $themeSettings = $this->siteBuilder->getThemeSettings($this->tenantId);
+        $settings = $this->siteBuilder->getSettings($this->tenantId);
 
-        // Carregar a primeira página se existir, ou nenhuma
-        $currentPage = null;
-        $pageId = Input::get('page_id', 'int', 0);
-        if ($pageId > 0) {
-            $currentPage = $this->siteBuilder->getFullPage($pageId, $this->tenantId);
-        } elseif (!empty($pages)) {
-            $currentPage = $this->siteBuilder->getFullPage((int) $pages[0]['id'], $this->tenantId);
-        }
-
-        // Carregar schema de configurações do tema
         $basePath = realpath(__DIR__ . '/../../') ?: dirname(__DIR__, 2);
         $schemaPath = $basePath . '/loja/config/settings_schema.json';
         $settingsSchema = file_exists($schemaPath)
@@ -62,414 +68,20 @@ class SiteBuilderController
     }
 
     /**
-     * Listagem de páginas (AJAX JSON).
+     * Retorna todas as configurações (AJAX GET).
      */
-    public function pages(): void
+    public function getSettings(): void
     {
         if (!$this->requireTenant()) return;
 
-        $pages = $this->siteBuilder->getPages($this->tenantId);
-        $this->json(['success' => true, 'pages' => $pages]);
+        $settings = $this->siteBuilder->getSettings($this->tenantId);
+        $this->json(['success' => true, 'settings' => $settings]);
     }
 
     /**
-     * Criar nova página (POST AJAX).
+     * Salva configurações de um grupo (POST AJAX).
      */
-    public function createPage(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'message' => 'Método não permitido'], 405);
-            return;
-        }
-        if (!$this->requireTenant()) return;
-
-        $title = Input::post('title');
-        $slug  = Input::post('slug');
-        $type  = Input::post('type', 'string', 'custom');
-
-        if (empty($title) || empty($slug)) {
-            $this->json(['success' => false, 'message' => 'Título e slug são obrigatórios']);
-            return;
-        }
-
-        try {
-            $id = $this->siteBuilder->createPage([
-                'tenant_id'        => $this->tenantId,
-                'title'            => $title,
-                'slug'             => $slug,
-                'type'             => $type,
-                'meta_title'       => Input::post('meta_title'),
-                'meta_description' => Input::post('meta_description'),
-            ]);
-            $this->json(['success' => true, 'id' => $id]);
-        } catch (\PDOException $e) {
-            if ((int) $e->getCode() === 23000) {
-                $this->json(['success' => false, 'message' => 'Já existe uma página com este slug'], 409);
-                return;
-            }
-            $this->json(['success' => false, 'message' => 'Erro ao criar página no banco de dados'], 500);
-        }
-    }
-
-    /**
-     * Atualizar página existente (POST AJAX).
-     */
-    public function updatePage(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'message' => 'Método não permitido'], 405);
-            return;
-        }
-        if (!$this->requireTenant()) return;
-
-        $id = Input::post('id', 'int', 0);
-        if ($id <= 0) {
-            $this->json(['success' => false, 'message' => 'ID inválido'], 422);
-            return;
-        }
-
-        if (!$this->siteBuilder->getPage($id, $this->tenantId)) {
-            $this->json(['success' => false, 'message' => 'Página não encontrada'], 404);
-            return;
-        }
-
-        try {
-            $this->siteBuilder->updatePage($id, [
-                'tenant_id'        => $this->tenantId,
-                'title'            => Input::post('title'),
-                'slug'             => Input::post('slug'),
-                'type'             => Input::post('type', 'string', 'custom'),
-                'meta_title'       => Input::post('meta_title'),
-                'meta_description' => Input::post('meta_description'),
-                'is_active'        => Input::post('is_active', 'int', 1),
-                'sort_order'       => Input::post('sort_order', 'int', 0),
-            ]);
-        } catch (\PDOException $e) {
-            if ((int) $e->getCode() === 23000) {
-                $this->json(['success' => false, 'message' => 'Já existe uma página com este slug'], 409);
-                return;
-            }
-
-            $this->json(['success' => false, 'message' => 'Erro ao atualizar página no banco de dados'], 500);
-            return;
-        }
-
-        $this->json(['success' => true]);
-    }
-
-    /**
-     * Excluir página (POST AJAX).
-     */
-    public function deletePage(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'message' => 'Método não permitido'], 405);
-            return;
-        }
-        if (!$this->requireTenant()) return;
-
-        $id = Input::post('id', 'int', 0);
-        if ($id <= 0) {
-            $this->json(['success' => false, 'message' => 'ID inválido'], 422);
-            return;
-        }
-
-        if (!$this->siteBuilder->getPage($id, $this->tenantId)) {
-            $this->json(['success' => false, 'message' => 'Página não encontrada'], 404);
-            return;
-        }
-
-        if (!$this->siteBuilder->deletePage($id, $this->tenantId)) {
-            $this->json(['success' => false, 'message' => 'Falha ao excluir página'], 500);
-            return;
-        }
-
-        $this->json(['success' => true]);
-    }
-
-    /**
-     * Salvar seções da página (POST AJAX) — salva ordem e configurações.
-     */
-    public function saveSections(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'message' => 'Método não permitido'], 405);
-            return;
-        }
-
-        $pageId = Input::post('page_id', 'int', 0);
-        if (!$this->requireTenant()) return;
-
-        if ($pageId <= 0) {
-            $this->json(['success' => false, 'message' => 'page_id inválido'], 422);
-            return;
-        }
-
-        if (!$this->siteBuilder->getPage($pageId, $this->tenantId)) {
-            $this->json(['success' => false, 'message' => 'Página não encontrada'], 404);
-            return;
-        }
-
-        $sectionsJson = $_POST['sections'] ?? '[]';
-        $sections = is_string($sectionsJson) ? json_decode($sectionsJson, true) : $sectionsJson;
-
-        if (!is_array($sections)) {
-            $this->json(['success' => false, 'message' => 'Dados de seções inválidos'], 422);
-            return;
-        }
-
-        foreach ($sections as $section) {
-            if (!is_array($section)) {
-                $this->json(['success' => false, 'message' => 'Estrutura de seção inválida'], 422);
-                return;
-            }
-        }
-
-        if (!$this->siteBuilder->saveSectionsBatch($this->tenantId, $pageId, $sections)) {
-            $this->json(['success' => false, 'message' => 'Falha ao salvar seções'], 500);
-            return;
-        }
-
-        $this->json(['success' => true]);
-    }
-
-    /**
-     * Excluir seção (POST AJAX).
-     */
-    public function deleteSection(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'message' => 'Método não permitido'], 405);
-            return;
-        }
-        if (!$this->requireTenant()) return;
-
-        $id = Input::post('id', 'int', 0);
-        if ($id <= 0) {
-            $this->json(['success' => false, 'message' => 'ID inválido'], 422);
-            return;
-        }
-
-        $section = $this->siteBuilder->getSection($id, $this->tenantId);
-        if (!$section) {
-            $this->json(['success' => false, 'message' => 'Seção não encontrada'], 404);
-            return;
-        }
-
-        if (!$this->siteBuilder->deleteSection($id, $this->tenantId)) {
-            $this->json(['success' => false, 'message' => 'Falha ao excluir seção'], 500);
-            return;
-        }
-
-        $this->json(['success' => true]);
-    }
-
-    /**
-     * Atualiza as configurações de uma seção (POST AJAX).
-     */
-    public function updateSection(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'message' => 'Método não permitido'], 405);
-            return;
-        }
-        if (!$this->requireTenant()) return;
-
-        $id = Input::post('id', 'int', 0);
-        if ($id <= 0) {
-            $this->json(['success' => false, 'message' => 'ID inválido'], 422);
-            return;
-        }
-
-        $section = $this->siteBuilder->getSection($id, $this->tenantId);
-        if (!$section) {
-            $this->json(['success' => false, 'message' => 'Seção não encontrada'], 404);
-            return;
-        }
-
-        $settingsJson = $_POST['settings'] ?? '{}';
-        $settings = is_string($settingsJson) ? json_decode($settingsJson, true) : $settingsJson;
-        if (!is_array($settings)) {
-            $this->json(['success' => false, 'message' => 'Configurações inválidas'], 422);
-            return;
-        }
-
-        $updated = $this->siteBuilder->updateSection($id, [
-            'tenant_id'  => $this->tenantId,
-            'type'       => Input::post('type', 'string', (string) $section['type']),
-            'settings'   => $settings,
-            'sort_order' => (int) ($section['sort_order'] ?? 0),
-            'is_visible' => Input::post('is_visible', 'int', (int) ($section['is_visible'] ?? 1)) ? 1 : 0,
-        ]);
-
-        if (!$updated) {
-            $this->json(['success' => false, 'message' => 'Falha ao atualizar seção'], 500);
-            return;
-        }
-
-        $this->json(['success' => true]);
-    }
-
-    /**
-     * Reordenar seções da página (POST AJAX).
-     */
-    public function reorderSections(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'message' => 'Método não permitido'], 405);
-            return;
-        }
-        if (!$this->requireTenant()) return;
-
-        $pageId = Input::post('page_id', 'int', 0);
-        if ($pageId <= 0) {
-            $this->json(['success' => false, 'message' => 'page_id inválido'], 422);
-            return;
-        }
-
-        if (!$this->siteBuilder->getPage($pageId, $this->tenantId)) {
-            $this->json(['success' => false, 'message' => 'Página não encontrada'], 404);
-            return;
-        }
-
-        $orderJson = $_POST['order'] ?? '[]';
-        $order = is_string($orderJson) ? json_decode($orderJson, true) : $orderJson;
-        if (!is_array($order)) {
-            $this->json(['success' => false, 'message' => 'Ordem inválida'], 422);
-            return;
-        }
-
-        $order = array_values(array_map('intval', $order));
-        if (!$this->siteBuilder->isValidSectionOrder($pageId, $this->tenantId, $order)) {
-            $this->json(['success' => false, 'message' => 'Ordem de seções inválida para esta página'], 422);
-            return;
-        }
-
-        if (!$this->siteBuilder->reorderSections($pageId, $this->tenantId, $order)) {
-            $this->json(['success' => false, 'message' => 'Falha ao reordenar seções'], 500);
-            return;
-        }
-
-        $this->json(['success' => true]);
-    }
-
-    /**
-     * Adicionar componente a uma seção (POST AJAX).
-     */
-    public function addComponent(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'message' => 'Método não permitido'], 405);
-            return;
-        }
-        if (!$this->requireTenant()) return;
-
-        $sectionId = Input::post('section_id', 'int', 0);
-        $type      = Input::post('type', 'string', 'text');
-        $contentJson = $_POST['content'] ?? '{}';
-        $content   = is_string($contentJson) ? json_decode($contentJson, true) : $contentJson;
-        $gridCol   = Input::post('grid_col', 'int', 12);
-
-        if ($sectionId <= 0) {
-            $this->json(['success' => false, 'message' => 'section_id inválido'], 422);
-            return;
-        }
-
-        if (!$this->siteBuilder->getSection($sectionId, $this->tenantId)) {
-            $this->json(['success' => false, 'message' => 'Seção não encontrada'], 404);
-            return;
-        }
-
-        $id = $this->siteBuilder->createComponent([
-            'tenant_id'  => $this->tenantId,
-            'section_id' => $sectionId,
-            'type'       => $type,
-            'content'    => $content ?: [],
-            'grid_col'   => $gridCol,
-        ]);
-
-        if ($id <= 0) {
-            $this->json(['success' => false, 'message' => 'Falha ao criar componente'], 500);
-            return;
-        }
-
-        $this->json(['success' => true, 'id' => $id]);
-    }
-
-    /**
-     * Atualizar componente (POST AJAX).
-     */
-    public function updateComponent(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'message' => 'Método não permitido'], 405);
-            return;
-        }
-        if (!$this->requireTenant()) return;
-
-        $id = Input::post('id', 'int', 0);
-        if ($id <= 0) {
-            $this->json(['success' => false, 'message' => 'ID inválido'], 422);
-            return;
-        }
-
-        if (!$this->siteBuilder->getComponent($id, $this->tenantId)) {
-            $this->json(['success' => false, 'message' => 'Componente não encontrado'], 404);
-            return;
-        }
-
-        $contentJson = $_POST['content'] ?? '{}';
-        $content = is_string($contentJson) ? json_decode($contentJson, true) : $contentJson;
-
-        if (!$this->siteBuilder->updateComponent($id, [
-            'tenant_id'  => $this->tenantId,
-            'type'       => Input::post('type', 'string', 'text'),
-            'content'    => $content ?: [],
-            'grid_col'   => Input::post('grid_col', 'int', 12),
-            'grid_row'   => Input::post('grid_row', 'int', 0),
-            'sort_order' => Input::post('sort_order', 'int', 0),
-        ])) {
-            $this->json(['success' => false, 'message' => 'Componente não encontrado ou sem alterações'], 404);
-            return;
-        }
-
-        $this->json(['success' => true]);
-    }
-
-    /**
-     * Remover componente (POST AJAX).
-     */
-    public function removeComponent(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['success' => false, 'message' => 'Método não permitido'], 405);
-            return;
-        }
-        if (!$this->requireTenant()) return;
-
-        $id = Input::post('id', 'int', 0);
-        if ($id <= 0) {
-            $this->json(['success' => false, 'message' => 'ID inválido'], 422);
-            return;
-        }
-
-        if (!$this->siteBuilder->getComponent($id, $this->tenantId)) {
-            $this->json(['success' => false, 'message' => 'Componente não encontrado'], 404);
-            return;
-        }
-
-        if (!$this->siteBuilder->deleteComponent($id, $this->tenantId)) {
-            $this->json(['success' => false, 'message' => 'Falha ao remover componente'], 500);
-            return;
-        }
-
-        $this->json(['success' => true]);
-    }
-
-    /**
-     * Salvar configurações de tema (POST AJAX).
-     */
-    public function saveThemeSettings(): void
+    public function saveSettings(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['success' => false, 'message' => 'Método não permitido'], 405);
@@ -480,13 +92,14 @@ class SiteBuilderController
         $settingsJson = $_POST['settings'] ?? '{}';
         $settings = is_string($settingsJson) ? json_decode($settingsJson, true) : $settingsJson;
 
-        if (!is_array($settings)) {
+        if (!is_array($settings) || empty($settings)) {
             $this->json(['success' => false, 'message' => 'Dados inválidos'], 422);
             return;
         }
 
         $group = Input::post('group', 'string', 'general');
-        if (!$this->siteBuilder->saveThemeSettings($this->tenantId, $settings, $group)) {
+
+        if (!$this->siteBuilder->saveSettingsBatch($this->tenantId, $settings, $group)) {
             $this->json(['success' => false, 'message' => 'Falha ao salvar configurações'], 500);
             return;
         }
@@ -505,19 +118,14 @@ class SiteBuilderController
             return;
         }
 
-        $pageId = Input::get('page_id', 'int', 0);
-        $page = null;
+        $settings = $this->siteBuilder->getSettings($this->tenantId);
+        $previewPage = Input::get('p', 'string', 'home');
         $previewProducts = [];
-
-        if ($pageId > 0) {
-            $page = $this->siteBuilder->getFullPage($pageId, $this->tenantId);
-        }
-
-        $themeSettings = $this->siteBuilder->getThemeSettings($this->tenantId);
 
         try {
             $productModel = new Product($this->db);
-            $productResult = $productModel->readPaginatedFiltered(1, 8, null, null);
+            $count = (int) ($settings['featured_products_count'] ?? 8);
+            $productResult = $productModel->readPaginatedFiltered(1, $count, null, null);
             $previewProducts = $productResult['data'] ?? [];
         } catch (\Throwable $e) {
             $previewProducts = [];
@@ -527,9 +135,9 @@ class SiteBuilderController
     }
 
     /**
-     * Adicionar uma única seção a uma página (POST AJAX).
+     * Upload de imagem para o site builder (POST AJAX).
      */
-    public function addSection(): void
+    public function uploadImage(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['success' => false, 'message' => 'Método não permitido'], 405);
@@ -537,94 +145,56 @@ class SiteBuilderController
         }
         if (!$this->requireTenant()) return;
 
-        $pageId = Input::post('page_id', 'int', 0);
-        if ($pageId <= 0) {
-            $this->json(['success' => false, 'message' => 'page_id inválido'], 422);
+        if (empty($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+            $this->json(['success' => false, 'message' => 'Nenhum arquivo enviado'], 422);
             return;
         }
 
-        if (!$this->siteBuilder->getPage($pageId, $this->tenantId)) {
-            $this->json(['success' => false, 'message' => 'Página não encontrada'], 404);
+        $file = $_FILES['image'];
+
+        // Validar tipo MIME
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/x-icon'];
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+        if (!in_array($mime, $allowedMimes, true)) {
+            $this->json(['success' => false, 'message' => 'Tipo de arquivo não permitido'], 422);
             return;
         }
 
-        $type = Input::post('type', 'string', 'custom-html');
-        $settingsJson = $_POST['settings'] ?? '{}';
-        $settings = is_string($settingsJson) ? json_decode($settingsJson, true) : $settingsJson;
-
-        try {
-            $sections = $this->siteBuilder->getSections($pageId, $this->tenantId);
-            $maxSort = 0;
-            foreach ($sections as $s) {
-                $maxSort = max($maxSort, (int) $s['sort_order']);
-            }
-
-            $id = $this->siteBuilder->createSection([
-                'tenant_id'  => $this->tenantId,
-                'page_id'    => $pageId,
-                'type'       => $type,
-                'settings'   => $settings ?: [],
-                'sort_order' => $maxSort + 1,
-                'is_visible' => 1,
-            ]);
-
-            if ($id <= 0) {
-                $this->json(['success' => false, 'message' => 'Falha ao criar seção'], 500);
-                return;
-            }
-
-            $this->json(['success' => true, 'id' => $id]);
-        } catch (\Throwable $e) {
-            error_log('[SiteBuilder::addSection] ' . $e->getMessage());
-            $this->json(['success' => false, 'message' => 'Erro interno ao criar seção'], 500);
-        }
-    }
-
-    /**
-     * Retorna dados completos da página com seções e componentes (GET AJAX).
-     */
-    public function getPageData(): void
-    {
-        if (!$this->requireTenant()) return;
-
-        $pageId = Input::get('page_id', 'int', 0);
-        if ($pageId <= 0) {
-            $this->json(['success' => false, 'message' => 'page_id inválido'], 422);
+        // Validar tamanho (5MB)
+        if ($file['size'] > 5 * 1024 * 1024) {
+            $this->json(['success' => false, 'message' => 'Arquivo muito grande (máx 5MB)'], 422);
             return;
         }
 
-        $page = $this->siteBuilder->getFullPage($pageId, $this->tenantId);
-        if (!$page) {
-            $this->json(['success' => false, 'message' => 'Página não encontrada'], 404);
+        // Gerar caminho seguro dentro do diretório do tenant
+        $uploadBase = \Akti\Config\TenantManager::getTenantUploadBase();
+        $uploadDir = $uploadBase . 'site_builder/';
+
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        // Nome seguro: hash + extensão original
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'ico'];
+        if (!in_array($ext, $allowedExts, true)) {
+            $ext = 'png';
+        }
+        $filename = 'sb_' . bin2hex(random_bytes(8)) . '.' . $ext;
+        $destPath = $uploadDir . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $destPath)) {
+            $this->json(['success' => false, 'message' => 'Falha ao salvar arquivo'], 500);
             return;
         }
 
-        $this->json(['success' => true, 'page' => $page]);
-    }
+        $url = '/' . $destPath;
 
-    /**
-     * Verifica se o tenant_id é válido; caso contrário, responde com erro.
-     */
-    private function requireTenant(): bool
-    {
-        if ($this->tenantId <= 0) {
-            $this->json(['success' => false, 'message' => 'Tenant inválido'], 403);
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Retorna JSON e encerra a execução.
-     */
-    private function json(array $data, int $statusCode = 200): void
-    {
-        while (ob_get_level()) {
-            ob_end_clean();
-        }
-        http_response_code($statusCode);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
-        exit;
+        $this->json([
+            'success'  => true,
+            'url'      => $url,
+            'filename' => $filename,
+        ]);
     }
 }

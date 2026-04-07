@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ shop.name|default('Minha Loja') }}{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}{{ shop.description|default('') }}{% endblock %}">
+    <link rel="icon" href="{{ theme.shop_favicon_url|default('') }}" type="image/x-icon">
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -17,14 +18,23 @@
 
     <style>
         :root {
-            --primary-color: {{ theme.primary_color|default('#3b82f6') }};
-            --secondary-color: {{ theme.secondary_color|default('#64748b') }};
-            --accent-color: {{ theme.accent_color|default('#f59e0b') }};
+            --primary: {{ theme.primary_color|default('#ff6600') }};
+            --primary-dark: {{ theme.secondary_color|default('#cc5200') }};
+            --accent: {{ theme.accent_color|default('#febd69') }};
+            --bg-color: {{ theme.bg_color|default('#eaeded') }};
+            --text-color: {{ theme.text_color|default('#0f1111') }};
             --body-font: '{{ theme.body_font|default('Inter') }}', sans-serif;
             --heading-font: '{{ theme.heading_font|default('Inter') }}', sans-serif;
+            --header-categories-bg: {{ theme.header_categories_bg_color|default('#232f3e') }};
+            --header-categories-text: {{ theme.header_categories_text_color|default('#ffffff') }};
+            --header-categories-font: '{{ theme.header_categories_font|default('Inter') }}', sans-serif;
+            --back-to-top-bg: {{ theme.back_to_top_bg_color|default('#37475a') }};
+            --back-to-top-text: {{ theme.back_to_top_text_color|default('#ffffff') }};
         }
         body {
             font-family: var(--body-font);
+            background: var(--bg-color);
+            color: var(--text-color);
         }
         h1, h2, h3, h4, h5, h6 {
             font-family: var(--heading-font);
@@ -32,14 +42,14 @@
     </style>
     {% block head_extra %}{% endblock %}
 </head>
-<body>
-    {% include 'sections/header.html.twig' %}
+<body class="d-flex flex-column min-vh-100">
+    {% include 'templates/sections/header.html.twig' ignore missing %}
 
-    <main>
+    <main class="flex-grow-1">
         {% block content %}{% endblock %}
     </main>
 
-    {% include 'sections/footer.html.twig' %}
+    {% include 'templates/sections/footer.html.twig' ignore missing %}
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

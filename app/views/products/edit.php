@@ -336,7 +336,24 @@
         </div>
 
         <!-- ════════════════════════════════════════════════════
-             SEÇÃO 7 — INFORMAÇÕES FISCAIS (colapsável)
+             SEÇÃO 7.5 — E-COMMERCE / MARKETPLACE (colapsável)
+             ════════════════════════════════════════════════════ -->
+        <?php $hasEcommerce = !empty($product['ecommerce_description']) || !empty($product['ecommerce_brand']) || !empty($product['ecommerce_gtin']) || !empty($product['ecommerce_weight']); ?>
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center section-toggle" 
+                 data-bs-toggle="collapse" data-bs-target="#collapseEcommerce" aria-expanded="<?= $hasEcommerce ? 'true' : 'false' ?>" role="button">
+                <h5 class="mb-0 text-primary"><i class="fas fa-shopping-cart me-2"></i>E-commerce / Marketplace</h5>
+                <i class="fas fa-chevron-<?= $hasEcommerce ? 'up' : 'down' ?> collapse-icon text-muted"></i>
+            </div>
+            <div class="collapse <?= $hasEcommerce ? 'show' : '' ?>" id="collapseEcommerce">
+                <div class="card-body p-4">
+                    <?php include 'app/views/products/_ecommerce_partial.php'; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════
+             SEÇÃO 8 — INFORMAÇÕES FISCAIS (colapsável)
              ════════════════════════════════════════════════════ -->
         <?php if (\Akti\Core\ModuleBootloader::isModuleEnabled('nfe')): ?>
         <?php $hasFiscal = !empty($product['fiscal_ncm']); ?>

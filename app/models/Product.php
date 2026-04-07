@@ -26,6 +26,14 @@ class Product {
         'fiscal_aliq_pis', 'fiscal_aliq_cofins', 'fiscal_beneficio', 'fiscal_info_adicional'
     ];
 
+    // Campos e-commerce (marketplaces)
+    public static $ecommerceFields = [
+        'ecommerce_description', 'ecommerce_brand', 'ecommerce_gtin',
+        'ecommerce_weight', 'ecommerce_height', 'ecommerce_width', 'ecommerce_length',
+        'ecommerce_condition', 'ecommerce_warranty', 'ecommerce_keywords', 'ecommerce_video_url',
+        'free_shipping'
+    ];
+
     public function __construct(\PDO $db) {
         $this->conn = $db;
     }
@@ -79,7 +87,7 @@ class Product {
      * @param string|null $search Busca por nome (null = sem filtro)
      * @return array ['data' => [...], 'total' => int]
      */
-    public function readPaginatedFiltered(int $page = 1, int $perPage = 20, ?int $categoryId = null, ?string $search = null): array
+    public function readPaginatedFiltered(int $page = 1, int $perPage = 20, ?int $categoryId = null, ?string $search = null, ?int $subcategoryId = null, bool $storeOnly = false): array
     {
         $offset = ($page - 1) * $perPage;
         $where = [];
@@ -89,15 +97,23 @@ class Product {
             $where[] = "p.category_id = :cat_id";
             $params[':cat_id'] = $categoryId;
         }
+        if ($subcategoryId) {
+            $where[] = "p.subcategory_id = :sub_id";
+            $params[':sub_id'] = $subcategoryId;
+        }
         if ($search) {
             $where[] = "(p.name LIKE :search OR p.description LIKE :search)";
             $params[':search'] = '%' . $search . '%';
+        }
+        if ($storeOnly) {
+            $where[] = "(c.show_in_store = 1 OR p.category_id IS NULL)";
+            $where[] = "(sc.show_in_store = 1 OR p.subcategory_id IS NULL)";
         }
 
         $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
         // Total
-        $countQuery = "SELECT COUNT(*) FROM {$this->table_name} p {$whereClause}";
+        $countQuery = "SELECT COUNT(*) FROM {$this->table_name} p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN subcategories sc ON p.subcategory_id = sc.id {$whereClause}";
         $countStmt = $this->conn->prepare($countQuery);
         foreach ($params as $k => $v) {
             $countStmt->bindValue($k, $v);
@@ -109,6 +125,8 @@ class Product {
         $query = "SELECT p.*, 
                          c.name AS category_name,
                          sc.name AS subcategory_name,
+                         c.free_shipping AS category_free_shipping,
+                         sc.free_shipping AS subcategory_free_shipping,
                          (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id AND pi.is_main = 1 LIMIT 1) as main_image_path
                   FROM {$this->table_name} p
                   LEFT JOIN categories c ON p.category_id = c.id
@@ -156,9 +174,19 @@ class Product {
             }
         }
 
+        // Build ecommerce columns dynamically
+        $ecommerceCols = '';
+        $ecommercePlaceholders = '';
+        foreach (self::$ecommerceFields as $f) {
+            if (isset($data[$f])) {
+                $ecommerceCols .= ", $f";
+                $ecommercePlaceholders .= ", :$f";
+            }
+        }
+
         $query = "INSERT INTO " . $this->table_name . " 
-                  (name, sku, description, category_id, subcategory_id, price, stock_quantity, use_stock_control, created_at{$fiscalCols}) 
-                  VALUES (:name, :sku, :description, :category_id, :subcategory_id, :price, 0, :use_stock_control, NOW(){$fiscalPlaceholders})";
+                  (name, sku, description, category_id, subcategory_id, price, stock_quantity, use_stock_control, created_at{$fiscalCols}{$ecommerceCols}) 
+                  VALUES (:name, :sku, :description, :category_id, :subcategory_id, :price, 0, :use_stock_control, NOW(){$fiscalPlaceholders}{$ecommercePlaceholders})";
         
         $stmt = $this->conn->prepare($query);
 
@@ -172,6 +200,13 @@ class Product {
         $stmt->bindParam(':use_stock_control', $useStockControl, PDO::PARAM_INT);
 
         foreach (self::$fiscalFields as $f) {
+            if (isset($data[$f])) {
+                $val = $data[$f] !== '' ? $data[$f] : null;
+                $stmt->bindValue(":$f", $val);
+            }
+        }
+
+        foreach (self::$ecommerceFields as $f) {
             if (isset($data[$f])) {
                 $val = $data[$f] !== '' ? $data[$f] : null;
                 $stmt->bindValue(":$f", $val);
@@ -218,6 +253,14 @@ class Product {
             }
         }
 
+        // Build ecommerce SET clause dynamically
+        $ecommerceSet = '';
+        foreach (self::$ecommerceFields as $f) {
+            if (array_key_exists($f, $data)) {
+                $ecommerceSet .= ", $f = :$f";
+            }
+        }
+
         $query = "UPDATE " . $this->table_name . " 
                   SET name = :name, 
                       sku = :sku,
@@ -227,6 +270,7 @@ class Product {
                       price = :price,
                       use_stock_control = :use_stock_control
                       {$fiscalSet}
+                      {$ecommerceSet}
                   WHERE id = :id";
         
         $stmt = $this->conn->prepare($query);
@@ -242,6 +286,13 @@ class Product {
         $stmt->bindParam(':use_stock_control', $useStockControl, PDO::PARAM_INT);
 
         foreach (self::$fiscalFields as $f) {
+            if (array_key_exists($f, $data)) {
+                $val = $data[$f] !== '' ? $data[$f] : null;
+                $stmt->bindValue(":$f", $val);
+            }
+        }
+
+        foreach (self::$ecommerceFields as $f) {
             if (array_key_exists($f, $data)) {
                 $val = $data[$f] !== '' ? $data[$f] : null;
                 $stmt->bindValue(":$f", $val);

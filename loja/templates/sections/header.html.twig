@@ -1,49 +1,118 @@
-{# Header Section — Cabeçalho da loja #}
-{% set style = settings.style|default('default') %}
-{% set bg_color = settings.bg_color|default(theme.header_bg_color|default('#ffffff')) %}
-{% set text_color = settings.text_color|default(theme.header_text_color|default('#333333')) %}
-{% set logo_position = settings.logo_position|default(theme.header_logo_position|default('left')) %}
-{% set is_sticky = settings.sticky|default(theme.header_sticky|default(true)) %}
+{# Header — E-commerce style (Amazon/ML) #}
+{% set hdr_bg = theme.header_bg_color|default('#131921') %}
+{% set hdr_text = theme.header_text_color|default('#ffffff') %}
 
-<header class="store-header {{ is_sticky ? 'sticky-top' : '' }}" style="background-color: {{ bg_color }}; color: {{ text_color }};">
-    <nav class="navbar navbar-expand-lg" style="color: {{ text_color }};">
-        <div class="container">
-            {% if logo_position == 'left' or logo_position == 'center' %}
-                <a class="navbar-brand {{ logo_position == 'center' ? 'mx-auto' : '' }}" href="/">
-                    {% if shop.logo|default(null) %}
-                        <img src="{{ shop.logo }}" alt="{{ shop.name }}" height="40">
+{# ── Top bar (logo + search + cart) ── #}
+<header class="store-header sticky-top">
+    <div class="header-main" style="background:{{ hdr_bg }};">
+        <div class="container-fluid px-3 px-lg-4">
+            <div class="d-flex align-items-center py-2 gap-3">
+
+                {# Logo #}
+                <a class="header-logo text-decoration-none flex-shrink-0" href="/loja/">
+                    {% if shop.logo|default('') %}
+                        <img src="{{ shop.logo }}" alt="{{ shop.name }}" height="36">
                     {% else %}
-                        <strong style="color: {{ text_color }};">{{ shop.name|default('Minha Loja') }}</strong>
+                        <span class="fw-bold fs-5" style="color:{{ hdr_text }};">{{ shop.name|default('Loja') }}</span>
                     {% endif %}
                 </a>
-            {% endif %}
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#storeNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+                {# Search bar #}
+                <form class="header-search flex-grow-1 mx-2" action="/loja/produtos" method="get" autocomplete="off">
+                    <div class="input-group">
+                        <input type="text" name="q" id="searchInput" class="form-control"
+                               placeholder="Buscar produtos..." value="{{ search|default('') }}"
+                               aria-label="Buscar produtos">
+                        <button class="btn btn-search" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    <div id="searchResults" class="search-dropdown d-none"></div>
+                </form>
 
-            <div class="collapse navbar-collapse" id="storeNav">
-                <ul class="navbar-nav {{ logo_position == 'center' ? 'mx-auto' : 'ms-auto' }}">
-                    {% for item in menu|default([]) %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ item.url }}" style="color: {{ text_color }};">
-                                {{ item.label }}
-                            </a>
-                        </li>
-                    {% endfor %}
-                </ul>
-
-                <div class="d-flex align-items-center ms-3">
-                    <a href="/carrinho" class="btn btn-outline-secondary btn-sm position-relative" style="color: {{ text_color }}; border-color: {{ text_color }};">
-                        <i class="fas fa-shopping-cart"></i>
-                        {% if cart.count|default(0) > 0 %}
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                {{ cart.count }}
+                {# Actions (account + cart) – desktop #}
+                <div class="header-actions d-none d-md-flex align-items-center gap-3 flex-shrink-0">
+                    <a href="/loja/perfil" class="text-decoration-none d-flex align-items-center gap-1" style="color:{{ hdr_text }};">
+                        <i class="fas fa-user"></i>
+                        <span class="small">Conta</span>
+                    </a>
+                    <a href="/loja/carrinho" class="text-decoration-none position-relative d-flex align-items-center gap-1" style="color:{{ hdr_text }};">
+                        <i class="fas fa-shopping-cart fa-lg"></i>
+                        {% if cart_count|default(0) > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.65rem;">
+                                {{ cart_count }}
                             </span>
                         {% endif %}
+                        <span class="small ms-1">Carrinho</span>
                     </a>
+                </div>
+
+                {# Mobile toggle #}
+                <button class="btn d-md-none p-1" type="button" data-bs-toggle="collapse" data-bs-target="#catNav" style="color:{{ hdr_text }};">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {# ── Category navigation bar ── #}
+    {% set cat_bg = theme.header_categories_bg_color|default('#232f3e') %}
+    {% set cat_text = theme.header_categories_text_color|default('#ffffff') %}
+    {% set cat_font = theme.header_categories_font|default('Inter') %}
+    <nav class="header-categories collapse d-md-block" id="catNav" style="background:{{ cat_bg }};color:{{ cat_text }};font-family:'{{ cat_font }}',sans-serif;">
+        <div class="container-fluid px-3 px-lg-4" style="overflow:visible;">
+            <div class="d-flex align-items-center py-1 gap-1 cat-scroll">
+                <a href="/loja/produtos" class="cat-link">
+                    <i class="fas fa-th me-1"></i>Todos
+                </a>
+                {% for cat in categories|default([]) %}
+                    <div class="dropdown cat-dropdown">
+                        <a href="/loja/produtos?category={{ cat.id }}"
+                           class="cat-link dropdown-toggle"
+                           data-bs-toggle="dropdown" data-bs-auto-close="true">
+                            {{ cat.name }}
+                        </a>
+                        {% if cat.subcategories|default([])|length > 0 %}
+                            <ul class="dropdown-menu dropdown-menu-dark">
+                                <li>
+                                    <a class="dropdown-item" href="/loja/produtos?category={{ cat.id }}">
+                                        Ver tudo em {{ cat.name }}
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% for sub in cat.subcategories %}
+                                    <li>
+                                        <a class="dropdown-item" href="/loja/produtos?category={{ cat.id }}&subcategory={{ sub.id }}">
+                                            {{ sub.name }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                {# Right side links #}
+                <div class="ms-auto d-none d-lg-flex gap-1">
+                    {% for item in menu|default([]) %}
+                        <a href="{{ item.url }}" class="cat-link">{{ item.label }}</a>
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </nav>
+
+    {# ── Mobile bottom bar ── #}
+    <div class="mobile-bottom-bar d-md-none">
+        <a href="/loja/" class="mobile-tab"><i class="fas fa-home"></i><span>Início</span></a>
+        <a href="/loja/produtos" class="mobile-tab"><i class="fas fa-th-large"></i><span>Categorias</span></a>
+        <a href="/loja/carrinho" class="mobile-tab position-relative">
+            <i class="fas fa-shopping-cart"></i>
+            {% if cart_count|default(0) > 0 %}
+                <span class="position-absolute translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;top:2px;right:-6px;">{{ cart_count }}</span>
+            {% endif %}
+            <span>Carrinho</span>
+        </a>
+        <a href="/loja/perfil" class="mobile-tab"><i class="fas fa-user"></i><span>Conta</span></a>
+    </div>
 </header>

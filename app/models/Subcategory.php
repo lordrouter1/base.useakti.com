@@ -12,6 +12,8 @@ class Subcategory {
     public $id;
     public $category_id;
     public $name;
+    public $show_in_store = 1;
+    public $free_shipping = 0;
 
     public function __construct(\PDO $db) {
         $this->conn = $db;
@@ -26,7 +28,7 @@ class Subcategory {
     }
     
     public function create() {
-        $query = "INSERT INTO " . $this->table_name . " SET name=:name, category_id=:category_id";
+        $query = "INSERT INTO " . $this->table_name . " SET name=:name, category_id=:category_id, show_in_store=:show_in_store, free_shipping=:free_shipping";
         $stmt = $this->conn->prepare($query);
         
         $this->name = htmlspecialchars(strip_tags($this->name));
@@ -34,6 +36,8 @@ class Subcategory {
         
         $stmt->bindParam(":name", $this->name);
         $stmt->bindParam(":category_id", $this->category_id);
+        $stmt->bindValue(":show_in_store", (int) $this->show_in_store, \PDO::PARAM_INT);
+        $stmt->bindValue(":free_shipping", (int) $this->free_shipping, \PDO::PARAM_INT);
 
         if($stmt->execute()) {
              $this->id = $this->conn->lastInsertId();
@@ -96,13 +100,23 @@ class Subcategory {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function update($id, $name, $categoryId) {
-        $stmt = $this->conn->prepare("UPDATE subcategories SET name = :name, category_id = :cat WHERE id = :id");
-        $result = $stmt->execute([
+    public function update($id, $name, $categoryId, $showInStore = null, $freeShipping = null) {
+        $fields = ['name = :name', 'category_id = :cat'];
+        $params = [
             ':name' => htmlspecialchars(strip_tags($name)),
             ':cat'  => $categoryId,
             ':id'   => $id,
-        ]);
+        ];
+        if ($showInStore !== null) {
+            $fields[] = 'show_in_store = :show_in_store';
+            $params[':show_in_store'] = (int) $showInStore;
+        }
+        if ($freeShipping !== null) {
+            $fields[] = 'free_shipping = :free_shipping';
+            $params[':free_shipping'] = (int) $freeShipping;
+        }
+        $stmt = $this->conn->prepare("UPDATE subcategories SET " . implode(', ', $fields) . " WHERE id = :id");
+        $result = $stmt->execute($params);
         if ($result) {
             EventDispatcher::dispatch('model.subcategory.updated', new Event('model.subcategory.updated', [
                 'id' => $id,

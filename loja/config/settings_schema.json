@@ -1,133 +1,117 @@
 [
     {
-        "name": "Cores",
+        "name": "Geral",
+        "group": "general",
+        "icon": "fas fa-store",
         "settings": [
-            {
-                "type": "color",
-                "id": "primary_color",
-                "label": "Cor primária",
-                "default": "#3b82f6"
-            },
-            {
-                "type": "color",
-                "id": "secondary_color",
-                "label": "Cor secundária",
-                "default": "#64748b"
-            },
-            {
-                "type": "color",
-                "id": "accent_color",
-                "label": "Cor de destaque",
-                "default": "#f59e0b"
-            }
+            {"key": "shop_name", "label": "Nome da Loja", "type": "text", "default": "Minha Loja"},
+            {"key": "shop_description", "label": "Descrição", "type": "textarea", "default": ""},
+            {"key": "shop_logo_url", "label": "Logo da Loja", "type": "image", "default": ""},
+            {"key": "shop_favicon_url", "label": "Favicon", "type": "image", "default": ""}
+        ]
+    },
+    {
+        "name": "Cores",
+        "group": "colors",
+        "icon": "fas fa-palette",
+        "settings": [
+            {"key": "primary_color", "label": "Cor Primária", "type": "color", "default": "#3b82f6"},
+            {"key": "secondary_color", "label": "Cor Secundária", "type": "color", "default": "#64748b"},
+            {"key": "accent_color", "label": "Cor de Destaque", "type": "color", "default": "#f59e0b"},
+            {"key": "bg_color", "label": "Cor de Fundo", "type": "color", "default": "#ffffff"},
+            {"key": "text_color", "label": "Cor do Texto", "type": "color", "default": "#333333"}
         ]
     },
     {
         "name": "Tipografia",
+        "group": "typography",
+        "icon": "fas fa-font",
         "settings": [
-            {
-                "type": "font_picker",
-                "id": "body_font",
-                "label": "Fonte do corpo",
-                "default": "Inter"
-            },
-            {
-                "type": "font_picker",
-                "id": "heading_font",
-                "label": "Fonte dos títulos",
-                "default": "Inter"
-            }
+            {"key": "body_font", "label": "Fonte do Corpo", "type": "font_picker", "default": "Inter"},
+            {"key": "heading_font", "label": "Fonte dos Títulos", "type": "font_picker", "default": "Inter"}
         ]
     },
     {
         "name": "Cabeçalho",
+        "group": "header",
+        "icon": "fas fa-window-maximize",
         "settings": [
-            {
-                "type": "select",
-                "id": "header_style",
-                "label": "Estilo do cabeçalho",
-                "options": [
-                    {"value": "default", "label": "Padrão"},
-                    {"value": "centered", "label": "Centralizado"},
-                    {"value": "minimal", "label": "Minimalista"},
-                    {"value": "mega-menu", "label": "Mega Menu"}
-                ],
-                "default": "default"
-            },
-            {
-                "type": "image_picker",
-                "id": "header_logo",
-                "label": "Logo"
-            },
-            {
-                "type": "select",
-                "id": "header_logo_position",
-                "label": "Posição do logo",
-                "options": [
-                    {"value": "left", "label": "Esquerda"},
-                    {"value": "center", "label": "Centro"},
-                    {"value": "right", "label": "Direita"}
-                ],
-                "default": "left"
-            },
-            {
-                "type": "color",
-                "id": "header_bg_color",
-                "label": "Cor de fundo",
-                "default": "#ffffff"
-            },
-            {
-                "type": "color",
-                "id": "header_text_color",
-                "label": "Cor do texto",
-                "default": "#333333"
-            },
-            {
-                "type": "checkbox",
-                "id": "header_sticky",
-                "label": "Fixar no topo",
-                "default": true
-            }
+            {"key": "header_bg_color", "label": "Cor de Fundo", "type": "color", "default": "#ffffff"},
+            {"key": "header_text_color", "label": "Cor do Texto", "type": "color", "default": "#333333"},
+            {"key": "header_categories_bg_color", "label": "Cor de Fundo da Barra de Categorias", "type": "color", "default": "#232f3e"},
+            {"key": "header_categories_text_color", "label": "Cor do Texto da Barra de Categorias", "type": "color", "default": "#ffffff"},
+            {"key": "header_categories_font", "label": "Fonte da Barra de Categorias", "type": "font_picker", "default": "Inter"}
         ]
     },
     {
         "name": "Rodapé",
+        "group": "footer",
+        "icon": "fas fa-window-minimize",
         "settings": [
-            {
-                "type": "select",
-                "id": "footer_style",
-                "label": "Estilo do rodapé",
-                "options": [
-                    {"value": "default", "label": "Padrão"},
-                    {"value": "minimal", "label": "Minimalista"},
-                    {"value": "expanded", "label": "Expandido"}
-                ],
-                "default": "default"
-            },
-            {
-                "type": "select",
-                "id": "footer_columns",
-                "label": "Quantidade de colunas",
-                "options": [
-                    {"value": "1", "label": "1 Coluna"},
-                    {"value": "2", "label": "2 Colunas"},
-                    {"value": "3", "label": "3 Colunas"},
-                    {"value": "4", "label": "4 Colunas"}
-                ],
-                "default": "3"
-            },
-            {
-                "type": "color",
-                "id": "footer_bg_color",
-                "label": "Cor de fundo",
-                "default": "#2c3e50"
-            },
-            {
-                "type": "color",
-                "id": "footer_text_color",
-                "label": "Cor do texto",
-                "default": "#ffffff"
-            }
+            {"key": "footer_bg_color", "label": "Cor de Fundo", "type": "color", "default": "#2c3e50"},
+            {"key": "footer_text_color", "label": "Cor do Texto", "type": "color", "default": "#ffffff"},
+            {"key": "footer_text", "label": "Texto do Rodapé", "type": "textarea", "default": ""},
+            {"key": "social_facebook", "label": "Facebook", "type": "text", "default": "", "placeholder": "https://facebook.com/..."},
+            {"key": "social_instagram", "label": "Instagram", "type": "text", "default": "", "placeholder": "https://instagram.com/..."},
+            {"key": "social_whatsapp", "label": "WhatsApp", "type": "text", "default": "", "placeholder": "5511999999999"},
+            {"key": "social_twitter", "label": "X (Twitter)", "type": "text", "default": "", "placeholder": "https://x.com/..."},
+            {"key": "back_to_top_bg_color", "label": "Cor de Fundo do Botão Voltar ao Topo", "type": "color", "default": "#37475a"},
+            {"key": "back_to_top_text_color", "label": "Cor do Texto do Botão Voltar ao Topo", "type": "color", "default": "#ffffff"},
+            {"key": "back_to_top_font", "label": "Fonte do Botão Voltar ao Topo", "type": "font_picker", "default": "Inter"}
+        ]
+    },
+    {
+        "name": "Página Inicial",
+        "group": "page_home",
+        "icon": "fas fa-home",
+        "settings": [
+            {"key": "carousel_enabled", "label": "Ativar Carrossel de Imagens", "type": "checkbox", "default": false},
+            {"key": "carousel_image_1", "label": "Carrossel — Imagem 1", "type": "image", "default": ""},
+            {"key": "carousel_link_1", "label": "Carrossel — Link 1", "type": "text", "default": "", "placeholder": "/loja/produtos?..."},
+            {"key": "carousel_image_2", "label": "Carrossel — Imagem 2", "type": "image", "default": ""},
+            {"key": "carousel_link_2", "label": "Carrossel — Link 2", "type": "text", "default": "", "placeholder": "/loja/produtos?..."},
+            {"key": "carousel_image_3", "label": "Carrossel — Imagem 3", "type": "image", "default": ""},
+            {"key": "carousel_link_3", "label": "Carrossel — Link 3", "type": "text", "default": "", "placeholder": "/loja/produtos?..."},
+            {"key": "carousel_image_4", "label": "Carrossel — Imagem 4", "type": "image", "default": ""},
+            {"key": "carousel_link_4", "label": "Carrossel — Link 4", "type": "text", "default": "", "placeholder": "/loja/produtos?..."},
+            {"key": "carousel_image_5", "label": "Carrossel — Imagem 5", "type": "image", "default": ""},
+            {"key": "carousel_link_5", "label": "Carrossel — Link 5", "type": "text", "default": "", "placeholder": "/loja/produtos?..."},
+            {"key": "carousel_autoplay", "label": "Carrossel — Autoplay", "type": "checkbox", "default": true},
+            {"key": "carousel_interval", "label": "Carrossel — Intervalo (ms)", "type": "select", "default": "5000", "options": [
+                {"value": "3000", "label": "3 segundos"},
+                {"value": "5000", "label": "5 segundos"},
+                {"value": "7000", "label": "7 segundos"},
+                {"value": "10000", "label": "10 segundos"}
+            ]},
+            {"key": "hero_title", "label": "Título do Banner", "type": "text", "default": "Bem-vindo à nossa loja"},
+            {"key": "hero_subtitle", "label": "Subtítulo do Banner", "type": "text", "default": "Encontre os melhores produtos aqui"},
+            {"key": "hero_image_url", "label": "Imagem do Banner", "type": "image", "default": ""},
+            {"key": "hero_bg_color", "label": "Cor de Fundo do Banner", "type": "color", "default": "#1a1a2e"},
+            {"key": "hero_cta_text", "label": "Texto do Botão", "type": "text", "default": "Ver Produtos"},
+            {"key": "hero_cta_url", "label": "Link do Botão", "type": "text", "default": "/loja/produtos"},
+            {"key": "show_featured_products", "label": "Mostrar Produtos em Destaque", "type": "checkbox", "default": true},
+            {"key": "featured_products_title", "label": "Título Seção Produtos", "type": "text", "default": "Produtos em Destaque"},
+            {"key": "featured_products_count", "label": "Qtd. Produtos", "type": "select", "default": "8", "options": [
+                {"value": "4", "label": "4"},
+                {"value": "8", "label": "8"},
+                {"value": "12", "label": "12"}
+            ]},
+            {"key": "about_title", "label": "Título Sobre", "type": "text", "default": "Sobre Nós"},
+            {"key": "about_text", "label": "Texto Sobre", "type": "textarea", "default": ""},
+            {"key": "about_image_url", "label": "Imagem Sobre", "type": "image", "default": ""}
+        ]
+    },
+    {
+        "name": "Página de Contato",
+        "group": "page_contact",
+        "icon": "fas fa-phone-alt",
+        "settings": [
+            {"key": "contact_address", "label": "Endereço", "type": "textarea", "default": ""},
+            {"key": "contact_phone", "label": "Telefone", "type": "text", "default": ""},
+            {"key": "contact_email", "label": "E-mail", "type": "text", "default": ""},
+            {"key": "contact_whatsapp", "label": "WhatsApp", "type": "text", "default": "", "placeholder": "5511999999999"},
+            {"key": "contact_hours", "label": "Horário de Atendimento", "type": "text", "default": ""},
+            {"key": "contact_map_embed", "label": "Google Maps Embed URL", "type": "text", "default": "", "placeholder": "https://www.google.com/maps/embed?..."}
         ]
     }
 ]

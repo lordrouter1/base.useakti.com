@@ -219,10 +219,15 @@ class Security
             if (!headers_sent()) {
                 header('Content-Type: application/json');
             }
+            // Enviar o token atualizado para que o client possa tentar novamente
+            // sem precisar recarregar a página (seguro: Same-Origin Policy impede
+            // leitura cross-origin).
+            $freshToken = self::generateCsrfToken();
             echo json_encode([
                 'success' => false,
                 'message' => 'Requisição inválida. Atualize a página e tente novamente.',
                 'csrf_error' => true,
+                'new_token' => $freshToken,
             ]);
             exit;
         }

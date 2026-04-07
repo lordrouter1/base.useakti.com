@@ -105,6 +105,8 @@ class CategoryController {
     public function store() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('name')) {
             $this->categoryModel->name = Input::post('name');
+            $this->categoryModel->show_in_store = Input::hasPost('show_in_store') ? 1 : 0;
+            $this->categoryModel->free_shipping = Input::hasPost('free_shipping') ? 1 : 0;
             if ($this->categoryModel->create()) {
                 $this->logger->log('CREATE_CATEGORY', 'Created category: ' . Input::post('name'));
                 // Salvar setores vinculados
@@ -126,7 +128,9 @@ class CategoryController {
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('id')) {
             $id = Input::post('id', 'int');
-            $this->categoryModel->update($id, Input::post('name'));
+            $showInStore = Input::hasPost('show_in_store') ? 1 : 0;
+            $freeShipping = Input::hasPost('free_shipping') ? 1 : 0;
+            $this->categoryModel->update($id, Input::post('name'), $showInStore, $freeShipping);
             $this->logger->log('UPDATE_CATEGORY', 'Updated category ID: ' . $id);
             // Salvar setores vinculados
             $sectorIds = Input::postArray('sector_ids');
@@ -158,6 +162,8 @@ class CategoryController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('name') && Input::hasPost('category_id')) {
             $this->subcategoryModel->name = Input::post('name');
             $this->subcategoryModel->category_id = Input::post('category_id', 'int');
+            $this->subcategoryModel->show_in_store = Input::hasPost('show_in_store') ? 1 : 0;
+            $this->subcategoryModel->free_shipping = Input::hasPost('free_shipping') ? 1 : 0;
             if ($this->subcategoryModel->create()) {
                 $this->logger->log('CREATE_SUBCATEGORY', 'Created subcategory: ' . Input::post('name'));
                 // Salvar setores vinculados
@@ -179,7 +185,9 @@ class CategoryController {
     public function updateSub() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('id')) {
             $id = Input::post('id', 'int');
-            $this->subcategoryModel->update($id, Input::post('name'), Input::post('category_id', 'int'));
+            $showInStore = Input::hasPost('show_in_store') ? 1 : 0;
+            $freeShipping = Input::hasPost('free_shipping') ? 1 : 0;
+            $this->subcategoryModel->update($id, Input::post('name'), Input::post('category_id', 'int'), $showInStore, $freeShipping);
             $this->logger->log('UPDATE_SUBCATEGORY', 'Updated subcategory ID: ' . $id);
             // Salvar setores vinculados
             $sectorIds = Input::postArray('sector_ids');

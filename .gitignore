@@ -4,6 +4,7 @@ assets/uploads/
 
 vendor/
 storage/logs/
+storage/cache/
 
 # Arquivos de backup e temporários
 *.bak

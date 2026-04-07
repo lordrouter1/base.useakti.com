@@ -155,3 +155,131 @@
 [2026-04-06 21:57:41] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
 [2026-04-06 22:17:13] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
 [2026-04-06 22:17:13] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=attachments&action=upload | Method: POST | Token: (empty) | User: 1
+[2026-04-07 15:32:32] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
+[2026-04-07 15:32:32] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
+[2026-04-07 19:31:04] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:04] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:04] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:04] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:05] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:05] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:05] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:05] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:05] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:05] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:05] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:05] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:05] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:05] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:10] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:10] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:10] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:10] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:10] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:10] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:10] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:10] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:10] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:10] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:10] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:10] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:10] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:10] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:40] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:40] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:40] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:40] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:40] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:40] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:40] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:40] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:40] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:40] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:40] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:40] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:40] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:40] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:44] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:44] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:44] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:44] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:44] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:44] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:44] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:44] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:44] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:44] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:44] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:44] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:44] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:44] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:55] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:55] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:56] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:56] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:56] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:56] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:56] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:56] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:56] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:56] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:56] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:56] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:31:56] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:31:56] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:32:04] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:32:04] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:32:04] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:32:04] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:32:05] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:32:05] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:32:05] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:32:05] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:32:05] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:32:05] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:32:05] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:32:05] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:32:05] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:32:05] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:34:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:34:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:34:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:34:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:34:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:34:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:34:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:34:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:34:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:34:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:34:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:34:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 19:34:33] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 19:34:33] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 20:58:23] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 20:58:23] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 20:58:23] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 20:58:23] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 20:58:24] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 20:58:24] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 20:58:24] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 20:58:24] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 20:58:24] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 20:58:24] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 20:58:24] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 20:58:24] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-07 20:58:24] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-07 20:58:24] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1

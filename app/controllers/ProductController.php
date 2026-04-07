@@ -146,6 +146,15 @@ class ProductController {
                 }
             }
 
+            // Coletar campos e-commerce
+            foreach (Product::$ecommerceFields as $f) {
+                if (Input::hasPost($f)) {
+                    $data[$f] = $f === 'ecommerce_description' ? $_POST[$f] : Input::post($f);
+                }
+            }
+            // Checkbox: garantir que free_shipping esteja sempre presente
+            $data['free_shipping'] = Input::hasPost('free_shipping') ? '1' : '0';
+
             // Criar Produto primeiro para ter o ID
             $productId = $this->productModel->create($data);
 
@@ -293,6 +302,15 @@ class ProductController {
                     $data[$f] = Input::post($f);
                 }
             }
+
+            // Coletar campos e-commerce
+            foreach (Product::$ecommerceFields as $f) {
+                if (Input::hasPost($f)) {
+                    $data[$f] = $f === 'ecommerce_description' ? $_POST[$f] : Input::post($f);
+                }
+            }
+            // Checkbox: garantir que free_shipping esteja sempre presente
+            $data['free_shipping'] = Input::hasPost('free_shipping') ? '1' : '0';
 
             if ($this->productModel->update($data)) {
                 $this->logger->log('UPDATE_PRODUCT', 'Updated product ID: ' . $data['id']);

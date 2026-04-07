@@ -77,11 +77,13 @@ class Category {
      * Evento disparado: 'model.category.created' com ['id', 'name']
      */
     public function create() {
-        $query = "INSERT INTO " . $this->table_name . " SET name=:name";
+        $query = "INSERT INTO " . $this->table_name . " SET name=:name, free_shipping=:free_shipping";
         $stmt = $this->conn->prepare($query);
         
         $this->name = htmlspecialchars(strip_tags($this->name));
         $stmt->bindParam(":name", $this->name);
+        $freeShipping = isset($this->free_shipping) ? (int) $this->free_shipping : 0;
+        $stmt->bindValue(":free_shipping", $freeShipping, \PDO::PARAM_INT);
 
         if($stmt->execute()) {
             $this->id = $this->conn->lastInsertId();
@@ -127,9 +129,19 @@ class Category {
      * @return bool Retorna true se atualizada com sucesso
      * Evento disparado: 'model.category.updated' com ['id', 'name']
      */
-    public function update($id, $name) {
-        $stmt = $this->conn->prepare("UPDATE categories SET name = :name WHERE id = :id");
-        $result = $stmt->execute([':name' => htmlspecialchars(strip_tags($name)), ':id' => $id]);
+    public function update($id, $name, $showInStore = null, $freeShipping = null) {
+        $fields = ['name = :name'];
+        $params = [':name' => htmlspecialchars(strip_tags($name)), ':id' => $id];
+        if ($showInStore !== null) {
+            $fields[] = 'show_in_store = :show_in_store';
+            $params[':show_in_store'] = (int) $showInStore;
+        }
+        if ($freeShipping !== null) {
+            $fields[] = 'free_shipping = :free_shipping';
+            $params[':free_shipping'] = (int) $freeShipping;
+        }
+        $stmt = $this->conn->prepare("UPDATE categories SET " . implode(', ', $fields) . " WHERE id = :id");
+        $result = $stmt->execute($params);
         if ($result) {
             EventDispatcher::dispatch('model.category.updated', new Event('model.category.updated', [
                 'id' => $id,
@@ -174,6 +186,29 @@ class Category {
             (SELECT COUNT(*) FROM products WHERE category_id = c.id) as product_count,
             (SELECT COUNT(*) FROM subcategories WHERE category_id = c.id) as sub_count
             FROM categories c ORDER BY c.name ASC");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Retorna apenas categorias visíveis na loja (show_in_store = 1)
+     * @return array
+     */
+    public function readAllVisible(): array
+    {
+        $stmt = $this->conn->query("SELECT * FROM categories WHERE show_in_store = 1 ORDER BY name ASC");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Retorna subcategorias visíveis na loja para uma categoria
+     * @param int $categoryId
+     * @return array
+     */
+    public function getVisibleSubcategories(int $categoryId): array
+    {
+        $stmt = $this->conn->prepare("SELECT * FROM subcategories WHERE category_id = :category_id AND show_in_store = 1 ORDER BY name ASC");
+        $stmt->bindParam(':category_id', $categoryId, PDO::PARAM_INT);
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

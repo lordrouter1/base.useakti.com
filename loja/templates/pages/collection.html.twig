@@ -1,35 +1,169 @@
 {% extends 'layouts/base.html.twig' %}
 
-{% block title %}{{ page.title|default('Produtos') }} — {{ shop.name|default('Minha Loja') }}{% endblock %}
+{% block title %}
+    {% if search|default('') %}Busca: {{ search }}{% elseif category_name|default('') %}{{ category_name }}{% else %}Produtos{% endif %} — {{ shop.name|default('Minha Loja') }}
+{% endblock %}
 
 {% block content %}
-<section class="py-5">
-    <div class="container">
-        {% include 'snippets/breadcrumb.html.twig' with {'items': [
-            {'label': 'Início', 'url': '/'},
-            {'label': page.title|default('Produtos')}
-        ]} %}
-
-        <h1 class="h2 mb-4">{{ page.title|default('Produtos') }}</h1>
-
-        <div class="row row-cols-1 row-cols-md-{{ settings.columns|default(3) }} g-4">
-            {% for product in data.products|default([]) %}
-                <div class="col">
-                    {% include 'snippets/product-card.html.twig' with {'product': product} %}
+<div class="container-fluid px-3 px-lg-4 py-3">
+    <div class="row g-3">
+        {# ── Sidebar filters (desktop) ── #}
+        <aside class="col-lg-2 d-none d-lg-block">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <h6 class="fw-bold mb-3">Categorias</h6>
+                    <ul class="list-unstyled small mb-0">
+                        <li class="mb-1">
+                            <a href="/loja/produtos" class="sidebar-cat-link {{ not category_id|default(null) ? 'active fw-bold' : '' }}">
+                                Todas as categorias
+                            </a>
+                        </li>
+                        {% for cat in categories|default([]) %}
+                            <li class="mb-1">
+                                <a href="/loja/produtos?category={{ cat.id }}" class="sidebar-cat-link {{ category_id|default(0) == cat.id ? 'active fw-bold' : '' }}">
+                                    {{ cat.name }}
+                                </a>
+                                {% if cat.subcategories|default([])|length > 0 and category_id|default(0) == cat.id %}
+                                    <ul class="list-unstyled ms-3 mt-1">
+                                        {% for sub in cat.subcategories %}
+                                            <li class="mb-1">
+                                                <a href="/loja/produtos?category={{ cat.id }}&subcategory={{ sub.id }}" class="sidebar-cat-link {{ subcategory_id|default(0) == sub.id ? 'active fw-bold' : '' }}">
+                                                    {{ sub.name }}
+                                                </a>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
                 </div>
+            </div>
+        </aside>
+
+        {# ── Main product grid ── #}
+        <div class="col-lg-10">
+            {# Results header #}
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <div>
+                    {% if search|default('') %}
+                        <h1 class="fs-5 fw-bold mb-0">Resultados para "{{ search }}"</h1>
+                        <small class="text-muted">{{ total|default(0) }} produto{{ total != 1 ? 's' : '' }} encontrado{{ total != 1 ? 's' : '' }}</small>
+                    {% elseif category_name|default('') %}
+                        <h1 class="fs-5 fw-bold mb-0">{{ category_name }}</h1>
+                        <small class="text-muted">{{ total|default(0) }} produto{{ total != 1 ? 's' : '' }}</small>
+                    {% else %}
+                        <h1 class="fs-5 fw-bold mb-0">Todos os Produtos</h1>
+                        <small class="text-muted">{{ total|default(0) }} produto{{ total != 1 ? 's' : '' }}</small>
+                    {% endif %}
+                </div>
+
+                {# Mobile filter toggle #}
+                <button class="btn btn-sm btn-outline-secondary d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#filterOffcanvas">
+                    <i class="fas fa-filter me-1"></i>Filtrar
+                </button>
+            </div>
+
+            {# Active filters #}
+            {% if search|default('') or category_name|default('') %}
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    {% if search|default('') %}
+                        <a href="/loja/produtos{% if category_id|default(null) %}?category={{ category_id }}{% endif %}" class="badge bg-light text-dark border text-decoration-none">
+                            "{{ search }}" <i class="fas fa-times ms-1"></i>
+                        </a>
+                    {% endif %}
+                    {% if category_name|default('') %}
+                        <a href="/loja/produtos{% if search|default('') %}?q={{ search }}{% endif %}" class="badge bg-light text-dark border text-decoration-none">
+                            {{ category_name }} <i class="fas fa-times ms-1"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            {# Product grid #}
+            {% if products|default([])|length > 0 %}
+                <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-xl-5 g-2 g-md-3">
+                    {% for product in products %}
+                        <div class="col">
+                            {% include 'snippets/product-card.html.twig' with {'product': product} %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {# Pagination #}
+                {% if total_pages|default(1) > 1 %}
+                <nav class="mt-4">
+                    <ul class="pagination pagination-sm justify-content-center flex-wrap">
+                        {% if current_page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{% if search|default('') %}q={{ search }}&{% endif %}{% if category_id|default(null) %}category={{ category_id }}&{% endif %}{% if subcategory_id|default(null) %}subcategory={{ subcategory_id }}&{% endif %}p={{ current_page - 1 }}">
+                                    &laquo; Anterior
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for i in max(1, current_page - 3)..min(total_pages, current_page + 3) %}
+                            <li class="page-item {{ i == current_page ? 'active' : '' }}">
+                                <a class="page-link" href="?{% if search|default('') %}q={{ search }}&{% endif %}{% if category_id|default(null) %}category={{ category_id }}&{% endif %}{% if subcategory_id|default(null) %}subcategory={{ subcategory_id }}&{% endif %}p={{ i }}">{{ i }}</a>
+                            </li>
+                        {% endfor %}
+
+                        {% if current_page < total_pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{% if search|default('') %}q={{ search }}&{% endif %}{% if category_id|default(null) %}category={{ category_id }}&{% endif %}{% if subcategory_id|default(null) %}subcategory={{ subcategory_id }}&{% endif %}p={{ current_page + 1 }}">
+                                    Próxima &raquo;
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
             {% else %}
-                <div class="col-12">
-                    <p class="text-muted text-center py-5">Nenhum produto encontrado.</p>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+                        <h5 class="text-muted">Nenhum produto encontrado</h5>
+                        <p class="text-muted small">Tente buscar com outros termos ou navegue pelas categorias.</p>
+                        <a href="/loja/produtos" class="btn btn-outline-primary btn-sm">Ver todos os produtos</a>
+                    </div>
                 </div>
-            {% endfor %}
+            {% endif %}
         </div>
-
-        {% if data.products|default([])|length > 0 %}
-            {% include 'snippets/pagination.html.twig' with {
-                'current_page': data.current_page|default(1),
-                'total_pages': data.total_pages|default(1)
-            } %}
-        {% endif %}
     </div>
-</section>
+</div>
+
+{# ── Mobile filter offcanvas ── #}
+<div class="offcanvas offcanvas-start" tabindex="-1" id="filterOffcanvas">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title">Filtrar por Categoria</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        <ul class="list-unstyled">
+            <li class="mb-2">
+                <a href="/loja/produtos" class="text-decoration-none {{ not category_id|default(null) ? 'fw-bold' : '' }}" style="color:var(--text-color);">
+                    Todas as categorias
+                </a>
+            </li>
+            {% for cat in categories|default([]) %}
+                <li class="mb-2">
+                    <a href="/loja/produtos?category={{ cat.id }}" class="text-decoration-none {{ category_id|default(0) == cat.id ? 'fw-bold' : '' }}" style="color:var(--text-color);">
+                        {{ cat.name }}
+                    </a>
+                    {% if cat.subcategories|default([])|length > 0 %}
+                        <ul class="list-unstyled ms-3 mt-1">
+                            {% for sub in cat.subcategories %}
+                                <li class="mb-1">
+                                    <a href="/loja/produtos?category={{ cat.id }}&subcategory={{ sub.id }}" class="text-decoration-none small" style="color:var(--text-color);">
+                                        {{ sub.name }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
 {% endblock %}

@@ -3,12 +3,14 @@
 {% block title %}{{ page.title|default('Página') }} — {{ shop.name|default('Minha Loja') }}{% endblock %}
 
 {% block content %}
-    {% for section in page.sections|default([]) %}
+    {% for section in sections|default([]) %}
         {% set template_name = 'sections/' ~ section.type ~ '.html.twig' %}
-        {% include template_name with {
-            'settings': section.settings|default({}),
-            'data': section.data|default({})
-        } ignore missing %}
+        {% set section_settings = section.settings is defined ? section.settings : {} %}
+        {% set section_data = section.data is defined ? section.data : {} %}
+        {% include template_name ignore missing with {
+            'settings': section_settings,
+            'data': section_data
+        } %}
     {% else %}
         <section class="py-5">
             <div class="container">

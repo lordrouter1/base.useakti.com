@@ -133,10 +133,11 @@ $skippedDbs = count(array_filter($databases, fn($r) => $r['status'] === 'skipped
 
 <!-- Init Base -->
 <?php if ($initBase): ?>
+<?php $initBaseName = getenv('AKTI_MASTER_INIT_BASE') ?: 'akti_init_base'; ?>
 <div class="card mb-4">
     <div class="card-header d-flex align-items-center gap-2">
         <i class="fas fa-star" style="color: #f59e0b;"></i>
-        <strong>Banco de Referência (<?= htmlspecialchars(CLIENT_DB_INIT_BASE) ?>)</strong>
+        <strong>Banco de Referência (<?= htmlspecialchars($initBaseName) ?>)</strong>
         <?php if ($initBase['failed'] === 0): ?>
             <span class="badge bg-success ms-auto">OK</span>
         <?php else: ?>

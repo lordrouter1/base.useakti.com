@@ -256,7 +256,23 @@
         </div>
 
         <!-- ════════════════════════════════════════════════════
-             SEÇÃO 7 — INFORMAÇÕES FISCAIS (colapsável)
+             SEÇÃO 7.5 — E-COMMERCE / MARKETPLACE (colapsável)
+             ════════════════════════════════════════════════════ -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center section-toggle" 
+                 data-bs-toggle="collapse" data-bs-target="#collapseEcommerce" aria-expanded="false" role="button">
+                <h5 class="mb-0 text-primary"><i class="fas fa-shopping-cart me-2"></i>E-commerce / Marketplace</h5>
+                <i class="fas fa-chevron-down collapse-icon text-muted"></i>
+            </div>
+            <div class="collapse" id="collapseEcommerce">
+                <div class="card-body p-4">
+                    <?php include 'app/views/products/_ecommerce_partial.php'; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════
+             SEÇÃO 8 — INFORMAÇÕES FISCAIS (colapsável)
              ════════════════════════════════════════════════════ -->
         <?php if (\Akti\Core\ModuleBootloader::isModuleEnabled('nfe')): ?>
         <div class="card mb-4 shadow-sm">
