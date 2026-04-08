@@ -1,11 +1,11 @@
--- Migration: Adicionar colunas de auditoria na tabela migration_logs
--- Criado em: 06/04/2025 16:53
--- Sequencial: 2
+-- Migration: Corrigir colunas de auditoria em migration_logs (master e init_base)
+-- Criado em: 08/04/2026 15:26
+-- Sequencial: 9
+-- Nota: Aplicar no akti_master e demais bancos que possuam migration_logs.
+--       Resolve erro "Unknown column sql_content in INSERT INTO" e
+--       "Table migration_logs doesn't exist" em akti_init_base.
 
--- Verificar se a tabela migration_logs existe antes de tentar alterar
--- Se a tabela nao existir, os ALTER serao ignorados com SELECT 1
-
--- Adicionar coluna sql_content para armazenar cópia do SQL executado
+-- Adicionar coluna sql_content se a tabela existir mas a coluna nao
 SET @sql = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES 
      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'migration_logs') > 0
@@ -18,7 +18,7 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Adicionar coluna warnings para armazenar warnings do MySQL
+-- Adicionar coluna warnings se a tabela existir mas a coluna nao
 SET @sql = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES 
      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'migration_logs') > 0
@@ -31,7 +31,7 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Adicionar coluna execution_time_ms para tempo de execução em milissegundos
+-- Adicionar coluna execution_time_ms se a tabela existir mas a coluna nao
 SET @sql = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES 
      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'migration_logs') > 0

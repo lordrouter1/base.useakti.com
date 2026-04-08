@@ -8,10 +8,92 @@ use PDOException;
 class Migration
 {
     private $db;
+    private ?array $migrationLogColumns = null;
 
     public function __construct(PDO $db)
     {
         $this->db = $db;
+    }
+
+    /**
+     * Detecta as colunas existentes na tabela migration_logs do master.
+     */
+    private function getMigrationLogColumns(): array
+    {
+        if ($this->migrationLogColumns === null) {
+            try {
+                $stmt = $this->db->query("SHOW COLUMNS FROM migration_logs");
+                $this->migrationLogColumns = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'Field');
+            } catch (\Exception $e) {
+                $this->migrationLogColumns = [];
+            }
+        }
+        return $this->migrationLogColumns;
+    }
+
+    /**
+     * Insere log de migração adaptando-se às colunas disponíveis.
+     */
+    private function insertMigrationLog(string $dbName, string $migrationName, string $sqlHash, array $result, string $sql, int $adminId): void
+    {
+        $columns = $this->getMigrationLogColumns();
+        if (empty($columns)) {
+            return; // tabela migration_logs não existe no master
+        }
+
+        $hasExtendedCols = in_array('sql_content', $columns)
+            && in_array('warnings', $columns)
+            && in_array('execution_time_ms', $columns);
+
+        $status = 'success';
+        if ($result['failed'] > 0 && $result['ok'] === 0) {
+            $status = 'failed';
+        } elseif ($result['failed'] > 0) {
+            $status = 'partial';
+        }
+
+        $errorLog = !empty($result['errors']) ? json_encode($result['errors'], JSON_UNESCAPED_UNICODE) : null;
+
+        if ($hasExtendedCols) {
+            $warningsLog = !empty($result['warnings']) ? json_encode($result['warnings'], JSON_UNESCAPED_UNICODE) : null;
+            $logStmt = $this->db->prepare("
+                INSERT INTO migration_logs (db_name, migration_name, sql_hash, statements_total, statements_ok, statements_failed, status, error_log, sql_content, warnings, execution_time_ms, applied_by)
+                VALUES (:db, :name, :hash, :total, :ok, :failed, :status, :errors, :sql_content, :warnings, :exec_time, :admin)
+            ");
+            $logStmt->execute([
+                'db'          => $dbName,
+                'name'        => $migrationName,
+                'hash'        => $sqlHash,
+                'total'       => $result['total'],
+                'ok'          => $result['ok'],
+                'failed'      => $result['failed'],
+                'status'      => $status,
+                'errors'      => $errorLog,
+                'sql_content' => $sql,
+                'warnings'    => $warningsLog,
+                'exec_time'   => $result['execution_time_ms'] ?? null,
+                'admin'       => $adminId,
+            ]);
+        } else {
+            $logStmt = $this->db->prepare("
+                INSERT INTO migration_logs (db_name, migration_name, sql_hash, statements_total, statements_ok, statements_failed, status, error_log, applied_by)
+                VALUES (:db, :name, :hash, :total, :ok, :failed, :status, :errors, :admin)
+            ");
+            $logStmt->execute([
+                'db'      => $dbName,
+                'name'    => $migrationName,
+                'hash'    => $sqlHash,
+                'total'   => $result['total'],
+                'ok'      => $result['ok'],
+                'failed'  => $result['failed'],
+                'status'  => $status,
+                'errors'  => $errorLog,
+                'admin'   => $adminId,
+            ]);
+        }
+
+        // Invalida cache para próxima execução detectar novas colunas
+        $this->migrationLogColumns = null;
     }
 
     // =========================================================================
@@ -285,26 +367,7 @@ class Migration
                     $status = 'partial';
                 }
 
-                $errorLog = !empty($result['errors']) ? json_encode($result['errors'], JSON_UNESCAPED_UNICODE) : null;
-                $warningsLog = !empty($result['warnings']) ? json_encode($result['warnings'], JSON_UNESCAPED_UNICODE) : null;
-                $logStmt = $this->db->prepare("
-                    INSERT INTO migration_logs (db_name, migration_name, sql_hash, statements_total, statements_ok, statements_failed, status, error_log, sql_content, warnings, execution_time_ms, applied_by)
-                    VALUES (:db, :name, :hash, :total, :ok, :failed, :status, :errors, :sql_content, :warnings, :exec_time, :admin)
-                ");
-                $logStmt->execute([
-                    'db'          => $dbName,
-                    'name'        => $migrationName,
-                    'hash'        => $sqlHash,
-                    'total'       => $result['total'],
-                    'ok'          => $result['ok'],
-                    'failed'      => $result['failed'],
-                    'status'      => $status,
-                    'errors'      => $errorLog,
-                    'sql_content' => $sql,
-                    'warnings'    => $warningsLog,
-                    'exec_time'   => $result['execution_time_ms'] ?? null,
-                    'admin'       => $adminId,
-                ]);
+                $this->insertMigrationLog($dbName, $migrationName, $sqlHash, $result, $sql, $adminId);
 
                 $overall[$dbName] = [
                     'status'  => $status,
@@ -450,34 +513,7 @@ class Migration
     public function logMigrationExecution(string $dbName, string $migrationName, string $sql, array $result, int $adminId): void
     {
         $sqlHash = hash('sha256', $sql);
-        $status = 'success';
-        if ($result['failed'] > 0 && $result['ok'] === 0) {
-            $status = 'failed';
-        } elseif ($result['failed'] > 0) {
-            $status = 'partial';
-        }
-
-        $errorLog = !empty($result['errors']) ? json_encode($result['errors'], JSON_UNESCAPED_UNICODE) : null;
-        $warningsLog = !empty($result['warnings']) ? json_encode($result['warnings'], JSON_UNESCAPED_UNICODE) : null;
-
-        $logStmt = $this->db->prepare("
-            INSERT INTO migration_logs (db_name, migration_name, sql_hash, statements_total, statements_ok, statements_failed, status, error_log, sql_content, warnings, execution_time_ms, applied_by)
-            VALUES (:db, :name, :hash, :total, :ok, :failed, :status, :errors, :sql_content, :warnings, :exec_time, :admin)
-        ");
-        $logStmt->execute([
-            'db'          => $dbName,
-            'name'        => $migrationName,
-            'hash'        => $sqlHash,
-            'total'       => $result['total'],
-            'ok'          => $result['ok'],
-            'failed'      => $result['failed'],
-            'status'      => $status,
-            'errors'      => $errorLog,
-            'sql_content' => $sql,
-            'warnings'    => $warningsLog,
-            'exec_time'   => $result['execution_time_ms'] ?? null,
-            'admin'       => $adminId,
-        ]);
+        $this->insertMigrationLog($dbName, $migrationName, $sqlHash, $result, $sql, $adminId);
     }
 
     public function getMigrationDetail(int $id)
