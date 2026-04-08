@@ -34,7 +34,7 @@ use TenantManager;
  */
 class InstallmentController
 {
-    private PDO $db;
+    private \PDO $db;
     private Installment $installmentModel;
     private InstallmentService $installmentService;
     private TransactionService $transactionService;

@@ -419,12 +419,13 @@ return [
         'controller'     => 'PaymentGatewayController',
         'default_action' => 'index',
         'actions'        => [
-            'edit'           => 'edit',
-            'update'         => 'update',
-            'testConnection' => 'testConnection',
-            'createCharge'   => 'createCharge',
-            'chargeStatus'   => 'chargeStatus',
-            'transactions'   => 'transactions',
+            'edit'               => 'edit',
+            'update'             => 'update',
+            'testConnection'     => 'testConnection',
+            'createCharge'       => 'createCharge',
+            'createCheckoutLink' => 'createCheckoutLink',
+            'chargeStatus'       => 'chargeStatus',
+            'transactions'       => 'transactions',
         ],
     ],
 
@@ -1163,6 +1164,19 @@ return [
             'edit'   => 'edit',
             'update' => 'update',
             'delete' => 'delete',
+        ],
+    ],
+
+    'checkout' => [
+        'controller'     => 'CheckoutController',
+        'default_action' => 'show',
+        'public'         => true,
+        'before_auth'    => true,
+        'actions'        => [
+            'show'           => 'show',
+            'processPayment' => 'processPayment',
+            'checkStatus'    => 'checkStatus',
+            'confirmation'   => 'confirmation',
         ],
     ],
 

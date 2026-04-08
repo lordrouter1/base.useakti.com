@@ -47,6 +47,9 @@ class CsrfMiddleware
         'catalog:confirmQuote',
         'catalog:revokeQuote',
         'catalog:getProducts',
+        // Checkout público: usa token próprio (checkout_tokens) para autenticação,
+        // não há sessão de usuário logado, portanto CSRF de sessão não se aplica.
+        'checkout:*',
         // Portal do cliente: login/register/magic link podem não ter sessão CSRF ativa ainda
         // Os forms POST do portal usam CSRF normalmente (gerado no header_auth.php)
     ];

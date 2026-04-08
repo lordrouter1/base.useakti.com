@@ -366,6 +366,47 @@ class PaymentGatewayController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Gerar link de checkout transparente (AJAX POST).
+     * Recebe: order_id, installment_id?, gateway_slug?, allowed_methods[]?
+     */
+    public function createCheckoutLink()
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit;
+        }
+
+        $orderId = Input::post('order_id', 'int', 0);
+        $installmentId = Input::post('installment_id', 'int', 0) ?: null;
+        $gatewaySlug = Input::post('gateway_slug', 'string', '');
+        $allowedMethods = $_POST['allowed_methods'] ?? [];
+
+        if (!$orderId) {
+            echo json_encode(['success' => false, 'message' => 'Pedido não informado.']);
+            exit;
+        }
+
+        if (!is_array($allowedMethods)) {
+            $allowedMethods = [];
+        }
+        // Sanitize allowed methods
+        $validMethods = ['pix', 'credit_card', 'boleto'];
+        $allowedMethods = array_values(array_intersect($allowedMethods, $validMethods));
+
+        try {
+            $service = new \Akti\Services\PipelinePaymentService($this->db);
+            $result = $service->generateCheckoutLink($orderId, $installmentId, $gatewaySlug, $allowedMethods);
+            echo json_encode($result);
+        } catch (\Exception $e) {
+            \Akti\Utils\Log::error('PaymentGatewayController: createCheckoutLink', ['exception' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao gerar link de checkout.']);
+        }
+        exit;
+    }
+
     // ══════════════════════════════════════════════════════════════
     // Internals
     // ══════════════════════════════════════════════════════════════

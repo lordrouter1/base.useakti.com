@@ -49,3 +49,14 @@
 [2026-03-18 18:28:11] [INFO] [stripe] Creating Checkout Session {"method":"boleto","amount":20}
 [2026-03-18 19:38:04] [INFO] [mercadopago] Creating checkout preference {"method":"auto","amount":20}
 [2026-03-18 19:38:41] [INFO] [stripe] Creating Checkout Session {"method":"auto","amount":20}
+[2026-04-08 15:48:06] [INFO] [mercadopago] Creating checkout preference {"method":"auto","amount":40}
+[2026-04-08 15:48:06] [WARNING] [mercadopago] notification_url ignorada — Mercado Pago exige HTTPS {"url":"http:\/\/localhost:3000\/api\/webhooks\/mercadopago?tenant="}
+[2026-04-08 19:30:35] [INFO] [mercadopago] Creating direct payment {"method":"pix","amount":40}
+[2026-04-08 19:31:45] [INFO] [mercadopago] Creating direct payment {"method":"boleto","amount":40}
+[2026-04-08 19:31:46] [ERROR] [mercadopago] Direct payment creation failed {"status":400,"body":"{\"message\":\"To generate a registered boleto the following parameters are required: payer.first_name , payer.last_name: Offline API Error\",\"error\":\"bad_request\",\"status\":400,\"cause\":[{\"code\":7524,\"description\":\"\",\"data\":\"08-04-2026T17:31:46UTC;c1bdac8f-b67d-47ea-a22a-be2f9038fadc\"}]}"}
+[2026-04-08 19:32:37] [INFO] [mercadopago] Creating direct payment {"method":"boleto","amount":40}
+[2026-04-08 19:32:38] [ERROR] [mercadopago] Direct payment creation failed {"status":400,"body":"{\"message\":\"To generate a registered boleto the following parameters are required: payer.first_name , payer.last_name: Offline API Error\",\"error\":\"bad_request\",\"status\":400,\"cause\":[{\"code\":7524,\"description\":\"\",\"data\":\"08-04-2026T17:32:38UTC;92409c4f-90e7-4b0b-87a8-85bf66e3e3d2\"}]}"}
+[2026-04-08 19:49:08] [INFO] [mercadopago] Creating direct payment {"method":"boleto","amount":40}
+[2026-04-08 19:49:09] [ERROR] [mercadopago] Direct payment creation failed {"status":400,"body":"{\"message\":\"To generate a registered boleto the following parameters are required: payer.address.zip_code , payer.address.street_name , payer.address.street_number , payer.address.neighborhood , payer.address.city , payer.address.federal_unit: Offline API Error\",\"error\":\"bad_request\",\"status\":400,\"cause\":[{\"code\":7521,\"description\":\"\",\"data\":\"08-04-2026T17:49:09UTC;7c649e75-9f81-4f4d-9b59-c3e368bc0f80\"}]}"}
+[2026-04-08 19:55:14] [INFO] [mercadopago] Creating direct payment {"method":"boleto","amount":40}
+[2026-04-08 19:55:16] [ERROR] [mercadopago] Direct payment creation failed {"status":400,"body":"{\"message\":\"To generate a registered boleto the following parameters are required: payer.address.zip_code , payer.address.street_name , payer.address.street_number , payer.address.neighborhood , payer.address.city , payer.address.federal_unit: Offline API Error\",\"error\":\"bad_request\",\"status\":400,\"cause\":[{\"code\":7521,\"description\":\"\",\"data\":\"08-04-2026T17:55:16UTC;33063053-cd6a-490a-9df6-d88f5fcd680c\"}]}"}

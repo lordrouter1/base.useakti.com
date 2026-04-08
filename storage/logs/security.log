@@ -283,3 +283,19 @@
 [2026-04-07 20:58:24] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
 [2026-04-07 20:58:24] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
 [2026-04-07 20:58:24] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=site_builder&action=saveSettings | Method: POST | Token: ac021a68... | User: 1
+[2026-04-08 19:10:24] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-08 19:10:24] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=payment_gateways&action=createCheckoutLink | Method: POST | Token: 6c2766d5... | User: 1
+[2026-04-08 19:10:37] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-08 19:10:37] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=payment_gateways&action=createCheckoutLink | Method: POST | Token: 6c2766d5... | User: 1
+[2026-04-08 19:12:50] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-08 19:12:50] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=checkout&action=processPayment | Method: POST | Token: (empty) | User: 1
+[2026-04-08 19:13:08] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-08 19:13:08] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=checkout&action=processPayment | Method: POST | Token: (empty) | User: 1
+[2026-04-08 19:13:17] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-08 19:13:17] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=checkout&action=processPayment | Method: POST | Token: (empty) | User: 1
+[2026-04-08 19:20:41] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-08 19:20:41] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=checkout&action=processPayment | Method: POST | Token: (empty) | User: 1
+[2026-04-08 19:22:03] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-08 19:22:03] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=checkout&action=processPayment | Method: POST | Token: (empty) | User: 1
+[2026-04-08 19:42:19] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
+[2026-04-08 19:42:19] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous

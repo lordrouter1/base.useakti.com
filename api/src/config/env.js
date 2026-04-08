@@ -32,6 +32,9 @@ export const env = Object.freeze({
   // CORS
   CORS_ORIGIN_PATTERN: process.env.CORS_ORIGIN_PATTERN || '.useakti.com',
 
+  // Base domain for subdomain resolution (webhooks, checkout)
+  BASE_DOMAIN: process.env.BASE_DOMAIN || 'useakti.com',
+
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900_000,
   RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100,

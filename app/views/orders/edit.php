@@ -215,7 +215,7 @@
                 <?php endif; ?>
 
                 <!-- Formulário Adicionar Item -->
-                <div class="card border-primary border-opacity-25">
+                <div class="card border-primary bg-opacity-25">
                     <div class="card-header bg-primary  py-2">
                         <h6 class="mb-0 text-primary"><i class="fas fa-plus-circle me-2"></i>Adicionar Produto</h6>
                     </div>

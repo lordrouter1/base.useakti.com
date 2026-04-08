@@ -488,7 +488,7 @@ $prioMap = [
         <div class="card-body p-1">
             <?php foreach ($orderItemLogs as $log): ?>
             <div class="d-flex gap-1 px-2 py-1 border-bottom" style="font-size:0.72rem;">
-                <span class="badge bg-success  text-success border border-success border-opacity-25" style="font-size:0.58rem;">
+                <span class="badge bg-success  text-success border border-success bg-opacity-25" style="font-size:0.58rem;">
                     <i class="fas fa-box me-1"></i><?= e($log['product_name'] ?? 'Produto') ?>
                 </span>
                 <span class="fw-bold"><?= e($log['user_name'] ?? 'Sistema') ?></span>

@@ -1632,12 +1632,12 @@
                         <div class="card-header py-2 card-header-grape-purple-light">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0 text-grape-dark" style="font-size:0.85rem;">
-                                    <i class="fas fa-link me-2"></i>Link de Pagamento
+                                    <i class="fas fa-link me-2"></i>Checkout de Pagamento
                                 </h6>
                                 <div class="d-flex gap-1 align-items-center">
                                     <?php if (!empty($savedPaymentLink)): ?>
                                     <span class="badge badge-grape-light" style="font-size:0.6rem;">
-                                        <i class="fas fa-check-circle me-1"></i>Link ativo
+                                        <i class="fas fa-check-circle me-1"></i>Checkout ativo
                                     </span>
                                     <?php endif; ?>
                                     <?php
@@ -1663,7 +1663,7 @@
                             <?php if (!empty($savedPaymentLink)): ?>
                             <!-- ── Link já gerado — exibir de forma compacta ── -->
                             <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="badge bg-success text-success border border-success border-opacity-25" style="font-size:0.65rem;">
+                                <span class="badge bg-success text-success border border-success bg-opacity-25" style="font-size:0.65rem;">
                                     <i class="fas fa-check-circle me-1"></i><?= e(ucfirst($savedPaymentGateway)) ?>
                                     <?php if ($savedPaymentMethod && $savedPaymentMethod !== 'auto'): ?>
                                      · <?= e(strtoupper(str_replace('_', ' ', $savedPaymentMethod))) ?>
@@ -1726,7 +1726,7 @@
                                     </select>
 
                                     <button type="button" class="btn btn-sm btn-primary" id="btnGenerateGwLink" style="font-size:0.75rem;">
-                                        <i class="fas fa-bolt me-1"></i> <?= !empty($savedPaymentLink) ? 'Novo Link' : 'Gerar Link' ?>
+                                        <i class="fas fa-bolt me-1"></i> <?= !empty($savedPaymentLink) ? 'Novo Checkout' : 'Gerar Checkout' ?>
                                     </button>
                                 </div>
                                 <?php else: ?>
@@ -2670,7 +2670,7 @@
                             <div class="flex-grow-1" style="min-width:0;">
                                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-1">
                                     <div style="min-width:0;">
-                                        <span class="badge bg-success text-success border border-success border-opacity-25 me-1" style="font-size:0.6rem; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; vertical-align:middle;">
+                                        <span class="badge bg-success text-success border border-success bg-opacity-25 me-1" style="font-size:0.6rem; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; vertical-align:middle;">
                                             <i class="fas fa-box me-1"></i><?= e($log['product_name'] ?? 'Produto') ?>
                                         </span>
                                         <span class="small fw-bold"><?= e($log['user_name'] ?? 'Sistema') ?></span>
@@ -5344,24 +5344,36 @@ setInterval(() => {
             btnGenerateGwLink.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Gerando...';
 
             // Mostrar toast de loading
-            createPaymentToast('loading', 'Gerando link de pagamento...',
-                'Aguarde enquanto o link é criado via <strong>' + gatewaySlug + '</strong>.' +
+            createPaymentToast('loading', 'Gerando link de checkout...',
+                'Aguarde enquanto o checkout é criado via <strong>' + gatewaySlug + '</strong>.' +
                 (method === 'auto' ? '<br><small class="text-muted">O cliente escolherá a forma de pagamento no checkout.</small>' : ''),
                 null
             );
 
-            fetch('?page=pipeline&action=generatePaymentLink', {
+            // Montar body para checkout transparente
+            var bodyParts = [
+                'order_id=<?= (int)$order['id'] ?>',
+                'gateway_slug=' + encodeURIComponent(gatewaySlug),
+                'csrf_token=' + encodeURIComponent(__csrfToken)
+            ];
+
+            // Se método específico selecionado (não auto), enviar como allowed_methods[]
+            if (method && method !== 'auto') {
+                bodyParts.push('allowed_methods[]=' + encodeURIComponent(method));
+            }
+
+            fetch('?page=payment_gateways&action=createCheckoutLink', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'order_id=<?= (int)$order['id'] ?>&gateway_slug=' + encodeURIComponent(gatewaySlug) + '&method=' + encodeURIComponent(method) + '&csrf_token=' + encodeURIComponent(__csrfToken)
+                body: bodyParts.join('&')
             })
             .then(function(r) { return r.json(); })
             .then(function(resp) {
                 if (!resp.success) {
-                    throw new Error(resp.message || 'Não foi possível gerar o link de pagamento.');
+                    throw new Error(resp.message || 'Não foi possível gerar o link de checkout.');
                 }
 
-                var url = resp.payment_url || resp.boleto_url || resp.qr_code || '';
+                var url = resp.checkout_url || '';
                 var bodyHtml = '';
 
                 if (url) {
@@ -5373,11 +5385,10 @@ setInterval(() => {
                         '</div>';
                 }
 
-                if (resp.qr_code_base64) {
-                    bodyHtml += '<div class="text-center mt-2">' +
-                        '<img src="data:image/png;base64,' + resp.qr_code_base64 + '" alt="QR Code" ' +
-                        'style="max-width:140px;border-radius:8px;border:1px solid #dee2e6;padding:4px;">' +
-                        '</div>';
+                if (resp.expires_at) {
+                    bodyHtml += '<div class="mt-1"><small class="text-muted" style="font-size:0.6rem;">' +
+                        '<i class="fas fa-clock me-1"></i>Expira em: ' + resp.expires_at +
+                        '</small></div>';
                 }
 
                 bodyHtml += '<div class="mt-1"><small class="text-muted" style="font-size:0.6rem;">' +
@@ -5385,17 +5396,23 @@ setInterval(() => {
                     '</small></div>';
 
                 // Sucesso: toast com timer de 30 segundos
-                createPaymentToast('success', '✅ Link gerado com sucesso!', bodyHtml, 30000);
+                createPaymentToast('success', '✅ Checkout gerado com sucesso!', bodyHtml, 30000);
+
+                // Atualizar o campo de link salvo se existir
+                var savedInput = document.getElementById('savedGwLinkUrl');
+                if (savedInput) {
+                    savedInput.value = url;
+                }
             })
             .catch(function(err) {
-                createPaymentToast('error', 'Falha ao gerar link',
+                createPaymentToast('error', 'Falha ao gerar checkout',
                     '<span class="text-danger">' + (err.message || 'Erro inesperado.') + '</span>',
                     10000
                 );
             })
             .finally(function() {
                 btnGenerateGwLink.disabled = false;
-                btnGenerateGwLink.innerHTML = '<i class="fas fa-bolt me-1"></i> Gerar Link';
+                btnGenerateGwLink.innerHTML = '<i class="fas fa-bolt me-1"></i> Gerar Checkout';
             });
         });
     }

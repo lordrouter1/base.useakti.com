@@ -224,7 +224,7 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
                                 $icon = $flatPages[$perm]['icon'] ?? 'fas fa-circle';
                                 $label = $flatPages[$perm]['permission_label'] ?? $flatPages[$perm]['label'] ?? $perm;
                             ?>
-                            <span class="badge bg-primary  text-primary border border-primary border-opacity-25 bg-opacity-10">
+                            <span class="badge bg-primary  text-primary border border-primary bg-opacity-25 bg-opacity-10">
                                 <i class="<?= $icon ?> me-1" style="font-size:0.65rem;"></i><?= $label ?>
                             </span>
                             <?php endforeach; ?>
@@ -261,7 +261,7 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
                                 foreach ($sectors as $s) { if ($s['id'] == $secId) { $secInfo = $s; break; } }
                                 if (!$secInfo) continue;
                             ?>
-                            <span class="badge bg-success  text-success border border-success border-opacity-25">
+                            <span class="badge bg-success  text-success border border-success bg-opacity-25">
                                 <i class="<?= $secInfo['icon'] ?> me-1" style="font-size:0.65rem;"></i><?= e($secInfo['name']) ?>
                             </span>
                             <?php endforeach; ?>

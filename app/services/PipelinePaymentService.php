@@ -285,4 +285,48 @@ class PipelinePaymentService
             $orderModel->setCustomerApprovalStatus($orderId, 'pendente');
         }
     }
+
+    /**
+     * Gera um link de checkout transparente (interno) em vez de link externo do gateway.
+     *
+     * @param int    $orderId       ID do pedido
+     * @param int|null $installmentId ID da parcela (ou null para primeira pendente)
+     * @param string $gatewaySlug   Slug do gateway (vazio = padrão)
+     * @param array  $allowedMethods Métodos permitidos (vazio = todos do gateway)
+     * @return array ['success' => bool, 'checkout_url' => string, ...]
+     */
+    public function generateCheckoutLink(int $orderId, ?int $installmentId = null, string $gatewaySlug = '', array $allowedMethods = []): array
+    {
+        $checkoutService = new \Akti\Services\CheckoutService($this->db);
+
+        $params = [
+            'order_id'        => $orderId,
+            'installment_id'  => $installmentId,
+            'gateway_slug'    => $gatewaySlug ?: null,
+            'allowed_methods' => !empty($allowedMethods) ? $allowedMethods : null,
+            'expires_in_hours' => 48,
+            'created_by'      => $_SESSION['user_id'] ?? null,
+        ];
+
+        $result = $checkoutService->generateToken($params);
+
+        if ($result['success'] && !empty($result['checkout_url'])) {
+            // Persistir na tabela orders
+            $orderModel = new \Akti\Models\Order($this->db);
+            $order = $orderModel->readOne($orderId);
+
+            if ($order) {
+                $this->persistPaymentLink(
+                    $orderModel,
+                    $orderId,
+                    $order,
+                    $result['checkout_url'],
+                    $gatewaySlug ?: 'checkout',
+                    'checkout_transparente'
+                );
+            }
+        }
+
+        return $result;
+    }
 }

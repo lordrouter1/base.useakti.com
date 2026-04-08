@@ -78,11 +78,9 @@ class MercadoPagoGateway extends AbstractGateway
     {
         $method  = $data['method'] ?? 'pix';
 
-        // Se temos card_token, usar API de Pagamentos direto (/v1/payments)
-        // Senão, usar Checkout Preferences (/checkout/preferences) que gera link de pagamento
-        $hasCardToken = !empty($data['card_token']);
-
-        if ($hasCardToken) {
+        // Checkout transparente: PIX, boleto e cartão com token usam /v1/payments (direto)
+        // Apenas 'auto' ou fluxo redirect usam /checkout/preferences
+        if (in_array($method, ['pix', 'boleto', 'credit_card', 'debit_card'], true)) {
             return $this->createDirectPayment($data, $method);
         }
 
@@ -458,20 +456,38 @@ class MercadoPagoGateway extends AbstractGateway
             ]),
         ];
 
-        // Dados do pagador
+        // Dados do pagador — MP exige first_name + last_name para boleto
         if (!empty($data['customer'])) {
+            $fullName = trim($data['customer']['name'] ?? '');
+            if ($fullName === '') {
+                $fullName = 'Cliente';
+            }
+            $nameParts = preg_split('/\s+/', $fullName, 2);
+            $firstName = $nameParts[0] ?: 'Cliente';
+            $lastName  = $nameParts[1] ?? $firstName; // MP exige last_name; duplicar se só houver um nome
+
+            $doc = preg_replace('/\D/', '', $data['customer']['document'] ?? '');
+            $docType = strlen($doc) > 11 ? 'CNPJ' : 'CPF';
+
             $payload['payer'] = [
                 'email'      => $data['customer']['email'] ?? 'cliente@akti.com',
-                'first_name' => $data['customer']['name'] ?? 'Cliente',
-                'identification' => [
-                    'type'   => 'CPF',
-                    'number' => preg_replace('/\D/', '', $data['customer']['document'] ?? ''),
-                ],
+                'first_name' => $firstName,
+                'last_name'  => $lastName,
             ];
+            if ($doc !== '') {
+                $payload['payer']['identification'] = [
+                    'type'   => $docType,
+                    'number' => $doc,
+                ];
+            }
         }
 
         // Webhook URL — só incluir se for uma URL válida com protocolo https (MP rejeita qualquer valor inválido)
         $notificationUrl = trim((string) $this->getSetting('notification_url', ''));
+        // Fallback: usar notification_url enviada pelo caller (CheckoutService)
+        if (empty($notificationUrl) && !empty($data['notification_url'])) {
+            $notificationUrl = trim((string) $data['notification_url']);
+        }
         if (
             $notificationUrl !== ''
             && filter_var($notificationUrl, FILTER_VALIDATE_URL)
@@ -494,13 +510,17 @@ class MercadoPagoGateway extends AbstractGateway
                 break;
 
             case 'credit_card':
-                $payload['payment_method_id'] = $data['card_payment_method'] ?? null;
+                if (!empty($data['card_payment_method'])) {
+                    $payload['payment_method_id'] = $data['card_payment_method'];
+                }
                 $payload['token'] = $data['card_token'] ?? null;
                 $payload['installments'] = (int) ($data['card_installments'] ?? 1);
                 break;
 
             case 'debit_card':
-                $payload['payment_method_id'] = $data['card_payment_method'] ?? null;
+                if (!empty($data['card_payment_method'])) {
+                    $payload['payment_method_id'] = $data['card_payment_method'];
+                }
                 $payload['token'] = $data['card_token'] ?? null;
                 $payload['installments'] = 1; // Débito é sempre à vista
                 break;
