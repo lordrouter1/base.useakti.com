@@ -135,6 +135,7 @@ $methodDescs = [
             currency: <?= eJs($token['currency'] ?? 'BRL') ?>,
             methods: <?= json_encode($supportedMethods) ?>,
             processUrl: '/?page=checkout&action=processPayment',
+            tokenizeUrl: '/?page=checkout&action=tokenizeCard',
             statusUrl: '/?page=checkout&action=checkStatus',
             confirmationUrl: '/?page=checkout&action=confirmation&token=' + <?= eJs($token['token']) ?>
         };

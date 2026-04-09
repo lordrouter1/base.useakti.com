@@ -77,11 +77,11 @@ class StripeGateway extends AbstractGateway
     {
         $method = $data['method'] ?? 'credit_card';
 
-        // Se temos token de cartão, usar PaymentIntent direto (fluxo frontend)
-        // Senão, usar Checkout Session que gera URL de pagamento clicável
+        // Checkout transparente: PIX, boleto e cartão com token usam PaymentIntent (direto)
+        // Apenas 'auto' ou cartão sem token usam Checkout Session (redirect)
         $hasToken = !empty($data['card_token']) || !empty($data['payment_method_id']);
 
-        if ($hasToken) {
+        if ($hasToken || in_array($method, ['pix', 'boleto'], true)) {
             return $this->createPaymentIntent($data, $method);
         }
 
@@ -89,7 +89,9 @@ class StripeGateway extends AbstractGateway
     }
 
     /**
-     * Cria um PaymentIntent diretamente (quando há card_token / payment_method_id).
+     * Cria um PaymentIntent diretamente.
+     * Cartão: anexa payment_method e confirma.
+     * PIX/Boleto: usa payment_method_data para criar inline e confirma.
      */
     private function createPaymentIntent(array $data, string $method): array
     {
@@ -97,6 +99,7 @@ class StripeGateway extends AbstractGateway
 
         $amountCents = (int) round($data['amount'] * 100);
         $currency = $this->getSetting('currency', 'brl');
+        $returnUrl = $data['return_url'] ?? '';
 
         $payload = [
             'amount'               => $amountCents,
@@ -105,42 +108,70 @@ class StripeGateway extends AbstractGateway
             'metadata[installment_id]' => $data['installment_id'] ?? '',
             'metadata[order_id]'       => $data['order_id'] ?? '',
             'metadata[source]'         => 'akti',
+            'confirm'              => 'true',
         ];
 
-        // Quando method='auto' no PaymentIntent, usar 'card' como padrão
-        // pois PaymentIntent direto requer um tipo definido.
+        if ($returnUrl) {
+            $payload['return_url'] = $returnUrl;
+        }
+
         $piMethod = ($method === 'auto') ? 'card' : $method;
         switch ($piMethod) {
             case 'pix':
                 $payload['payment_method_types[0]'] = 'pix';
+                $payload['payment_method_data[type]'] = 'pix';
                 break;
+
             case 'boleto':
                 $payload['payment_method_types[0]'] = 'boleto';
+                $payload['payment_method_data[type]'] = 'boleto';
+                $doc = preg_replace('/\D/', '', $data['customer']['document'] ?? '');
+                if ($doc) {
+                    $payload['payment_method_data[boleto][tax_id]'] = $doc;
+                }
+                $daysDue = (int) $this->getSetting('boleto_days_due', 3);
+                $payload['payment_method_options[boleto][expires_after_days]'] = $daysDue;
                 break;
+
             case 'credit_card':
             case 'debit_card':
             default:
                 $payload['payment_method_types[0]'] = 'card';
+                if (!empty($data['card_token'])) {
+                    $payload['payment_method'] = $data['card_token'];
+                }
                 break;
+        }
+
+        if (!empty($data['customer']['email'])) {
+            $payload['receipt_email'] = $data['customer']['email'];
         }
 
         $response = $this->stripeRequest('POST', '/v1/payment_intents', $payload);
 
         if ($response['status'] === 200) {
             $body = $response['decoded'];
+
+            // Normalizar expires_at para ISO 8601
+            $expiresAt = null;
+            if (isset($body['next_action']['pix_display_qr_code']['expires_at'])) {
+                $expiresAt = date('c', $body['next_action']['pix_display_qr_code']['expires_at']);
+            } elseif (isset($body['next_action']['boleto_display_details']['expires_at'])) {
+                $expiresAt = date('c', $body['next_action']['boleto_display_details']['expires_at']);
+            }
+
             return $this->successResponse([
-                'external_id'    => $body['id'] ?? '',
-                'status'         => $this->mapStatus($body['status'] ?? 'requires_payment_method'),
-                'payment_url'    => $body['next_action']['redirect_to_url']['url'] ?? null,
-                'qr_code'        => $body['next_action']['pix_display_qr_code']['data'] ?? null,
-                'qr_code_base64' => null,
-                'boleto_url'     => $body['next_action']['boleto_display_details']['hosted_voucher_url'] ?? null,
-                'boleto_barcode' => $body['next_action']['boleto_display_details']['number'] ?? null,
-                'expires_at'     => $body['next_action']['boleto_display_details']['expires_at']
-                                    ?? $body['next_action']['pix_display_qr_code']['expires_at']
-                                    ?? null,
-                'client_secret'  => $body['client_secret'] ?? null,
-                'raw'            => $body,
+                'external_id'      => $body['id'] ?? '',
+                'status'           => $this->mapStatus($body['status'] ?? 'requires_payment_method'),
+                'payment_url'      => $body['next_action']['redirect_to_url']['url'] ?? null,
+                'qr_code'          => $body['next_action']['pix_display_qr_code']['data'] ?? null,
+                'qr_code_base64'   => null,
+                'qr_code_image_url' => $body['next_action']['pix_display_qr_code']['image_url_png'] ?? null,
+                'boleto_url'       => $body['next_action']['boleto_display_details']['hosted_voucher_url'] ?? null,
+                'boleto_barcode'   => $body['next_action']['boleto_display_details']['number'] ?? null,
+                'expires_at'       => $expiresAt,
+                'client_secret'    => $body['client_secret'] ?? null,
+                'raw'              => $body,
             ]);
         }
 

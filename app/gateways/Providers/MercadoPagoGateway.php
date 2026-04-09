@@ -480,6 +480,28 @@ class MercadoPagoGateway extends AbstractGateway
                     'number' => $doc,
                 ];
             }
+            // Endereço do pagador — obrigatório para boleto no Mercado Pago
+            $zip = preg_replace('/\D/', '', $data['customer']['zip'] ?? '');
+            if ($zip !== '' || !empty($data['customer']['street'])) {
+                $payload['payer']['address'] = [
+                    'zip_code'      => $zip ?: '01001000',
+                    'street_name'   => $data['customer']['street'] ?? 'Não informado',
+                    'street_number' => $data['customer']['number'] ?? 'S/N',
+                    'neighborhood'  => $data['customer']['neighborhood'] ?? 'Centro',
+                    'city'          => $data['customer']['city'] ?? 'São Paulo',
+                    'federal_unit'  => $data['customer']['state'] ?? 'SP',
+                ];
+            } elseif ($method === 'boleto') {
+                // Boleto exige endereço — usar defaults mínimos
+                $payload['payer']['address'] = [
+                    'zip_code'      => '01001000',
+                    'street_name'   => 'Não informado',
+                    'street_number' => 'S/N',
+                    'neighborhood'  => 'Centro',
+                    'city'          => 'São Paulo',
+                    'federal_unit'  => 'SP',
+                ];
+            }
         }
 
         // Webhook URL — só incluir se for uma URL válida com protocolo https (MP rejeita qualquer valor inválido)

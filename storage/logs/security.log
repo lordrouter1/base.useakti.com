@@ -299,3 +299,13 @@
 [2026-04-08 19:22:03] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=checkout&action=processPayment | Method: POST | Token: (empty) | User: 1
 [2026-04-08 19:42:19] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
 [2026-04-08 19:42:19] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
+[2026-04-09 14:10:22] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
+[2026-04-09 14:10:22] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
+[2026-04-09 14:10:43] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
+[2026-04-09 14:10:43] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
+[2026-04-09 14:11:04] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
+[2026-04-09 14:11:04] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
+[2026-04-09 14:11:27] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: abc123to... | User: anonymous
+[2026-04-09 14:11:27] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=test&action=store | Method: POST | Token: (empty) | User: anonymous
+[2026-04-09 15:03:26] [CSRF Falhou] IP: 127.0.0.1 | Page: ? | Action: ? | Method: POST | User: Administrador
+[2026-04-09 15:03:26] CSRF validation failed | IP: 127.0.0.1 | Route: ?page=payment_gateways&action=createCheckoutLink | Method: POST | Token: 4d71f4c0... | User: 1

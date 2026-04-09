@@ -1504,26 +1504,25 @@
                                 <div class="alert alert-info py-2 px-3 mb-3" id="finGatewayModeAlert" style="border-radius:8px; <?= ($selectedMethod !== 'gateway') ? 'display:none;' : '' ?>">
                                     <i class="fas fa-globe me-2 text-primary"></i>
                                     <strong>Pagamento via Gateway Online:</strong>
-                                    <span class="small">O status e os valores serão controlados automaticamente pelo gateway de pagamento. Gere o link abaixo e envie ao cliente.</span>
+                                    <span class="small">As parcelas são geradas normalmente. Gere o link de pagamento abaixo e envie ao cliente. O status será atualizado automaticamente após a confirmação do gateway.</span>
                                 </div>
 
-                                <div class="row g-3" id="finManualPaymentFields" style="<?= ($selectedMethod === 'gateway') ? 'display:none;' : '' ?>">
+                                <div class="row g-3" id="finManualPaymentFields">
                                     <!-- Status do Pagamento -->
                                     <div class="col-md-4">
                                         <label class="form-label small fw-bold text-muted"><i class="fas fa-flag me-1"></i>Status do Pagamento</label>
                                         <?php
                                         $payStatusInfo = [
                                             'pendente' => ['color' => '#f39c12', 'bg' => '#fff3cd', 'icon' => 'fas fa-clock',       'label' => 'Pendente'],
-                                            'parcial'  => ['color' => '#3498db', 'bg' => '#cfe2ff', 'icon' => 'fas fa-adjust',      'label' => 'Parcial'],
                                             'pago'     => ['color' => '#198754', 'bg' => '#d1e7dd', 'icon' => 'fas fa-check-circle', 'label' => 'Pago'],
                                         ];
                                         $curStatus = $order['payment_status'] ?? 'pendente';
+                                        if ($curStatus === 'parcial') $curStatus = 'pendente';
                                         $csInfo = $payStatusInfo[$curStatus] ?? $payStatusInfo['pendente'];
                                         ?>
                                         <select class="form-select" name="payment_status" id="finPaymentStatus" <?= $isReadOnly ? 'disabled' : '' ?>
                                                 style="border-color:<?= $csInfo['color'] ?>; background-color:<?= $csInfo['bg'] ?>;">
                                             <option value="pendente" <?= $curStatus == 'pendente' ? 'selected' : '' ?>>⏳ Pendente</option>
-                                            <option value="parcial" <?= $curStatus == 'parcial' ? 'selected' : '' ?>>💳 Parcial</option>
                                             <option value="pago" <?= $curStatus == 'pago' ? 'selected' : '' ?>>✅ Pago</option>
                                         </select>
                                     </div>
@@ -4419,12 +4418,9 @@ setInterval(() => {
             }
             // Se veio de não-parcelável, não sincronizar — esperar seleção de parcelas
         } else {
-            // Método não parcelável (dinheiro, pix, etc.): sincronizar imediatamente
+            // Método não parcelável (dinheiro, pix, gateway, etc.): sincronizar imediatamente
             // para gerar uma única parcela / limpar parcelamento anterior.
-            // Gateway online: NÃO sincronizar — o pagamento é gerido pelo gateway.
-            if (newMethod !== 'gateway') {
-                scheduleSyncInstallments(300);
-            }
+            scheduleSyncInstallments(300);
         }
     });
 
@@ -4489,6 +4485,67 @@ setInterval(() => {
     
     toggleInstallmentRow();
     updateDownPaymentInfo();
+
+    // ═══ Listener: Ao mudar status de pagamento para "Pago", confirmar entrada/sinal ═══
+    var finPaymentStatusSelect = document.getElementById('finPaymentStatus');
+    if (finPaymentStatusSelect) {
+        finPaymentStatusSelect.addEventListener('change', function() {
+            var newStatus = this.value;
+            var dp = parseFloat(downPaymentField ? downPaymentField.value : 0) || 0;
+
+            if (newStatus === 'pago' && dp > 0) {
+                // Confirmar pagamento da entrada/sinal
+                Swal.fire({
+                    icon: 'question',
+                    title: 'Confirmar entrada/sinal?',
+                    html: 'Ao marcar como <strong>Pago</strong>, a entrada de <strong>R$ ' + dp.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</strong> será confirmada como recebida.<br><br>O restante será cobrado via checkout/gateway.',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-check me-1"></i> Confirmar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#198754',
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        // Marcar entrada como paga via AJAX
+                        var formData = new FormData();
+                        formData.append('order_id', orderId);
+                        formData.append('csrf_token', csrfToken);
+
+                        fetch('?page=pipeline&action=confirmDownPayment', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) {
+                            if (data.success) {
+                                Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true })
+                                    .fire({ icon: 'success', title: 'Entrada confirmada!' });
+                                // Atualizar o estilo do select
+                                finPaymentStatusSelect.style.borderColor = '#198754';
+                                finPaymentStatusSelect.style.backgroundColor = '#d1e7dd';
+                            } else {
+                                Swal.fire({ icon: 'error', title: 'Erro', text: data.message || 'Não foi possível confirmar a entrada.' });
+                                finPaymentStatusSelect.value = 'pendente';
+                            }
+                        })
+                        .catch(function() {
+                            Swal.fire({ icon: 'error', title: 'Erro de conexão' });
+                            finPaymentStatusSelect.value = 'pendente';
+                        });
+                    } else {
+                        // Usuário cancelou — reverter para pendente
+                        finPaymentStatusSelect.value = 'pendente';
+                    }
+                });
+            } else if (newStatus === 'pago') {
+                // Sem entrada — apenas atualizar visual
+                finPaymentStatusSelect.style.borderColor = '#198754';
+                finPaymentStatusSelect.style.backgroundColor = '#d1e7dd';
+            } else {
+                finPaymentStatusSelect.style.borderColor = '#f39c12';
+                finPaymentStatusSelect.style.backgroundColor = '#fff3cd';
+            }
+        });
+    }
 
     // Bloquear campos se há parcelas pagas (logo no carregamento da página)
     lockFinancialFieldsIfPaid();
@@ -5516,8 +5573,8 @@ setInterval(() => {
 
     /**
      * Alterna visibilidade entre modo gateway e modo manual
-     * - Gateway: esconde status + entrada + parcelamento, mostra link de pagamento
-     * - Manual: mostra status + entrada, esconde link de pagamento
+     * - Gateway: mostra link de pagamento + campos manuais + alerta
+     * - Manual: mostra campos manuais, esconde link de pagamento
      */
     function toggleGatewayMode(method) {
         var isGateway = (method === 'gateway');
@@ -5527,19 +5584,15 @@ setInterval(() => {
             paymentLinksSection.style.display = isGateway ? '' : 'none';
         }
 
-        // Campos manuais (status, entrada): ocultos no modo gateway
+        // Campos manuais (status, entrada): visíveis para todos os métodos
+        // Gateway agora gera parcelas como os demais métodos
         if (finManualPaymentFields) {
-            finManualPaymentFields.style.display = isGateway ? 'none' : '';
+            finManualPaymentFields.style.display = '';
         }
 
         // Alerta informativo do modo gateway
         if (finGatewayModeAlert) {
             finGatewayModeAlert.style.display = isGateway ? '' : 'none';
-        }
-
-        // Parcelamento: esconder no modo gateway
-        if (isGateway && finInstallmentRow) {
-            finInstallmentRow.style.display = 'none';
         }
     }
 

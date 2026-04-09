@@ -434,25 +434,28 @@ class PagSeguroGateway extends AbstractGateway
                 ];
 
             case 'credit_card':
+                $cardData = !empty($data['card_token'])
+                    ? ['encrypted' => $data['card_token']]
+                    : [
+                        'number'        => $data['card_number'] ?? '',
+                        'exp_month'     => $data['card_exp_month'] ?? '',
+                        'exp_year'      => $data['card_exp_year'] ?? '',
+                        'security_code' => $data['card_cvv'] ?? '',
+                        'holder'        => [
+                            'name' => $data['card_holder'] ?? $data['customer']['name'] ?? '',
+                        ],
+                    ];
                 return [
                     'type' => 'CREDIT_CARD',
                     'installments' => (int) ($data['card_installments'] ?? 1),
                     'capture'      => true,
-                    'card'         => [
-                        'number'        => $data['card_number'] ?? '',
-                        'exp_month'     => $data['card_exp_month'] ?? '',
-                        'exp_year'      => $data['card_exp_year'] ?? '',
-                        'security_code' => $data['card_cvv'] ?? '',
-                        'holder'        => [
-                            'name' => $data['card_holder'] ?? $data['customer']['name'] ?? '',
-                        ],
-                    ],
+                    'card'         => $cardData,
                 ];
 
             case 'debit_card':
-                return [
-                    'type' => 'DEBIT_CARD',
-                    'card' => [
+                $cardData = !empty($data['card_token'])
+                    ? ['encrypted' => $data['card_token']]
+                    : [
                         'number'        => $data['card_number'] ?? '',
                         'exp_month'     => $data['card_exp_month'] ?? '',
                         'exp_year'      => $data['card_exp_year'] ?? '',
@@ -460,7 +463,10 @@ class PagSeguroGateway extends AbstractGateway
                         'holder'        => [
                             'name' => $data['card_holder'] ?? $data['customer']['name'] ?? '',
                         ],
-                    ],
+                    ];
+                return [
+                    'type' => 'DEBIT_CARD',
+                    'card' => $cardData,
                 ];
 
             default:

@@ -374,6 +374,7 @@ return [
             'printProductionOrder' => 'printProductionOrder',
             'printThermalReceipt'  => 'printThermalReceipt',
             'syncInstallments'     => 'syncInstallments',
+            'confirmDownPayment'   => 'confirmDownPayment',
             'updateInstallmentDueDate' => 'updateInstallmentDueDate',
             // Actions que usam CatalogController em vez de PipelineController
             'generateCatalogLink'    => ['controller' => 'CatalogController', 'method' => 'generate'],
@@ -1175,6 +1176,7 @@ return [
         'actions'        => [
             'show'           => 'show',
             'processPayment' => 'processPayment',
+            'tokenizeCard'   => 'tokenizeCard',
             'checkStatus'    => 'checkStatus',
             'confirmation'   => 'confirmation',
         ],

@@ -51,7 +51,31 @@ class CheckoutService
             }
             $amount = (float) $installment['amount'];
         } else {
-            $amount = (float) ($order['total_amount'] ?? $order['total'] ?? $order['final_total'] ?? 0);
+            // Buscar a parcela pendente com installment_number > 0 (exclui entrada/sinal)
+            $installmentModel = new Installment($this->db);
+            $existingInstallments = $installmentModel->getByOrderId($orderId);
+            $targetInstallment = null;
+            foreach ($existingInstallments as $inst) {
+                if ((int) $inst['installment_number'] > 0 && in_array($inst['status'], ['pendente', 'atrasado'], true)) {
+                    $targetInstallment = $inst;
+                    break;
+                }
+            }
+
+            if ($targetInstallment) {
+                // Usar o valor da parcela pendente (já desconta entrada)
+                $amount = (float) $targetInstallment['amount'];
+                $installmentId = (int) $targetInstallment['id'];
+            } else {
+                // Fallback: usar total do pedido menos entrada
+                $totalAmount = (float) ($order['total_amount'] ?? $order['total'] ?? $order['final_total'] ?? 0);
+                $downPayment = (float) ($order['down_payment'] ?? 0);
+                $discount = (float) ($order['discount'] ?? 0);
+                $amount = $totalAmount - $downPayment - $discount;
+                if ($amount <= 0) {
+                    $amount = $totalAmount - $discount;
+                }
+            }
         }
 
         if ($amount <= 0) {
@@ -79,7 +103,7 @@ class CheckoutService
         $token = bin2hex(random_bytes(32));
         $expiresAt = date('Y-m-d H:i:s', time() + ($expiresInHours * 3600));
 
-        $tenantId = (int) ($_SESSION['tenant']['id'] ?? 0);
+        $tenantId = !empty($_SESSION['tenant']['id']) ? (int) $_SESSION['tenant']['id'] : null;
 
         $tokenModel = new CheckoutToken($this->db);
         $tokenId = $tokenModel->create([
@@ -191,6 +215,13 @@ class CheckoutService
             ],
         ];
 
+        // Enriquecer customer com endereço do cadastro (necessário para boleto)
+        $orderId = (int) $tokenRow['order_id'];
+        $customerAddress = $this->getCustomerAddressFromOrder($orderId);
+        if ($customerAddress) {
+            $chargeData['customer'] = array_merge($chargeData['customer'], $customerAddress);
+        }
+
         // Card token para cartão de crédito
         if ($method === 'credit_card' && !empty($paymentData['card_token'])) {
             $chargeData['card_token'] = $paymentData['card_token'];
@@ -198,6 +229,11 @@ class CheckoutService
 
         // Idempotency key
         $chargeData['idempotency_key'] = 'chk_' . $tokenRow['id'] . '_' . substr(md5($token . $method . time()), 0, 8);
+
+        // Return URL para redirect-based 3DS (Stripe)
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $chargeData['return_url'] = $protocol . '://' . $host . '/?page=checkout&action=confirmation&token=' . urlencode($token) . '&status=pending';
 
         // Injetar webhook URL (resolução por subdomínio)
         $webhookUrl = $this->buildWebhookUrl($gatewayRow['gateway_slug']);
@@ -217,6 +253,15 @@ class CheckoutService
             ];
         }
 
+        // Se o gateway retornou erro, propagar para o frontend
+        if (empty($result['success'])) {
+            return [
+                'success' => false,
+                'error'   => $result['error'] ?? 'Erro ao processar pagamento no gateway.',
+                'code'    => 'gateway_rejected',
+            ];
+        }
+
         // Logar transação
         $gwModel->logTransaction([
             'gateway_id'     => $gatewayRow['id'],
@@ -229,13 +274,24 @@ class CheckoutService
             'raw_response'   => json_encode($result['raw'] ?? []),
         ]);
 
-        // Se cartão com sucesso imediato
+        // Se pagamento com sucesso imediato (cartão aprovado)
         $resultStatus = $result['status'] ?? '';
-        if ($method === 'credit_card' && in_array($resultStatus, ['succeeded', 'approved'], true)) {
+        $isImmediateSuccess = in_array($resultStatus, ['succeeded', 'approved'], true);
+
+        if ($isImmediateSuccess) {
             $tokenModel->markUsed(
                 (int) $tokenRow['id'],
                 $method,
                 $result['external_id'] ?? ''
+            );
+
+            // Criar parcela única (se não existir) e marcar como paga
+            $this->markInstallmentPaidFromCheckout(
+                (int) $tokenRow['order_id'],
+                $tokenRow['installment_id'] ? (int) $tokenRow['installment_id'] : null,
+                (float) $tokenRow['amount'],
+                $method,
+                $result['external_id'] ?? null
             );
         }
 
@@ -246,10 +302,12 @@ class CheckoutService
             'method'      => $method,
             'qr_code'     => $result['qr_code'] ?? null,
             'qr_code_base64' => $result['qr_code_base64'] ?? null,
+            'qr_code_image_url' => $result['qr_code_image_url'] ?? null,
             'payment_url' => $result['payment_url'] ?? null,
             'boleto_url'  => $result['boleto_url'] ?? null,
             'boleto_barcode' => $result['boleto_barcode'] ?? null,
             'expires_at'  => $result['expires_at'] ?? null,
+            'expires_in_seconds' => $this->computeExpiresInSeconds($result['expires_at'] ?? null),
             'client_secret' => $result['client_secret'] ?? null,
         ];
     }
@@ -261,6 +319,70 @@ class CheckoutService
     {
         $tokenModel = new CheckoutToken($this->db);
         return $tokenModel->cancel($tokenId);
+    }
+
+    /**
+     * Garante que existe uma parcela para o pedido e marca como paga.
+     * Chamado após confirmação de pagamento (imediato ou via polling).
+     *
+     * @param int      $orderId
+     * @param int|null $installmentId  ID da parcela já existente (do token)
+     * @param float    $amount         Valor pago
+     * @param string   $paymentMethod  Método (credit_card, pix, boleto)
+     * @param string|null $externalId  ID externo do gateway
+     */
+    public function markInstallmentPaidFromCheckout(
+        int $orderId,
+        ?int $installmentId,
+        float $amount,
+        string $paymentMethod,
+        ?string $externalId = null
+    ): void {
+        $installmentModel = new Installment($this->db);
+
+        // Se não tem installment_id, verificar se já existem parcelas para o pedido
+        if (!$installmentId) {
+            $existing = $installmentModel->getByOrderId($orderId);
+            if (!empty($existing)) {
+                // Usar a primeira parcela pendente com installment_number > 0 (pular entrada/sinal)
+                foreach ($existing as $inst) {
+                    if ((int) $inst['installment_number'] > 0 && in_array($inst['status'], ['pendente', 'atrasado'], true)) {
+                        $installmentId = (int) $inst['id'];
+                        break;
+                    }
+                }
+            }
+
+            // Se ainda não tem parcela, criar uma parcela única
+            if (!$installmentId) {
+                $installmentModel->generate($orderId, $amount, 1, 0, date('Y-m-d'));
+                $created = $installmentModel->getByOrderId($orderId);
+                if (!empty($created)) {
+                    // Pegar a parcela com installment_number > 0
+                    foreach ($created as $inst) {
+                        if ((int) $inst['installment_number'] > 0) {
+                            $installmentId = (int) $inst['id'];
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!$installmentId) {
+            return;
+        }
+
+        // Marcar parcela como paga com auto-confirmação
+        $installmentModel->pay($installmentId, [
+            'paid_date'      => date('Y-m-d'),
+            'paid_amount'    => $amount,
+            'payment_method' => $paymentMethod,
+            'notes'          => 'Pago via checkout transparente' . ($externalId ? " (ID: {$externalId})" : ''),
+        ], true);
+
+        // Atualizar status de pagamento do pedido
+        $installmentModel->updateOrderPaymentStatus($orderId);
     }
 
     /**
@@ -280,6 +402,52 @@ class CheckoutService
     {
         $tokenModel = new CheckoutToken($this->db);
         return $tokenModel->findByToken($token);
+    }
+
+    /**
+     * Busca endereço do cliente a partir do pedido.
+     */
+    private function getCustomerAddressFromOrder(int $orderId): ?array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT c.zipcode, c.address_street, c.address_number,
+                    c.address_neighborhood, c.address_city, c.address_state,
+                    c.phone, c.cellphone
+             FROM orders o
+             INNER JOIN customers c ON c.id = o.customer_id
+             WHERE o.id = :oid
+             LIMIT 1"
+        );
+        $stmt->execute([':oid' => $orderId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return null;
+        }
+
+        return [
+            'zip'          => $row['zipcode'] ?? '',
+            'street'       => $row['address_street'] ?? '',
+            'number'       => $row['address_number'] ?? '',
+            'neighborhood' => $row['address_neighborhood'] ?? '',
+            'city'         => $row['address_city'] ?? '',
+            'state'        => $row['address_state'] ?? '',
+            'phone'        => $row['cellphone'] ?? $row['phone'] ?? '',
+        ];
+    }
+
+    /**
+     * Calcula segundos até expiração a partir de uma data ISO 8601 ou Unix timestamp.
+     */
+    private function computeExpiresInSeconds($expiresAt): ?int
+    {
+        if ($expiresAt === null || $expiresAt === '') {
+            return null;
+        }
+        $ts = is_numeric($expiresAt) ? (int) $expiresAt : strtotime($expiresAt);
+        if ($ts === false || $ts <= 0) {
+            return null;
+        }
+        return max(0, $ts - time());
     }
 
     /**

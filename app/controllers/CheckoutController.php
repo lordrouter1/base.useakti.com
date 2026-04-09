@@ -160,6 +160,107 @@ class CheckoutController extends BaseController
     }
 
     /**
+     * POST (AJAX): Proxy de tokenização de cartão (evita CORS em ambientes HTTP).
+     *
+     * O frontend envia dados do cartão e este endpoint repassa para a API
+     * do gateway (server-to-server via cURL, sem CORS). Usa apenas a
+     * public_key — nenhuma credencial secreta é exposta.
+     */
+    public function tokenizeCard(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'error' => 'Método não permitido.'], 405);
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: [];
+
+        $token = $this->validateTokenFormat($input['token'] ?? '');
+        if (!$token) {
+            $this->json(['success' => false, 'error' => 'Token inválido.'], 400);
+        }
+
+        // Verificar que o token existe e está ativo
+        $tokenRow = $this->tokenModel->findByToken($token);
+        if (!$tokenRow || $tokenRow['status'] !== 'active') {
+            $this->json(['success' => false, 'error' => 'Token inválido ou expirado.'], 400);
+        }
+
+        // Rate limiting
+        $cacheKey = 'tokenize_attempts_' . md5($token);
+        $attempts = (int) ($_SESSION[$cacheKey] ?? 0);
+        $lastAttempt = $_SESSION[$cacheKey . '_time'] ?? 0;
+        if (time() - $lastAttempt > 600) {
+            $attempts = 0;
+        }
+        if ($attempts >= 10) {
+            $this->json(['success' => false, 'error' => 'Muitas tentativas.'], 429);
+        }
+        $_SESSION[$cacheKey] = $attempts + 1;
+        $_SESSION[$cacheKey . '_time'] = time();
+
+        // Resolver gateway para obter public_key
+        $gwModel = new PaymentGateway($this->db);
+        $gatewayRow = !empty($tokenRow['gateway_slug'])
+            ? $gwModel->readBySlug($tokenRow['gateway_slug'])
+            : $gwModel->getDefault();
+
+        if (!$gatewayRow) {
+            $this->json(['success' => false, 'error' => 'Gateway não disponível.'], 400);
+        }
+
+        $slug = $gatewayRow['gateway_slug'] ?? '';
+        $creds = json_decode($gatewayRow['credentials'] ?? '{}', true) ?: [];
+
+        if ($slug === 'mercadopago') {
+            $publicKey = $creds['public_key'] ?? '';
+            if (!$publicKey) {
+                $this->json(['success' => false, 'error' => 'Public key não configurada.'], 500);
+            }
+
+            $cardData = [
+                'card_number'      => preg_replace('/\D/', '', $input['card_number'] ?? ''),
+                'cardholder'       => [
+                    'name'           => $input['cardholder_name'] ?? '',
+                    'identification' => [
+                        'type'   => $input['identification_type'] ?? 'CPF',
+                        'number' => preg_replace('/\D/', '', $input['identification_number'] ?? ''),
+                    ],
+                ],
+                'expiration_month' => (int) ($input['exp_month'] ?? 0),
+                'expiration_year'  => (int) ($input['exp_year'] ?? 0),
+                'security_code'    => $input['security_code'] ?? '',
+            ];
+
+            $url = 'https://api.mercadopago.com/v1/card_tokens?public_key=' . urlencode($publicKey);
+
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST           => true,
+                CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+                CURLOPT_POSTFIELDS     => json_encode($cardData),
+                CURLOPT_TIMEOUT        => 15,
+            ]);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            $decoded = json_decode($response, true);
+
+            if ($httpCode >= 200 && $httpCode < 300 && !empty($decoded['id'])) {
+                $this->json(['success' => true, 'card_token' => $decoded['id']]);
+            }
+
+            $errMsg = $decoded['message']
+                ?? ($decoded['cause'][0]['description'] ?? null)
+                ?? 'Dados do cartão inválidos.';
+            $this->json(['success' => false, 'error' => $errMsg], 400);
+        }
+
+        $this->json(['success' => false, 'error' => 'Tokenização server-side não suportada para este gateway.'], 400);
+    }
+
+    /**
      * GET (AJAX): Verifica status de pagamento (polling).
      */
     public function checkStatus(): void
@@ -199,12 +300,22 @@ class CheckoutController extends BaseController
                     $status = $gateway->getChargeStatus($externalId);
 
                     if (($status['status'] ?? '') === 'approved' || ($status['status'] ?? '') === 'succeeded') {
-                        // Marcar como usado
+                        // Marcar token como usado
                         $this->tokenModel->markUsed(
                             (int) $tokenRow['id'],
                             $tokenRow['used_method'] ?? 'unknown',
                             $externalId
                         );
+
+                        // Marcar parcela como paga e atualizar status do pedido
+                        $this->checkoutService->markInstallmentPaidFromCheckout(
+                            (int) $tokenRow['order_id'],
+                            $tokenRow['installment_id'] ? (int) $tokenRow['installment_id'] : null,
+                            (float) $tokenRow['amount'],
+                            $tokenRow['used_method'] ?? 'unknown',
+                            $externalId
+                        );
+
                         $this->json([
                             'success' => true,
                             'paid'    => true,
@@ -276,6 +387,15 @@ class CheckoutController extends BaseController
                         $confirmationState = 'succeeded';
                         $tokenRow['used_at'] = date('Y-m-d H:i:s');
                         $tokenRow['external_id'] = $externalId;
+
+                        // Marcar parcela como paga e atualizar status do pedido
+                        $this->checkoutService->markInstallmentPaidFromCheckout(
+                            (int) $tokenRow['order_id'],
+                            $tokenRow['installment_id'] ? (int) $tokenRow['installment_id'] : null,
+                            (float) $tokenRow['amount'],
+                            $tokenRow['used_method'] ?? '',
+                            $externalId
+                        );
                     } else {
                         $confirmationState = 'pending';
                     }

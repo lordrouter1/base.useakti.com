@@ -64,8 +64,14 @@ const AktiCheckout = (function () {
                 const qrImg = document.getElementById('pixQrImage');
                 if (qrImg && data.qr_code_base64) {
                     qrImg.src = 'data:image/png;base64,' + data.qr_code_base64;
+                } else if (qrImg && data.qr_code_image_url) {
+                    qrImg.src = data.qr_code_image_url;
                 } else if (qrImg && data.qr_code_url) {
                     qrImg.src = data.qr_code_url;
+                } else if (!data.qr_code && !data.qr_code_base64 && data.payment_url) {
+                    // Gateway retornou apenas URL de pagamento (sem QR inline)
+                    window.location.href = data.payment_url;
+                    return;
                 }
 
                 // Copia e cola
@@ -128,8 +134,8 @@ const AktiCheckout = (function () {
                     setTimeout(function () {
                         window.location.href = config.confirmationUrl + '&status=succeeded&external_id=' + encodeURIComponent(data.external_id || '');
                     }, 2000);
-                } else if (data.status === 'requires_action' && data.client_secret && config.gatewaySlug === 'stripe') {
-                    // 3D Secure
+                } else if (data.client_secret && config.gatewaySlug === 'stripe') {
+                    // 3D Secure ou confirmação pendente via Stripe
                     handle3DSecure(data.client_secret);
                 } else {
                     // Pendente — redirect para confirmação
@@ -196,6 +202,10 @@ const AktiCheckout = (function () {
                     const pdfUrl = document.getElementById('boletoPdfUrl');
                     if (pdfLink) pdfLink.style.display = 'block';
                     if (pdfUrl) pdfUrl.href = data.boleto_url;
+                } else if (!data.boleto_barcode && !data.barcode && data.payment_url) {
+                    // Gateway retornou apenas URL de pagamento (sem boleto inline)
+                    window.location.href = data.payment_url;
+                    return;
                 }
 
                 // Due date
@@ -371,10 +381,8 @@ const AktiCheckout = (function () {
                 var expYear = card.expYear.length === 2 ? '20' + card.expYear : card.expYear;
 
                 /**
-                 * Fallback: chamar a API REST do MercadoPago diretamente via fetch().
-                 * POST https://api.mercadopago.com/v1/card_tokens?public_key=PK
-                 * É um endpoint público (usa public_key, não access_token),
-                 * seguro para chamar do frontend — equivalente ao que o SDK faz internamente.
+                 * Fallback 1: chamar a API REST do MercadoPago diretamente via fetch().
+                 * Funciona em HTTPS mas pode falhar em HTTP local (CORS).
                  */
                 function createTokenViaApi() {
                     var apiUrl = 'https://api.mercadopago.com/v1/card_tokens?public_key=' + encodeURIComponent(config.publicKey);
@@ -407,7 +415,40 @@ const AktiCheckout = (function () {
                     });
                 }
 
-                // Estratégia: tentar SDK primeiro, se falhar usar API REST direta
+                /**
+                 * Fallback 2: proxy server-side (cURL, sem CORS).
+                 * Usado quando o ambiente HTTP bloqueia chamadas diretas à API do MP.
+                 */
+                function createTokenViaProxy() {
+                    if (!config.tokenizeUrl) {
+                        return Promise.reject(new Error('Proxy de tokenização não disponível.'));
+                    }
+                    var body = {
+                        token: config.token,
+                        card_number: card.number,
+                        cardholder_name: holderName,
+                        identification_type: docType,
+                        identification_number: docValue,
+                        exp_month: parseInt(card.expMonth, 10),
+                        exp_year: parseInt(expYear, 10),
+                        security_code: card.cvv
+                    };
+
+                    return fetch(config.tokenizeUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify(body)
+                    }).then(function (resp) {
+                        return resp.json().then(function (data) {
+                            if (data.success && data.card_token) {
+                                return data.card_token;
+                            }
+                            throw new Error(data.error || 'Falha na tokenização.');
+                        });
+                    });
+                }
+
+                // Estratégia 3 níveis: SDK → API REST direta → proxy server-side
                 if (gatewayInstance) {
                     var tokenDataFull = {
                         cardNumber: card.number,
@@ -426,18 +467,24 @@ const AktiCheckout = (function () {
                             throw new Error('Token vazio');
                         }
                     }).catch(function (sdkErr) {
-                        console.warn('[AktiCheckout] SDK createCardToken falhou, usando API REST direta:', sdkErr);
+                        console.warn('[AktiCheckout] SDK falhou, tentando API REST direta:', sdkErr);
                         createTokenViaApi().then(resolve).catch(function (apiErr) {
-                            console.error('[AktiCheckout] API REST createCardToken também falhou:', apiErr);
-                            reject(apiErr);
+                            console.warn('[AktiCheckout] API REST falhou (CORS?), usando proxy server-side:', apiErr);
+                            createTokenViaProxy().then(resolve).catch(function (proxyErr) {
+                                console.error('[AktiCheckout] Todas as tentativas de tokenização falharam:', proxyErr);
+                                reject(proxyErr);
+                            });
                         });
                     });
                 } else {
-                    // SDK não carregou — usar API REST direta
-                    console.warn('[AktiCheckout] SDK MercadoPago não disponível, usando API REST direta');
+                    // SDK não carregou — tentar API REST, depois proxy
+                    console.warn('[AktiCheckout] SDK MercadoPago não disponível');
                     createTokenViaApi().then(resolve).catch(function (apiErr) {
-                        console.error('[AktiCheckout] API REST createCardToken falhou:', apiErr);
-                        reject(apiErr);
+                        console.warn('[AktiCheckout] API REST falhou, usando proxy server-side:', apiErr);
+                        createTokenViaProxy().then(resolve).catch(function (proxyErr) {
+                            console.error('[AktiCheckout] Todas as tentativas de tokenização falharam:', proxyErr);
+                            reject(proxyErr);
+                        });
                     });
                 }
             });

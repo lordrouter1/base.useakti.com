@@ -190,7 +190,7 @@ class PipelineController {
                 'internal_notes' => Input::post('internal_notes'),
                 'quote_notes' => Input::post('quote_notes'),
                 'deadline' => Input::post('deadline', 'date') ?: null,
-                'payment_status' => Input::post('payment_status', 'enum', 'pendente', ['pendente', 'parcial', 'pago']),
+                'payment_status' => Input::post('payment_status', 'enum', 'pendente', ['pendente', 'pago']),
                 'payment_method' => Input::post('payment_method'),
                 'installments' => Input::post('installments', 'int') ?: null,
                 'installment_value' => Input::post('installment_value', 'float') ?: null,
@@ -681,6 +681,54 @@ class PipelineController {
 
         extract($data);
         require 'app/views/pipeline/print_thermal_receipt.php';
+    }
+
+    /**
+     * API JSON: Confirma pagamento da entrada/sinal (parcela número 0).
+     */
+    public function confirmDownPayment()
+    {
+        header('Content-Type: application/json');
+
+        $orderId = Input::post('order_id', 'int');
+        if (!$orderId) {
+            echo json_encode(['success' => false, 'message' => 'ID do pedido não informado.']);
+            exit;
+        }
+
+        $installmentModel = new \Akti\Models\Installment($this->db);
+        $installments = $installmentModel->getByOrderId($orderId);
+
+        $downPaymentInstallment = null;
+        foreach ($installments as $inst) {
+            if ((int) $inst['installment_number'] === 0 && in_array($inst['status'], ['pendente', 'atrasado'], true)) {
+                $downPaymentInstallment = $inst;
+                break;
+            }
+        }
+
+        if (!$downPaymentInstallment) {
+            echo json_encode(['success' => false, 'message' => 'Nenhuma parcela de entrada pendente encontrada.']);
+            exit;
+        }
+
+        $result = $installmentModel->pay((int) $downPaymentInstallment['id'], [
+            'paid_date'      => date('Y-m-d'),
+            'paid_amount'    => (float) $downPaymentInstallment['amount'],
+            'payment_method' => 'entrada',
+            'notes'          => 'Entrada/sinal confirmada via detalhe do pedido',
+            'user_id'        => $_SESSION['user_id'] ?? null,
+        ], true);
+
+        if ($result) {
+            $installmentModel->updateOrderPaymentStatus($orderId);
+            $logger = new Logger($this->db);
+            $logger->log('DOWN_PAYMENT_CONFIRMED', "Confirmed down payment for order #$orderId");
+            echo json_encode(['success' => true, 'message' => 'Entrada confirmada com sucesso.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Erro ao confirmar entrada.']);
+        }
+        exit;
     }
 
     /**
