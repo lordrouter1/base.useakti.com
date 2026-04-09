@@ -402,7 +402,7 @@ class PaymentGatewayController
             $result = $service->generateCheckoutLink($orderId, $installmentId, $gatewaySlug, $allowedMethods);
             echo json_encode($result);
         } catch (\Exception $e) {
-            \Akti\Utils\Log::error('PaymentGatewayController: createCheckoutLink', ['exception' => $e->getMessage()]);
+            \Akti\Core\Log::error('PaymentGatewayController: createCheckoutLink', ['exception' => $e->getMessage()]);
             echo json_encode(['success' => false, 'message' => 'Erro interno ao gerar link de checkout.']);
         }
         exit;
