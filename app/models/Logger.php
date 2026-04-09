@@ -23,6 +23,15 @@ class Logger {
             $user_id = $_SESSION['user_id'];
         }
 
+        // Validar que o user_id existe antes de inserir (FK constraint)
+        if ($user_id !== null) {
+            $check = $this->conn->prepare("SELECT 1 FROM users WHERE id = :uid LIMIT 1");
+            $check->execute([':uid' => $user_id]);
+            if (!$check->fetch()) {
+                $user_id = null;
+            }
+        }
+
         $stmt->bindParam(':user_id', $user_id);
         $stmt->bindParam(':action', $action);
         $stmt->bindParam(':details', $details);
