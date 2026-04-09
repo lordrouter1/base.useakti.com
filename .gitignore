@@ -22,4 +22,5 @@ phpunit.xml
 # Node.js (API microservice)
 api/node_modules/
 api/.env
+api/certs/
 .env
