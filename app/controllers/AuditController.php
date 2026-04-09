@@ -4,6 +4,7 @@ namespace Akti\Controllers;
 
 use Akti\Models\AuditLog;
 use Akti\Utils\Input;
+use PDO;
 
 class AuditController
 {

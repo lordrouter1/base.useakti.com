@@ -13,6 +13,7 @@ use Akti\Models\PriceTable;
 use Akti\Models\CompanySettings;
 use Akti\Services\PipelineService;
 use Akti\Services\PipelineAlertService;
+use PDO;
 use Akti\Services\PipelinePaymentService;
 use Akti\Services\PipelineDetailService;
 use Akti\Utils\Input;

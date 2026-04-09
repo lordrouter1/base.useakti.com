@@ -4,6 +4,7 @@ namespace Akti\Controllers;
 
 use Akti\Models\Quote;
 use Akti\Utils\Input;
+use PDO;
 
 class QuoteController
 {

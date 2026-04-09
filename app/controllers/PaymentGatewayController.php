@@ -8,6 +8,7 @@ use Akti\Core\ModuleBootloader;
 use Akti\Core\Log;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
+use PDO;
 use TenantManager;
 
 /**

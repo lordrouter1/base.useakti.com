@@ -5,6 +5,7 @@ namespace Akti\Controllers;
 use Akti\Models\EmailCampaign;
 use Akti\Services\EmailService;
 use Akti\Utils\Input;
+use PDO;
 
 class EmailMarketingController
 {

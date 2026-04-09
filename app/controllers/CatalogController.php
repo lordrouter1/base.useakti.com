@@ -12,6 +12,7 @@ use Akti\Services\CatalogCartService;
 use Akti\Services\CatalogQuoteService;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
+use PDO;
 use PDOException;
 
 /**

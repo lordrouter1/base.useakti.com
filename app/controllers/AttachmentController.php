@@ -5,6 +5,7 @@ namespace Akti\Controllers;
 use Akti\Models\Attachment;
 use Akti\Services\FileManager;
 use Akti\Utils\Input;
+use PDO;
 
 class AttachmentController
 {
