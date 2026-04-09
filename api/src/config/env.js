@@ -35,6 +35,11 @@ export const env = Object.freeze({
   // Base domain for subdomain resolution (webhooks, checkout)
   BASE_DOMAIN: process.env.BASE_DOMAIN || 'useakti.com',
 
+  // HTTPS
+  HTTPS_PORT: parseInt(process.env.HTTPS_PORT, 10) || 3443,
+  SSL_CERT: process.env.SSL_CERT || '',
+  SSL_KEY: process.env.SSL_KEY || '',
+
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900_000,
   RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100,
