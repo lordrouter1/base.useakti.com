@@ -156,6 +156,8 @@ class StripeGateway extends AbstractGateway
             case 'boleto':
                 $payload['payment_method_types[0]'] = 'boleto';
                 $payload['payment_method_data[type]'] = 'boleto';
+                $payload['payment_method_data[billing_details][name]'] = $data['customer']['name'] ?? 'Cliente';
+                $payload['payment_method_data[billing_details][email]'] = $data['customer']['email'] ?? '';
                 $doc = preg_replace('/\D/', '', $data['customer']['document'] ?? '');
                 if ($doc) {
                     $payload['payment_method_data[boleto][tax_id]'] = $doc;
