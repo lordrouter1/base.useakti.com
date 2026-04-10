@@ -23,11 +23,17 @@ class StripeGateway extends AbstractGateway
     // Identificação
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     */
     public function getSlug(): string
     {
         return 'stripe';
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getDisplayName(): string
     {
         return 'Stripe';
@@ -37,11 +43,17 @@ class StripeGateway extends AbstractGateway
     // Capabilities
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     */
     public function supports(string $method): bool
     {
         return in_array($method, $this->getSupportedMethods());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getSupportedMethods(): array
     {
         return ['auto', 'credit_card', 'debit_card', 'pix', 'boleto'];
@@ -51,6 +63,9 @@ class StripeGateway extends AbstractGateway
     // Campos de Configuração
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -59,6 +74,9 @@ class StripeGateway extends AbstractGateway
         ];
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getSettingsFields(): array
     {
         return [
@@ -73,6 +91,13 @@ class StripeGateway extends AbstractGateway
     // Operações
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     *
+     * Roteamento interno:
+     * - PIX, boleto ou cartão com token → PaymentIntent direto (/v1/payment_intents).
+     * - 'auto' ou cartão sem token → Checkout Session (redirect hosted pelo Stripe).
+     */
     public function createCharge(array $data): array
     {
         $method = $data['method'] ?? 'credit_card';
@@ -90,8 +115,14 @@ class StripeGateway extends AbstractGateway
 
     /**
      * Cria um PaymentIntent diretamente.
+     *
      * Cartão: anexa payment_method e confirma.
      * PIX/Boleto: usa payment_method_data para criar inline e confirma.
+     *
+     * @param array  $data   Dados da cobrança (mesmo formato de createCharge).
+     * @param string $method Método de pagamento selecionado.
+     *
+     * @return array Resposta padronizada com 'success', 'external_id', 'status', etc.
      */
     private function createPaymentIntent(array $data, string $method): array
     {
@@ -184,7 +215,14 @@ class StripeGateway extends AbstractGateway
 
     /**
      * Cria uma Checkout Session que gera uma URL de pagamento hosted pelo Stripe.
+     *
      * Ideal para gerar links que o cliente pode acessar diretamente.
+     * Quando method='auto', o Stripe mostra todos os métodos habilitados na conta.
+     *
+     * @param array  $data   Dados da cobrança (mesmo formato de createCharge).
+     * @param string $method Método de pagamento selecionado.
+     *
+     * @return array Resposta padronizada com 'success', 'external_id', 'status', 'payment_url', etc.
      */
     private function createCheckoutSession(array $data, string $method): array
     {
@@ -263,6 +301,9 @@ class StripeGateway extends AbstractGateway
         );
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getChargeStatus(string $externalId): array
     {
         $response = $this->stripeRequest('GET', "/v1/payment_intents/{$externalId}");
@@ -283,6 +324,9 @@ class StripeGateway extends AbstractGateway
         return $this->errorResponse('Erro ao consultar cobrança', ['raw' => $response['decoded']]);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function refund(string $externalId, ?float $amount = null): array
     {
         $payload = ['payment_intent' => $externalId];
@@ -308,6 +352,11 @@ class StripeGateway extends AbstractGateway
     // Webhooks
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     *
+     * Stripe usa header stripe-signature com timestamp (t) e assinatura (v1) HMAC-SHA256.
+     */
     public function validateWebhookSignature(string $payload, array $headers, string $secret): bool
     {
         $sigHeader = $headers['stripe-signature'] ?? $headers['Stripe-Signature'] ?? '';
@@ -344,6 +393,9 @@ class StripeGateway extends AbstractGateway
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function parseWebhookPayload(string $payload, array $headers): array
     {
         $data = json_decode($payload, true) ?? [];
@@ -369,6 +421,11 @@ class StripeGateway extends AbstractGateway
     // Testes
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     *
+     * Testa a conexão consultando o endpoint /v1/balance.
+     */
     public function testConnection(): array
     {
         $response = $this->stripeRequest('GET', '/v1/balance');
@@ -384,6 +441,11 @@ class StripeGateway extends AbstractGateway
     // Internals
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     *
+     * Mapeamento de status do Stripe para o padrão Akti.
+     */
     protected function mapStatus(string $gatewayStatus): string
     {
         $map = [
@@ -404,6 +466,12 @@ class StripeGateway extends AbstractGateway
 
     /**
      * Faz requisição para a API Stripe (form-urlencoded + Basic Auth).
+     *
+     * @param string $method Método HTTP (GET, POST, PUT, DELETE).
+     * @param string $path   Path da API (ex: '/v1/payment_intents').
+     * @param array  $data   Dados do body (serão enviados como form-urlencoded).
+     *
+     * @return array Resposta com 'status', 'body', 'decoded', 'error'.
      */
     private function stripeRequest(string $method, string $path, array $data = []): array
     {

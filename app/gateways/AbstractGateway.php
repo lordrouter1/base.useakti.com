@@ -30,16 +30,27 @@ abstract class AbstractGateway implements PaymentGatewayInterface
     // Configuração (implementação padrão da interface)
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     */
     public function setCredentials(array $credentials): void
     {
         $this->credentials = $credentials;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function setSettings(array $settings): void
     {
         $this->settings = $settings;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * Valida o valor recebido; se inválido, assume 'sandbox' como padrão.
+     */
     public function setEnvironment(string $environment): void
     {
         $this->environment = in_array($environment, ['sandbox', 'production'])
@@ -49,6 +60,11 @@ abstract class AbstractGateway implements PaymentGatewayInterface
 
     /**
      * Retorna uma credencial pelo nome.
+     *
+     * @param string $key     Nome da credencial (ex: 'access_token', 'secret_key').
+     * @param string $default Valor padrão se a credencial não existir.
+     *
+     * @return string
      */
     protected function getCredential(string $key, string $default = ''): string
     {
@@ -57,6 +73,11 @@ abstract class AbstractGateway implements PaymentGatewayInterface
 
     /**
      * Retorna uma configuração extra pelo nome.
+     *
+     * @param string $key     Nome da configuração (ex: 'pix_expiration_minutes').
+     * @param mixed  $default Valor padrão se a configuração não existir.
+     *
+     * @return mixed
      */
     protected function getSetting(string $key, $default = null)
     {
@@ -65,6 +86,8 @@ abstract class AbstractGateway implements PaymentGatewayInterface
 
     /**
      * Verifica se está em modo sandbox.
+     *
+     * @return bool True se o ambiente for 'sandbox'.
      */
     protected function isSandbox(): bool
     {
@@ -139,6 +162,10 @@ abstract class AbstractGateway implements PaymentGatewayInterface
 
     /**
      * Cria uma resposta padronizada de sucesso.
+     *
+     * @param array $data Dados adicionais a incluir na resposta.
+     *
+     * @return array Array com 'success' => true mesclado com $data.
      */
     protected function successResponse(array $data): array
     {
@@ -147,6 +174,11 @@ abstract class AbstractGateway implements PaymentGatewayInterface
 
     /**
      * Cria uma resposta padronizada de erro.
+     *
+     * @param string $message Mensagem de erro descritiva.
+     * @param array  $extra   Dados adicionais (ex: 'raw' => resposta bruta).
+     *
+     * @return array Array com 'success' => false, 'error' => $message, mesclado com $extra.
      */
     protected function errorResponse(string $message, array $extra = []): array
     {
@@ -158,7 +190,12 @@ abstract class AbstractGateway implements PaymentGatewayInterface
 
     /**
      * Mapeia status do gateway para status padronizado do Akti.
+     *
      * Gateways concretos devem sobrescrever com seu mapeamento específico.
+     *
+     * @param string $gatewayStatus Status original retornado pela API do gateway.
+     *
+     * @return string Status padronizado: 'approved', 'pending', 'rejected', 'cancelled' ou 'refunded'.
      */
     abstract protected function mapStatus(string $gatewayStatus): string;
 
@@ -168,6 +205,12 @@ abstract class AbstractGateway implements PaymentGatewayInterface
 
     /**
      * Loga uma operação do gateway (append em storage/logs/gateways.log).
+     *
+     * @param string $level   Nível do log ('info', 'warning', 'error').
+     * @param string $message Mensagem descritiva do evento.
+     * @param array  $context Dados adicionais para contexto (serializados em JSON).
+     *
+     * @return void
      */
     protected function log(string $level, string $message, array $context = []): void
     {

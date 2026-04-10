@@ -133,6 +133,10 @@ class GatewayManager
 
     /**
      * Verifica se um slug de gateway está registrado.
+     *
+     * @param string $slug Slug do gateway a verificar.
+     *
+     * @return bool True se o slug estiver no GATEWAY_MAP.
      */
     public static function isRegistered(string $slug): bool
     {
@@ -163,6 +167,8 @@ class GatewayManager
 
     /**
      * Retorna labels amigáveis para métodos de pagamento.
+     *
+     * @return array<string, string> Mapa de slug do método => label de exibição.
      */
     public static function getMethodLabels(): array
     {

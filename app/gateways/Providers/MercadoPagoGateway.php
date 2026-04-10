@@ -24,11 +24,17 @@ class MercadoPagoGateway extends AbstractGateway
     // Identificação
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     */
     public function getSlug(): string
     {
         return 'mercadopago';
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getDisplayName(): string
     {
         return 'Mercado Pago';
@@ -38,11 +44,17 @@ class MercadoPagoGateway extends AbstractGateway
     // Capabilities
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     */
     public function supports(string $method): bool
     {
         return in_array($method, $this->getSupportedMethods());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getSupportedMethods(): array
     {
         return ['auto', 'pix', 'credit_card', 'debit_card', 'boleto'];
@@ -52,6 +64,9 @@ class MercadoPagoGateway extends AbstractGateway
     // Campos de Configuração
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -60,6 +75,9 @@ class MercadoPagoGateway extends AbstractGateway
         ];
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getSettingsFields(): array
     {
         return [
@@ -74,6 +92,13 @@ class MercadoPagoGateway extends AbstractGateway
     // Operações
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     *
+     * Roteamento interno:
+     * - PIX, boleto, credit_card, debit_card → pagamento direto via /v1/payments.
+     * - 'auto' → Checkout Preference (redirect) via /checkout/preferences.
+     */
     public function createCharge(array $data): array
     {
         $method  = $data['method'] ?? 'pix';
@@ -88,7 +113,14 @@ class MercadoPagoGateway extends AbstractGateway
     }
 
     /**
-     * Cria um pagamento direto via /v1/payments (quando card_token está disponível).
+     * Cria um pagamento direto via /v1/payments.
+     *
+     * Utilizado quando o método é pix, boleto, credit_card ou debit_card.
+     *
+     * @param array  $data   Dados da cobrança (mesmo formato de createCharge).
+     * @param string $method Método de pagamento selecionado.
+     *
+     * @return array Resposta padronizada com 'success', 'external_id', 'status', etc.
      */
     private function createDirectPayment(array $data, string $method): array
     {
@@ -125,8 +157,14 @@ class MercadoPagoGateway extends AbstractGateway
 
     /**
      * Cria uma Preferência de Checkout via /checkout/preferences.
+     *
      * Retorna init_point (URL de pagamento que o cliente pode acessar).
      * Suporta todos os métodos: pix, boleto, credit_card, debit_card.
+     *
+     * @param array  $data   Dados da cobrança (mesmo formato de createCharge).
+     * @param string $method Método de pagamento selecionado.
+     *
+     * @return array Resposta padronizada com 'success', 'external_id', 'status', 'payment_url', etc.
      */
     private function createPreferenceLink(array $data, string $method): array
     {
@@ -253,6 +291,9 @@ class MercadoPagoGateway extends AbstractGateway
         );
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getChargeStatus(string $externalId): array
     {
         $response = $this->httpRequest('GET', $this->getBaseUrl() . '/v1/payments/' . $externalId, [
@@ -273,6 +314,9 @@ class MercadoPagoGateway extends AbstractGateway
         return $this->errorResponse('Erro ao consultar cobrança', ['raw' => $response['decoded']]);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function refund(string $externalId, ?float $amount = null): array
     {
         $body = $amount !== null ? ['amount' => $amount] : [];
@@ -297,6 +341,11 @@ class MercadoPagoGateway extends AbstractGateway
     // Webhooks
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     *
+     * Mercado Pago usa header x-signature com ts e v1 (HMAC-SHA256).
+     */
     public function validateWebhookSignature(string $payload, array $headers, string $secret): bool
     {
         // Mercado Pago usa x-signature com ts e v1
@@ -334,6 +383,12 @@ class MercadoPagoGateway extends AbstractGateway
         return hash_equals($hash, $v1);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * Identifica o tipo de webhook (order ou payment) e roteia para o parser adequado.
+     * Webhooks do tipo payment exigem lookup na API para obter dados completos.
+     */
     public function parseWebhookPayload(string $payload, array $headers): array
     {
         $data = json_decode($payload, true) ?? [];
@@ -375,7 +430,13 @@ class MercadoPagoGateway extends AbstractGateway
 
     /**
      * Parseia webhook do tipo 'order' (Checkout Pro / Point).
+     *
      * Dados vêm inline no payload, não precisa de lookup na API.
+     * Point envia valores em centavos; Checkout Pro em reais.
+     *
+     * @param array $data Payload decodificado do webhook.
+     *
+     * @return array Dados padronizados do webhook.
      */
     private function parseOrderWebhook(array $data): array
     {
@@ -422,6 +483,11 @@ class MercadoPagoGateway extends AbstractGateway
     // Testes
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     *
+     * Valida o access_token tentando /users/me e, como fallback, /v1/payment_methods.
+     */
     public function testConnection(): array
     {
         $accessToken = $this->getCredential('access_token');
@@ -462,6 +528,13 @@ class MercadoPagoGateway extends AbstractGateway
     // Internals
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * Retorna a URL base da API do Mercado Pago.
+     *
+     * O MP não diferencia sandbox/production pela URL, e sim pelo access_token.
+     *
+     * @return string URL base da API.
+     */
     private function getBaseUrl(): string
     {
         // MP não diferencia sandbox/production pela URL, e sim pelo access_token
@@ -482,6 +555,11 @@ class MercadoPagoGateway extends AbstractGateway
         return $dt->format('Y-m-d\TH:i:s.vP');
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * Mapeamento de status do Mercado Pago para o padrão Akti.
+     */
     protected function mapStatus(string $gatewayStatus): string
     {
         $map = [
@@ -499,6 +577,17 @@ class MercadoPagoGateway extends AbstractGateway
         return $map[$gatewayStatus] ?? 'pending';
     }
 
+    /**
+     * Monta o payload de cobrança para a API /v1/payments.
+     *
+     * Configura payer, método de pagamento, webhook URL e expirações
+     * conforme o método selecionado (pix, boleto, credit_card, debit_card).
+     *
+     * @param array  $data   Dados da cobrança (amount, customer, metadata, etc.).
+     * @param string $method Método de pagamento.
+     *
+     * @return array Payload formatado para a API do Mercado Pago.
+     */
     private function buildChargePayload(array $data, string $method): array
     {
         $payload = [

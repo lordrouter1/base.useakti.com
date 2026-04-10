@@ -23,11 +23,17 @@ class PagSeguroGateway extends AbstractGateway
     // Identificação
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     */
     public function getSlug(): string
     {
         return 'pagseguro';
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getDisplayName(): string
     {
         return 'PagSeguro';
@@ -37,11 +43,17 @@ class PagSeguroGateway extends AbstractGateway
     // Capabilities
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     */
     public function supports(string $method): bool
     {
         return in_array($method, $this->getSupportedMethods());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getSupportedMethods(): array
     {
         return ['auto', 'pix', 'credit_card', 'debit_card', 'boleto'];
@@ -51,6 +63,9 @@ class PagSeguroGateway extends AbstractGateway
     // Campos de Configuração
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -58,6 +73,9 @@ class PagSeguroGateway extends AbstractGateway
         ];
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getSettingsFields(): array
     {
         return [
@@ -71,6 +89,14 @@ class PagSeguroGateway extends AbstractGateway
     // Operações
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     *
+     * Roteamento interno:
+     * - 'auto' → Cria pedido sem charges (usa checkout hosted do PagSeguro).
+     * - PIX, boleto, credit_card, debit_card → Cria pedido com charges e payment_method.
+     * - PIX adicionalmente gera qr_codes no nível do pedido.
+     */
     public function createCharge(array $data): array
     {
         $method = $data['method'] ?? 'pix';
@@ -187,6 +213,11 @@ class PagSeguroGateway extends AbstractGateway
         );
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * Consulta o pedido via PagBank v4 (/orders/{id}).
+     */
     public function getChargeStatus(string $externalId): array
     {
         // PagBank v4: consulta por /orders/{id}
@@ -210,6 +241,11 @@ class PagSeguroGateway extends AbstractGateway
         return $this->errorResponse('Erro ao consultar cobrança: ' . $this->extractPagSeguroError($response), ['raw' => $response['decoded']]);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * PagBank v4: busca o order para obter o charge_id e então cancela via /charges/{id}/cancel.
+     */
     public function refund(string $externalId, ?float $amount = null): array
     {
         // PagBank v4: precisa do charge_id (dentro do order)
@@ -248,6 +284,12 @@ class PagSeguroGateway extends AbstractGateway
     // Webhooks
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     *
+     * PagSeguro usa verificação por IP + header x-pagseguro-signature (HMAC-SHA256).
+     * Se o header não estiver presente, aceita e valida pela consulta posterior.
+     */
     public function validateWebhookSignature(string $payload, array $headers, string $secret): bool
     {
         // PagSeguro usa verificação por IP + token de notificação
@@ -264,6 +306,9 @@ class PagSeguroGateway extends AbstractGateway
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function parseWebhookPayload(string $payload, array $headers): array
     {
         $data = json_decode($payload, true) ?? [];
@@ -286,6 +331,11 @@ class PagSeguroGateway extends AbstractGateway
     // Testes
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * {@inheritDoc}
+     *
+     * Testa criando public-keys/card e, como fallback, consultando /orders com limit=1.
+     */
     public function testConnection(): array
     {
         $token = $this->getCredential('token');
@@ -318,11 +368,21 @@ class PagSeguroGateway extends AbstractGateway
     // Internals
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * Retorna a URL base da API do PagSeguro conforme o ambiente.
+     *
+     * @return string URL base (sandbox ou production).
+     */
     private function getBaseUrl(): string
     {
         return $this->isSandbox() ? self::SANDBOX_URL : self::PRODUCTION_URL;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * Mapeamento de status do PagSeguro (PagBank v4) para o padrão Akti.
+     */
     protected function mapStatus(string $gatewayStatus): string
     {
         $map = [
@@ -339,6 +399,10 @@ class PagSeguroGateway extends AbstractGateway
 
     /**
      * Monta o objeto customer para a API PagBank v4 (Orders).
+     *
+     * @param array $data Dados da cobrança contendo 'customer' (name, email, document, phone).
+     *
+     * @return array Objeto customer formatado para a API PagBank.
      */
     private function buildCustomer(array $data): array
     {
@@ -370,6 +434,12 @@ class PagSeguroGateway extends AbstractGateway
 
     /**
      * Extrai mensagem de erro legível da resposta do PagSeguro.
+     *
+     * Tenta extrair de error_messages[] (PagBank v4), campo 'message' ou body bruto.
+     *
+     * @param array $response Resposta do httpRequest ('status', 'body', 'decoded').
+     *
+     * @return string Mensagem de erro legível.
      */
     private function extractPagSeguroError(array $response): string
     {
@@ -397,6 +467,17 @@ class PagSeguroGateway extends AbstractGateway
         return $response['body'] ?: 'Erro desconhecido';
     }
 
+    /**
+     * Monta o objeto payment_method para a API PagBank v4.
+     *
+     * Configura o payload específico conforme o método
+     * (PIX, BOLETO, CREDIT_CARD, DEBIT_CARD).
+     *
+     * @param array  $data   Dados da cobrança (card_token, customer, etc.).
+     * @param string $method Método de pagamento selecionado.
+     *
+     * @return array Objeto payment_method formatado para a API PagBank.
+     */
     private function buildPaymentMethod(array $data, string $method): array
     {
         switch ($method) {
@@ -474,6 +555,14 @@ class PagSeguroGateway extends AbstractGateway
         }
     }
 
+    /**
+     * Busca um link específico pelo atributo 'rel' no array de links.
+     *
+     * @param array  $links Array de links retornados pela API ([['rel' => '...', 'href' => '...']]).
+     * @param string $rel   Valor do atributo 'rel' a buscar (ex: 'PAYMENT', 'PDF').
+     *
+     * @return string|null URL do link encontrado, ou null se não existir.
+     */
     private function findLink(array $links, string $rel): ?string
     {
         foreach ($links as $link) {
