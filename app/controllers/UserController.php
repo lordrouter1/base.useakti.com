@@ -67,7 +67,7 @@ class UserController {
              $name = Input::post('name');
              $email = Input::post('email', 'email');
              $password = Input::postRaw('password');
-             $role = Input::post('role', 'enum', 'user', ['admin', 'user']);
+             $role = Input::post('role', 'enum', 'funcionario', ['admin', 'funcionario']);
              $groupId = Input::post('group_id', 'int');
 
              $v = new Validator();
@@ -139,7 +139,7 @@ class UserController {
             $id = Input::post('id', 'int');
             $name = Input::post('name');
             $email = Input::post('email', 'email');
-            $role = Input::post('role', 'enum', 'user', ['admin', 'user']);
+            $role = Input::post('role', 'enum', 'funcionario', ['admin', 'funcionario']);
             $groupId = Input::post('group_id', 'int');
             $password = Input::postRaw('password');
 
