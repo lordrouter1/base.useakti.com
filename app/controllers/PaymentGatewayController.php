@@ -311,7 +311,10 @@ class PaymentGatewayController
                 'external_status'     => $result['status'] ?? null,
                 'amount'              => (float) $installment['amount'],
                 'payment_method_type' => $method,
-                'raw_payload'         => $result['raw'] ?? null,
+                'raw_payload'         => [
+                    'request'  => $chargeData,
+                    'response' => $result['raw'] ?? [],
+                ],
                 'event_type'          => 'charge.created',
             ]);
 

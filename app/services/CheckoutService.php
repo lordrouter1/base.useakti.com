@@ -264,14 +264,18 @@ class CheckoutService
 
         // Logar transação
         $gwModel->logTransaction([
-            'gateway_id'     => $gatewayRow['id'],
-            'order_id'       => $tokenRow['order_id'],
-            'installment_id' => $tokenRow['installment_id'],
-            'external_id'    => $result['external_id'] ?? null,
-            'method'         => $method,
-            'amount'         => $tokenRow['amount'],
-            'status'         => $result['status'] ?? 'pending',
-            'raw_response'   => json_encode($result['raw'] ?? []),
+            'gateway_slug'        => $gatewayRow['gateway_slug'],
+            'order_id'            => $tokenRow['order_id'],
+            'installment_id'      => $tokenRow['installment_id'],
+            'external_id'         => $result['external_id'] ?? null,
+            'external_status'     => $result['status'] ?? 'pending',
+            'amount'              => $tokenRow['amount'],
+            'payment_method_type' => $method,
+            'raw_payload'         => [
+                'request'  => $chargeData,
+                'response' => $result['raw'] ?? [],
+            ],
+            'event_type'          => 'charge.created',
         ]);
 
         // Se pagamento com sucesso imediato (cartão aprovado)
