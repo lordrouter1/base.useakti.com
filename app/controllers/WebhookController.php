@@ -20,9 +20,9 @@ use Akti\Services\CheckoutService;
  *   1. Lê o raw body (necessário para validação de assinatura)
  *   2. Resolve o gateway pelo slug
  *   3. Valida assinatura HMAC (se webhook_secret configurado)
- *   4. Parseia payload (gateway faz lookup na API se necessário)
- *   5. Loga transação no banco
- *   6. Se status=approved, marca parcela como paga
+ *   4. Parseia payload (gateway faz lookup na API: GET /v1/payments/{data.id})
+ *   5. Se status=approved, extrai installment_id do metadata e marca parcela como paga
+ *   6. Loga transação no banco
  *   7. Retorna 200 OK para o gateway
  *
  * @package Akti\Controllers
@@ -97,10 +97,25 @@ class WebhookController extends BaseController
                 $parsed['amount'] ?? 0
             ));
 
-            // 5. Logar transação
-            $orderId = !empty($parsed['metadata']['order_id']) ? (int) $parsed['metadata']['order_id'] : null;
-            $installmentId = !empty($parsed['metadata']['installment_id']) ? (int) $parsed['metadata']['installment_id'] : null;
+            // 5. Extrair IDs — installment_id e order_id vêm direto do parsed (gateway resolve)
+            $installmentId = $parsed['installment_id'] ?? null;
+            $orderId       = $parsed['order_id'] ?? null;
 
+            // Fallback: buscar em metadata (compatibilidade)
+            if (!$installmentId && !empty($parsed['metadata']['installment_id'])) {
+                $installmentId = (int) $parsed['metadata']['installment_id'];
+            }
+            if (!$orderId && !empty($parsed['metadata']['order_id'])) {
+                $orderId = (int) $parsed['metadata']['order_id'];
+            }
+
+            $this->logWebhook('info', $gatewaySlug, sprintf(
+                "Resolved: installment_id=%s, order_id=%s",
+                $installmentId ?? 'NULL',
+                $orderId ?? 'NULL'
+            ));
+
+            // 6. Logar transação
             $txId = $gwModel->logTransaction([
                 'gateway_slug'        => $gatewaySlug,
                 'installment_id'      => $installmentId,
@@ -115,15 +130,18 @@ class WebhookController extends BaseController
 
             $this->logWebhook('info', $gatewaySlug, "Transaction logged: #{$txId}");
 
-            // 6. Processar pagamento (se status = approved)
-            if (($parsed['status'] ?? '') === 'approved' && $orderId) {
+            // 7. Processar pagamento (se status = approved)
+            $status = $parsed['status'] ?? 'unknown';
+            if ($status === 'approved' && ($installmentId || $orderId)) {
                 $this->processApprovedPayment(
-                    $orderId,
                     $installmentId,
+                    $orderId,
                     (float) ($parsed['amount'] ?? 0),
                     $gatewaySlug,
                     $parsed['external_id'] ?? null
                 );
+            } elseif ($status === 'approved') {
+                $this->logWebhook('warn', $gatewaySlug, "Status approved but no installment_id or order_id found — skipping.");
             }
 
             // 7. Retornar 200 OK (gateways esperam 200 para confirmar recebimento)
@@ -144,25 +162,70 @@ class WebhookController extends BaseController
     }
 
     /**
-     * Marca parcela como paga quando o gateway confirma o pagamento.
+     * Marca parcela como paga quando o gateway confirma o pagamento (status=approved).
+     *
+     * Prioridade:
+     *   1. Se tem installment_id → atualiza diretamente em order_installments WHERE id = installment_id
+     *   2. Se só tem order_id → busca primeira parcela pendente do pedido e marca como paga
      */
     private function processApprovedPayment(
-        int $orderId,
         ?int $installmentId,
+        ?int $orderId,
         float $amount,
         string $gatewaySlug,
         ?string $externalId
     ): void {
         try {
-            $checkoutService = new CheckoutService($this->db);
-            $checkoutService->markInstallmentPaidFromCheckout(
-                $orderId,
-                $installmentId,
-                $amount,
-                $gatewaySlug,
-                $externalId
-            );
-            $this->logWebhook('info', $gatewaySlug, "Payment confirmed for order #{$orderId}");
+            $installmentModel = new Installment($this->db);
+
+            // ── Caminho 1: installment_id disponível → update direto ──
+            if ($installmentId) {
+                $installment = $installmentModel->getById($installmentId);
+
+                if (!$installment) {
+                    $this->logWebhook('warn', $gatewaySlug, "Installment #{$installmentId} not found in DB.");
+                    return;
+                }
+
+                // Já pago? Evitar duplicidade
+                if ($installment['status'] === 'pago') {
+                    $this->logWebhook('info', $gatewaySlug, "Installment #{$installmentId} already paid — skipping.");
+                    return;
+                }
+
+                $payAmount = $amount > 0 ? $amount : (float) $installment['amount'];
+
+                $installmentModel->pay($installmentId, [
+                    'paid_date'      => date('Y-m-d'),
+                    'paid_amount'    => $payAmount,
+                    'payment_method' => $gatewaySlug,
+                    'notes'          => 'Pago via webhook ' . $gatewaySlug . ($externalId ? " (ID: {$externalId})" : ''),
+                ], true); // autoConfirm = true
+
+                $installmentOrderId = (int) $installment['order_id'];
+                $installmentModel->updateOrderPaymentStatus($installmentOrderId);
+
+                $this->logWebhook('info', $gatewaySlug, sprintf(
+                    "Installment #%d marked as PAID (R$ %.2f) — order #%d",
+                    $installmentId,
+                    $payAmount,
+                    $installmentOrderId
+                ));
+                return;
+            }
+
+            // ── Caminho 2: só order_id → delegar ao CheckoutService ──
+            if ($orderId) {
+                $checkoutService = new CheckoutService($this->db);
+                $checkoutService->markInstallmentPaidFromCheckout(
+                    $orderId,
+                    null,
+                    $amount,
+                    $gatewaySlug,
+                    $externalId
+                );
+                $this->logWebhook('info', $gatewaySlug, "Payment confirmed for order #{$orderId} (first pending installment).");
+            }
         } catch (\Throwable $e) {
             $this->logWebhook('error', $gatewaySlug, "Failed to process payment: " . $e->getMessage());
         }

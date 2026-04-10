@@ -338,11 +338,18 @@ class MercadoPagoGateway extends AbstractGateway
     {
         $data = json_decode($payload, true) ?? [];
 
-        $eventType = $data['type'] ?? $data['action'] ?? 'unknown';
+        $eventType = $data['action'] ?? $data['type'] ?? 'unknown';
+
+        // ──── ORDER type (Checkout Pro / Point) ────
+        // O webhook type=order traz dados inline (não precisa lookup)
+        if (($data['type'] ?? '') === 'order' || str_starts_with($data['action'] ?? '', 'order.')) {
+            return $this->parseOrderWebhook($data);
+        }
+
+        // ──── PAYMENT type (pagamento direto via /v1/payments) ────
+        // O webhook type=payment envia apenas data.id; precisamos consultar a API
         $paymentId = (string) ($data['data']['id'] ?? '');
 
-        // Para obter os dados completos, precisamos consultar a API
-        // O webhook do MP envia apenas o ID, não os dados completos
         $paymentData = [];
         if ($paymentId && $this->getCredential('access_token')) {
             $result = $this->getChargeStatus($paymentId);
@@ -351,14 +358,63 @@ class MercadoPagoGateway extends AbstractGateway
             }
         }
 
+        $metadata = $paymentData['metadata'] ?? [];
+
         return [
-            'event_type'  => $eventType,
-            'external_id' => $paymentId,
-            'status'      => $this->mapStatus($paymentData['status'] ?? 'unknown'),
-            'amount'      => (float) ($paymentData['transaction_amount'] ?? 0),
-            'paid_amount' => (float) ($paymentData['transaction_amount_refunded'] ?? $paymentData['transaction_amount'] ?? 0),
-            'metadata'    => $paymentData['metadata'] ?? [],
-            'raw'         => $data,
+            'event_type'     => $eventType,
+            'external_id'    => $paymentId,
+            'status'         => $this->mapStatus($paymentData['status'] ?? 'unknown'),
+            'amount'         => (float) ($paymentData['transaction_amount'] ?? 0),
+            'paid_amount'    => (float) ($paymentData['transaction_amount_refunded'] ?? $paymentData['transaction_amount'] ?? 0),
+            'installment_id' => !empty($metadata['installment_id']) ? (int) $metadata['installment_id'] : null,
+            'order_id'       => !empty($metadata['order_id']) ? (int) $metadata['order_id'] : null,
+            'metadata'       => $metadata,
+            'raw'            => $data,
+        ];
+    }
+
+    /**
+     * Parseia webhook do tipo 'order' (Checkout Pro / Point).
+     * Dados vêm inline no payload, não precisa de lookup na API.
+     */
+    private function parseOrderWebhook(array $data): array
+    {
+        $orderData = $data['data'] ?? [];
+        $payment = $orderData['transactions']['payments'][0] ?? [];
+
+        // external_reference = order_id do Akti (enviado ao criar a preference)
+        $orderId = $orderData['external_reference'] ?? null;
+        $status = $orderData['status'] ?? 'unknown';
+
+        // Mapear status de order para status padronizado
+        $mappedStatus = match ($status) {
+            'processed'        => 'approved',
+            'partially_paid'   => 'pending',
+            'payment_required' => 'pending',
+            'reverted'         => 'refunded',
+            'expired'          => 'cancelled',
+            default            => 'pending',
+        };
+
+        // Point envia valores em centavos; Checkout Pro em reais.
+        // Detectar pelo tipo: point = centavos.
+        $isPoint = ($orderData['type'] ?? '') === 'point';
+        $divisor = $isPoint ? 100 : 1;
+
+        return [
+            'event_type'     => $data['action'] ?? 'order.updated',
+            'external_id'    => (string) ($payment['id'] ?? $orderData['id'] ?? ''),
+            'status'         => $mappedStatus,
+            'amount'         => (float) ($orderData['total_paid_amount'] ?? 0) / $divisor,
+            'paid_amount'    => (float) ($payment['paid_amount'] ?? 0) / $divisor,
+            'installment_id' => null,
+            'order_id'       => $orderId !== null && $orderId !== '' ? (int) $orderId : null,
+            'metadata'       => [
+                'order_id'       => $orderId !== null && $orderId !== '' ? (int) $orderId : null,
+                'installment_id' => null,
+                'method'         => $payment['payment_method']['type'] ?? null,
+            ],
+            'raw'            => $data,
         ];
     }
 
