@@ -107,6 +107,29 @@ class User {
     }
 
     /**
+     * Verifica se um e-mail já existe na tabela de usuários, opcionalmente excluindo um ID.
+     *
+     * @param string   $email     E-mail a verificar
+     * @param int|null $excludeId ID a excluir da verificação (para edição)
+     * @return bool true se o e-mail já está em uso
+     */
+    public function emailExists(string $email, ?int $excludeId = null): bool
+    {
+        $query = "SELECT id FROM " . $this->table_name . " WHERE email = :email";
+        $params = [':email' => $email];
+
+        if ($excludeId !== null) {
+            $query .= " AND id != :eid";
+            $params[':eid'] = $excludeId;
+        }
+
+        $query .= " LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute($params);
+        return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Retorna usuários paginados com JOIN no grupo.
      *
      * @param int $page   Página atual (1-based)

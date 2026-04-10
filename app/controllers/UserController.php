@@ -85,6 +85,13 @@ class UserController {
                  exit;
              }
 
+             if ($this->userModel->emailExists($email)) {
+                 $_SESSION['errors'] = ['email' => 'Este e-mail já está cadastrado para outro usuário.'];
+                 $_SESSION['old'] = $_POST;
+                 header('Location: ?page=users&action=create');
+                 exit;
+             }
+
              $this->userModel->name = $name;
              $this->userModel->email = $email;
              $this->userModel->password = $password;
@@ -157,6 +164,12 @@ class UserController {
 
             if ($v->fails()) {
                 $_SESSION['errors'] = $v->errors();
+                header('Location: ?page=users&action=edit&id=' . $id);
+                exit;
+            }
+
+            if ($this->userModel->emailExists($email, $id)) {
+                $_SESSION['errors'] = ['email' => 'Este e-mail já está cadastrado para outro usuário.'];
                 header('Location: ?page=users&action=edit&id=' . $id);
                 exit;
             }
