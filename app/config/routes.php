@@ -1182,6 +1182,17 @@ return [
         ],
     ],
 
+    // ── Webhooks de gateways de pagamento (público, sem CSRF) ──
+    'webhook' => [
+        'controller'     => 'WebhookController',
+        'default_action' => 'handle',
+        'public'         => true,
+        'before_auth'    => true,
+        'actions'        => [
+            'handle' => 'handle',
+        ],
+    ],
+
     'master_deploy' => [
         'controller'     => 'Master\\DeployController',
         'default_action' => 'index',

@@ -50,6 +50,9 @@ class CsrfMiddleware
         // Checkout público: usa token próprio (checkout_tokens) para autenticação,
         // não há sessão de usuário logado, portanto CSRF de sessão não se aplica.
         'checkout:*',
+        // Webhooks de gateways de pagamento: autenticação via HMAC signature,
+        // não há sessão. Gateways externos (MercadoPago, Stripe) enviam POST sem CSRF.
+        'webhook:*',
         // Portal do cliente: login/register/magic link podem não ter sessão CSRF ativa ainda
         // Os forms POST do portal usam CSRF normalmente (gerado no header_auth.php)
     ];
