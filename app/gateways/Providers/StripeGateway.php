@@ -167,12 +167,33 @@ class StripeGateway extends AbstractGateway
                 if (!$doc) {
                     $doc = '00000000000';
                 }
+
+                // Endereço do cliente (obrigatório para boleto no Stripe)
+                $street = trim($data['customer']['street'] ?? '');
+                $number = trim($data['customer']['number'] ?? '');
+                $neighborhood = trim($data['customer']['neighborhood'] ?? '');
+                $line1 = $street;
+                if ($number) {
+                    $line1 .= ', ' . $number;
+                }
+                if (!$line1) {
+                    $line1 = 'Não informado';
+                }
+
                 $payload['payment_method_types'] = ['boleto'];
                 $payload['payment_method_data'] = [
                     'type' => 'boleto',
                     'billing_details' => [
                         'name'  => $customerName,
                         'email' => $customerEmail,
+                        'address' => [
+                            'line1'       => $line1,
+                            'line2'       => $neighborhood ?: null,
+                            'city'        => trim($data['customer']['city'] ?? '') ?: 'Não informado',
+                            'state'       => trim($data['customer']['state'] ?? '') ?: 'SP',
+                            'postal_code' => preg_replace('/\D/', '', $data['customer']['zip'] ?? '') ?: '00000000',
+                            'country'     => 'BR',
+                        ],
                     ],
                     'boleto' => [
                         'tax_id' => $doc,

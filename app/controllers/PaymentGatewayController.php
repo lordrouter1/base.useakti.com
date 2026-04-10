@@ -266,7 +266,10 @@ class PaymentGatewayController
         }
 
         // Buscar parcela e pedido
-        $q = "SELECT oi.*, o.id as order_id, c.name as customer_name, c.email as customer_email, c.document as customer_document
+        $q = "SELECT oi.*, o.id as order_id, c.name as customer_name, c.email as customer_email, c.document as customer_document,
+                     c.zipcode as customer_zipcode, c.address_street as customer_street,
+                     c.address_number as customer_number, c.address_neighborhood as customer_neighborhood,
+                     c.address_city as customer_city, c.address_state as customer_state
               FROM order_installments oi
               JOIN orders o ON oi.order_id = o.id
               LEFT JOIN customers c ON o.customer_id = c.id
@@ -294,9 +297,15 @@ class PaymentGatewayController
                 'order_id'       => $installment['order_id'],
                 'return_url'     => $protocol . '://' . $host . '/?page=financial&action=installments&order_id=' . $installment['order_id'],
                 'customer'       => [
-                    'name'     => $installment['customer_name'] ?? '',
-                    'email'    => $installment['customer_email'] ?? '',
-                    'document' => $installment['customer_document'] ?? '',
+                    'name'         => $installment['customer_name'] ?? '',
+                    'email'        => $installment['customer_email'] ?? '',
+                    'document'     => $installment['customer_document'] ?? '',
+                    'zip'          => $installment['customer_zipcode'] ?? '',
+                    'street'       => $installment['customer_street'] ?? '',
+                    'number'       => $installment['customer_number'] ?? '',
+                    'neighborhood' => $installment['customer_neighborhood'] ?? '',
+                    'city'         => $installment['customer_city'] ?? '',
+                    'state'        => $installment['customer_state'] ?? '',
                 ],
                 'metadata'       => [
                     'installment_id' => $installmentId,

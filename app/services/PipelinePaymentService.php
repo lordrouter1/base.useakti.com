@@ -103,6 +103,25 @@ class PipelinePaymentService
             ],
         ];
 
+        // Enriquecer customer com endereço (necessário para boleto Stripe)
+        $customerId = $order['customer_id'] ?? null;
+        if ($customerId) {
+            $addrStmt = $this->db->prepare(
+                "SELECT zipcode, address_street, address_number, address_neighborhood, address_city, address_state
+                 FROM customers WHERE id = :cid LIMIT 1"
+            );
+            $addrStmt->execute([':cid' => $customerId]);
+            $addr = $addrStmt->fetch(\PDO::FETCH_ASSOC);
+            if ($addr) {
+                $chargeData['customer']['zip']          = $addr['zipcode'] ?? '';
+                $chargeData['customer']['street']       = $addr['address_street'] ?? '';
+                $chargeData['customer']['number']       = $addr['address_number'] ?? '';
+                $chargeData['customer']['neighborhood'] = $addr['address_neighborhood'] ?? '';
+                $chargeData['customer']['city']         = $addr['address_city'] ?? '';
+                $chargeData['customer']['state']        = $addr['address_state'] ?? '';
+            }
+        }
+
         $result = $gateway->createCharge($chargeData);
 
         if (!$result['success']) {
