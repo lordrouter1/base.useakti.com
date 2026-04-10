@@ -510,7 +510,11 @@ class StripeGateway extends AbstractGateway
         ]);
 
         if (!empty($data) && in_array(strtoupper($method), ['POST', 'PUT', 'PATCH'])) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+            $body = http_build_query($data);
+            // Stripe espera colchetes literais nos nomes dos parâmetros (ex: payment_method_data[type])
+            // http_build_query codifica [] como %5B %5D, que o Stripe não decodifica nos nomes de chave
+            $body = str_replace(['%5B', '%5D'], ['[', ']'], $body);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
         }
 
         $response = curl_exec($ch);
