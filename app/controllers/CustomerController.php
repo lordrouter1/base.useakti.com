@@ -196,7 +196,25 @@ class CustomerController {
         $data['address'] = $this->formService->buildAddressJson($data);
 
         // Criar o cliente
-        $newId = $this->customerModel->create($data);
+        try {
+            $newId = $this->customerModel->create($data);
+        } catch (\PDOException $e) {
+            $logDir = __DIR__ . '/../../storage/logs';
+            if (is_dir($logDir) && is_writable($logDir)) {
+                $debugInfo = sprintf(
+                    "[%s][CUSTOMER_CREATE_ERROR] PDO: %s | Fields: %s\n",
+                    date('Y-m-d H:i:s'),
+                    $e->getMessage(),
+                    implode(', ', array_keys(array_filter($data, fn($v) => $v !== null)))
+                );
+                file_put_contents($logDir . '/error_' . date('Y-m-d') . '.log', $debugInfo, FILE_APPEND | LOCK_EX);
+            }
+
+            $_SESSION['error'] = 'Erro ao cadastrar o cliente: ' . $e->getMessage();
+            $_SESSION['old'] = $_POST;
+            header('Location: ?page=customers&action=create');
+            exit;
+        }
 
         // Log de auditoria
         $code = $data['code'] ?? 'CLI-?????';
@@ -307,10 +325,30 @@ class CustomerController {
             'address_number' => $data['address_number'] ?? '',
             'neighborhood'   => $data['address_neighborhood'] ?? '',
             'complement'     => $data['address_complement'] ?? '',
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
 
         // Atualizar o cliente
-        $this->customerModel->update($data);
+        try {
+            $this->customerModel->update($data);
+        } catch (\PDOException $e) {
+            // Log detalhado para diagnóstico
+            $logDir = __DIR__ . '/../../storage/logs';
+            if (is_dir($logDir) && is_writable($logDir)) {
+                $debugInfo = sprintf(
+                    "[%s][CUSTOMER_UPDATE_ERROR] id=%d | PDO: %s | Fields: %s\n",
+                    date('Y-m-d H:i:s'),
+                    $id,
+                    $e->getMessage(),
+                    implode(', ', array_keys(array_filter($data, fn($v) => $v !== null)))
+                );
+                file_put_contents($logDir . '/error_' . date('Y-m-d') . '.log', $debugInfo, FILE_APPEND | LOCK_EX);
+            }
+
+            $_SESSION['error'] = 'Erro ao salvar o cliente: ' . $e->getMessage();
+            $_SESSION['old'] = $_POST;
+            header('Location: ?page=customers&action=edit&id=' . $id);
+            exit;
+        }
 
         // Log de auditoria
         $code = $existing['code'] ?? 'CLI-?????';

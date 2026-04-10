@@ -34,6 +34,31 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" integrity="sha384-QjoPbdj/93O7LUz0wqTxepA3tIabUD3jzfZX+x5QLvqFtHBzSw4eYFLSVthB+EDT" crossorigin="anonymous"></script>
 <!-- Script global do sistema (CSRF, atalhos, máscaras) -->
 <script src="<?= asset('assets/js/script.js') ?>"></script>
+
+<!-- Session Flash Messages (success / error) -->
+<?php if (isset($_SESSION['success']) || isset($_SESSION['error'])): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    <?php if (isset($_SESSION['success'])): ?>
+    if (typeof AktiToast !== 'undefined') {
+        AktiToast.success(<?= json_encode($_SESSION['success']) ?>);
+    } else if (typeof Swal !== 'undefined') {
+        Swal.fire({ icon:'success', title:'Sucesso!', text:<?= json_encode($_SESSION['success']) ?>, timer:2500, showConfirmButton:false });
+    }
+    <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
+    <?php if (isset($_SESSION['error'])): ?>
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({ icon:'error', title:'Erro', text:<?= json_encode($_SESSION['error']) ?>, confirmButtonColor:'#3498db' });
+    } else {
+        alert(<?= json_encode($_SESSION['error']) ?>);
+    }
+    <?php unset($_SESSION['error']); ?>
+    <?php endif; ?>
+});
+</script>
+<?php endif; ?>
+
 <!-- FileManager: JS helpers para thumbnail URLs -->
 <script>
 function thumbUrl(path, w, h) {
