@@ -186,40 +186,49 @@ class CustomerController {
             exit;
         }
 
-        // Processar upload de foto
-        $data['photo'] = $this->handlePhotoUpload();
-
-        // Adicionar auditoria
-        $data['created_by'] = $_SESSION['user_id'] ?? null;
-
-        // Manter campo address JSON para retrocompatibilidade
-        $data['address'] = $this->formService->buildAddressJson($data);
-
-        // Criar o cliente
         try {
+            // Processar upload de foto
+            $data['photo'] = $this->handlePhotoUpload();
+
+            // Adicionar auditoria
+            $data['created_by'] = $_SESSION['user_id'] ?? null;
+
+            // Manter campo address JSON para retrocompatibilidade
+            $data['address'] = $this->formService->buildAddressJson($data);
+
+            // Criar o cliente
             $newId = $this->customerModel->create($data);
-        } catch (\PDOException $e) {
+
+            // Log de auditoria
+            $code = $data['code'] ?? 'CLI-?????';
+            $userName = $_SESSION['user_name'] ?? 'Sistema';
+            $this->logger->log('CUSTOMER_CREATE', "Cliente {$code} '{$data['name']}' criado por {$userName}");
+        } catch (\Throwable $e) {
             $logDir = __DIR__ . '/../../storage/logs';
             if (is_dir($logDir) && is_writable($logDir)) {
+                $fieldDebug = [];
+                foreach ($data as $k => $v) {
+                    $type = gettype($v);
+                    $len = is_string($v) ? strlen($v) : '-';
+                    $val = is_string($v) ? mb_substr($v, 0, 50) : $v;
+                    $fieldDebug[] = "{$k}({$type},{$len})=" . var_export($val, true);
+                }
                 $debugInfo = sprintf(
-                    "[%s][CUSTOMER_CREATE_ERROR] PDO: %s | Fields: %s\n",
+                    "[%s][CUSTOMER_CREATE_ERROR] %s: %s | Trace: %s | Data: %s\n",
                     date('Y-m-d H:i:s'),
+                    get_class($e),
                     $e->getMessage(),
-                    implode(', ', array_keys(array_filter($data, fn($v) => $v !== null)))
+                    $e->getFile() . ':' . $e->getLine(),
+                    implode(' | ', $fieldDebug)
                 );
                 file_put_contents($logDir . '/error_' . date('Y-m-d') . '.log', $debugInfo, FILE_APPEND | LOCK_EX);
             }
 
-            $_SESSION['error'] = 'Erro ao cadastrar o cliente: ' . $e->getMessage();
+            $_SESSION['error'] = 'Erro ao cadastrar o cliente. Detalhes técnicos foram registrados no log.';
             $_SESSION['old'] = $_POST;
             header('Location: ?page=customers&action=create');
             exit;
         }
-
-        // Log de auditoria
-        $code = $data['code'] ?? 'CLI-?????';
-        $userName = $_SESSION['user_name'] ?? 'Sistema';
-        $this->logger->log('CUSTOMER_CREATE', "Cliente {$code} '{$data['name']}' criado por {$userName}");
 
         $_SESSION['success'] = 'Cliente cadastrado com sucesso!';
         header('Location: ?page=customers&status=success');
@@ -307,53 +316,62 @@ class CustomerController {
             exit;
         }
 
-        // Processar upload de foto (manter existente se nenhuma nova)
-        $newPhoto = $this->handlePhotoUpload();
-        if ($newPhoto) {
-            $data['photo'] = $newPhoto;
-        }
-        // Se não houver nova foto, NÃO incluir 'photo' no data para não sobrescrever
-
-        // Adicionar auditoria
-        $data['updated_by'] = $_SESSION['user_id'] ?? null;
-
-        // Manter campo address JSON para retrocompatibilidade
-        $data['address'] = json_encode([
-            'zipcode'        => $data['zipcode'] ?? '',
-            'address_type'   => '',
-            'address_name'   => $data['address_street'] ?? '',
-            'address_number' => $data['address_number'] ?? '',
-            'neighborhood'   => $data['address_neighborhood'] ?? '',
-            'complement'     => $data['address_complement'] ?? '',
-        ], JSON_UNESCAPED_UNICODE);
-
-        // Atualizar o cliente
         try {
+            // Processar upload de foto (manter existente se nenhuma nova)
+            $newPhoto = $this->handlePhotoUpload();
+            if ($newPhoto) {
+                $data['photo'] = $newPhoto;
+            }
+            // Se não houver nova foto, NÃO incluir 'photo' no data para não sobrescrever
+
+            // Adicionar auditoria
+            $data['updated_by'] = $_SESSION['user_id'] ?? null;
+
+            // Manter campo address JSON para retrocompatibilidade
+            $data['address'] = json_encode([
+                'zipcode'        => $data['zipcode'] ?? '',
+                'address_type'   => '',
+                'address_name'   => $data['address_street'] ?? '',
+                'address_number' => $data['address_number'] ?? '',
+                'neighborhood'   => $data['address_neighborhood'] ?? '',
+                'complement'     => $data['address_complement'] ?? '',
+            ], JSON_UNESCAPED_UNICODE);
+
+            // Atualizar o cliente
             $this->customerModel->update($data);
-        } catch (\PDOException $e) {
+
+            // Log de auditoria
+            $code = $existing['code'] ?? 'CLI-?????';
+            $userName = $_SESSION['user_name'] ?? 'Sistema';
+            $this->logger->log('CUSTOMER_UPDATE', "Cliente {$code} '{$data['name']}' atualizado por {$userName}");
+        } catch (\Throwable $e) {
             // Log detalhado para diagnóstico
             $logDir = __DIR__ . '/../../storage/logs';
             if (is_dir($logDir) && is_writable($logDir)) {
+                $fieldDebug = [];
+                foreach ($data as $k => $v) {
+                    $type = gettype($v);
+                    $len = is_string($v) ? strlen($v) : '-';
+                    $val = is_string($v) ? mb_substr($v, 0, 50) : $v;
+                    $fieldDebug[] = "{$k}({$type},{$len})=" . var_export($val, true);
+                }
                 $debugInfo = sprintf(
-                    "[%s][CUSTOMER_UPDATE_ERROR] id=%d | PDO: %s | Fields: %s\n",
+                    "[%s][CUSTOMER_UPDATE_ERROR] id=%d | %s: %s | Trace: %s | Data: %s\n",
                     date('Y-m-d H:i:s'),
                     $id,
+                    get_class($e),
                     $e->getMessage(),
-                    implode(', ', array_keys(array_filter($data, fn($v) => $v !== null)))
+                    $e->getFile() . ':' . $e->getLine(),
+                    implode(' | ', $fieldDebug)
                 );
                 file_put_contents($logDir . '/error_' . date('Y-m-d') . '.log', $debugInfo, FILE_APPEND | LOCK_EX);
             }
 
-            $_SESSION['error'] = 'Erro ao salvar o cliente: ' . $e->getMessage();
+            $_SESSION['error'] = 'Erro ao salvar o cliente. Detalhes técnicos foram registrados no log.';
             $_SESSION['old'] = $_POST;
             header('Location: ?page=customers&action=edit&id=' . $id);
             exit;
         }
-
-        // Log de auditoria
-        $code = $existing['code'] ?? 'CLI-?????';
-        $userName = $_SESSION['user_name'] ?? 'Sistema';
-        $this->logger->log('CUSTOMER_UPDATE', "Cliente {$code} '{$data['name']}' atualizado por {$userName}");
 
         $_SESSION['success'] = 'Cliente atualizado com sucesso!';
         header('Location: ?page=customers&status=success');
