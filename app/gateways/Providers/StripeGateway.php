@@ -56,7 +56,7 @@ class StripeGateway extends AbstractGateway
      */
     public function getSupportedMethods(): array
     {
-        return ['auto', 'credit_card', 'debit_card', 'pix', 'boleto'];
+        return ['auto', 'credit_card', 'debit_card', 'boleto'];
     }
 
     // ══════════════════════════════════════════════════════════════
