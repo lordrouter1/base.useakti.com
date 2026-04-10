@@ -102,8 +102,6 @@ class StripeGateway extends AbstractGateway
     {
         $method = $data['method'] ?? 'credit_card';
 
-        // Checkout transparente: PIX, boleto e cartão com token usam PaymentIntent (direto)
-        // Apenas 'auto' ou cartão sem token usam Checkout Session (redirect)
         $hasToken = !empty($data['card_token']) || !empty($data['payment_method_id']);
 
         if ($hasToken || in_array($method, ['pix', 'boleto'], true)) {
@@ -519,8 +517,6 @@ class StripeGateway extends AbstractGateway
 
         if (!empty($data) && in_array(strtoupper($method), ['POST', 'PUT', 'PATCH'])) {
             $body = http_build_query($data);
-            // Stripe espera colchetes literais nos nomes dos parâmetros (ex: payment_method_data[type])
-            // http_build_query codifica [] como %5B %5D, que o Stripe não decodifica nos nomes de chave
             $body = str_replace(['%5B', '%5D'], ['[', ']'], $body);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
         }
