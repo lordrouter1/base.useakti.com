@@ -132,20 +132,27 @@ class StripeGateway extends AbstractGateway
         $currency = $this->getSetting('currency', 'brl');
         $returnUrl = $data['return_url'] ?? '';
 
+        // Nome e e-mail do cliente
+        $customerName  = trim($data['customer']['name'] ?? '') ?: 'Cliente';
+        $customerEmail = trim($data['customer']['email'] ?? '') ?: 'noreply@akti.com.br';
+
+        // Payload base com arrays nativos PHP (http_build_query resolve a notação bracket)
         $payload = [
-            'amount'               => $amountCents,
-            'currency'             => $currency,
-            'description'          => $data['description'] ?? 'Pagamento Akti',
-            'metadata[installment_id]' => $data['installment_id'] ?? '',
-            'metadata[order_id]'       => $data['order_id'] ?? '',
-            'metadata[source]'         => 'akti',
-            'confirm'              => 'true',
+            'amount'      => $amountCents,
+            'currency'    => $currency,
+            'description' => $data['description'] ?? 'Pagamento Akti',
+            'confirm'     => 'true',
+            'metadata'    => [
+                'installment_id' => $data['installment_id'] ?? '',
+                'order_id'       => $data['order_id'] ?? '',
+                'source'         => 'akti',
+            ],
         ];
 
         $piMethod = ($method === 'auto') ? 'card' : $method;
 
-        // PIX e boleto exigem return_url quando confirm=true
-        if (in_array($piMethod, ['pix', 'boleto'], true)) {
+        // return_url obrigatória para métodos assíncronos (boleto) com confirm=true
+        if ($piMethod === 'boleto') {
             if (!$returnUrl) {
                 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
                 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -156,36 +163,35 @@ class StripeGateway extends AbstractGateway
             $payload['return_url'] = $returnUrl;
         }
 
-        // Nome e e-mail do cliente (usados em PIX e boleto)
-        $customerName  = trim($data['customer']['name'] ?? '') ?: 'Cliente';
-        $customerEmail = trim($data['customer']['email'] ?? '') ?: 'noreply@akti.com.br';
-
         switch ($piMethod) {
-            case 'pix':
-                $payload['payment_method_types[0]'] = 'pix';
-                $payload['payment_method_data[type]'] = 'pix';
-                $payload['payment_method_data[billing_details][name]']  = $customerName;
-                $payload['payment_method_data[billing_details][email]'] = $customerEmail;
-                break;
-
             case 'boleto':
-                $payload['payment_method_types[0]'] = 'boleto';
-                $payload['payment_method_data[type]'] = 'boleto';
-                $payload['payment_method_data[billing_details][name]']  = $customerName;
-                $payload['payment_method_data[billing_details][email]'] = $customerEmail;
                 $doc = preg_replace('/\D/', '', $data['customer']['document'] ?? '');
                 if (!$doc) {
-                    $doc = '00000000000'; // fallback p/ sandbox — CPF genérico
+                    $doc = '00000000000';
                 }
-                $payload['payment_method_data[boleto][tax_id]'] = $doc;
+                $payload['payment_method_types'] = ['boleto'];
+                $payload['payment_method_data'] = [
+                    'type' => 'boleto',
+                    'billing_details' => [
+                        'name'  => $customerName,
+                        'email' => $customerEmail,
+                    ],
+                    'boleto' => [
+                        'tax_id' => $doc,
+                    ],
+                ];
                 $daysDue = (int) $this->getSetting('boleto_days_due', 3);
-                $payload['payment_method_options[boleto][expires_after_days]'] = $daysDue;
+                $payload['payment_method_options'] = [
+                    'boleto' => [
+                        'expires_after_days' => $daysDue,
+                    ],
+                ];
                 break;
 
             case 'credit_card':
             case 'debit_card':
             default:
-                $payload['payment_method_types[0]'] = 'card';
+                $payload['payment_method_types'] = ['card'];
                 if (!empty($data['card_token'])) {
                     $payload['payment_method'] = $data['card_token'];
                 }
@@ -195,6 +201,8 @@ class StripeGateway extends AbstractGateway
         if (!empty($data['customer']['email'])) {
             $payload['receipt_email'] = $data['customer']['email'];
         }
+
+        $this->log('debug', 'PaymentIntent payload', ['payload' => $payload]);
 
         $response = $this->stripeRequest('POST', '/v1/payment_intents', $payload);
 
