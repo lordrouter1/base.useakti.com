@@ -80,12 +80,16 @@ class PipelinePaymentService
         // Buscar a primeira parcela pendente do pedido para vincular ao gateway
         $installmentId = $this->findPendingInstallmentId($orderId);
 
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
         $chargeData = [
             'amount'         => $totalAmount,
             'description'    => 'Pedido #' . str_pad((string)$orderId, 4, '0', STR_PAD_LEFT),
             'method'         => $method,
             'order_id'       => $orderId,
             'installment_id' => $installmentId,
+            'return_url'     => $protocol . '://' . $host . '/?page=pipeline&action=index',
             'customer'       => [
                 'name'     => $order['customer_name'] ?? '',
                 'email'    => $order['customer_email'] ?? '',

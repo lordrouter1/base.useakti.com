@@ -283,12 +283,16 @@ class PaymentGatewayController
         try {
             $gateway = GatewayManager::resolveFromRow($gatewayRow);
 
+            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
             $chargeData = [
                 'amount'         => (float) $installment['amount'],
                 'description'    => "Pedido #{$installment['order_id']} - Parcela {$installment['installment_number']}",
                 'method'         => $method,
                 'installment_id' => $installmentId,
                 'order_id'       => $installment['order_id'],
+                'return_url'     => $protocol . '://' . $host . '/?page=financial&action=installments&order_id=' . $installment['order_id'],
                 'customer'       => [
                     'name'     => $installment['customer_name'] ?? '',
                     'email'    => $installment['customer_email'] ?? '',

@@ -142,26 +142,42 @@ class StripeGateway extends AbstractGateway
             'confirm'              => 'true',
         ];
 
-        if ($returnUrl) {
+        $piMethod = ($method === 'auto') ? 'card' : $method;
+
+        // PIX e boleto exigem return_url quando confirm=true
+        if (in_array($piMethod, ['pix', 'boleto'], true)) {
+            if (!$returnUrl) {
+                $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                $returnUrl = $protocol . '://' . $host . '/';
+            }
+            $payload['return_url'] = $returnUrl;
+        } elseif ($returnUrl) {
             $payload['return_url'] = $returnUrl;
         }
 
-        $piMethod = ($method === 'auto') ? 'card' : $method;
+        // Nome e e-mail do cliente (usados em PIX e boleto)
+        $customerName  = trim($data['customer']['name'] ?? '') ?: 'Cliente';
+        $customerEmail = trim($data['customer']['email'] ?? '') ?: 'noreply@akti.com.br';
+
         switch ($piMethod) {
             case 'pix':
                 $payload['payment_method_types[0]'] = 'pix';
                 $payload['payment_method_data[type]'] = 'pix';
+                $payload['payment_method_data[billing_details][name]']  = $customerName;
+                $payload['payment_method_data[billing_details][email]'] = $customerEmail;
                 break;
 
             case 'boleto':
                 $payload['payment_method_types[0]'] = 'boleto';
                 $payload['payment_method_data[type]'] = 'boleto';
-                $payload['payment_method_data[billing_details][name]'] = $data['customer']['name'] ?? 'Cliente';
-                $payload['payment_method_data[billing_details][email]'] = $data['customer']['email'] ?? '';
+                $payload['payment_method_data[billing_details][name]']  = $customerName;
+                $payload['payment_method_data[billing_details][email]'] = $customerEmail;
                 $doc = preg_replace('/\D/', '', $data['customer']['document'] ?? '');
-                if ($doc) {
-                    $payload['payment_method_data[boleto][tax_id]'] = $doc;
+                if (!$doc) {
+                    $doc = '00000000000'; // fallback p/ sandbox — CPF genérico
                 }
+                $payload['payment_method_data[boleto][tax_id]'] = $doc;
                 $daysDue = (int) $this->getSetting('boleto_days_due', 3);
                 $payload['payment_method_options[boleto][expires_after_days]'] = $daysDue;
                 break;
