@@ -323,10 +323,52 @@ const AktiCheckout = (function () {
             };
             const cardEl = document.getElementById('card-element');
             if (cardEl) {
+                // Show unified Stripe Card Element (contains number + expiry + CVV)
+                cardEl.style.display = 'block';
                 stripeElements.card.mount('#card-element');
-                // Hide separate expiry/cvv for Stripe (Stripe card element includes them)
-                hideElement('card-expiry-element');
-                hideElement('card-cvv-element');
+
+                // Update label to reflect unified field
+                const cardLabel = document.getElementById('cardNumberLabel');
+                if (cardLabel) cardLabel.textContent = 'Dados do cartão';
+
+                // Hide the manual card number input (Stripe Element replaces it)
+                var manualCardNumber = document.getElementById('cardNumber');
+                if (manualCardNumber) {
+                    manualCardNumber.style.display = 'none';
+                    manualCardNumber.removeAttribute('required');
+                }
+
+                // Hide separate expiry and CVV rows (included in Stripe Card Element)
+                var expiryInput = document.getElementById('cardExpiry');
+                var cvvInput = document.getElementById('cardCvv');
+                var expiryAnchor = document.getElementById('card-expiry-element');
+                var cvvAnchor = document.getElementById('card-cvv-element');
+
+                if (expiryAnchor) {
+                    var expiryCol = expiryAnchor.closest('.col-6');
+                    if (expiryCol) expiryCol.style.display = 'none';
+                }
+                if (cvvAnchor) {
+                    var cvvCol = cvvAnchor.closest('.col-6');
+                    if (cvvCol) cvvCol.style.display = 'none';
+                }
+                // Remove required so hidden fields don't block form submit
+                if (expiryInput) expiryInput.removeAttribute('required');
+                if (cvvInput) cvvInput.removeAttribute('required');
+
+                // Show Stripe validation errors inline
+                stripeElements.card.on('change', function (event) {
+                    var errDiv = document.getElementById('card-errors');
+                    if (errDiv) {
+                        if (event.error) {
+                            errDiv.textContent = event.error.message;
+                            errDiv.style.display = 'block';
+                        } else {
+                            errDiv.textContent = '';
+                            errDiv.style.display = 'none';
+                        }
+                    }
+                });
             }
         } else if (slug === 'mercadopago' && window.MercadoPago && pk) {
             gatewayInstance = new window.MercadoPago(pk);

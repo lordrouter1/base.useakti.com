@@ -8,12 +8,12 @@ $amount = (float) ($token['amount'] ?? 0);
 <div class="co-method-pane" id="card-tab-pane" style="<?= empty($__tabActive) ? 'display:none;' : '' ?>">
     <form id="cardPaymentForm" onsubmit="return AktiCheckout.processCardPayment(event)">
         <div class="mb-3">
-            <label for="cardNumber" class="form-label">Número do cartão</label>
+            <label for="cardNumber" class="form-label" id="cardNumberLabel">Número do cartão</label>
             <input type="text" class="form-control" id="cardNumber" required
                    placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="cc-number"
                    inputmode="numeric">
-            <div id="card-element" style="display:none;"></div>
-            <div id="card-errors" class="invalid-feedback" style="display:none;"></div>
+            <div id="card-element" class="checkout-card-element" style="display:none;"></div>
+            <div id="card-errors" class="text-danger small mt-1" role="alert"></div>
         </div>
 
         <div class="mb-3">
