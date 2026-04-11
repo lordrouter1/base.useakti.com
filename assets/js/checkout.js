@@ -995,9 +995,4 @@ const ConfirmationPolling = (function () {
     };
 })();
 
-// Auto-init
-document.addEventListener('DOMContentLoaded', function () {
-    if (typeof CHECKOUT_CONFIG !== 'undefined') {
-        AktiCheckout.init(CHECKOUT_CONFIG);
-    }
-});
+// Auto-init removed — pay.php inline script handles init after all dependencies load.

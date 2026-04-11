@@ -156,7 +156,8 @@ $methodDescs = [
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Checkout JS (must load before inline scripts that reference AktiCheckout) -->
-    <script src="/assets/js/checkout.js"></script>
+    <?php $checkoutJsPath = __DIR__ . '/../../../assets/js/checkout.js'; ?>
+    <script src="/assets/js/checkout.js?v=<?= @filemtime($checkoutJsPath) ?: time() ?>"></script>
     <!-- Payment method selector + init -->
     <script>
     (function() {
@@ -251,9 +252,13 @@ $methodDescs = [
         // Init gateway
         if (typeof AktiCheckout !== 'undefined' && typeof CHECKOUT_CONFIG !== 'undefined') {
             AktiCheckout.init(CHECKOUT_CONFIG);
-            // If credit_card is the active (first) method, lazy-load Stripe now
+            // Only lazy-load Stripe now if credit_card is first AND payment section is visible.
+            // If customer data form is shown first, paymentSection is hidden and Stripe Elements
+            // cannot mount into invisible containers — defer until the section becomes visible.
+            var paymentSection = document.getElementById('paymentSection');
+            var sectionVisible = paymentSection && paymentSection.style.display !== 'none';
             var activeMethod = CHECKOUT_CONFIG.methods && CHECKOUT_CONFIG.methods[0];
-            if (activeMethod === 'credit_card') {
+            if (activeMethod === 'credit_card' && sectionVisible) {
                 AktiCheckout.ensureGatewayReady().catch(function () {});
             }
         }
