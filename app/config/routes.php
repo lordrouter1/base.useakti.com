@@ -1174,11 +1174,12 @@ return [
         'public'         => true,
         'before_auth'    => true,
         'actions'        => [
-            'show'           => 'show',
-            'processPayment' => 'processPayment',
-            'tokenizeCard'   => 'tokenizeCard',
-            'checkStatus'    => 'checkStatus',
-            'confirmation'   => 'confirmation',
+            'show'               => 'show',
+            'processPayment'     => 'processPayment',
+            'tokenizeCard'       => 'tokenizeCard',
+            'checkStatus'        => 'checkStatus',
+            'confirmation'       => 'confirmation',
+            'updateCustomerData' => 'updateCustomerData',
         ],
     ],
 

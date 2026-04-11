@@ -66,6 +66,15 @@ $methodDescs = [
 
             <!-- RIGHT COLUMN: Payment Methods -->
             <div class="checkout-payment-section">
+                <?php
+                // Se há campos faltantes, exibir formulário de dados do cliente primeiro
+                $hasMissingFields = !empty($missingFields);
+                if ($hasMissingFields):
+                    include __DIR__ . '/partials/_customer_data.php';
+                endif;
+                ?>
+
+                <div id="paymentSection" <?php if ($hasMissingFields): ?>style="display:none;"<?php endif; ?>>
                 <div class="co-card">
                     <div class="co-card-header">
                         <i class="fas fa-wallet"></i>
@@ -119,6 +128,7 @@ $methodDescs = [
                         </div>
                     </div>
                 </div>
+                </div><!-- /paymentSection -->
             </div>
         </div>
     </main>

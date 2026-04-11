@@ -99,6 +99,10 @@ class CheckoutController extends BaseController
         // Headers de segurança
         $this->setSecurityHeaders($gatewaySlug);
 
+        // Verificar dados obrigatórios do cliente para os métodos disponíveis
+        $customerData = $this->getCustomerDataForCheckout($tokenRow);
+        $missingFields = $this->detectMissingFields($customerData, $supportedMethods, $gatewaySlug);
+
         // Renderizar checkout
         $data = [
             'token'            => $tokenRow,
@@ -108,6 +112,8 @@ class CheckoutController extends BaseController
             'supportedMethods' => $supportedMethods,
             'orderItems'       => $orderItems,
             'extraCosts'       => $extraCosts,
+            'customerData'     => $customerData,
+            'missingFields'    => $missingFields,
         ];
 
         extract($data);
@@ -498,5 +504,239 @@ class CheckoutController extends BaseController
         $scriptSrc .= " https://cdn.jsdelivr.net";
 
         header("Content-Security-Policy: default-src 'self'; script-src {$scriptSrc}; frame-src {$frameSrc}; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: https:; connect-src {$connectSrc};");
+    }
+
+    /**
+     * Coleta dados do cliente disponíveis no token e no cadastro de customers.
+     */
+    private function getCustomerDataForCheckout(array $tokenRow): array
+    {
+        $data = [
+            'name'         => $tokenRow['customer_name'] ?: ($tokenRow['customer_name_order'] ?? ''),
+            'email'        => $tokenRow['customer_email'] ?: ($tokenRow['customer_email_order'] ?? ''),
+            'document'     => $tokenRow['customer_document'] ?: ($tokenRow['customer_document_order'] ?? ''),
+            'zip'          => '',
+            'street'       => '',
+            'number'       => '',
+            'neighborhood' => '',
+            'city'         => '',
+            'state'        => '',
+            'phone'        => '',
+        ];
+
+        // Buscar endereço no cadastro do cliente
+        $orderId = (int) ($tokenRow['order_id'] ?? 0);
+        if ($orderId) {
+            $stmt = $this->db->prepare(
+                "SELECT c.zipcode, c.address_street, c.address_number,
+                        c.address_neighborhood, c.address_city, c.address_state,
+                        c.phone, c.cellphone
+                 FROM orders o
+                 INNER JOIN customers c ON c.id = o.customer_id
+                 WHERE o.id = :oid LIMIT 1"
+            );
+            $stmt->execute([':oid' => $orderId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($row) {
+                $data['zip']          = $row['zipcode'] ?? '';
+                $data['street']       = $row['address_street'] ?? '';
+                $data['number']       = $row['address_number'] ?? '';
+                $data['neighborhood'] = $row['address_neighborhood'] ?? '';
+                $data['city']         = $row['address_city'] ?? '';
+                $data['state']        = $row['address_state'] ?? '';
+                $data['phone']        = $row['cellphone'] ?: ($row['phone'] ?? '');
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Detecta campos obrigatórios faltantes para os métodos de pagamento disponíveis.
+     *
+     * Retorna array associativo: campo => label traduzido.
+     * Se vazio, todos os campos obrigatórios estão preenchidos.
+     */
+    private function detectMissingFields(array $customerData, array $methods, string $gatewaySlug): array
+    {
+        $missing = [];
+
+        // Campos obrigatórios para TODOS os métodos e gateways
+        if (empty(trim($customerData['name'] ?? ''))) {
+            $missing['name'] = 'Nome completo';
+        }
+        if (empty(trim($customerData['email'] ?? '')) || !filter_var($customerData['email'], FILTER_VALIDATE_EMAIL)) {
+            $missing['email'] = 'E-mail';
+        }
+
+        // Campos obrigatórios se boleto está disponível
+        if (in_array('boleto', $methods, true)) {
+            if (empty(preg_replace('/\D/', '', $customerData['document'] ?? ''))) {
+                $missing['document'] = 'CPF/CNPJ';
+            }
+
+            // Stripe boleto requer endereço completo
+            if ($gatewaySlug === 'stripe') {
+                if (empty(trim($customerData['zip'] ?? ''))) {
+                    $missing['zip'] = 'CEP';
+                }
+                if (empty(trim($customerData['street'] ?? ''))) {
+                    $missing['street'] = 'Rua/Logradouro';
+                }
+                if (empty(trim($customerData['number'] ?? ''))) {
+                    $missing['number'] = 'Número';
+                }
+                if (empty(trim($customerData['city'] ?? ''))) {
+                    $missing['city'] = 'Cidade';
+                }
+                if (empty(trim($customerData['state'] ?? ''))) {
+                    $missing['state'] = 'Estado';
+                }
+            }
+        }
+
+        // Campos obrigatórios se cartão de crédito está disponível (MercadoPago e PagSeguro exigem CPF)
+        if (in_array('credit_card', $methods, true) && in_array($gatewaySlug, ['mercadopago', 'pagseguro'], true)) {
+            if (empty(preg_replace('/\D/', '', $customerData['document'] ?? ''))) {
+                $missing['document'] = 'CPF/CNPJ';
+            }
+        }
+
+        // PagSeguro boleto e cartão exigem telefone
+        if ($gatewaySlug === 'pagseguro' && (in_array('boleto', $methods, true) || in_array('credit_card', $methods, true))) {
+            if (empty(preg_replace('/\D/', '', $customerData['phone'] ?? ''))) {
+                $missing['phone'] = 'Telefone/Celular';
+            }
+        }
+
+        return $missing;
+    }
+
+    /**
+     * POST (AJAX): Atualiza dados do cliente antes de prosseguir com pagamento.
+     */
+    public function updateCustomerData(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'error' => 'Método não permitido.'], 405);
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+
+        $token = $this->validateTokenFormat($input['token'] ?? '');
+        if (!$token) {
+            $this->json(['success' => false, 'error' => 'Token inválido.'], 400);
+        }
+
+        $tokenRow = $this->tokenModel->findByToken($token);
+        if (!$tokenRow || $tokenRow['status'] !== 'active') {
+            $this->json(['success' => false, 'error' => 'Token inválido ou expirado.'], 400);
+        }
+
+        $customerId = $tokenRow['customer_id'] ?? null;
+        if (!$customerId) {
+            $this->json(['success' => false, 'error' => 'Cliente não encontrado.'], 400);
+        }
+
+        // Sanitizar inputs
+        $name     = trim($input['name'] ?? '');
+        $email    = trim($input['email'] ?? '');
+        $document = preg_replace('/\D/', '', $input['document'] ?? '');
+        $phone    = preg_replace('/\D/', '', $input['phone'] ?? '');
+        $zip      = preg_replace('/\D/', '', $input['zip'] ?? '');
+        $street   = trim($input['street'] ?? '');
+        $number   = trim($input['number'] ?? '');
+        $neighborhood = trim($input['neighborhood'] ?? '');
+        $city     = trim($input['city'] ?? '');
+        $state    = trim($input['state'] ?? '');
+
+        // Validações básicas
+        $errors = [];
+        if (empty($name)) {
+            $errors[] = 'Nome é obrigatório.';
+        }
+        if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'E-mail inválido.';
+        }
+        if (!empty($document) && strlen($document) !== 11 && strlen($document) !== 14) {
+            $errors[] = 'CPF/CNPJ inválido.';
+        }
+        if (!empty($errors)) {
+            $this->json(['success' => false, 'error' => implode(' ', $errors)], 400);
+        }
+
+        // Atualizar cadastro do cliente
+        $fields = [];
+        $params = [':id' => $customerId];
+
+        if ($name !== '') {
+            $fields[] = 'name = :name';
+            $params[':name'] = $name;
+        }
+        if ($email !== '') {
+            $fields[] = 'email = :email';
+            $params[':email'] = $email;
+        }
+        if ($document !== '') {
+            $fields[] = 'document = :document';
+            $params[':document'] = $document;
+        }
+        if ($phone !== '') {
+            $fields[] = 'cellphone = :phone';
+            $params[':phone'] = $phone;
+        }
+        if ($zip !== '') {
+            $fields[] = 'zipcode = :zip';
+            $params[':zip'] = $zip;
+        }
+        if ($street !== '') {
+            $fields[] = 'address_street = :street';
+            $params[':street'] = $street;
+        }
+        if ($number !== '') {
+            $fields[] = 'address_number = :number';
+            $params[':number'] = $number;
+        }
+        if ($neighborhood !== '') {
+            $fields[] = 'address_neighborhood = :neighborhood';
+            $params[':neighborhood'] = $neighborhood;
+        }
+        if ($city !== '') {
+            $fields[] = 'address_city = :city';
+            $params[':city'] = $city;
+        }
+        if ($state !== '') {
+            $fields[] = 'address_state = :state';
+            $params[':state'] = $state;
+        }
+
+        if (!empty($fields)) {
+            $sql = "UPDATE customers SET " . implode(', ', $fields) . " WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+        }
+
+        // Atualizar token com dados atualizados
+        $tokenFields = [];
+        $tokenParams = [':tid' => $tokenRow['id']];
+        if ($name !== '') {
+            $tokenFields[] = 'customer_name = :name';
+            $tokenParams[':name'] = $name;
+        }
+        if ($email !== '') {
+            $tokenFields[] = 'customer_email = :email';
+            $tokenParams[':email'] = $email;
+        }
+        if ($document !== '') {
+            $tokenFields[] = 'customer_document = :doc';
+            $tokenParams[':doc'] = $document;
+        }
+        if (!empty($tokenFields)) {
+            $sql = "UPDATE checkout_tokens SET " . implode(', ', $tokenFields) . " WHERE id = :tid";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($tokenParams);
+        }
+
+        $this->json(['success' => true]);
     }
 }
