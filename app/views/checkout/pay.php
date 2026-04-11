@@ -155,6 +155,8 @@ $methodDescs = [
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Checkout JS (must load before inline scripts that reference AktiCheckout) -->
+    <script src="/assets/js/checkout.js"></script>
     <!-- Payment method selector + init -->
     <script>
     (function() {
@@ -209,8 +211,6 @@ $methodDescs = [
         }
     })();
     </script>
-    <!-- Checkout JS -->
-    <script src="/assets/js/checkout.js"></script>
     <!-- Card masks + Init gateway -->
     <script>
     (function() {

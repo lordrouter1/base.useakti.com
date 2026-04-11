@@ -488,6 +488,7 @@ class CheckoutController extends BaseController
             case 'stripe':
                 $scriptSrc .= " https://js.stripe.com";
                 $frameSrc = "https://js.stripe.com https://hooks.stripe.com";
+                $connectSrc = "'self' https://api.stripe.com https://r.stripe.com https://m.stripe.com https:";
                 break;
             case 'mercadopago':
                 $scriptSrc .= " https://sdk.mercadopago.com https://http2.mlstatic.com";
@@ -503,7 +504,7 @@ class CheckoutController extends BaseController
         // CDNs usadas no checkout: Bootstrap, SweetAlert2, FontAwesome
         $scriptSrc .= " https://cdn.jsdelivr.net";
 
-        header("Content-Security-Policy: default-src 'self'; script-src {$scriptSrc}; frame-src {$frameSrc}; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: https:; connect-src {$connectSrc};");
+        header("Content-Security-Policy: default-src 'self'; script-src {$scriptSrc}; frame-src {$frameSrc}; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: https:; connect-src {$connectSrc};");
     }
 
     /**

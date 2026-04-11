@@ -302,6 +302,13 @@ const AktiCheckout = (function () {
             if (slug === 'mercadopago' && window.MercadoPago) { resolve(); return; }
             if (slug === 'pagseguro' && window.PagSeguro) { resolve(); return; }
 
+            // Prevent duplicate script tag (avoids "Stripe.js was loaded more than one time")
+            var existing = document.querySelector('script[src="' + url + '"]');
+            if (existing) {
+                existing.addEventListener('load', resolve);
+                return;
+            }
+
             const script = document.createElement('script');
             script.src = url;
             script.async = true;
