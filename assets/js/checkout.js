@@ -13,6 +13,8 @@ const AktiCheckout = (function () {
     let pollingInterval = null;
     let countdownInterval = null;
     let processing = false;
+    let gatewayReady = false;
+    let gatewayInitPromise = null;
 
     // SDK URLs por gateway
     const SDK_URLS = {
@@ -27,11 +29,37 @@ const AktiCheckout = (function () {
 
     function init(cfg) {
         config = cfg;
-        loadGatewaySDK(config.gatewaySlug).then(function () {
+        // For gateways that don't need a frontend SDK for non-card methods, defer loading.
+        // Stripe.js sends continuous telemetry ("b" requests) once loaded, so only
+        // load it when the credit_card tab is actually selected.
+        var needsEagerSDK = config.gatewaySlug !== 'stripe';
+        if (needsEagerSDK) {
+            loadGatewaySDK(config.gatewaySlug).then(function () {
+                initGateway();
+                gatewayReady = true;
+            }).catch(function (err) {
+                console.warn('SDK do gateway não carregado:', err);
+            });
+        }
+    }
+
+    /**
+     * Lazy-load and initialize the gateway SDK.
+     * Returns a Promise that resolves when the SDK is ready.
+     */
+    function ensureGatewayReady() {
+        if (gatewayReady) return Promise.resolve();
+        if (gatewayInitPromise) return gatewayInitPromise;
+
+        gatewayInitPromise = loadGatewaySDK(config.gatewaySlug).then(function () {
             initGateway();
+            gatewayReady = true;
         }).catch(function (err) {
-            console.warn('SDK do gateway não carregado:', err);
+            gatewayInitPromise = null;
+            throw err;
         });
+
+        return gatewayInitPromise;
     }
 
     function processPixPayment() {
@@ -107,8 +135,10 @@ const AktiCheckout = (function () {
         const holderName = document.getElementById('cardHolderName');
         const documentField = document.getElementById('cardDocument');
 
-        // Tokenizar conforme gateway
-        tokenizeCard()
+        // Ensure gateway SDK is loaded before tokenizing
+        ensureGatewayReady().then(function () {
+            return tokenizeCard();
+        })
             .then(function (cardToken) {
                 showLoading('Processando pagamento...');
 
@@ -292,7 +322,7 @@ const AktiCheckout = (function () {
         const pk = config.publicKey;
 
         if (slug === 'stripe' && window.Stripe && pk) {
-            gatewayInstance = window.Stripe(pk);
+            gatewayInstance = window.Stripe(pk, { advancedFraudSignals: false });
             const elements = gatewayInstance.elements();
             stripeElements = {
                 card: elements.create('card', { hidePostalCode: true }),
@@ -722,17 +752,42 @@ const AktiCheckout = (function () {
     /* =========================================
        Return Public API
        ========================================= */
+    /**
+     * Unmount Stripe Elements to stop telemetry when card tab is hidden.
+     */
+    function unmountStripeElements() {
+        if (stripeElements && stripeElements.card) {
+            try { stripeElements.card.unmount(); } catch (e) { /* already unmounted */ }
+        }
+    }
+
+    /**
+     * Remount Stripe Elements when card tab becomes visible again.
+     */
+    function remountStripeElements() {
+        if (stripeElements && stripeElements.card) {
+            const cardEl = document.getElementById('card-element');
+            if (cardEl) {
+                try { stripeElements.card.mount('#card-element'); } catch (e) { /* ignore */ }
+            }
+        }
+    }
+
     return {
         init: init,
+        ensureGatewayReady: ensureGatewayReady,
         processPixPayment: processPixPayment,
         processCardPayment: processCardPayment,
         processBoletoPayment: processBoletoPayment,
         copyToClipboard: copyToClipboard,
         maskCpfCnpj: maskCpfCnpj,
         checkPaymentStatus: checkPaymentStatus,
+        unmountStripeElements: unmountStripeElements,
+        remountStripeElements: remountStripeElements,
         destroy: function () {
             stopPolling();
             stopCountdown();
+            unmountStripeElements();
         }
     };
 })();

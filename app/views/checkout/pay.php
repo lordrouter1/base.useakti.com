@@ -150,6 +150,8 @@ $methodDescs = [
     (function() {
         var PANE_MAP = { pix: 'pix-tab-pane', credit_card: 'card-tab-pane', boleto: 'boleto-tab-pane' };
 
+        var currentMethod = null;
+
         function switchMethod(method, optionEl) {
             // Toggle radio card active state
             var allOptions = document.querySelectorAll('.co-method-option');
@@ -170,6 +172,19 @@ $methodDescs = [
                 var target = document.getElementById(targetId);
                 if (target) target.style.display = 'block';
             }
+
+            // Lazy-load gateway SDK when credit card is selected; unmount when leaving
+            if (typeof AktiCheckout !== 'undefined') {
+                if (method === 'credit_card') {
+                    AktiCheckout.ensureGatewayReady().then(function () {
+                        AktiCheckout.remountStripeElements();
+                    }).catch(function () {});
+                } else if (currentMethod === 'credit_card') {
+                    AktiCheckout.unmountStripeElements();
+                }
+            }
+
+            currentMethod = method;
         }
 
         // Event delegation on the selector container
@@ -226,6 +241,11 @@ $methodDescs = [
         // Init gateway
         if (typeof AktiCheckout !== 'undefined' && typeof CHECKOUT_CONFIG !== 'undefined') {
             AktiCheckout.init(CHECKOUT_CONFIG);
+            // If credit_card is the active (first) method, lazy-load Stripe now
+            var activeMethod = CHECKOUT_CONFIG.methods && CHECKOUT_CONFIG.methods[0];
+            if (activeMethod === 'credit_card') {
+                AktiCheckout.ensureGatewayReady().catch(function () {});
+            }
         }
     })();
     </script>
