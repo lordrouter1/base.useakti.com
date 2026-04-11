@@ -16,6 +16,7 @@ const AktiCheckout = (function () {
     let gatewayReady = false;
     let gatewayInitPromise = null;
     let elementsReadyPromise = null; // resolves when Stripe Elements are mounted + ready
+    let activeCardMethod = null; // 'credit_card' or 'debit_card' — tracks which form Stripe Elements are mounted in
 
     // SDK URLs por gateway
     const SDK_URLS = {
@@ -41,13 +42,14 @@ const AktiCheckout = (function () {
     /**
      * Lazy-load and initialize the gateway SDK.
      * Returns a Promise that resolves when the SDK is ready.
+     * @param {string} method - 'credit_card' or 'debit_card' (determines which form to mount Stripe Elements into)
      */
-    function ensureGatewayReady() {
+    function ensureGatewayReady(method) {
         if (gatewayReady) return Promise.resolve();
         if (gatewayInitPromise) return gatewayInitPromise;
 
         gatewayInitPromise = loadGatewaySDK(config.gatewaySlug).then(function () {
-            return initGateway();
+            return initGateway(method);
         }).then(function () {
             gatewayReady = true;
         }).catch(function (err) {
@@ -132,10 +134,10 @@ const AktiCheckout = (function () {
         const documentField = document.getElementById('cardDocument');
 
         // Ensure gateway SDK is loaded AND elements are ready before tokenizing
-        ensureGatewayReady().then(function () {
+        ensureGatewayReady('credit_card').then(function () {
             return elementsReadyPromise || Promise.resolve();
         }).then(function () {
-            return tokenizeCard();
+            return tokenizeCard('credit_card');
         })
             .then(function (cardToken) {
                 showLoading('Processando pagamento...');
@@ -175,6 +177,68 @@ const AktiCheckout = (function () {
                 processing = false;
                 if (btn) btn.disabled = false;
                 var msg = 'Erro ao processar cartão.';
+                if (err && err.message) msg = err.message;
+                else if (typeof err === 'string') msg = err;
+                showError(msg);
+            });
+
+        return false;
+    }
+
+    function processDebitCardPayment(event) {
+        if (event) event.preventDefault();
+        if (processing) return false;
+        processing = true;
+
+        const btn = document.getElementById('btnPayDebit');
+        if (btn) btn.disabled = true;
+
+        var ids = getCardFormIds('debit_card');
+        const holderName = document.getElementById(ids.holderName);
+        const documentField = document.getElementById(ids.document);
+
+        // Ensure gateway SDK is loaded AND elements are ready before tokenizing
+        ensureGatewayReady('debit_card').then(function () {
+            return elementsReadyPromise || Promise.resolve();
+        }).then(function () {
+            return tokenizeCard('debit_card');
+        })
+            .then(function (cardToken) {
+                showLoading('Processando pagamento no débito...');
+
+                return postPayment({
+                    method: 'debit_card',
+                    card_token: cardToken,
+                    customer_name: holderName ? holderName.value : '',
+                    customer_document: documentField ? documentField.value.replace(/\D/g, '') : ''
+                });
+            })
+            .then(function (data) {
+                Swal.close();
+                processing = false;
+
+                if (!data.success) {
+                    showError(data.error || 'Pagamento recusado.');
+                    if (btn) btn.disabled = false;
+                    return;
+                }
+
+                if (data.status === 'succeeded' || data.status === 'approved') {
+                    showSuccess('Pagamento aprovado!');
+                    setTimeout(function () {
+                        window.location.href = config.confirmationUrl + '&status=succeeded&external_id=' + encodeURIComponent(data.external_id || '');
+                    }, 2000);
+                } else if (data.client_secret && config.gatewaySlug === 'stripe') {
+                    handle3DSecure(data.client_secret);
+                } else {
+                    window.location.href = config.confirmationUrl + '&status=pending&external_id=' + encodeURIComponent(data.external_id || '');
+                }
+            })
+            .catch(function (err) {
+                Swal.close();
+                processing = false;
+                if (btn) btn.disabled = false;
+                var msg = 'Erro ao processar cartão de débito.';
                 if (err && err.message) msg = err.message;
                 else if (typeof err === 'string') msg = err;
                 showError(msg);
@@ -322,114 +386,152 @@ const AktiCheckout = (function () {
         });
     }
 
-    function initGateway() {
+    /**
+     * Get DOM element IDs for the active card form (credit or debit).
+     */
+    function getCardFormIds(method) {
+        if (method === 'debit_card') {
+            return {
+                stripeNum: 'stripe-debit-card-number', manualNum: 'debitCardNumber',
+                stripeExp: 'stripe-debit-card-expiry', manualExp: 'debitExpiry',
+                stripeCvc: 'stripe-debit-card-cvc',    manualCvv: 'debitCvv',
+                errorsDiv: 'debit-card-errors',
+                holderName: 'debitHolderName', document: 'debitDocument'
+            };
+        }
+        return {
+            stripeNum: 'stripe-card-number', manualNum: 'cardNumber',
+            stripeExp: 'stripe-card-expiry', manualExp: 'cardExpiry',
+            stripeCvc: 'stripe-card-cvc',    manualCvv: 'cardCvv',
+            errorsDiv: 'card-errors',
+            holderName: 'cardHolderName', document: 'cardDocument'
+        };
+    }
+
+    function initGateway(method) {
         const slug = config.gatewaySlug;
         const pk = config.publicKey;
+        activeCardMethod = method || 'credit_card';
 
         if (slug === 'stripe' && window.Stripe && pk) {
-            gatewayInstance = window.Stripe(pk, { advancedFraudSignals: false });
-            var elements = gatewayInstance.elements();
-
-            var style = {
-                base: {
-                    fontSize: '16px',
-                    color: '#32325d',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    '::placeholder': { color: '#aab7c4' }
-                },
-                invalid: { color: '#dc3545' }
-            };
-
-            // Create separate elements for each field
-            stripeElements = {
-                cardNumber: elements.create('cardNumber', { style: style, showIcon: true }),
-                cardExpiry: elements.create('cardExpiry', { style: style }),
-                cardCvc: elements.create('cardCvc', { style: style })
-            };
-
-            // Mount CardNumber — hide manual input, show Stripe element
-            var stripeNumEl = document.getElementById('stripe-card-number');
-            var manualNum = document.getElementById('cardNumber');
-            if (stripeNumEl) {
-                stripeNumEl.style.display = 'block';
-                stripeElements.cardNumber.mount('#stripe-card-number');
-            }
-            if (manualNum) {
-                manualNum.style.display = 'none';
-                manualNum.removeAttribute('required');
+            if (!gatewayInstance) {
+                gatewayInstance = window.Stripe(pk, { advancedFraudSignals: false });
             }
 
-            // Mount CardExpiry — hide manual input, show Stripe element
-            var stripeExpEl = document.getElementById('stripe-card-expiry');
-            var manualExp = document.getElementById('cardExpiry');
-            if (stripeExpEl) {
-                stripeExpEl.style.display = 'block';
-                stripeElements.cardExpiry.mount('#stripe-card-expiry');
-            }
-            if (manualExp) {
-                manualExp.style.display = 'none';
-                manualExp.removeAttribute('required');
-            }
-
-            // Mount CardCvc — hide manual input, show Stripe element
-            var stripeCvcEl = document.getElementById('stripe-card-cvc');
-            var manualCvv = document.getElementById('cardCvv');
-            if (stripeCvcEl) {
-                stripeCvcEl.style.display = 'block';
-                stripeElements.cardCvc.mount('#stripe-card-cvc');
-            }
-            if (manualCvv) {
-                manualCvv.style.display = 'none';
-                manualCvv.removeAttribute('required');
+            if (!stripeElements) {
+                var elements = gatewayInstance.elements();
+                var style = {
+                    base: {
+                        fontSize: '16px',
+                        color: '#32325d',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        '::placeholder': { color: '#aab7c4' }
+                    },
+                    invalid: { color: '#dc3545' }
+                };
+                stripeElements = {
+                    cardNumber: elements.create('cardNumber', { style: style, showIcon: true }),
+                    cardExpiry: elements.create('cardExpiry', { style: style }),
+                    cardCvc: elements.create('cardCvc', { style: style })
+                };
             }
 
-            // Stripe validation errors
-            function handleStripeError(event) {
-                var errDiv = document.getElementById('card-errors');
-                if (errDiv) {
-                    if (event.error) {
-                        errDiv.textContent = event.error.message;
-                        errDiv.style.display = 'block';
-                    } else {
-                        errDiv.textContent = '';
-                        errDiv.style.display = 'none';
-                    }
-                }
-            }
-            stripeElements.cardNumber.on('change', handleStripeError);
-            stripeElements.cardExpiry.on('change', handleStripeError);
-            stripeElements.cardCvc.on('change', handleStripeError);
-
-            // Wait for all three Elements to emit "ready" before resolving.
-            // Stripe's createPaymentMethod fails if called before ready.
-            elementsReadyPromise = new Promise(function (resolve) {
-                var readyCount = 0;
-                function onReady() {
-                    readyCount++;
-                    if (readyCount >= 3) resolve();
-                }
-                stripeElements.cardNumber.on('ready', onReady);
-                stripeElements.cardExpiry.on('ready', onReady);
-                stripeElements.cardCvc.on('ready', onReady);
-            });
-            return elementsReadyPromise;
+            // Mount into the active card form
+            return mountStripeIntoForm(activeCardMethod);
 
         } else if (slug === 'mercadopago' && window.MercadoPago && pk) {
             gatewayInstance = new window.MercadoPago(pk);
         }
-        // PagSeguro doesn't need initialization
         return Promise.resolve();
+    }
+
+    /**
+     * Mount Stripe Elements into the specified card form and wait for ready events.
+     */
+    function mountStripeIntoForm(method) {
+        if (!stripeElements) return Promise.resolve();
+
+        var ids = getCardFormIds(method);
+
+        // Mount CardNumber
+        var stripeNumEl = document.getElementById(ids.stripeNum);
+        var manualNum = document.getElementById(ids.manualNum);
+        if (stripeNumEl) {
+            stripeNumEl.style.display = 'block';
+            stripeElements.cardNumber.mount('#' + ids.stripeNum);
+        }
+        if (manualNum) {
+            manualNum.style.display = 'none';
+            manualNum.removeAttribute('required');
+        }
+
+        // Mount CardExpiry
+        var stripeExpEl = document.getElementById(ids.stripeExp);
+        var manualExp = document.getElementById(ids.manualExp);
+        if (stripeExpEl) {
+            stripeExpEl.style.display = 'block';
+            stripeElements.cardExpiry.mount('#' + ids.stripeExp);
+        }
+        if (manualExp) {
+            manualExp.style.display = 'none';
+            manualExp.removeAttribute('required');
+        }
+
+        // Mount CardCvc
+        var stripeCvcEl = document.getElementById(ids.stripeCvc);
+        var manualCvv = document.getElementById(ids.manualCvv);
+        if (stripeCvcEl) {
+            stripeCvcEl.style.display = 'block';
+            stripeElements.cardCvc.mount('#' + ids.stripeCvc);
+        }
+        if (manualCvv) {
+            manualCvv.style.display = 'none';
+            manualCvv.removeAttribute('required');
+        }
+
+        // Stripe validation errors
+        function handleStripeError(event) {
+            var errDiv = document.getElementById(ids.errorsDiv);
+            if (errDiv) {
+                if (event.error) {
+                    errDiv.textContent = event.error.message;
+                    errDiv.style.display = 'block';
+                } else {
+                    errDiv.textContent = '';
+                    errDiv.style.display = 'none';
+                }
+            }
+        }
+        stripeElements.cardNumber.on('change', handleStripeError);
+        stripeElements.cardExpiry.on('change', handleStripeError);
+        stripeElements.cardCvc.on('change', handleStripeError);
+
+        // Wait for all three Elements to emit "ready"
+        elementsReadyPromise = new Promise(function (resolve) {
+            var readyCount = 0;
+            function onReady() {
+                readyCount++;
+                if (readyCount >= 3) resolve();
+            }
+            stripeElements.cardNumber.on('ready', onReady);
+            stripeElements.cardExpiry.on('ready', onReady);
+            stripeElements.cardCvc.on('ready', onReady);
+        });
+
+        activeCardMethod = method;
+        return elementsReadyPromise;
     }
 
     /* =========================================
        Card Tokenization
        ========================================= */
 
-    // Helper: read card input fields
-    function getCardFields() {
-        const numEl = document.getElementById('cardNumber');
-        const expEl = document.getElementById('cardExpiry');
-        const cvvEl = document.getElementById('cardCvv');
+    // Helper: read card input fields from the active card form
+    function getCardFields(method) {
+        var ids = getCardFormIds(method || activeCardMethod || 'credit_card');
+        const numEl = document.getElementById(ids.manualNum);
+        const expEl = document.getElementById(ids.manualExp);
+        const cvvEl = document.getElementById(ids.manualCvv);
         const number = numEl ? numEl.value.replace(/\s/g, '') : '';
         const expiry = expEl ? expEl.value : '';
         const cvv = cvvEl ? cvvEl.value : '';
@@ -442,16 +544,17 @@ const AktiCheckout = (function () {
         };
     }
 
-    function tokenizeCard() {
+    function tokenizeCard(method) {
         const slug = config.gatewaySlug;
-        const card = getCardFields();
+        var ids = getCardFormIds(method || activeCardMethod || 'credit_card');
+        const card = getCardFields(method);
 
         if (slug === 'stripe' && gatewayInstance && stripeElements) {
             return gatewayInstance.createPaymentMethod({
                 type: 'card',
                 card: stripeElements.cardNumber,
                 billing_details: {
-                    name: (document.getElementById('cardHolderName') || {}).value || ''
+                    name: (document.getElementById(ids.holderName) || {}).value || ''
                 }
             }).then(function (result) {
                 if (result.error) {
@@ -463,8 +566,8 @@ const AktiCheckout = (function () {
 
         if (slug === 'mercadopago') {
             return new Promise(function (resolve, reject) {
-                var docValue = ((document.getElementById('cardDocument') || {}).value || '').replace(/\D/g, '');
-                var holderName = (document.getElementById('cardHolderName') || {}).value || '';
+                var docValue = ((document.getElementById(ids.document) || {}).value || '').replace(/\D/g, '');
+                var holderName = (document.getElementById(ids.holderName) || {}).value || '';
 
                 // Validação básica antes de chamar o SDK
                 if (!card.number || card.number.length < 13) {
@@ -845,36 +948,17 @@ const AktiCheckout = (function () {
 
     /**
      * Remount Stripe Elements when card tab becomes visible again.
+     * @param {string} method - 'credit_card' or 'debit_card'
      * Returns a Promise that resolves when all re-mounted elements are ready.
      */
-    function remountStripeElements() {
+    function remountStripeElements(method) {
         if (!stripeElements) return Promise.resolve();
 
-        var mounted = [];
-        if (stripeElements.cardNumber && document.getElementById('stripe-card-number')) {
-            try { stripeElements.cardNumber.mount('#stripe-card-number'); mounted.push(stripeElements.cardNumber); } catch (e) {}
-        }
-        if (stripeElements.cardExpiry && document.getElementById('stripe-card-expiry')) {
-            try { stripeElements.cardExpiry.mount('#stripe-card-expiry'); mounted.push(stripeElements.cardExpiry); } catch (e) {}
-        }
-        if (stripeElements.cardCvc && document.getElementById('stripe-card-cvc')) {
-            try { stripeElements.cardCvc.mount('#stripe-card-cvc'); mounted.push(stripeElements.cardCvc); } catch (e) {}
-        }
+        // Unmount from previous form first
+        unmountStripeElements();
 
-        if (mounted.length === 0) return Promise.resolve();
-
-        // Wait for all remounted elements to be ready
-        elementsReadyPromise = new Promise(function (resolve) {
-            var readyCount = 0;
-            function onReady() {
-                readyCount++;
-                if (readyCount >= mounted.length) resolve();
-            }
-            for (var i = 0; i < mounted.length; i++) {
-                mounted[i].on('ready', onReady);
-            }
-        });
-        return elementsReadyPromise;
+        // Mount into the target form
+        return mountStripeIntoForm(method || activeCardMethod || 'credit_card');
     }
 
     return {
@@ -882,6 +966,7 @@ const AktiCheckout = (function () {
         ensureGatewayReady: ensureGatewayReady,
         processPixPayment: processPixPayment,
         processCardPayment: processCardPayment,
+        processDebitCardPayment: processDebitCardPayment,
         processBoletoPayment: processBoletoPayment,
         copyToClipboard: copyToClipboard,
         maskCpfCnpj: maskCpfCnpj,

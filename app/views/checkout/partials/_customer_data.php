@@ -274,11 +274,11 @@ $hasAddressFields = !empty(array_intersect(array_keys($missingFields), $addressF
                     if (card) card.style.display = 'none';
                     if (paySection) paySection.style.display = 'block';
 
-                    // Now that payment section is visible, lazy-load Stripe if credit_card is first method
+                    // Now that payment section is visible, lazy-load gateway if card method is first
                     if (typeof AktiCheckout !== 'undefined' && typeof CHECKOUT_CONFIG !== 'undefined') {
                         var firstMethod = CHECKOUT_CONFIG.methods && CHECKOUT_CONFIG.methods[0];
-                        if (firstMethod === 'credit_card') {
-                            AktiCheckout.ensureGatewayReady().catch(function () {});
+                        if (firstMethod === 'credit_card' || firstMethod === 'debit_card') {
+                            AktiCheckout.ensureGatewayReady(firstMethod).catch(function () {});
                         }
                     }
 

@@ -120,6 +120,8 @@ $methodDescs = [
                                         <?php $__tabActive = $isActive; include __DIR__ . '/partials/_pix.php'; ?>
                                     <?php elseif ($method === 'credit_card'): ?>
                                         <?php $__tabActive = $isActive; include __DIR__ . '/partials/_credit_card.php'; ?>
+                                    <?php elseif ($method === 'debit_card'): ?>
+                                        <?php $__tabActive = $isActive; include __DIR__ . '/partials/_debit_card.php'; ?>
                                     <?php elseif ($method === 'boleto'): ?>
                                         <?php $__tabActive = $isActive; include __DIR__ . '/partials/_boleto.php'; ?>
                                     <?php endif; ?>
@@ -161,7 +163,7 @@ $methodDescs = [
     <!-- Payment method selector + init -->
     <script>
     (function() {
-        var PANE_MAP = { pix: 'pix-tab-pane', credit_card: 'card-tab-pane', boleto: 'boleto-tab-pane' };
+        var PANE_MAP = { pix: 'pix-tab-pane', credit_card: 'card-tab-pane', debit_card: 'debit-tab-pane', boleto: 'boleto-tab-pane' };
 
         var currentMethod = null;
 
@@ -186,13 +188,16 @@ $methodDescs = [
                 if (target) target.style.display = 'block';
             }
 
-            // Lazy-load gateway SDK when credit card is selected; unmount when leaving
+            // Lazy-load gateway SDK when card method is selected; unmount when leaving
             if (typeof AktiCheckout !== 'undefined') {
-                if (method === 'credit_card') {
-                    AktiCheckout.ensureGatewayReady().then(function () {
-                        AktiCheckout.remountStripeElements();
+                var isCardMethod = (method === 'credit_card' || method === 'debit_card');
+                var wasCardMethod = (currentMethod === 'credit_card' || currentMethod === 'debit_card');
+
+                if (isCardMethod) {
+                    AktiCheckout.ensureGatewayReady(method).then(function () {
+                        AktiCheckout.remountStripeElements(method);
                     }).catch(function () {});
-                } else if (currentMethod === 'credit_card') {
+                } else if (wasCardMethod) {
                     AktiCheckout.unmountStripeElements();
                 }
             }
@@ -215,51 +220,54 @@ $methodDescs = [
     <!-- Card masks + Init gateway -->
     <script>
     (function() {
-        // Card number mask: 0000 0000 0000 0000
-        var cardNum = document.getElementById('cardNumber');
-        if (cardNum) {
-            cardNum.addEventListener('input', function() {
-                var v = this.value.replace(/\D/g, '').substring(0, 16);
-                var parts = [];
-                for (var i = 0; i < v.length; i += 4) {
-                    parts.push(v.substring(i, i + 4));
-                }
-                this.value = parts.join(' ');
-            });
+        // Apply card masks to both credit and debit card forms
+        function applyCardMasks(numId, expId, cvvId) {
+            var cardNum = document.getElementById(numId);
+            if (cardNum) {
+                cardNum.addEventListener('input', function() {
+                    var v = this.value.replace(/\D/g, '').substring(0, 16);
+                    var parts = [];
+                    for (var i = 0; i < v.length; i += 4) {
+                        parts.push(v.substring(i, i + 4));
+                    }
+                    this.value = parts.join(' ');
+                });
+            }
+
+            var cardExp = document.getElementById(expId);
+            if (cardExp) {
+                cardExp.addEventListener('input', function() {
+                    var v = this.value.replace(/\D/g, '').substring(0, 4);
+                    if (v.length >= 3) {
+                        this.value = v.substring(0, 2) + '/' + v.substring(2);
+                    } else {
+                        this.value = v;
+                    }
+                });
+            }
+
+            var cardCvv = document.getElementById(cvvId);
+            if (cardCvv) {
+                cardCvv.addEventListener('input', function() {
+                    this.value = this.value.replace(/\D/g, '').substring(0, 4);
+                });
+            }
         }
 
-        // Expiry mask: MM/AA
-        var cardExp = document.getElementById('cardExpiry');
-        if (cardExp) {
-            cardExp.addEventListener('input', function() {
-                var v = this.value.replace(/\D/g, '').substring(0, 4);
-                if (v.length >= 3) {
-                    this.value = v.substring(0, 2) + '/' + v.substring(2);
-                } else {
-                    this.value = v;
-                }
-            });
-        }
-
-        // CVV mask: only digits
-        var cardCvv = document.getElementById('cardCvv');
-        if (cardCvv) {
-            cardCvv.addEventListener('input', function() {
-                this.value = this.value.replace(/\D/g, '').substring(0, 4);
-            });
-        }
+        // Credit card masks
+        applyCardMasks('cardNumber', 'cardExpiry', 'cardCvv');
+        // Debit card masks
+        applyCardMasks('debitCardNumber', 'debitExpiry', 'debitCvv');
 
         // Init gateway
         if (typeof AktiCheckout !== 'undefined' && typeof CHECKOUT_CONFIG !== 'undefined') {
             AktiCheckout.init(CHECKOUT_CONFIG);
-            // Only lazy-load Stripe now if credit_card is first AND payment section is visible.
-            // If customer data form is shown first, paymentSection is hidden and Stripe Elements
-            // cannot mount into invisible containers — defer until the section becomes visible.
+            // Only lazy-load Stripe now if a card method is first AND payment section is visible.
             var paymentSection = document.getElementById('paymentSection');
             var sectionVisible = paymentSection && paymentSection.style.display !== 'none';
             var activeMethod = CHECKOUT_CONFIG.methods && CHECKOUT_CONFIG.methods[0];
-            if (activeMethod === 'credit_card' && sectionVisible) {
-                AktiCheckout.ensureGatewayReady().catch(function () {});
+            if ((activeMethod === 'credit_card' || activeMethod === 'debit_card') && sectionVisible) {
+                AktiCheckout.ensureGatewayReady(activeMethod).catch(function () {});
             }
         }
     })();

@@ -83,7 +83,7 @@ class CheckoutController extends BaseController
         }
 
         // Manter apenas métodos com partial de checkout implementado
-        $implementedMethods = ['pix', 'credit_card', 'boleto'];
+        $implementedMethods = ['pix', 'credit_card', 'debit_card', 'boleto'];
         $supportedMethods = array_values(array_intersect($supportedMethods, $implementedMethods));
 
         // Dados da empresa
