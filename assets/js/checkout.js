@@ -29,18 +29,12 @@ const AktiCheckout = (function () {
 
     function init(cfg) {
         config = cfg;
-        // For gateways that don't need a frontend SDK for non-card methods, defer loading.
-        // Stripe.js sends continuous telemetry ("b" requests) once loaded, so only
-        // load it when the credit_card tab is actually selected.
-        var needsEagerSDK = config.gatewaySlug !== 'stripe';
-        if (needsEagerSDK) {
-            loadGatewaySDK(config.gatewaySlug).then(function () {
-                initGateway();
-                gatewayReady = true;
-            }).catch(function (err) {
-                console.warn('SDK do gateway não carregado:', err);
-            });
-        }
+        // All gateway SDKs (Stripe, MercadoPago, PagSeguro) are only needed for
+        // credit card tokenization. PIX and Boleto are processed entirely server-side.
+        // Defer SDK loading until the credit_card tab is selected to avoid:
+        //  - Stripe.js continuous telemetry ("b" requests / advancedFraudSignals)
+        //  - MercadoPago SDK device fingerprinting and background requests
+        //  - Unnecessary script loading when user only wants PIX/Boleto
     }
 
     /**
