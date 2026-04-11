@@ -15,6 +15,7 @@ const AktiCheckout = (function () {
     let processing = false;
     let gatewayReady = false;
     let gatewayInitPromise = null;
+    let elementsReadyPromise = null; // resolves when Stripe Elements are mounted + ready
 
     // SDK URLs por gateway
     const SDK_URLS = {
@@ -46,7 +47,8 @@ const AktiCheckout = (function () {
         if (gatewayInitPromise) return gatewayInitPromise;
 
         gatewayInitPromise = loadGatewaySDK(config.gatewaySlug).then(function () {
-            initGateway();
+            return initGateway();
+        }).then(function () {
             gatewayReady = true;
         }).catch(function (err) {
             gatewayInitPromise = null;
@@ -129,8 +131,10 @@ const AktiCheckout = (function () {
         const holderName = document.getElementById('cardHolderName');
         const documentField = document.getElementById('cardDocument');
 
-        // Ensure gateway SDK is loaded before tokenizing
+        // Ensure gateway SDK is loaded AND elements are ready before tokenizing
         ensureGatewayReady().then(function () {
+            return elementsReadyPromise || Promise.resolve();
+        }).then(function () {
             return tokenizeCard();
         })
             .then(function (cardToken) {
@@ -396,10 +400,25 @@ const AktiCheckout = (function () {
             stripeElements.cardExpiry.on('change', handleStripeError);
             stripeElements.cardCvc.on('change', handleStripeError);
 
+            // Wait for all three Elements to emit "ready" before resolving.
+            // Stripe's createPaymentMethod fails if called before ready.
+            elementsReadyPromise = new Promise(function (resolve) {
+                var readyCount = 0;
+                function onReady() {
+                    readyCount++;
+                    if (readyCount >= 3) resolve();
+                }
+                stripeElements.cardNumber.on('ready', onReady);
+                stripeElements.cardExpiry.on('ready', onReady);
+                stripeElements.cardCvc.on('ready', onReady);
+            });
+            return elementsReadyPromise;
+
         } else if (slug === 'mercadopago' && window.MercadoPago && pk) {
             gatewayInstance = new window.MercadoPago(pk);
         }
         // PagSeguro doesn't need initialization
+        return Promise.resolve();
     }
 
     /* =========================================
@@ -826,18 +845,36 @@ const AktiCheckout = (function () {
 
     /**
      * Remount Stripe Elements when card tab becomes visible again.
+     * Returns a Promise that resolves when all re-mounted elements are ready.
      */
     function remountStripeElements() {
-        if (!stripeElements) return;
+        if (!stripeElements) return Promise.resolve();
+
+        var mounted = [];
         if (stripeElements.cardNumber && document.getElementById('stripe-card-number')) {
-            try { stripeElements.cardNumber.mount('#stripe-card-number'); } catch (e) {}
+            try { stripeElements.cardNumber.mount('#stripe-card-number'); mounted.push(stripeElements.cardNumber); } catch (e) {}
         }
         if (stripeElements.cardExpiry && document.getElementById('stripe-card-expiry')) {
-            try { stripeElements.cardExpiry.mount('#stripe-card-expiry'); } catch (e) {}
+            try { stripeElements.cardExpiry.mount('#stripe-card-expiry'); mounted.push(stripeElements.cardExpiry); } catch (e) {}
         }
         if (stripeElements.cardCvc && document.getElementById('stripe-card-cvc')) {
-            try { stripeElements.cardCvc.mount('#stripe-card-cvc'); } catch (e) {}
+            try { stripeElements.cardCvc.mount('#stripe-card-cvc'); mounted.push(stripeElements.cardCvc); } catch (e) {}
         }
+
+        if (mounted.length === 0) return Promise.resolve();
+
+        // Wait for all remounted elements to be ready
+        elementsReadyPromise = new Promise(function (resolve) {
+            var readyCount = 0;
+            function onReady() {
+                readyCount++;
+                if (readyCount >= mounted.length) resolve();
+            }
+            for (var i = 0; i < mounted.length; i++) {
+                mounted[i].on('ready', onReady);
+            }
+        });
+        return elementsReadyPromise;
     }
 
     return {
