@@ -651,9 +651,9 @@ class CheckoutController extends BaseController
         $city     = trim($input['city'] ?? '');
         $state    = trim($input['state'] ?? '');
 
-        // Validações básicas
+        // Validações básicas — só validar campos que foram enviados no formulário
         $errors = [];
-        if (empty($name)) {
+        if (isset($input['name']) && empty($name)) {
             $errors[] = 'Nome é obrigatório.';
         }
         if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
