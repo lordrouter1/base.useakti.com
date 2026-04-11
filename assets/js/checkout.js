@@ -317,59 +317,78 @@ const AktiCheckout = (function () {
 
         if (slug === 'stripe' && window.Stripe && pk) {
             gatewayInstance = window.Stripe(pk, { advancedFraudSignals: false });
-            const elements = gatewayInstance.elements();
-            stripeElements = {
-                card: elements.create('card', { hidePostalCode: true }),
+            var elements = gatewayInstance.elements();
+
+            var style = {
+                base: {
+                    fontSize: '16px',
+                    color: '#32325d',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    '::placeholder': { color: '#aab7c4' }
+                },
+                invalid: { color: '#dc3545' }
             };
-            const cardEl = document.getElementById('card-element');
-            if (cardEl) {
-                // Show unified Stripe Card Element (contains number + expiry + CVV)
-                cardEl.style.display = 'block';
-                stripeElements.card.mount('#card-element');
 
-                // Update label to reflect unified field
-                const cardLabel = document.getElementById('cardNumberLabel');
-                if (cardLabel) cardLabel.textContent = 'Dados do cartão';
+            // Create separate elements for each field
+            stripeElements = {
+                cardNumber: elements.create('cardNumber', { style: style, showIcon: true }),
+                cardExpiry: elements.create('cardExpiry', { style: style }),
+                cardCvc: elements.create('cardCvc', { style: style })
+            };
 
-                // Hide the manual card number input (Stripe Element replaces it)
-                var manualCardNumber = document.getElementById('cardNumber');
-                if (manualCardNumber) {
-                    manualCardNumber.style.display = 'none';
-                    manualCardNumber.removeAttribute('required');
-                }
-
-                // Hide separate expiry and CVV rows (included in Stripe Card Element)
-                var expiryInput = document.getElementById('cardExpiry');
-                var cvvInput = document.getElementById('cardCvv');
-                var expiryAnchor = document.getElementById('card-expiry-element');
-                var cvvAnchor = document.getElementById('card-cvv-element');
-
-                if (expiryAnchor) {
-                    var expiryCol = expiryAnchor.closest('.col-6');
-                    if (expiryCol) expiryCol.style.display = 'none';
-                }
-                if (cvvAnchor) {
-                    var cvvCol = cvvAnchor.closest('.col-6');
-                    if (cvvCol) cvvCol.style.display = 'none';
-                }
-                // Remove required so hidden fields don't block form submit
-                if (expiryInput) expiryInput.removeAttribute('required');
-                if (cvvInput) cvvInput.removeAttribute('required');
-
-                // Show Stripe validation errors inline
-                stripeElements.card.on('change', function (event) {
-                    var errDiv = document.getElementById('card-errors');
-                    if (errDiv) {
-                        if (event.error) {
-                            errDiv.textContent = event.error.message;
-                            errDiv.style.display = 'block';
-                        } else {
-                            errDiv.textContent = '';
-                            errDiv.style.display = 'none';
-                        }
-                    }
-                });
+            // Mount CardNumber — hide manual input, show Stripe element
+            var stripeNumEl = document.getElementById('stripe-card-number');
+            var manualNum = document.getElementById('cardNumber');
+            if (stripeNumEl) {
+                stripeNumEl.style.display = 'block';
+                stripeElements.cardNumber.mount('#stripe-card-number');
             }
+            if (manualNum) {
+                manualNum.style.display = 'none';
+                manualNum.removeAttribute('required');
+            }
+
+            // Mount CardExpiry — hide manual input, show Stripe element
+            var stripeExpEl = document.getElementById('stripe-card-expiry');
+            var manualExp = document.getElementById('cardExpiry');
+            if (stripeExpEl) {
+                stripeExpEl.style.display = 'block';
+                stripeElements.cardExpiry.mount('#stripe-card-expiry');
+            }
+            if (manualExp) {
+                manualExp.style.display = 'none';
+                manualExp.removeAttribute('required');
+            }
+
+            // Mount CardCvc — hide manual input, show Stripe element
+            var stripeCvcEl = document.getElementById('stripe-card-cvc');
+            var manualCvv = document.getElementById('cardCvv');
+            if (stripeCvcEl) {
+                stripeCvcEl.style.display = 'block';
+                stripeElements.cardCvc.mount('#stripe-card-cvc');
+            }
+            if (manualCvv) {
+                manualCvv.style.display = 'none';
+                manualCvv.removeAttribute('required');
+            }
+
+            // Stripe validation errors
+            function handleStripeError(event) {
+                var errDiv = document.getElementById('card-errors');
+                if (errDiv) {
+                    if (event.error) {
+                        errDiv.textContent = event.error.message;
+                        errDiv.style.display = 'block';
+                    } else {
+                        errDiv.textContent = '';
+                        errDiv.style.display = 'none';
+                    }
+                }
+            }
+            stripeElements.cardNumber.on('change', handleStripeError);
+            stripeElements.cardExpiry.on('change', handleStripeError);
+            stripeElements.cardCvc.on('change', handleStripeError);
+
         } else if (slug === 'mercadopago' && window.MercadoPago && pk) {
             gatewayInstance = new window.MercadoPago(pk);
         }
@@ -404,7 +423,7 @@ const AktiCheckout = (function () {
         if (slug === 'stripe' && gatewayInstance && stripeElements) {
             return gatewayInstance.createPaymentMethod({
                 type: 'card',
-                card: stripeElements.card,
+                card: stripeElements.cardNumber,
                 billing_details: {
                     name: (document.getElementById('cardHolderName') || {}).value || ''
                 }
@@ -792,20 +811,25 @@ const AktiCheckout = (function () {
      * Unmount Stripe Elements to stop telemetry when card tab is hidden.
      */
     function unmountStripeElements() {
-        if (stripeElements && stripeElements.card) {
-            try { stripeElements.card.unmount(); } catch (e) { /* already unmounted */ }
-        }
+        if (!stripeElements) return;
+        if (stripeElements.cardNumber) { try { stripeElements.cardNumber.unmount(); } catch (e) {} }
+        if (stripeElements.cardExpiry) { try { stripeElements.cardExpiry.unmount(); } catch (e) {} }
+        if (stripeElements.cardCvc)    { try { stripeElements.cardCvc.unmount(); } catch (e) {} }
     }
 
     /**
      * Remount Stripe Elements when card tab becomes visible again.
      */
     function remountStripeElements() {
-        if (stripeElements && stripeElements.card) {
-            const cardEl = document.getElementById('card-element');
-            if (cardEl) {
-                try { stripeElements.card.mount('#card-element'); } catch (e) { /* ignore */ }
-            }
+        if (!stripeElements) return;
+        if (stripeElements.cardNumber && document.getElementById('stripe-card-number')) {
+            try { stripeElements.cardNumber.mount('#stripe-card-number'); } catch (e) {}
+        }
+        if (stripeElements.cardExpiry && document.getElementById('stripe-card-expiry')) {
+            try { stripeElements.cardExpiry.mount('#stripe-card-expiry'); } catch (e) {}
+        }
+        if (stripeElements.cardCvc && document.getElementById('stripe-card-cvc')) {
+            try { stripeElements.cardCvc.mount('#stripe-card-cvc'); } catch (e) {}
         }
     }
 
