@@ -554,4 +554,80 @@ class Product {
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Recalcula o cost_price do produto baseado na BOM (insumos obrigatórios).
+     * Soma: quantity × (1 + waste_percent/100) × supply.cost_price para is_optional=0
+     */
+    public function updateBaseCostFromBOM(int $productId): float
+    {
+        $sql = "SELECT COALESCE(SUM(ps.quantity * (1 + ps.waste_percent / 100) * s.cost_price), 0) AS total_cost
+                FROM product_supplies ps
+                JOIN supplies s ON s.id = ps.supply_id
+                WHERE ps.product_id = :product_id AND ps.is_optional = 0";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':product_id', $productId, PDO::PARAM_INT);
+        $stmt->execute();
+        $totalCost = (float) $stmt->fetchColumn();
+
+        $update = $this->conn->prepare("UPDATE {$this->table_name} SET cost_price = :cost WHERE id = :id");
+        $update->bindValue(':cost', $totalCost);
+        $update->bindValue(':id', $productId, PDO::PARAM_INT);
+        $update->execute();
+
+        EventDispatcher::dispatch(new Event('model.product.cost_updated', [
+            'product_id' => $productId,
+            'cost_price' => $totalCost,
+        ]));
+
+        return $totalCost;
+    }
+
+    /**
+     * Análise de margem: custo MP vs preço de venda.
+     */
+    public function getMarginAnalysis(int $productId): array
+    {
+        $sql = "SELECT p.price,
+                       COALESCE(SUM(ps.quantity * (1 + ps.waste_percent / 100) * s.cost_price), 0) AS cost_mp
+                FROM {$this->table_name} p
+                LEFT JOIN product_supplies ps ON ps.product_id = p.id AND ps.is_optional = 0
+                LEFT JOIN supplies s ON s.id = ps.supply_id
+                WHERE p.id = :id
+                GROUP BY p.id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':id', $productId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            return ['cost_mp' => 0, 'price' => 0, 'margin_value' => 0, 'margin_percent' => 0];
+        }
+
+        $price = (float) $row['price'];
+        $costMp = (float) $row['cost_mp'];
+        $marginValue = $price - $costMp;
+        $marginPercent = $price > 0 ? round(($marginValue / $price) * 100, 2) : 0;
+
+        return [
+            'cost_mp' => $costMp,
+            'price' => $price,
+            'margin_value' => $marginValue,
+            'margin_percent' => $marginPercent,
+        ];
+    }
+
+    /**
+     * Atualiza cost_price de múltiplos produtos via BOM em lote.
+     */
+    public function bulkUpdateBOMCosts(array $productIds): array
+    {
+        $results = [];
+        foreach ($productIds as $pid) {
+            $pid = (int) $pid;
+            $newCost = $this->updateBaseCostFromBOM($pid);
+            $results[] = ['product_id' => $pid, 'new_cost' => $newCost];
+        }
+        return $results;
+    }
 }

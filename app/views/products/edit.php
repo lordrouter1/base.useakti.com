@@ -381,6 +381,125 @@
         <?php endif; ?>
 
         <!-- ════════════════════════════════════════════════════
+             SEÇÃO 9 — INSUMOS / BOM (Bill of Materials)
+             ════════════════════════════════════════════════════ -->
+        <div class="card mb-4 shadow-sm" id="bomSection">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center section-toggle"
+                 data-bs-toggle="collapse" data-bs-target="#collapseBOM" aria-expanded="false" role="button">
+                <h5 class="mb-0 text-grape"><i class="fas fa-cubes me-2"></i>Insumos (BOM) <small class="text-muted">— Composição de matéria-prima</small></h5>
+                <i class="fas fa-chevron-down collapse-icon text-muted"></i>
+            </div>
+            <div class="collapse" id="collapseBOM">
+                <div class="card-body p-4">
+                    <!-- Card Resumo de Custo -->
+                    <div class="row g-3 mb-4" id="bomCostSummary">
+                        <div class="col-md-3">
+                            <div class="card bg-light border-0 text-center p-3">
+                                <small class="text-muted">Custo MP</small>
+                                <h4 class="mb-0 text-primary" id="bomCostMp">R$ 0,00</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light border-0 text-center p-3">
+                                <small class="text-muted">Preço Venda</small>
+                                <h4 class="mb-0 text-success" id="bomPrice">R$ <?= eNum($product['price'] ?? 0) ?></h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light border-0 text-center p-3">
+                                <small class="text-muted">Margem R$</small>
+                                <h4 class="mb-0" id="bomMarginValue">R$ 0,00</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light border-0 text-center p-3">
+                                <small class="text-muted">Margem %</small>
+                                <h4 class="mb-0" id="bomMarginPercent">0%</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Insumos -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Composição do Produto</h6>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnAddBomItem">
+                            <i class="fas fa-plus me-1"></i>Adicionar Insumo
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm" id="bomTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Insumo</th>
+                                    <th class="text-center">Qtd</th>
+                                    <th class="text-center">Un.</th>
+                                    <th class="text-center">%Perda</th>
+                                    <th class="text-center">Efetivo</th>
+                                    <th class="text-end">Custo Unit.</th>
+                                    <th class="text-end">Custo Total</th>
+                                    <th class="text-center">Opc.</th>
+                                    <th class="text-center" style="width:80px">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bomTableBody">
+                                <tr id="bomEmptyRow">
+                                    <td colspan="10" class="text-center text-muted py-4">
+                                        <i class="fas fa-cubes fa-2x mb-2 d-block opacity-50"></i>
+                                        Nenhum insumo vinculado. Clique em "Adicionar Insumo" para compor a BOM.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Botão Recalcular Custo -->
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <button type="button" class="btn btn-sm btn-outline-warning" id="btnRecalcBOM">
+                            <i class="fas fa-calculator me-1"></i>Recalcular Custo BOM
+                        </button>
+                        <div>
+                            <!-- Estimativa de consumo -->
+                            <div class="input-group input-group-sm" style="max-width: 280px;">
+                                <span class="input-group-text">Qtd Produção</span>
+                                <input type="number" class="form-control" id="bomEstimateQty" min="1" value="1" step="1">
+                                <button type="button" class="btn btn-outline-info" id="btnEstimateConsumption">
+                                    <i class="fas fa-chart-bar me-1"></i>Estimar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estimativa de Consumo (hidden por padrão) -->
+                    <div class="mt-3 d-none" id="bomEstimateResult">
+                        <div class="card border-info">
+                            <div class="card-header bg-info bg-opacity-10 py-2">
+                                <h6 class="mb-0 text-info"><i class="fas fa-chart-bar me-1"></i>Estimativa de Consumo</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-sm mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Insumo</th>
+                                                <th class="text-center">Qtd/Un</th>
+                                                <th class="text-center">Total Necessário</th>
+                                                <th class="text-center">Estoque Disponível</th>
+                                                <th class="text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="bomEstimateBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════
              BOTÕES DE AÇÃO
              ════════════════════════════════════════════════════ -->
         <div class="d-flex justify-content-between align-items-center py-3 sticky-bottom bg-body-tertiary rounded px-3 mb-3 shadow-sm">
@@ -812,4 +931,263 @@ function deleteImage(imageId) {
         }
     });
 }
+</script>
+
+<!-- BOM / Insumos Script -->
+<script>
+(function() {
+    const productId = <?= (int) $product['id'] ?>;
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
+    const ajaxHeaders = { 'X-CSRF-TOKEN': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' };
+
+    function formatMoney(v) {
+        return 'R$ ' + parseFloat(v || 0).toFixed(2).replace('.', ',');
+    }
+
+    function loadBomItems() {
+        $.getJSON('?page=supplies&action=getProductSupplies&product_id=' + productId, function(resp) {
+            const items = resp.items || resp.data || resp || [];
+            const tbody = $('#bomTableBody');
+            tbody.empty();
+
+            if (!items.length) {
+                tbody.html('<tr id="bomEmptyRow"><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-cubes fa-2x mb-2 d-block opacity-50"></i>Nenhum insumo vinculado.</td></tr>');
+                updateCostSummary(0);
+                return;
+            }
+
+            let totalCost = 0;
+            items.forEach(function(item) {
+                const effective = parseFloat(item.quantity) * (1 + parseFloat(item.waste_percent || 0) / 100);
+                const unitCost = parseFloat(item.cost_price || 0);
+                const lineCost = effective * unitCost;
+                totalCost += item.is_optional == 1 ? 0 : lineCost;
+
+                tbody.append(`
+                    <tr data-id="${item.id}">
+                        <td><code>${item.supply_code || item.code || ''}</code></td>
+                        <td>${item.supply_name || item.name || ''}</td>
+                        <td class="text-center">${parseFloat(item.quantity).toFixed(4)}</td>
+                        <td class="text-center">${item.unit_measure || ''}</td>
+                        <td class="text-center">${parseFloat(item.waste_percent || 0).toFixed(1)}%</td>
+                        <td class="text-center">${effective.toFixed(4)}</td>
+                        <td class="text-end">${formatMoney(unitCost)}</td>
+                        <td class="text-end">${formatMoney(lineCost)}</td>
+                        <td class="text-center">${item.is_optional == 1 ? '<span class="badge bg-secondary">Opc</span>' : ''}</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-edit-bom" data-id="${item.id}" title="Editar"><i class="fas fa-pen"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-del-bom" data-id="${item.id}" title="Remover"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `);
+            });
+            updateCostSummary(totalCost);
+        });
+    }
+
+    function updateCostSummary(costMp) {
+        const price = parseFloat('<?= (float)($product['price'] ?? 0) ?>');
+        const marginVal = price - costMp;
+        const marginPct = price > 0 ? ((marginVal / price) * 100).toFixed(1) : 0;
+
+        $('#bomCostMp').text(formatMoney(costMp));
+        $('#bomPrice').text(formatMoney(price));
+        $('#bomMarginValue').text(formatMoney(marginVal)).removeClass('text-success text-danger').addClass(marginVal >= 0 ? 'text-success' : 'text-danger');
+        $('#bomMarginPercent').text(marginPct + '%').removeClass('text-success text-danger').addClass(marginVal >= 0 ? 'text-success' : 'text-danger');
+    }
+
+    // Adicionar insumo
+    $('#btnAddBomItem').on('click', function() {
+        Swal.fire({
+            title: 'Adicionar Insumo ao Produto',
+            html: `
+                <div class="text-start">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Insumo <span class="text-danger">*</span></label>
+                        <select id="swalSupplyId" class="form-select" style="width:100%"></select>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">Quantidade <span class="text-danger">*</span></label>
+                            <input type="number" id="swalQty" class="form-control" step="0.0001" min="0.0001" value="1">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">% Perda</label>
+                            <input type="number" id="swalWaste" class="form-control" step="0.1" min="0" max="100" value="0">
+                        </div>
+                    </div>
+                    <div class="form-check mt-3">
+                        <input type="checkbox" id="swalOptional" class="form-check-input">
+                        <label class="form-check-label" for="swalOptional">Opcional (não entra no custo base)</label>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Observações</label>
+                        <input type="text" id="swalNotes" class="form-control">
+                    </div>
+                </div>
+            `,
+            width: 500,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-plus me-1"></i>Adicionar',
+            cancelButtonText: 'Cancelar',
+            didOpen: () => {
+                $('#swalSupplyId').select2({
+                    dropdownParent: Swal.getPopup(),
+                    ajax: {
+                        url: '?page=supplies&action=searchSelect2',
+                        dataType: 'json',
+                        delay: 300,
+                        data: p => ({ term: p.term }),
+                        processResults: d => ({ results: d.results || d })
+                    },
+                    minimumInputLength: 1,
+                    placeholder: 'Buscar insumo...',
+                    allowClear: true
+                });
+            },
+            preConfirm: () => {
+                const supplyId = $('#swalSupplyId').val();
+                const qty = parseFloat($('#swalQty').val());
+                if (!supplyId || !qty || qty <= 0) {
+                    Swal.showValidationMessage('Selecione um insumo e informe a quantidade.');
+                    return false;
+                }
+                return {
+                    product_id: productId,
+                    supply_id: supplyId,
+                    quantity: qty,
+                    waste_percent: parseFloat($('#swalWaste').val()) || 0,
+                    is_optional: $('#swalOptional').is(':checked') ? 1 : 0,
+                    notes: $('#swalNotes').val()
+                };
+            }
+        }).then(result => {
+            if (!result.isConfirmed) return;
+            $.post('?page=supplies&action=addProductSupply', $.param(result.value) + '&csrf_token=' + csrfToken, function(resp) {
+                if (resp.success) {
+                    Swal.fire({ icon: 'success', title: 'Adicionado!', timer: 1500, showConfirmButton: false });
+                    loadBomItems();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Erro', text: resp.message || 'Erro ao adicionar.' });
+                }
+            }, 'json').fail(function() {
+                Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha na comunicação.' });
+            });
+        });
+    });
+
+    // Editar insumo BOM
+    $(document).on('click', '.btn-edit-bom', function() {
+        const bomId = $(this).data('id');
+        // Get current row data
+        const tr = $(this).closest('tr');
+        const currentQty = tr.find('td:eq(2)').text().trim();
+        const currentWaste = parseFloat(tr.find('td:eq(4)').text());
+
+        Swal.fire({
+            title: 'Editar Composição',
+            html: `
+                <div class="text-start">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">Quantidade</label>
+                            <input type="number" id="swalEditQty" class="form-control" step="0.0001" min="0.0001" value="${currentQty}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">% Perda</label>
+                            <input type="number" id="swalEditWaste" class="form-control" step="0.1" min="0" max="100" value="${currentWaste}">
+                        </div>
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-save me-1"></i>Salvar',
+            preConfirm: () => ({
+                id: bomId,
+                quantity: parseFloat($('#swalEditQty').val()),
+                waste_percent: parseFloat($('#swalEditWaste').val()) || 0
+            })
+        }).then(result => {
+            if (!result.isConfirmed) return;
+            $.post('?page=supplies&action=updateProductSupply', $.param(result.value) + '&csrf_token=' + csrfToken, function(resp) {
+                if (resp.success) {
+                    loadBomItems();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Erro', text: resp.message || 'Erro ao atualizar.' });
+                }
+            }, 'json');
+        });
+    });
+
+    // Remover insumo BOM
+    $(document).on('click', '.btn-del-bom', function() {
+        const bomId = $(this).data('id');
+        Swal.fire({
+            title: 'Remover Insumo?',
+            text: 'Essa ação não pode ser desfeita.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Sim, remover'
+        }).then(result => {
+            if (!result.isConfirmed) return;
+            $.post('?page=supplies&action=removeProductSupply', 'id=' + bomId + '&csrf_token=' + csrfToken, function(resp) {
+                if (resp.success) {
+                    loadBomItems();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Erro', text: resp.message || 'Erro ao remover.' });
+                }
+            }, 'json');
+        });
+    });
+
+    // Recalcular custo BOM
+    $('#btnRecalcBOM').on('click', function() {
+        $.post('?page=supplies&action=applyBOMCostUpdate', 'product_ids[]=' + productId + '&csrf_token=' + csrfToken, function(resp) {
+            if (resp.success) {
+                Swal.fire({ icon: 'success', title: 'Custo recalculado!', timer: 1500, showConfirmButton: false });
+                loadBomItems();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Erro', text: resp.message || 'Erro ao recalcular.' });
+            }
+        }, 'json');
+    });
+
+    // Estimativa de consumo
+    $('#btnEstimateConsumption').on('click', function() {
+        const qty = parseInt($('#bomEstimateQty').val()) || 1;
+        $.getJSON('?page=supplies&action=estimateConsumption&product_id=' + productId + '&qty=' + qty, function(resp) {
+            const items = resp.items || resp.data || resp || [];
+            const tbody = $('#bomEstimateBody');
+            tbody.empty();
+
+            if (!items.length) {
+                tbody.html('<tr><td colspan="5" class="text-center text-muted">Nenhum insumo na composição.</td></tr>');
+            } else {
+                items.forEach(function(item) {
+                    const statusIcon = item.sufficient ? '<span class="badge bg-success"><i class="fas fa-check"></i> OK</span>' : '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Insuficiente</span>';
+                    tbody.append(`
+                        <tr class="${!item.sufficient ? 'table-danger' : ''}">
+                            <td>${item.supply_name || ''}</td>
+                            <td class="text-center">${parseFloat(item.qty_per_unit || 0).toFixed(4)}</td>
+                            <td class="text-center">${parseFloat(item.total_needed || 0).toFixed(4)}</td>
+                            <td class="text-center">${parseFloat(item.stock_available || 0).toFixed(4)}</td>
+                            <td class="text-center">${statusIcon}</td>
+                        </tr>
+                    `);
+                });
+            }
+            $('#bomEstimateResult').removeClass('d-none');
+        });
+    });
+
+    // Carregar BOM ao expandir a seção
+    let bomLoaded = false;
+    document.getElementById('collapseBOM')?.addEventListener('shown.bs.collapse', function() {
+        if (!bomLoaded) {
+            loadBomItems();
+            bomLoaded = true;
+        }
+    });
+})();
 </script>

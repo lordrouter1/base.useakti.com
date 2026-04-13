@@ -1444,6 +1444,81 @@ foreach ($auditEvents as $eventName => $meta) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// Listeners do Módulo de Insumos
+// ══════════════════════════════════════════════════════════════
+
+$supplyLogFile = (defined('AKTI_BASE_PATH') ? AKTI_BASE_PATH : '') . 'storage/logs/supply.log';
+
+/**
+ * model.supply.price_changed — CMP do insumo foi alterado após entrada de estoque.
+ * Payload: supply_id, old_cmp, new_cmp
+ *
+ * Ações:
+ *   1. Log da alteração de custo
+ *   2. Buscar produtos afetados (BOM) e armazenar impacto em sessão
+ */
+EventDispatcher::listen('model.supply.price_changed', function (Event $event) use ($supplyLogFile) {
+    $data = $event->getData();
+    $supplyId = (int) ($data['supply_id'] ?? 0);
+    $oldCmp   = $data['old_cmp'] ?? 0;
+    $newCmp   = $data['new_cmp'] ?? 0;
+
+    $logMessage = sprintf(
+        '[Insumo CMP Alterado] ID: %d | CMP Anterior: %.4f | CMP Novo: %.4f | Variação: %.2f%%',
+        $supplyId,
+        $oldCmp,
+        $newCmp,
+        $oldCmp > 0 ? (($newCmp - $oldCmp) / $oldCmp) * 100 : 0
+    );
+
+    $dir = dirname($supplyLogFile);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+    @file_put_contents($supplyLogFile, date('[Y-m-d H:i:s] ') . $logMessage . PHP_EOL, FILE_APPEND);
+
+    // Buscar produtos afetados e armazenar impacto em sessão para exibição
+    try {
+        $db = (new \Database())->getConnection();
+        $supply = new \Akti\Models\Supply($db);
+        $affectedProducts = $supply->getAffectedProducts($supplyId);
+
+        if (!empty($affectedProducts)) {
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                $_SESSION['supply_price_impact'] = [
+                    'supply_id'  => $supplyId,
+                    'old_cmp'    => $oldCmp,
+                    'new_cmp'    => $newCmp,
+                    'products'   => $supply->getWhereUsedImpact($supplyId, $newCmp),
+                ];
+            }
+        }
+    } catch (\Throwable $e) {
+        @file_put_contents($supplyLogFile, date('[Y-m-d H:i:s] ') . '[Erro Impact] ' . $e->getMessage() . PHP_EOL, FILE_APPEND);
+    }
+});
+
+/**
+ * model.supply_stock.reorder_alert — Estoque atingiu ponto de pedido.
+ * Payload: supply_id, supply_name, total_stock, reorder_point
+ */
+EventDispatcher::listen('model.supply_stock.reorder_alert', function (Event $event) use ($supplyLogFile) {
+    $data = $event->getData();
+    $logMessage = sprintf(
+        '[Alerta Reposição] Insumo: %s (ID %d) | Estoque: %.2f | Ponto de Pedido: %.2f',
+        $data['supply_name'] ?? '?',
+        $data['supply_id'] ?? 0,
+        $data['total_stock'] ?? 0,
+        $data['reorder_point'] ?? 0
+    );
+    $dir = dirname($supplyLogFile);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+    @file_put_contents($supplyLogFile, date('[Y-m-d H:i:s] ') . $logMessage . PHP_EOL, FILE_APPEND);
+});
+
+// ══════════════════════════════════════════════════════════════
 // FEAT-010 — Workflow Engine Global Listener
 // Dispatches events to the WorkflowEngine for rule evaluation
 // ══════════════════════════════════════════════════════════════
@@ -1465,6 +1540,10 @@ $workflowEvents = [
     'model.supply.updated',
     'model.supply.deleted',
     'model.supply.cost_updated',
+    'model.supply.price_changed',
+    'model.supply.supplier_linked',
+    'model.supply.product_linked',
+    'model.supply_stock.reorder_alert',
 ];
 
 foreach ($workflowEvents as $wfEvent) {

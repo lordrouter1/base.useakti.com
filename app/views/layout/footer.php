@@ -134,5 +134,11 @@ if (isset($_SESSION['user_id'])) {
         }
     });
 </script>
+<?php
+// Impacto de custo de insumos (exibido após entrada de estoque que altere CMP)
+if (!empty($_SESSION['supply_price_impact']) && file_exists('app/views/supplies/_impact_modal.php')) {
+    include 'app/views/supplies/_impact_modal.php';
+}
+?>
 </body>
 </html>

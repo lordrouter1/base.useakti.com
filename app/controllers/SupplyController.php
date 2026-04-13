@@ -189,6 +189,13 @@ class SupplyController
     {
         header('Content-Type: application/json');
         $supplyId = Input::get('id', 'int', 0);
+        $supplierId = Input::get('supplier_id', 'int', 0);
+
+        if ($supplierId > 0) {
+            echo json_encode(['items' => $this->supplyModel->getSupplierInsumos($supplierId)]);
+            return;
+        }
+
         echo json_encode($this->supplyModel->getSuppliers($supplyId));
     }
 

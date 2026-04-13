@@ -85,4 +85,71 @@ $s = $supplier ?? [];
             </form>
         </div>
     </div>
+
+    <?php if ($isEdit): ?>
+    <!-- Insumos Fornecidos (read-only) -->
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 text-primary"><i class="fas fa-cubes me-2"></i>Insumos Fornecidos</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm" id="supplierSuppliesTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Insumo</th>
+                            <th>SKU Fornecedor</th>
+                            <th class="text-end">Preço</th>
+                            <th class="text-center">Preferencial</th>
+                        </tr>
+                    </thead>
+                    <tbody id="supplierSuppliesBody">
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">
+                                <i class="fas fa-spinner fa-spin me-1"></i>Carregando...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    $(function() {
+        const supplierId = <?= (int) $s['id'] ?>;
+        $.getJSON('?page=supplies&action=getSuppliers&supplier_id=' + supplierId, function(resp) {
+            const items = resp.items || resp.data || resp || [];
+            const tbody = $('#supplierSuppliesBody');
+            tbody.empty();
+
+            if (!items.length) {
+                tbody.html('<tr><td colspan="5" class="text-center text-muted py-3"><i class="fas fa-info-circle me-1"></i>Nenhum insumo vinculado a este fornecedor.</td></tr>');
+                return;
+            }
+
+            items.forEach(function(item) {
+                tbody.append(`
+                    <tr>
+                        <td><code>${item.supply_code || item.code || ''}</code></td>
+                        <td>${item.supply_name || item.name || ''}</td>
+                        <td>${item.supplier_sku || ''}</td>
+                        <td class="text-end">R$ ${parseFloat(item.supplier_price || 0).toFixed(2).replace('.', ',')}</td>
+                        <td class="text-center">${item.is_preferred == 1 ? '<i class="fas fa-star text-warning"></i>' : ''}</td>
+                    </tr>
+                `);
+            });
+        }).fail(function() {
+            $('#supplierSuppliesBody').html('<tr><td colspan="5" class="text-center text-muted">Erro ao carregar insumos.</td></tr>');
+        });
+    });
+    </script>
+    <?php endif; ?>
+
+</div>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
