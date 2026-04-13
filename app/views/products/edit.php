@@ -946,7 +946,7 @@ function deleteImage(imageId) {
 
     function loadBomItems() {
         $.getJSON('?page=supplies&action=getProductSupplies&product_id=' + productId, function(resp) {
-            const items = resp.items || resp.data || resp || [];
+            const items = resp.supplies || resp.items || resp.data || [];
             const tbody = $('#bomTableBody');
             tbody.empty();
 
@@ -1058,12 +1058,13 @@ function deleteImage(imageId) {
                     quantity: qty,
                     waste_percent: parseFloat($('#swalWaste').val()) || 0,
                     is_optional: $('#swalOptional').is(':checked') ? 1 : 0,
-                    notes: $('#swalNotes').val()
+                    notes: $('#swalNotes').val(),
+                    csrf_token: csrfToken
                 };
             }
         }).then(result => {
             if (!result.isConfirmed) return;
-            $.post('?page=supplies&action=addProductSupply', $.param(result.value) + '&csrf_token=' + csrfToken, function(resp) {
+            $.post('?page=supplies&action=addProductSupply', result.value, function(resp) {
                 if (resp.success) {
                     Swal.fire({ icon: 'success', title: 'Adicionado!', timer: 1500, showConfirmButton: false });
                     loadBomItems();
@@ -1104,12 +1105,14 @@ function deleteImage(imageId) {
             confirmButtonText: '<i class="fas fa-save me-1"></i>Salvar',
             preConfirm: () => ({
                 id: bomId,
+                product_id: productId,
                 quantity: parseFloat($('#swalEditQty').val()),
-                waste_percent: parseFloat($('#swalEditWaste').val()) || 0
+                waste_percent: parseFloat($('#swalEditWaste').val()) || 0,
+                csrf_token: csrfToken
             })
         }).then(result => {
             if (!result.isConfirmed) return;
-            $.post('?page=supplies&action=updateProductSupply', $.param(result.value) + '&csrf_token=' + csrfToken, function(resp) {
+            $.post('?page=supplies&action=updateProductSupply', result.value, function(resp) {
                 if (resp.success) {
                     loadBomItems();
                 } else {
