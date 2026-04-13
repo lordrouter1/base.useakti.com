@@ -20,7 +20,7 @@
 
 | Arquivo | Namespace | Descrição |
 |---------|-----------|-----------|
-| `app/services/SupplyStockMovementService.php` | `Akti\Services` | Processamento de movimentações de estoque |
+| `app/services/SupplyStockMovementService.php` | `Akti\Services` | Processamento de movimentações de estoque, CMP, conversão UOM, FEFO |
 
 ### 1.4 Views
 
@@ -29,11 +29,21 @@
 | `app/views/supplies/index.php` | Listagem de insumos |
 | `app/views/supplies/form.php` | Formulário create/edit (reusável) |
 | `app/views/supplies/categories.php` | Gerenciamento de categorias |
+| `app/views/supplies/_price_chart.php` | Partial: gráfico histórico de preços (Chart.js) |
+| `app/views/supplies/_impact_modal.php` | Partial: modal de análise de impacto (Where Used) |
 | `app/views/supply_stock/index.php` | Dashboard de estoque de insumos |
-| `app/views/supply_stock/entry.php` | Formulário de entrada |
-| `app/views/supply_stock/exit.php` | Formulário de saída |
+| `app/views/supply_stock/entry.php` | Formulário de entrada (com lote/validade/fornecedor) |
+| `app/views/supply_stock/exit.php` | Formulário de saída (com seleção FEFO de lote) |
 | `app/views/supply_stock/transfer.php` | Formulário de transferência |
-| `app/views/supply_stock/movements.php` | Histórico de movimentações |
+| `app/views/supply_stock/movements.php` | Histórico de movimentações (com coluna lote) |
+| `app/views/supply_stock/_reorder_card.php` | Partial: card de sugestões de compra (MRP) |
+| `app/views/supply_stock/_expiring_card.php` | Partial: card de lotes próximos do vencimento |
+
+### 1.5 Scripts/Jobs
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `scripts/check_supply_reorder.php` | Cron job: verificar pontos de pedido e gerar alertas |
 
 ### 1.5 Migrations
 
@@ -106,6 +116,14 @@ class Supply
 
     public function getPreferredSupplier(int $supplyId): array|false { /* ... */ }
 
+    // ── Histórico de Preços & CMP ────────────────────
+
+    public function getPriceHistory(int $supplyId, ?int $supplierId = null, int $limit = 50): array { /* ... */ }
+
+    public function recordPriceHistory(array $data): int { /* supply_id, supplier_id, unit_price, source, ... */ }
+
+    public function calculateWeightedAverageCost(int $supplyId): float { /* CMP atual */ }
+
     // ── BOM (Bill of Materials) ──────────────────────
 
     public function getProductSupplies(int $productId): array { /* ... */ }
@@ -118,9 +136,15 @@ class Supply
 
     public function removeProductSupply(int $id): bool { /* ... */ }
 
-    public function calculateProductCost(int $productId): float { /* ... */ }
+    public function calculateProductCost(int $productId): float { /* usa CMP do insumo */ }
 
     public function estimateConsumption(int $productId, float $qty): array { /* ... */ }
+
+    // ── Where Used (Onde é Usado) ────────────────────
+
+    public function getWhereUsedImpact(int $supplyId, float $newCMP): array { /* impacto em produtos */ }
+
+    public function getAffectedProducts(int $supplyId): array { /* IDs de produtos que usam o insumo */ }
 
     // ── Busca ────────────────────────────────────────
 
@@ -240,6 +264,16 @@ class SupplyController extends BaseController
 
     public function getSupplyProducts(): void { /* JSON */ }
 
+    // ── Histórico de Preços AJAX ──────────────────
+
+    public function getPriceHistory(): void { /* JSON: histórico de preços com Chart.js data */ }
+
+    // ── Where Used / Impacto AJAX ─────────────────
+
+    public function getWhereUsedImpact(): void { /* JSON: análise de impacto de preço nos produtos */ }
+
+    public function applyBOMCostUpdate(): void { /* JSON: executa Product::bulkUpdateBOMCosts */ }
+
     // ── Busca ─────────────────────────────────────
 
     public function searchSelect2(): void { /* JSON: busca para Select2 */ }
@@ -279,6 +313,11 @@ class SupplyController extends BaseController
         'removeProductSupply' => 'removeProductSupply',
         'estimateConsumption' => 'estimateConsumption',
         'getSupplyProducts'   => 'getSupplyProducts',
+        // Histórico de Preços
+        'getPriceHistory'     => 'getPriceHistory',
+        // Where Used / Impacto
+        'getWhereUsedImpact'  => 'getWhereUsedImpact',
+        'applyBOMCostUpdate'  => 'applyBOMCostUpdate',
         // Busca
         'searchSelect2'       => 'searchSelect2',
     ],
@@ -301,6 +340,8 @@ class SupplyController extends BaseController
         'movements'      => 'movements',
         'searchSupplies' => 'searchSupplies',
         'getStockInfo'   => 'getStockInfo',
+        'getBatches'     => 'getBatches',
+        'reorderSuggestions' => 'reorderSuggestions',
     ],
 ],
 ```
@@ -487,7 +528,11 @@ Seguindo o padrão de `EventDispatcher` do sistema:
 | `model.supply.deleted` | Após soft delete | `['id', 'name']` |
 | `model.supply.supplier_linked` | Ao vincular fornecedor | `['supply_id', 'supplier_id']` |
 | `model.supply.product_linked` | Ao vincular produto (BOM) | `['supply_id', 'product_id']` |
-| `model.supply_stock.movement` | Ao registrar movimentação | `['supply_id', 'type', 'quantity']` |
+| `model.supply.price_changed` | Quando CMP é recalculado | `['supply_id', 'old_cmp', 'new_cmp']` |
+| `model.supply_stock.movement` | Ao registrar movimentação | `['supply_id', 'type', 'quantity', 'batch_number']` |
+| `model.supply_stock.reorder_alert` | Estoque ≤ ponto de pedido | `['supply_id', 'current_stock', 'reorder_point']` |
+| `model.supply_stock.batch_expiring` | Lote próximo do vencimento | `['supply_id', 'batch_number', 'expiry_date', 'days_until']` |
+| `model.product.cost_updated` | Custo recalculado do BOM | `['product_id', 'old_cost', 'new_cost']` |
 
 ---
 

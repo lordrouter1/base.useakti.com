@@ -183,26 +183,64 @@ Custo total MP = Σ custo_insumo_no_produto (para todos insumos obrigatórios)
 
 ---
 
-## 6. Ponto de Acesso Reverso — Na Tela do Insumo
+## 6. Ponto de Acesso Reverso — "Onde é Usado" (Where Used)
 
 Na edição do insumo (`?page=supplies&action=edit&id=X`), aba "Produtos (BOM)":
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ Produtos que utilizam este insumo: Tecido Algodão Cru              │
+│ Custo Médio Ponderado (CMP): R$ 12,80/m                           │
 │                                                                    │
-│ ┌──────────┬──────────────┬──────┬───────┬───────┬──────────────┐ │
-│ │ Código   │ Produto      │ Qtd  │%Perda │Efetiv.│ Status Prod. │ │
-│ ├──────────┼──────────────┼──────┼───────┼───────┼──────────────┤ │
-│ │ PRD-042  │ Camiseta Bás │ 1,50 │ 5,0%  │ 1,575 │ Ativo        │ │
-│ │ PRD-043  │ Camiseta Prem│ 1,80 │ 5,0%  │ 1,890 │ Ativo        │ │
-│ │ PRD-067  │ Vestido Longo│ 3,20 │ 8,0%  │ 3,456 │ Ativo        │ │
-│ └──────────┴──────────────┴──────┴───────┴───────┴──────────────┘ │
+│ ┌──────────┬──────────────┬──────┬───────┬───────┬────────┬──────┐│
+│ │ Código   │ Produto      │ Qtd  │%Perda │Efetiv.│CustoMP │Marg. ││
+│ ├──────────┼──────────────┼──────┼───────┼───────┼────────┼──────┤│
+│ │ PRD-042  │ Camiseta Bás │ 1,50 │ 5,0%  │ 1,575 │ 26,11  │56,4%││
+│ │ PRD-043  │ Camiseta Prem│ 1,80 │ 5,0%  │ 1,890 │ 38,50  │48,2%││
+│ │ PRD-067  │ Vestido Longo│ 3,20 │ 8,0%  │ 3,456 │ 85,30  │37,8%││
+│ └──────────┴──────────────┴──────┴───────┴───────┴────────┴──────┘│
 │                                                                    │
 │ Total de consumo por unidade: 6,921 m                              │
 │ → Editar composição na tela do produto                             │
 └────────────────────────────────────────────────────────────────────┘
 ```
+
+### 6.1 Análise de Impacto de Preço (Where-Used Impact)
+
+Quando o custo de um insumo muda (novo CMP calculado ou preço manual), o sistema mostra o impacto em todos os produtos afetados:
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ ⚠ Análise de Impacto — Alteração de Preço                         │
+│                                                                    │
+│ Insumo: Tecido Algodão Cru                                        │
+│ CMP Anterior: R$ 12,50/m → CMP Novo: R$ 14,00/m (+12,0%)        │
+│                                                                    │
+│ ┌──────────────┬──────────┬──────────┬──────────┬────────────────┐│
+│ │ Produto      │Custo Ant.│Custo Novo│ Variação │Margem Nova     ││
+│ ├──────────────┼──────────┼──────────┼──────────┼────────────────┤│
+│ │ Camiseta Bás │  26,11   │  28,47   │ +2,36    │ 52,5% (era 56)││
+│ │ Camiseta Prem│  38,50   │  41,36   │ +2,86    │ 44,5% (era 48)││
+│ │ Vestido Longo│  85,30   │  91,68   │ +6,38    │ 33,2% (era 38)││
+│ └──────────────┴──────────┴──────────┴──────────┴────────────────┘│
+│                                                                    │
+│ Total de produtos impactados: 3                                    │
+│ Variação média de custo: +4,0%                                     │
+│                                                                    │
+│ [Cancelar]  [Atualizar apenas CMP]  [Atualizar CMP + Custos BOM] │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 Regras da Análise de Impacto
+
+- **Trigger:** Após inserção em `supply_price_history` com novo CMP diferente do anterior
+- **Cálculo:** Para cada produto no BOM: `novo_custo = calculateProductCost(productId)` usando o novo CMP
+- **Margem:** `margem = (preco_venda - custo_mp) / preco_venda × 100`
+- **Ações disponíveis:**
+  - **Cancelar:** Mantém CMP anterior
+  - **Atualizar apenas CMP:** Grava o CMP no `supplies.cost_price`, não recalcula BOM
+  - **Atualizar CMP + Custos BOM:** Grava CMP e executa `Product::updateBaseCostFromBOM()` para cada produto afetado
+- **Descontinuação:** Se insumo for desativado (`is_active = 0`), alertar todos os produtos que o utilizam
 
 ---
 
@@ -241,8 +279,18 @@ Supply::getSupplyProducts(supplyId)            → produtos que usam um insumo
 Supply::addProductSupply(data)                 → vincular insumo a produto
 Supply::updateProductSupply(id, data)          → atualizar composição
 Supply::removeProductSupply(id)                → remover vínculo
-Supply::calculateProductCost(productId)        → custo MP total do produto
+Supply::calculateProductCost(productId)        → custo MP total do produto (usa CMP)
 Supply::estimateConsumption(productId, qty)    → estimar consumo p/ qtd
+Supply::getWhereUsedImpact(supplyId, newCMP)   → análise de impacto em produtos
+Supply::getAffectedProducts(supplyId)          → IDs de produtos afetados
+```
+
+### No `Product` Model (custeio automático BOM):
+
+```
+Product::updateBaseCostFromBOM(productId)      → recalcula cost_price baseado na soma dos insumos
+Product::getMarginAnalysis(productId)          → retorna {custo_mp, preco_venda, margem_percent}
+Product::bulkUpdateBOMCosts(productIds)        → atualiza cost_price de vários produtos
 ```
 
 ---
@@ -257,12 +305,102 @@ Supply::estimateConsumption(productId, qty)    → estimar consumo p/ qtd
 | `removeProductSupply` | POST | `removeProductSupply()` | Remover vínculo |
 | `estimateConsumption` | GET | `estimateConsumption()` | Calcular consumo estimado (JSON) |
 | `getSupplyProducts` | GET | `getSupplyProducts()` | Produtos que usam o insumo (JSON) |
+| `getWhereUsedImpact` | GET | `getWhereUsedImpact()` | Análise de impacto — variação de custo/margem (JSON) |
+| `applyBOMCostUpdate` | POST | `applyBOMCostUpdate()` | Executa atualização de custo BOM nos produtos afetados |
 
 ---
 
-## 10. Integração Futura (v2+)
+## 10. Custeio Automático de Produto por BOM
 
-### 10.1 Consumo Automático no Pipeline
+> **Promovido para v1** — o custeio de produto baseado nos insumos do BOM agora faz parte do escopo principal.
+
+### 10.1 Conceito
+
+O custo de matéria-prima (`cost_price`) do produto é calculado automaticamente pela soma dos custos dos insumos definidos no BOM, utilizando o **Custo Médio Ponderado (CMP)** de cada insumo.
+
+```
+CustoMP(produto) = Σ [ qtd_efetiva(insumo_i) × CMP(insumo_i) ]
+
+Onde:
+  qtd_efetiva = quantity × (1 + waste_percent / 100)
+  CMP = supplies.cost_price (atualizado pelo SupplyStockMovementService)
+```
+
+### 10.2 Quando Recalcular
+
+| Trigger | Ação |
+|---------|------|
+| Entrada de estoque (novo CMP calculado) | Oferecer atualização via análise de impacto |
+| Adicionar insumo ao BOM | Recalcular custo do produto automaticamente |
+| Alterar quantidade/perda no BOM | Recalcular custo do produto automaticamente |
+| Remover insumo do BOM | Recalcular custo do produto automaticamente |
+| Comando manual | Botão "Recalcular Custo" na tela do produto |
+
+### 10.3 Fluxo em Evento
+
+```
+1. SupplyStockMovementService::processEntry()
+   → Calcula novo CMP
+   → Atualiza supplies.cost_price
+   → Insere supply_price_history
+   → Dispara evento: model.supply.price_changed {supply_id, old_cmp, new_cmp}
+
+2. EventListener (registrado em app/bootstrap/events.php):
+   → Recebe model.supply.price_changed
+   → Supply::getAffectedProducts(supplyId) → lista de product_ids
+   → Para cada product_id: calcula novo custo e compara com o atual
+   → Armazena resultado em sessão ou cache para exibição no popup de impacto
+   → Se configurado auto-update: Product::bulkUpdateBOMCosts(productIds)
+```
+
+### 10.4 Método `Product::updateBaseCostFromBOM()`
+
+```php
+/**
+ * Recalcula o cost_price do produto baseado no BOM (Bill of Materials).
+ *
+ * @param int $productId  ID do produto
+ * @return float  Novo custo calculado
+ *
+ * Lógica:
+ *   1. SELECT ps.quantity, ps.waste_percent, ps.is_optional, s.cost_price AS cmp
+ *      FROM product_supplies ps
+ *      JOIN supplies s ON s.id = ps.supply_id
+ *      WHERE ps.product_id = :productId AND ps.is_optional = 0
+ *
+ *   2. Para cada insumo obrigatório:
+ *      custo += quantity * (1 + waste_percent/100) * cmp
+ *
+ *   3. UPDATE products SET cost_price = :custo WHERE id = :productId
+ *
+ *   4. Disparar evento: model.product.cost_updated {product_id, old_cost, new_cost}
+ */
+```
+
+### 10.5 Card de Resumo de Custo no Produto
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ 💰 Custeio do Produto: Camiseta Básica                            │
+│                                                                    │
+│  Custo MP (BOM):            R$ 26,11  ← calculado do BOM          │
+│  Mão de Obra (manual):      R$  8,00  ← (input futuro v2)        │
+│  Overhead (manual):          R$  3,50  ← (input futuro v2)        │
+│  ─────────────────────────────────────                             │
+│  Custo Total Produção:      R$ 37,61                               │
+│                                                                    │
+│  Preço de Venda:            R$ 59,90                               │
+│  Margem Bruta:              37,2%                                  │
+│                                                                    │
+│  Último recálculo: 13/04/2026 14:30    [🔄 Recalcular Agora]     │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 11. Integração Futura (v2+)
+
+### 11.1 Consumo Automático no Pipeline
 
 Quando um pedido avançar para a etapa de produção no pipeline:
 1. Buscar produtos do pedido → buscar BOM de cada produto
@@ -270,7 +408,7 @@ Quando um pedido avançar para a etapa de produção no pipeline:
 3. Registrar movimentação `consumo_producao` no estoque de insumos
 4. Se estoque insuficiente, alertar o operador
 
-### 10.2 MRP Simplificado
+### 11.2 MRP Avançado
 
 Com base nos pedidos em aberto no pipeline:
 1. Somar consumo estimado de cada insumo
@@ -278,8 +416,7 @@ Com base nos pedidos em aberto no pipeline:
 3. Gerar relatório de necessidade de compra
 4. Sugerir pedidos de compra ao fornecedor preferencial
 
-### 10.3 Custeio Automático
+### 11.3 Custos Adicionais de Produção
 
-- Atualizar o campo `cost_price` do produto automaticamente com base na soma dos insumos
-- Permitir somar custos de mão de obra e overhead
-- Calcular margem de lucro real vs preço de venda
+- Campos de mão de obra e overhead por produto
+- Margem de lucro real considerando todos os custos

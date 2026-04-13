@@ -2,7 +2,7 @@
 
 ## 1. Visão Geral
 
-A vinculação entre insumos e fornecedores é uma relação **N:N** (um insumo pode ser fornecido por vários fornecedores, e um fornecedor pode fornecer vários insumos). A tabela pivot `supply_suppliers` armazena metadados da relação: preço, SKU do fornecedor, prazo de entrega e preferência.
+A vinculação entre insumos e fornecedores é uma relação **N:N** (um insumo pode ser fornecido por vários fornecedores, e um fornecedor pode fornecer vários insumos). A tabela pivot `supply_suppliers` armazena metadados da relação: preço, SKU do fornecedor, prazo de entrega, preferência e **fator de conversão de unidade de medida** (UOM).
 
 ---
 
@@ -41,6 +41,8 @@ A vinculação entre insumos e fornecedores é uma relação **N:N** (um insumo 
                     │  Preço Unit.*: [0,0000]         │
                     │  Pedido Mínimo: [1]             │
                     │  Prazo Entrega (dias): [___]    │
+                    │  Fator Conversão: [1,0000]      │
+                    │   (Ex: 1 cx=50 un → fator=50)   │
                     │  Preferencial: [  ] Sim         │
                     │  Obs: [____________________]    │
                     │                                  │
@@ -97,6 +99,30 @@ A vinculação entre insumos e fornecedores é uma relação **N:N** (um insumo 
 
 - Ao atualizar preço do fornecedor preferencial, **opcionalmente** atualizar o `cost_price` do insumo
 - Exibir prompt: _"Deseja atualizar o custo padrão do insumo para R$ X,XX?"_
+
+### 3.5 Fator de Conversão de Unidade (UOM)
+
+- Permite que o insumo seja **comprado numa unidade** e **estocado em outra**
+- Exemplo: Fornecedor vende em **Caixa** (cx), mas o estoque controla em **Unidade** (un). Se 1 cx = 50 un, o fator é **50**
+- O fator padrão é **1.0000** (mesma unidade de compra e estoque)
+- Ao processar uma entrada de compra via `SupplyStockMovementService`, a quantidade estocada será: `qtd_nota × conversion_factor`
+- O campo deve ser validado como `> 0`
+
+**Exemplos de conversão:**
+
+| Compra | Estoque | Fator | Nota: 10 cx | Estoque: +500 un |
+|--------|---------|-------|-------------|-------------------|
+| Caixa | Unidade | 50 | 10 | 500 |
+| Rolo (50m) | Metro | 50 | 5 | 250 |
+| Galão (3.6L) | Litro | 3.6 | 10 | 36 |
+| Kg | Grama | 1000 | 2 | 2000 |
+
+### 3.6 Histórico de Preços
+
+- Toda movimentação de entrada gera um registro em `supply_price_history`
+- Permite monitorar a evolução do preço por fornecedor ao longo do tempo
+- Na edição do insumo, exibir **gráfico de linha** (Chart.js) com preço nos últimos meses
+- O custo médio ponderado do insumo é recalculado a cada entrada
 
 ---
 
@@ -155,15 +181,15 @@ Supply::getPreferredSupplier(supplyId)       → retorna fornecedor preferencial
 │  ┌──────────────────────────────────────────────────────────────┐ │
 │  │ Fornecedores vinculados                [+ Vincular Fornec.] │ │
 │  │                                                              │ │
-│  │ ┌──────────┬──────────┬────────┬────────┬──────┬──────┬───┐ │ │
-│  │ │Fornecedor│ SKU Forn.│ Preço  │Ped.Mín.│Prazo │ Pref │ ⚙ │ │ │
-│  │ ├──────────┼──────────┼────────┼────────┼──────┼──────┼───┤ │ │
-│  │ │ Têxtil   │ TC-A001  │ 12,50  │ 50 m   │ 5d   │  ★   │✎🗑│ │ │
-│  │ │ Brasil   │          │        │        │      │      │   │ │ │
-│  │ ├──────────┼──────────┼────────┼────────┼──────┼──────┼───┤ │ │
-│  │ │ Fornec.  │ ALG-200  │ 14,00  │ 100 m  │ 3d   │      │✎🗑│ │ │
-│  │ │ Norte    │          │        │        │      │      │   │ │ │
-│  │ └──────────┴──────────┴────────┴────────┴──────┴──────┴───┘ │ │
+│  │ ┌──────────┬──────────┬────────┬────────┬──────┬──────┬──────┬───┐ │ │
+│  │ │Fornecedor│ SKU Forn.│ Preço  │Ped.Mín.│Prazo │ UOM  │ Pref │ ⚙ │ │ │
+│  │ ├──────────┼──────────┼────────┼────────┼──────┼──────┼──────┼───┤ │ │
+│  │ │ Têxtil   │ TC-A001  │ 12,50  │ 50 m   │ 5d   │ ×1   │  ★   │✎🗑│ │ │
+│  │ │ Brasil   │          │        │        │      │      │      │   │ │ │
+│  │ ├──────────┼──────────┼────────┼────────┼──────┼──────┼──────┼───┤ │ │
+│  │ │ Fornec.  │ ALG-200  │ 14,00  │ 100 m  │ 3d   │ ×50  │      │✎🗑│ │ │
+│  │ │ Norte    │          │  /cx   │        │      │      │      │   │ │ │
+│  │ └──────────┴──────────┴────────┴────────┴──────┴──────┴──────┴───┘ │ │
 │  │                                                              │ │
 │  │ Nenhum fornecedor vinculado.                                 │ │
 │  │ (exibido quando lista vazia)                                 │ │
@@ -198,6 +224,12 @@ Supply::getPreferredSupplier(supplyId)       → retorna fornecedor preferencial
 │  │ [___]              │ [  ] Sim          │   │
 │  └────────────────────┴───────────────────┘   │
 │                                                │
+│  ┌────────────────────────────────────────┐   │
+│  │ Fator de Conversão (UOM)              │   │
+│  │ [1,0000]                              │   │
+│  │ Ex: 1 cx com 50 un → fator = 50      │   │
+│  └────────────────────────────────────────┘   │
+│                                                │
 │  Observações                                   │
 │  [________________________________________]   │
 │                                                │
@@ -224,4 +256,58 @@ Na edição do fornecedor, adicionar aba "Insumos Fornecidos" (somente leitura):
 │                                                              │
 │ → Editar vínculos na tela do insumo                          │
 └──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 10. Histórico de Preços e Evolução de Custo
+
+Na tela de edição do insumo, aba "Fornecedores", abaixo da tabela de vínculos:
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ 📈 Evolução de Preço — Últimos 12 meses                           │
+│                                                                    │
+│  R$                                                                │
+│  16 ┤                                                              │
+│  14 ┤         ╭──╮      ╭──────────╮                               │
+│  12 ┤────────╯    ╰────╯            ╰──────╮                      │
+│  10 ┤                                        ╰────                 │
+│   8 ┤                                                              │
+│     └──────────────────────────────────────────────── meses        │
+│      Mai  Jun  Jul  Ago  Set  Out  Nov  Dez  Jan  Fev  Mar  Abr   │
+│                                                                    │
+│  ── Têxtil Brasil (preferencial)    ── Fornec. Norte               │
+│                                                                    │
+│  Custo Médio Ponderado Atual: R$ 11,85                             │
+│  Último preço (Têxtil Brasil): R$ 10,20 em 10/04/2026             │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### 10.1 Regras do Gráfico
+
+- Renderizado com **Chart.js** (já disponível no sistema)
+- Dados carregados via AJAX: `?page=supplies&action=getPriceHistory&id=X`
+- Uma linha por fornecedor, com cores distintas
+- Fornecedor preferencial em destaque (linha mais grossa)
+- Período padrão: últimos 12 meses (configurável: 3, 6, 12, 24 meses)
+- Tooltip: exibe preço, fornecedor, data e referência (nº do pedido de compra)
+
+### 10.2 Cálculo do Custo Médio Ponderado
+
+```
+CMP = (estoque_atual × custo_atual + qtd_entrada × preço_entrada) / (estoque_atual + qtd_entrada)
+
+Exemplo:
+  Estoque atual: 100 un × R$ 12,00 = R$ 1.200,00
+  Nova entrada:   50 un × R$ 10,00 =   R$ 500,00
+  Novo CMP = (1.200 + 500) / (100 + 50) = R$ 11,33
+```
+
+### 10.3 Métodos Adicionais
+
+```
+Supply::getPriceHistory(supplyId, months)         → dados para gráfico
+Supply::recordPriceHistory(data)                  → registrar preço
+Supply::calculateWeightedAverageCost(supplyId)    → recalcular CMP
 ```

@@ -61,19 +61,21 @@ CREATE TABLE IF NOT EXISTS `supplies` (
 
 -- 3. Vínculo Insumo ↔ Fornecedor (N:N)
 CREATE TABLE IF NOT EXISTS `supply_suppliers` (
-    `id`              INT AUTO_INCREMENT PRIMARY KEY,
-    `supply_id`       INT NOT NULL,
-    `supplier_id`     INT NOT NULL,
-    `supplier_sku`    VARCHAR(100) NULL,
-    `supplier_name`   VARCHAR(200) NULL,
-    `unit_price`      DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
-    `min_order_qty`   DECIMAL(12,4) NOT NULL DEFAULT 1.0000,
-    `lead_time_days`  INT NULL,
-    `is_preferred`    TINYINT(1) NOT NULL DEFAULT 0,
-    `is_active`       TINYINT(1) NOT NULL DEFAULT 1,
-    `notes`           TEXT NULL,
-    `created_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `id`                INT AUTO_INCREMENT PRIMARY KEY,
+    `supply_id`         INT NOT NULL,
+    `supplier_id`       INT NOT NULL,
+    `supplier_sku`      VARCHAR(100) NULL,
+    `supplier_name`     VARCHAR(200) NULL,
+    `unit_price`        DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
+    `min_order_qty`     DECIMAL(12,4) NOT NULL DEFAULT 1.0000,
+    `lead_time_days`    INT NULL,
+    `conversion_factor` DECIMAL(12,6) NOT NULL DEFAULT 1.000000
+                        COMMENT 'Fator de conversão: 1 UOM do fornecedor = X UOM do insumo',
+    `is_preferred`      TINYINT(1) NOT NULL DEFAULT 0,
+    `is_active`         TINYINT(1) NOT NULL DEFAULT 1,
+    `notes`             TEXT NULL,
+    `created_at`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     UNIQUE KEY `uq_supply_supplier` (`supply_id`, `supplier_id`),
     INDEX `idx_supply_suppliers_supplier` (`supplier_id`),
@@ -113,21 +115,25 @@ CREATE TABLE IF NOT EXISTS `product_supplies` (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 5. Estoque de Insumos por Armazém
+-- 5. Estoque de Insumos por Armazém (com Lote e Validade)
 CREATE TABLE IF NOT EXISTS `supply_stock_items` (
     `id`              INT AUTO_INCREMENT PRIMARY KEY,
     `warehouse_id`    INT NOT NULL,
     `supply_id`       INT NOT NULL,
     `quantity`        DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
     `min_quantity`    DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
+    `batch_number`    VARCHAR(100) NULL COMMENT 'Número do lote (rastreabilidade)',
+    `expiry_date`     DATE NULL COMMENT 'Data de validade do lote (FEFO)',
     `location_code`   VARCHAR(50) NULL,
     `last_updated`    DATETIME NULL,
     `created_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    UNIQUE KEY `uq_supply_stock_warehouse` (`warehouse_id`, `supply_id`),
+    UNIQUE KEY `uq_supply_stock_warehouse` (`warehouse_id`, `supply_id`, `batch_number`),
     INDEX `idx_supply_stock_supply` (`supply_id`),
     INDEX `idx_supply_stock_quantity` (`quantity`),
+    INDEX `idx_supply_stock_expiry` (`expiry_date`),
+    INDEX `idx_supply_stock_batch` (`batch_number`),
 
     CONSTRAINT `fk_supply_stock_warehouse`
         FOREIGN KEY (`warehouse_id`) REFERENCES `warehouses`(`id`)
@@ -137,7 +143,7 @@ CREATE TABLE IF NOT EXISTS `supply_stock_items` (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 6. Movimentações de Estoque de Insumos
+-- 6. Movimentações de Estoque de Insumos (com Lote)
 CREATE TABLE IF NOT EXISTS `supply_stock_movements` (
     `id`              INT AUTO_INCREMENT PRIMARY KEY,
     `warehouse_id`    INT NOT NULL,
@@ -146,6 +152,7 @@ CREATE TABLE IF NOT EXISTS `supply_stock_movements` (
                       NOT NULL,
     `quantity`        DECIMAL(12,4) NOT NULL,
     `unit_price`      DECIMAL(12,4) NULL,
+    `batch_number`    VARCHAR(100) NULL COMMENT 'Lote relacionado à movimentação',
     `reason`          VARCHAR(255) NULL,
     `reference_type`  VARCHAR(50) NULL,
     `reference_id`    INT NULL,
@@ -157,6 +164,7 @@ CREATE TABLE IF NOT EXISTS `supply_stock_movements` (
     INDEX `idx_supply_movements_type` (`type`),
     INDEX `idx_supply_movements_ref` (`reference_type`, `reference_id`),
     INDEX `idx_supply_movements_date` (`created_at`),
+    INDEX `idx_supply_movements_batch` (`batch_number`),
 
     CONSTRAINT `fk_supply_movements_warehouse`
         FOREIGN KEY (`warehouse_id`) REFERENCES `warehouses`(`id`)
@@ -164,6 +172,31 @@ CREATE TABLE IF NOT EXISTS `supply_stock_movements` (
     CONSTRAINT `fk_supply_movements_supply`
         FOREIGN KEY (`supply_id`) REFERENCES `supplies`(`id`)
         ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. Histórico de Preços de Insumos
+CREATE TABLE IF NOT EXISTS `supply_price_history` (
+    `id`              INT AUTO_INCREMENT PRIMARY KEY,
+    `supply_id`       INT NOT NULL,
+    `supplier_id`     INT NULL COMMENT 'NULL = ajuste manual ou CMP calculado',
+    `unit_price`      DECIMAL(12,4) NOT NULL,
+    `quantity`        DECIMAL(12,4) NULL COMMENT 'Quantidade da compra que originou o preço',
+    `source`          ENUM('compra','cotacao','ajuste_manual','cmp_calculado') NOT NULL DEFAULT 'compra',
+    `notes`           VARCHAR(255) NULL,
+    `created_by`      INT NULL,
+    `created_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX `idx_price_history_supply` (`supply_id`),
+    INDEX `idx_price_history_supplier` (`supplier_id`),
+    INDEX `idx_price_history_date` (`created_at`),
+    INDEX `idx_price_history_source` (`source`),
+
+    CONSTRAINT `fk_price_history_supply`
+        FOREIGN KEY (`supply_id`) REFERENCES `supplies`(`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_price_history_supplier`
+        FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Inserir categorias padrão de insumos
@@ -188,6 +221,7 @@ A ordem respeita dependências de FK:
 4. `product_supplies` (depende de `products` e `supplies`)
 5. `supply_stock_items` (depende de `warehouses` e `supplies`)
 6. `supply_stock_movements` (depende de `warehouses` e `supplies`)
+7. `supply_price_history` (depende de `supplies` e `suppliers`)
 
 ---
 

@@ -26,9 +26,13 @@
 O módulo de **Insumos** (matérias-primas / materiais de consumo) permite:
 
 1. **Cadastrar insumos** com tipo, unidade de medida, custo e dados fiscais
-2. **Vincular insumos a fornecedores** com preço negociado, SKU do fornecedor e prazo
-3. **Controlar estoque de insumos** em armazéns, com movimentações rastreáveis
-4. **Vincular insumos a produtos** (BOM) definindo quantidade necessária por unidade produzida
+2. **Vincular insumos a fornecedores** com preço negociado, SKU, prazo e **fator de conversão de UOM**
+3. **Controlar estoque de insumos** em armazéns, com **lote, validade e FEFO** (First Expired, First Out)
+4. **Histórico de preços e CMP** — rastrear variações de custo e calcular Custo Médio Ponderado
+5. **Vincular insumos a produtos** (BOM) definindo quantidade necessária por unidade produzida
+6. **Custeio automático** — recalcular custo do produto baseado no BOM quando o CMP muda
+7. **Alertas de reposição (MRP)** — sugestões de compra quando estoque atinge o ponto de pedido
+8. **Análise de impacto (Where Used)** — visualizar quais produtos são afetados por mudanças de preço
 
 O módulo se integra nativamente com os módulos já existentes:
 - **Fornecedores** (`suppliers`) — relação N:N via tabela pivot

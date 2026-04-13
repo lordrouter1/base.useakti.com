@@ -44,23 +44,24 @@
          │ 1                                  │ 1
          │                                    │
          │ N                                  │ N
-┌────────┴──────────────────┐    ┌────────────┴──────────────────────┐
-│   supply_suppliers        │    │     product_supplies (BOM)        │
-├───────────────────────────┤    ├───────────────────────────────────┤
-│ id            PK          │    │ id              PK                │
-│ supply_id     FK → supplies│    │ product_id      FK → products    │
-│ supplier_id   FK → suppliers│   │ supply_id       FK → supplies    │
-│ supplier_sku  VARCHAR(100)│    │ quantity         DECIMAL(12,4)    │
-│ supplier_name VARCHAR(200)│    │ unit_measure     same ENUM        │
-│ unit_price    DECIMAL(12,4)│   │ waste_percent    DECIMAL(5,2)     │
-│ min_order_qty DECIMAL(12,4)│   │ is_optional      TINYINT(1)      │
-│ lead_time_days INT NULL   │    │ notes            TEXT NULL        │
-│ is_preferred  TINYINT(1)  │    │ sort_order       INT DEFAULT 0   │
-│ is_active     TINYINT(1)  │    │ created_at       DATETIME        │
-│ notes         TEXT NULL   │    │ updated_at       DATETIME        │
-│ created_at    DATETIME    │    └───────────────────────────────────┘
-│ updated_at    DATETIME    │
-└───────────────────────────┘
+┌────────┴──────────────────────┐    ┌────────────┴──────────────────────┐
+│   supply_suppliers            │    │     product_supplies (BOM)        │
+├───────────────────────────────┤    ├───────────────────────────────────┤
+│ id            PK              │    │ id              PK                │
+│ supply_id     FK → supplies   │    │ product_id      FK → products    │
+│ supplier_id   FK → suppliers  │    │ supply_id       FK → supplies    │
+│ supplier_sku  VARCHAR(100)    │    │ quantity         DECIMAL(12,4)    │
+│ supplier_name VARCHAR(200)    │    │ unit_measure     same ENUM        │
+│ unit_price    DECIMAL(12,4)   │    │ waste_percent    DECIMAL(5,2)     │
+│ min_order_qty DECIMAL(12,4)   │    │ is_optional      TINYINT(1)      │
+│ lead_time_days INT NULL       │    │ notes            TEXT NULL        │
+│ conversion_factor DEC(12,4)   │    │ sort_order       INT DEFAULT 0   │
+│ is_preferred  TINYINT(1)      │    │ created_at       DATETIME        │
+│ is_active     TINYINT(1)      │    │ updated_at       DATETIME        │
+│ notes         TEXT NULL       │    └───────────────────────────────────┘
+│ created_at    DATETIME        │
+│ updated_at    DATETIME        │
+└───────────────────────────────┘
 
 ┌───────────────────────────────────────────┐
 │         supply_stock_items                │
@@ -70,6 +71,8 @@
 │ supply_id       FK → supplies             │
 │ quantity        DECIMAL(12,4) DEFAULT 0   │
 │ min_quantity    DECIMAL(12,4) DEFAULT 0   │
+│ batch_number    VARCHAR(100) NULL         │
+│ expiry_date     DATE NULL                 │
 │ location_code   VARCHAR(50) NULL          │
 │ last_updated    DATETIME                  │
 │ created_at      DATETIME                  │
@@ -88,10 +91,22 @@
 │                      'consumo_producao')  │
 │ quantity        DECIMAL(12,4) NOT NULL    │
 │ unit_price      DECIMAL(12,4) NULL        │
+│ batch_number    VARCHAR(100) NULL         │
 │ reason          VARCHAR(255) NULL         │
 │ reference_type  VARCHAR(50) NULL          │
 │ reference_id    INT NULL                  │
 │ created_by      INT FK → users            │
+│ created_at      DATETIME                  │
+└───────────────────────────────────────────┘
+
+┌───────────────────────────────────────────┐
+│       supply_price_history                │
+├───────────────────────────────────────────┤
+│ id              PK                        │
+│ supply_id       FK → supplies             │
+│ supplier_id     FK → suppliers NULL       │
+│ price           DECIMAL(12,4) NOT NULL    │
+│ movement_id     FK → supply_stock_mov.    │
 │ created_at      DATETIME                  │
 └───────────────────────────────────────────┘
 ```
@@ -165,6 +180,7 @@ Relação N:N entre insumos e fornecedores, com dados de negociação.
 | `unit_price` | DECIMAL(12,4) | N | Preço unitário negociado (default 0) |
 | `min_order_qty` | DECIMAL(12,4) | N | Pedido mínimo (default 1) |
 | `lead_time_days` | INT | S | Prazo de entrega em dias |
+| `conversion_factor` | DECIMAL(12,4) | N | Fator de conversão UOM compra→estoque (default 1). Ex: 1 cx = 50 un → fator = 50 |
 | `is_preferred` | TINYINT(1) | N | Fornecedor preferencial (default 0) |
 | `is_active` | TINYINT(1) | N | Vínculo ativo (default 1) |
 | `notes` | TEXT | S | Observações |
@@ -213,6 +229,8 @@ Posição de estoque de insumos por armazém. Reutiliza a tabela `warehouses` ex
 | `supply_id` | INT | N | FK → supplies(id) |
 | `quantity` | DECIMAL(12,4) | N | Estoque atual (default 0) |
 | `min_quantity` | DECIMAL(12,4) | N | Mínimo neste armazém (default 0) |
+| `batch_number` | VARCHAR(100) | S | Número do lote (rastreabilidade) |
+| `expiry_date` | DATE | S | Data de validade do lote |
 | `location_code` | VARCHAR(50) | S | Localização no armazém (prateleira, corredor) |
 | `last_updated` | DATETIME | S | Última atualização de estoque |
 | `created_at` | DATETIME | N | DEFAULT CURRENT_TIMESTAMP |
@@ -222,6 +240,8 @@ Posição de estoque de insumos por armazém. Reutiliza a tabela `warehouses` ex
 - UNIQUE(`warehouse_id`, `supply_id`)
 - INDEX(`supply_id`)
 - INDEX(`quantity`) — para consultas de estoque baixo
+- INDEX(`batch_number`)
+- INDEX(`expiry_date`) — para consultas FEFO
 
 ---
 
@@ -237,6 +257,7 @@ Histórico de movimentações de insumos.
 | `type` | ENUM('entrada','saida','ajuste','transferencia','consumo_producao') | N | Tipo de movimentação |
 | `quantity` | DECIMAL(12,4) | N | Quantidade movimentada |
 | `unit_price` | DECIMAL(12,4) | S | Custo unitário nesta movimentação |
+| `batch_number` | VARCHAR(100) | S | Lote relacionado à movimentação |
 | `reason` | VARCHAR(255) | S | Motivo (compra, consumo, ajuste inventário) |
 | `reference_type` | VARCHAR(50) | S | Tipo de referência (purchase_order, order, manual) |
 | `reference_id` | INT | S | ID do registro de referência |
@@ -252,6 +273,27 @@ Histórico de movimentações de insumos.
 
 ---
 
+### 2.7 `supply_price_history`
+
+Histórico de preços de insumos para acompanhar variação de custo ao longo do tempo. Alimentada automaticamente a cada movimentação de entrada.
+
+| Coluna | Tipo | Null | Descrição |
+|--------|------|------|-----------|
+| `id` | INT AUTO_INCREMENT | N | PK |
+| `supply_id` | INT | N | FK → supplies(id) |
+| `supplier_id` | INT | S | FK → suppliers(id) — NULL se ajuste manual |
+| `price` | DECIMAL(12,4) | N | Preço unitário registrado |
+| `movement_id` | INT | S | FK → supply_stock_movements(id) |
+| `created_at` | DATETIME | N | DEFAULT CURRENT_TIMESTAMP |
+
+**Índices:**
+- INDEX(`supply_id`)
+- INDEX(`supplier_id`)
+- INDEX(`created_at`)
+- INDEX(`supply_id`, `created_at`) — para consultas de evolução de preço
+
+---
+
 ## 3. Relacionamentos Resumidos
 
 ```
@@ -260,9 +302,11 @@ supplies           N ──── N  suppliers      (via supply_suppliers)
 supplies           N ──── N  products       (via product_supplies / BOM)
 supplies           1 ──── N  supply_stock_items
 supplies           1 ──── N  supply_stock_movements
+supplies           1 ──── N  supply_price_history
 warehouses         1 ──── N  supply_stock_items
 warehouses         1 ──── N  supply_stock_movements
 users              1 ──── N  supply_stock_movements  (created_by)
+suppliers          1 ──── N  supply_price_history
 ```
 
 ---

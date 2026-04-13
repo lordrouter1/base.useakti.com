@@ -33,20 +33,24 @@ Atualmente:
 - [x] CRUD de insumos (cadastro completo)
 - [x] Categorias de insumos
 - [x] Vinculação insumo ↔ fornecedor (N:N com metadados)
+- [x] Fator de conversão de unidade de medida por fornecedor
 - [x] Estoque de insumos por armazém
 - [x] Movimentações de estoque (entrada, saída, ajuste)
+- [x] Controle de lote e validade (FEFO — First Expired, First Out)
+- [x] Histórico de preços e Custo Médio Ponderado (CMP)
 - [x] BOM: vinculação insumo ↔ produto com quantidade
+- [x] Custeio automático de produto baseado no BOM
 - [x] Listagem com filtros e paginação
 - [x] Relatório de estoque crítico
+- [x] Alertas de reposição (MRP simplificado)
+- [x] Análise de impacto "Onde é Usado" (Where Used)
 
 ### Fora do escopo v1 (futuro)
 
-- [ ] Cálculo automático de necessidade (MRP)
 - [ ] Consumo automático ao mover pedido no pipeline
 - [ ] Geração automática de pedido de compra por falta de insumo
-- [ ] Custeio de produto baseado em insumos (CPV automático)
 - [ ] Importação em massa de insumos (CSV/Excel)
-- [ ] Lote e validade de insumos
+- [ ] Custos adicionais de produção (mão de obra, overhead)
 
 ---
 
@@ -98,5 +102,11 @@ Atualmente:
 | **Lead Time** | Prazo de entrega do fornecedor para determinado insumo |
 | **Estoque Mínimo** | Quantidade mínima que dispara alerta de reposição |
 | **Ponto de Pedido** | Quantidade em que se deve fazer novo pedido ao fornecedor |
+| **CMP** | Custo Médio Ponderado — média ponderada dos preços de compra pelo estoque |
+| **FEFO** | First Expired, First Out — priorizar saída de lotes com validade mais próxima |
+| **UOM** | Unit of Measure — unidade de medida (kg, m, L, un, etc.) |
+| **Fator de Conversão** | Multiplicador para converter UOM do fornecedor na UOM do insumo |
+| **MRP** | Material Requirements Planning — planejamento de necessidade de materiais |
+| **Where Used** | Análise reversa: em quais produtos um insumo é utilizado e impacto de mudanças |
 | **Unidade de Medida** | Como o insumo é quantificado (kg, m, L, un, m², pç, etc.) |
 | **Perda/Desperdício** | Percentual de perda esperado no uso do insumo (ex: 5% de aplique) |
