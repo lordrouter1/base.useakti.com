@@ -115,6 +115,18 @@ return [
                 'menu'       => true,
                 'permission' => true,
             ],
+            'supplies' => [
+                'label'      => 'Insumos',
+                'icon'       => 'fas fa-boxes-stacked',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'supply_stock' => [
+                'label'      => 'Estoque de Insumos',
+                'icon'       => 'fas fa-cubes',
+                'menu'       => true,
+                'permission' => true,
+            ],
         ],
     ],
 

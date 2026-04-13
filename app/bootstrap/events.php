@@ -1461,6 +1461,10 @@ $workflowEvents = [
     'model.quote.approved',
     'model.nfe_document.authorized',
     'auth.login.failed',
+    'model.supply.created',
+    'model.supply.updated',
+    'model.supply.deleted',
+    'model.supply.cost_updated',
 ];
 
 foreach ($workflowEvents as $wfEvent) {
