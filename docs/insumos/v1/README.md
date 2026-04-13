@@ -18,6 +18,7 @@
 | [06-fluxo-vinculo-produto.md](06-fluxo-vinculo-produto.md) | Vinculação de insumo a produto (BOM — Bill of Materials) |
 | [07-arquitetura-tecnica.md](07-arquitetura-tecnica.md) | Implementação: Models, Controllers, Views, Rotas, Menu |
 | [08-migrations.md](08-migrations.md) | SQL de migração necessário (prévia) |
+| [09-plano-implementacao.md](09-plano-implementacao.md) | Plano de implementação detalhado (10 fases) |
 
 ---
 
