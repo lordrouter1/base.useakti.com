@@ -92,6 +92,7 @@ class SentryMiddleware
         if (!self::isAjax()) {
             http_response_code(500);
             if (file_exists('app/views/errors/500.php')) {
+                $errorException = $exception;
                 require 'app/views/errors/500.php';
             } else {
                 echo '<h1>Erro interno do servidor</h1>';

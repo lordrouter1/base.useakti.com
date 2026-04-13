@@ -72,21 +72,7 @@ set_exception_handler(function($e) {
         exit;
     }
 
-    // Em modo desenvolvimento, exibir stack trace
-    if ($isDev) {
-        echo '<!DOCTYPE html><html><head><title>Erro — Akti (Dev)</title>';
-        echo '<style>body{font-family:monospace;margin:2rem;background:#1a1a2e;color:#e8e8e8}';
-        echo 'h1{color:#ff6b6b}pre{background:#16213e;padding:1rem;border-radius:8px;overflow-x:auto;font-size:0.85rem}';
-        echo '.file{color:#4dabf7}.line{color:#ffd43b}</style></head><body>';
-        echo '<h1>⚠️ Exceção não tratada</h1>';
-        echo '<p><strong>' . htmlspecialchars($e->getMessage()) . '</strong></p>';
-        echo '<p>Arquivo: <span class="file">' . htmlspecialchars($e->getFile()) . '</span>';
-        echo ' Linha: <span class="line">' . $e->getLine() . '</span></p>';
-        echo '<h3>Stack Trace:</h3><pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
-        echo '</body></html>';
-        exit;
-    }
-
+    $errorException = $e;
     require __DIR__ . '/app/views/errors/500.php';
     exit;
 });
@@ -114,14 +100,12 @@ register_shutdown_function(function() {
             while (ob_get_level()) ob_end_clean();
         }
 
-        $isDev = (getenv('APP_ENV') === 'development' || getenv('APP_ENV') === 'local');
-        if ($isDev) {
-            echo '<h1 style="font-family:monospace;color:#ff6b6b">Fatal Error</h1>';
-            echo '<pre style="font-family:monospace">' . htmlspecialchars($error['message']) . '</pre>';
-            echo '<p style="font-family:monospace">' . htmlspecialchars($error['file']) . ':' . $error['line'] . '</p>';
-            exit;
-        }
-
+        $errorData = [
+            'message' => $error['message'],
+            'file'    => $error['file'],
+            'line'    => $error['line'],
+            'trace'   => '',
+        ];
         require __DIR__ . '/app/views/errors/500.php';
         exit;
     }
