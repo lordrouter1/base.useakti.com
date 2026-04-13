@@ -78,10 +78,8 @@ CREATE TABLE IF NOT EXISTS `supply_suppliers` (
 
     CONSTRAINT `fk_supply_suppliers_supply`
         FOREIGN KEY (`supply_id`) REFERENCES `supplies`(`id`)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT `fk_supply_suppliers_supplier`
-        FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`)
         ON DELETE CASCADE ON UPDATE CASCADE
+    -- FK para suppliers adicionada condicionalmente no final (tabela pode não existir)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4. BOM — Vinculação Insumo ↔ Produto (Bill of Materials)
@@ -188,10 +186,8 @@ CREATE TABLE IF NOT EXISTS `supply_price_history` (
 
     CONSTRAINT `fk_price_history_supply`
         FOREIGN KEY (`supply_id`) REFERENCES `supplies`(`id`)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT `fk_price_history_supplier`
-        FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`)
-        ON DELETE SET NULL ON UPDATE CASCADE
+        ON DELETE CASCADE ON UPDATE CASCADE
+    -- FK para suppliers adicionada condicionalmente no final (tabela pode não existir)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Inserir categorias padrão de insumos (com verificação de idempotência)
@@ -218,3 +214,23 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `supply_categories` WHERE `name` = 'Qu
 INSERT INTO `supply_categories` (`name`, `description`, `sort_order`)
 SELECT 'Consumível', 'Materiais de consumo interno (lixas, estopas, etc.)', 6
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `supply_categories` WHERE `name` = 'Consumível');
+
+-- ============================================================================
+-- FKs condicionais para tabela suppliers (pode não existir em todos os tenants)
+-- ============================================================================
+SET @has_suppliers = (SELECT COUNT(*) FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'suppliers');
+
+SET @sql_fk1 = IF(@has_suppliers > 0,
+    'ALTER TABLE `supply_suppliers` ADD CONSTRAINT `fk_supply_suppliers_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`) ON DELETE CASCADE ON UPDATE CASCADE',
+    'SELECT 1');
+PREPARE stmt1 FROM @sql_fk1;
+EXECUTE stmt1;
+DEALLOCATE PREPARE stmt1;
+
+SET @sql_fk2 = IF(@has_suppliers > 0,
+    'ALTER TABLE `supply_price_history` ADD CONSTRAINT `fk_price_history_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`) ON DELETE SET NULL ON UPDATE CASCADE',
+    'SELECT 1');
+PREPARE stmt2 FROM @sql_fk2;
+EXECUTE stmt2;
+DEALLOCATE PREPARE stmt2;
