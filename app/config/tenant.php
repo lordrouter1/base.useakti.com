@@ -9,22 +9,12 @@ class TenantManager
     private static $tenantConfig = null;
 
     /**
-     * Lê variável de ambiente com fallback para $_ENV e $_SERVER.
-     * Resolve problemas de thread-safety com putenv()/getenv() no Apache TS (Windows).
+     * Lê variável de ambiente usando akti_env() que inclui fallback
+     * para o registro interno $_AKTI_ENV, _ENV, _SERVER e getenv().
      */
     private static function env(string $name)
     {
-        $val = getenv($name);
-        if ($val !== false && $val !== '') {
-            return $val;
-        }
-        if (isset($_ENV[$name]) && $_ENV[$name] !== '') {
-            return $_ENV[$name];
-        }
-        if (isset($_SERVER[$name]) && $_SERVER[$name] !== '') {
-            return $_SERVER[$name];
-        }
-        return false;
+        return akti_env($name);
     }
 
     public static function bootstrap(): void

@@ -544,10 +544,10 @@ class NfeXmlBuilder
     private function buildInfRespTec($nfe): void
     {
         // Dados do responsável técnico — configuráveis via variáveis de ambiente
-        $cnpj = getenv('AKTI_RESP_TEC_CNPJ') ?: '';
-        $contato = getenv('AKTI_RESP_TEC_CONTATO') ?: 'Akti Sistemas';
-        $email = getenv('AKTI_RESP_TEC_EMAIL') ?: 'suporte@useakti.com';
-        $fone = getenv('AKTI_RESP_TEC_FONE') ?: '';
+        $cnpj = akti_env('AKTI_RESP_TEC_CNPJ') ?: '';
+        $contato = akti_env('AKTI_RESP_TEC_CONTATO') ?: 'Akti Sistemas';
+        $email = akti_env('AKTI_RESP_TEC_EMAIL') ?: 'suporte@useakti.com';
+        $fone = akti_env('AKTI_RESP_TEC_FONE') ?: '';
 
         // Só adicionar se CNPJ do resp. técnico estiver configurado
         if (empty($cnpj)) {

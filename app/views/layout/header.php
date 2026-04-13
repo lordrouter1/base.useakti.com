@@ -12,7 +12,7 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#2c3e50">
     <?= csrf_meta() ?>
-    <meta name="api-base-url" content="<?= getenv('AKTI_API_URL') ?: 'http://localhost:3000' ?>">
+    <meta name="api-base-url" content="<?= akti_env('AKTI_API_URL') ?: 'http://localhost:3000' ?>">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">

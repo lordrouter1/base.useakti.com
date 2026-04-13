@@ -476,7 +476,7 @@ class CheckoutService
         }
 
         // Determinar domínio base
-        $baseDomain = getenv('AKTI_BASE_DOMAIN') ?: 'useakti.com';
+        $baseDomain = akti_env('AKTI_BASE_DOMAIN') ?: 'useakti.com';
         $url = "https://{$subdomain}.{$baseDomain}/?page=webhook&action=handle&gateway=" . urlencode($gatewaySlug);
 
         // Validações de segurança
