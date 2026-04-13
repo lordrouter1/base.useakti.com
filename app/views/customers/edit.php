@@ -430,7 +430,7 @@
 </div>
 
 <!-- IMask.js via CDN -->
-<script src="https://unpkg.com/imask@7.1.3/dist/imask.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/imask@7.1.3/dist/imask.min.js"></script>
 <!-- Módulos JS do cliente (Fase 4 — completo) -->
 <script src="assets/js/customer-masks.js"></script>
 <script src="assets/js/customer-validation.js"></script>

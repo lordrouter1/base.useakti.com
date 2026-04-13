@@ -9,8 +9,13 @@
     function el(id) { return document.getElementById(id); }
 
     /* Aguardar IMask estar disponível */
+    var _maskRetries = 0;
     function initMasks() {
         if (typeof IMask === 'undefined') {
+            if (++_maskRetries > 25) {
+                console.error('[customer-masks] IMask.js não carregou após 5s. Máscaras desativadas.');
+                return;
+            }
             console.warn('[customer-masks] IMask.js não carregado, tentando novamente em 200ms...');
             return setTimeout(initMasks, 200);
         }
