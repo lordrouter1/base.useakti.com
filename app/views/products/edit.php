@@ -935,7 +935,7 @@ function deleteImage(imageId) {
 
 <!-- BOM / Insumos Script -->
 <script>
-(function() {
+document.addEventListener('DOMContentLoaded', function() {
     const productId = <?= (int) $product['id'] ?>;
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
     const ajaxHeaders = { 'X-CSRF-TOKEN': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' };
@@ -1192,5 +1192,5 @@ function deleteImage(imageId) {
             bomLoaded = true;
         }
     });
-})();
+});
 </script>
