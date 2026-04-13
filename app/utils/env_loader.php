@@ -88,7 +88,9 @@ function akti_load_env(string $path): void
             continue;
         }
 
+        
         putenv("{$name}={$value}");
+        //var_dump("{$name}=".getenv($name));
         $_ENV[$name]    = $value;
         $_SERVER[$name] = $value;
     }
