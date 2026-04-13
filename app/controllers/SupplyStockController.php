@@ -10,7 +10,7 @@ use Akti\Utils\Input;
 
 class SupplyStockController extends BaseController
 {
-    private \PDO $db;
+    protected \PDO $db;
     private SupplyStock $stockModel;
     private Supply $supplyModel;
     private Logger $logger;
