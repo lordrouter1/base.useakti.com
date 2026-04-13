@@ -430,7 +430,7 @@ class Supply
     public function getSupplyProducts(int $supplyId): array
     {
         $stmt = $this->conn->prepare(
-            "SELECT ps.*, p.name AS product_name, p.code AS product_code, p.price AS product_price
+            "SELECT ps.*, p.name AS product_name, p.sku AS product_code, p.price AS product_price
              FROM product_supplies ps
              JOIN products p ON p.id = ps.product_id
              WHERE ps.supply_id = :supply_id
