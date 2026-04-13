@@ -443,13 +443,14 @@ class Supply
     public function addProductSupply(array $data): int
     {
         $stmt = $this->conn->prepare(
-            "INSERT INTO product_supplies (product_id, supply_id, quantity, unit_measure, waste_percent, is_optional, notes, sort_order)
-             VALUES (:product_id, :supply_id, :quantity, :unit_measure, :waste_percent, :is_optional, :notes, :sort_order)"
+            "INSERT INTO product_supplies (product_id, supply_id, quantity, yield_qty, unit_measure, waste_percent, is_optional, notes, sort_order)
+             VALUES (:product_id, :supply_id, :quantity, :yield_qty, :unit_measure, :waste_percent, :is_optional, :notes, :sort_order)"
         );
         $stmt->execute([
             ':product_id'    => $data['product_id'],
             ':supply_id'     => $data['supply_id'],
             ':quantity'      => $data['quantity'] ?? 0,
+            ':yield_qty'     => $data['yield_qty'] ?? 1,
             ':unit_measure'  => $data['unit_measure'] ?? 'un',
             ':waste_percent' => $data['waste_percent'] ?? 0,
             ':is_optional'   => $data['is_optional'] ?? 0,
@@ -467,13 +468,14 @@ class Supply
     {
         $stmt = $this->conn->prepare(
             "UPDATE product_supplies SET
-                quantity = :quantity, unit_measure = :unit_measure, waste_percent = :waste_percent,
-                is_optional = :is_optional, notes = :notes, sort_order = :sort_order
+                quantity = :quantity, yield_qty = :yield_qty, unit_measure = :unit_measure,
+                waste_percent = :waste_percent, is_optional = :is_optional, notes = :notes, sort_order = :sort_order
              WHERE id = :id"
         );
         return $stmt->execute([
             ':id'            => $id,
             ':quantity'      => $data['quantity'] ?? 0,
+            ':yield_qty'     => $data['yield_qty'] ?? 1,
             ':unit_measure'  => $data['unit_measure'] ?? 'un',
             ':waste_percent' => $data['waste_percent'] ?? 0,
             ':is_optional'   => $data['is_optional'] ?? 0,
@@ -491,7 +493,7 @@ class Supply
     public function calculateProductCost(int $productId): float
     {
         $stmt = $this->conn->prepare(
-            "SELECT SUM(ps.quantity * (1 + ps.waste_percent / 100) * s.cost_price) AS total_cost
+            "SELECT SUM((ps.quantity / ps.yield_qty) * (1 + ps.waste_percent / 100) * s.cost_price) AS total_cost
              FROM product_supplies ps
              JOIN supplies s ON s.id = ps.supply_id
              WHERE ps.product_id = :product_id AND ps.is_optional = 0"
@@ -505,7 +507,9 @@ class Supply
         $supplies = $this->getProductSupplies($productId);
         $result = [];
         foreach ($supplies as $s) {
-            $effective = $s['quantity'] * (1 + $s['waste_percent'] / 100);
+            $yieldQty = max((float)($s['yield_qty'] ?? 1), 0.0001);
+            $perUnit = (float)$s['quantity'] / $yieldQty;
+            $effective = $perUnit * (1 + $s['waste_percent'] / 100);
             $totalNeeded = $effective * $qty;
 
             $stockStmt = $this->conn->prepare(
@@ -549,7 +553,7 @@ class Supply
             $oldCost = $this->calculateProductCost($p['product_id']);
 
             $stmt = $this->conn->prepare(
-                "SELECT ps.quantity, ps.waste_percent, s.cost_price, s.id AS supply_id
+                "SELECT ps.quantity, ps.yield_qty, ps.waste_percent, s.cost_price, s.id AS supply_id
                  FROM product_supplies ps
                  JOIN supplies s ON s.id = ps.supply_id
                  WHERE ps.product_id = :pid AND ps.is_optional = 0"
@@ -559,8 +563,9 @@ class Supply
 
             $newCost = 0;
             foreach ($items as $item) {
+                $yieldQty = max((float)($item['yield_qty'] ?? 1), 0.0001);
                 $price = ((int) $item['supply_id'] === $supplyId) ? $newCMP : $item['cost_price'];
-                $newCost += $item['quantity'] * (1 + $item['waste_percent'] / 100) * $price;
+                $newCost += ($item['quantity'] / $yieldQty) * (1 + $item['waste_percent'] / 100) * $price;
             }
 
             $price = (float) $p['price'];

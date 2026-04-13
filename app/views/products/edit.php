@@ -433,19 +433,20 @@
                                 <tr>
                                     <th>Código</th>
                                     <th>Insumo</th>
-                                    <th class="text-center">Qtd</th>
+                                    <th class="text-center">Consumo</th>
+                                    <th class="text-center">Produz</th>
                                     <th class="text-center">Un.</th>
                                     <th class="text-center">%Perda</th>
-                                    <th class="text-center">Efetivo</th>
+                                    <th class="text-center">Efetivo/Un</th>
                                     <th class="text-end">Custo Unit.</th>
-                                    <th class="text-end">Custo Total</th>
+                                    <th class="text-end">Custo/Prod</th>
                                     <th class="text-center">Opc.</th>
                                     <th class="text-center" style="width:80px">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="bomTableBody">
                                 <tr id="bomEmptyRow">
-                                    <td colspan="10" class="text-center text-muted py-4">
+                                    <td colspan="11" class="text-center text-muted py-4">
                                         <i class="fas fa-cubes fa-2x mb-2 d-block opacity-50"></i>
                                         Nenhum insumo vinculado. Clique em "Adicionar Insumo" para compor a BOM.
                                     </td>
@@ -951,25 +952,33 @@ document.addEventListener('DOMContentLoaded', function() {
             tbody.empty();
 
             if (!items.length) {
-                tbody.html('<tr id="bomEmptyRow"><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-cubes fa-2x mb-2 d-block opacity-50"></i>Nenhum insumo vinculado.</td></tr>');
+                tbody.html('<tr id="bomEmptyRow"><td colspan="11" class="text-center text-muted py-4"><i class="fas fa-cubes fa-2x mb-2 d-block opacity-50"></i>Nenhum insumo vinculado.</td></tr>');
                 updateCostSummary(0);
                 return;
             }
 
             let totalCost = 0;
             items.forEach(function(item) {
-                const effective = parseFloat(item.quantity) * (1 + parseFloat(item.waste_percent || 0) / 100);
+                const qty = parseFloat(item.quantity);
+                const yieldQty = parseFloat(item.yield_qty || 1);
+                const perUnit = parseFloat(item.per_unit_qty || (qty / Math.max(yieldQty, 0.0001)));
+                const waste = parseFloat(item.waste_percent || 0);
+                const effective = parseFloat(item.effective_qty || (perUnit * (1 + waste / 100)));
                 const unitCost = parseFloat(item.cost_price || 0);
                 const lineCost = effective * unitCost;
                 totalCost += item.is_optional == 1 ? 0 : lineCost;
 
                 tbody.append(`
-                    <tr data-id="${item.id}">
+                    <tr data-id="${item.id}" data-yield="${yieldQty}" data-optional="${item.is_optional}" data-notes="${(item.notes || '').replace(/"/g, '&quot;')}">
                         <td><code>${item.supply_code || item.code || ''}</code></td>
-                        <td>${item.supply_name || item.name || ''}</td>
-                        <td class="text-center">${parseFloat(item.quantity).toFixed(4)}</td>
+                        <td>
+                            ${item.supply_name || item.name || ''}
+                            ${yieldQty != 1 ? '<br><small class="text-muted">' + qty.toFixed(2) + ' ' + (item.unit_measure || '') + ' → ' + yieldQty.toFixed(0) + ' prod</small>' : ''}
+                        </td>
+                        <td class="text-center">${qty.toFixed(4)}</td>
+                        <td class="text-center">${yieldQty.toFixed(0)}</td>
                         <td class="text-center">${item.unit_measure || ''}</td>
-                        <td class="text-center">${parseFloat(item.waste_percent || 0).toFixed(1)}%</td>
+                        <td class="text-center">${waste.toFixed(1)}%</td>
                         <td class="text-center">${effective.toFixed(4)}</td>
                         <td class="text-end">${formatMoney(unitCost)}</td>
                         <td class="text-end">${formatMoney(lineCost)}</td>
@@ -1007,14 +1016,22 @@ document.addEventListener('DOMContentLoaded', function() {
                         <select id="swalSupplyId" class="form-select" style="width:100%"></select>
                     </div>
                     <div class="row g-2">
-                        <div class="col-6">
-                            <label class="form-label">Quantidade <span class="text-danger">*</span></label>
+                        <div class="col-4">
+                            <label class="form-label">Qtd Insumo <span class="text-danger">*</span></label>
                             <input type="number" id="swalQty" class="form-control" step="0.0001" min="0.0001" value="1">
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
+                            <label class="form-label">Produz (un) <i class="fas fa-info-circle text-muted" title="Quantos produtos essa quantidade de insumo produz"></i></label>
+                            <input type="number" id="swalYield" class="form-control" step="1" min="1" value="1">
+                        </div>
+                        <div class="col-4">
                             <label class="form-label">% Perda</label>
                             <input type="number" id="swalWaste" class="form-control" step="0.1" min="0" max="100" value="0">
                         </div>
+                    </div>
+                    <div class="mt-2 p-2 bg-light rounded small" id="swalRatioPreview">
+                        <i class="fas fa-calculator me-1 text-primary"></i>
+                        <span id="swalRatioText">Para produzir <strong>1</strong> produto, utiliza <strong>1.0000</strong> de insumo</span>
                     </div>
                     <div class="form-check mt-3">
                         <input type="checkbox" id="swalOptional" class="form-check-input">
@@ -1026,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             `,
-            width: 500,
+            width: 520,
             showCancelButton: true,
             confirmButtonText: '<i class="fas fa-plus me-1"></i>Adicionar',
             cancelButtonText: 'Cancelar',
@@ -1044,10 +1061,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     placeholder: 'Buscar insumo...',
                     allowClear: true
                 });
+                // Update ratio preview on input change
+                const updateRatio = () => {
+                    const qty = parseFloat($('#swalQty').val()) || 0;
+                    const yld = parseFloat($('#swalYield').val()) || 1;
+                    const waste = parseFloat($('#swalWaste').val()) || 0;
+                    const perUnit = yld > 0 ? (qty / yld) : qty;
+                    const effective = perUnit * (1 + waste / 100);
+                    $('#swalRatioText').html(
+                        'Para produzir <strong>' + Math.round(yld) + '</strong> produto(s), utiliza <strong>' + qty.toFixed(4) + '</strong> de insumo' +
+                        ' → <strong>' + perUnit.toFixed(4) + '</strong>/un' +
+                        (waste > 0 ? ' (c/ perda: <strong>' + effective.toFixed(4) + '</strong>/un)' : '')
+                    );
+                };
+                $('#swalQty, #swalYield, #swalWaste').on('input change', updateRatio);
             },
             preConfirm: () => {
                 const supplyId = $('#swalSupplyId').val();
                 const qty = parseFloat($('#swalQty').val());
+                const yld = parseFloat($('#swalYield').val()) || 1;
                 if (!supplyId || !qty || qty <= 0) {
                     Swal.showValidationMessage('Selecione um insumo e informe a quantidade.');
                     return false;
@@ -1056,6 +1088,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     product_id: productId,
                     supply_id: supplyId,
                     quantity: qty,
+                    yield_qty: Math.max(yld, 1),
                     waste_percent: parseFloat($('#swalWaste').val()) || 0,
                     is_optional: $('#swalOptional').is(':checked') ? 1 : 0,
                     notes: $('#swalNotes').val(),
@@ -1080,34 +1113,72 @@ document.addEventListener('DOMContentLoaded', function() {
     // Editar insumo BOM
     $(document).on('click', '.btn-edit-bom', function() {
         const bomId = $(this).data('id');
-        // Get current row data
         const tr = $(this).closest('tr');
         const currentQty = tr.find('td:eq(2)').text().trim();
-        const currentWaste = parseFloat(tr.find('td:eq(4)').text());
+        const currentYield = parseFloat(tr.data('yield') || 1);
+        const currentWaste = parseFloat(tr.find('td:eq(5)').text());
+        const currentOptional = tr.data('optional') == 1;
+        const currentNotes = tr.data('notes') || '';
 
         Swal.fire({
             title: 'Editar Composição',
             html: `
                 <div class="text-start">
                     <div class="row g-2">
-                        <div class="col-6">
-                            <label class="form-label">Quantidade</label>
+                        <div class="col-4">
+                            <label class="form-label">Qtd Insumo</label>
                             <input type="number" id="swalEditQty" class="form-control" step="0.0001" min="0.0001" value="${currentQty}">
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
+                            <label class="form-label">Produz (un)</label>
+                            <input type="number" id="swalEditYield" class="form-control" step="1" min="1" value="${currentYield}">
+                        </div>
+                        <div class="col-4">
                             <label class="form-label">% Perda</label>
                             <input type="number" id="swalEditWaste" class="form-control" step="0.1" min="0" max="100" value="${currentWaste}">
                         </div>
                     </div>
+                    <div class="mt-2 p-2 bg-light rounded small" id="swalEditRatioPreview">
+                        <i class="fas fa-calculator me-1 text-primary"></i>
+                        <span id="swalEditRatioText"></span>
+                    </div>
+                    <div class="form-check mt-3">
+                        <input type="checkbox" id="swalEditOptional" class="form-check-input" ${currentOptional ? 'checked' : ''}>
+                        <label class="form-check-label" for="swalEditOptional">Opcional</label>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Observações</label>
+                        <input type="text" id="swalEditNotes" class="form-control" value="${currentNotes}">
+                    </div>
                 </div>
             `,
+            width: 520,
             showCancelButton: true,
             confirmButtonText: '<i class="fas fa-save me-1"></i>Salvar',
+            didOpen: () => {
+                const updateRatio = () => {
+                    const qty = parseFloat($('#swalEditQty').val()) || 0;
+                    const yld = parseFloat($('#swalEditYield').val()) || 1;
+                    const waste = parseFloat($('#swalEditWaste').val()) || 0;
+                    const perUnit = yld > 0 ? (qty / yld) : qty;
+                    const effective = perUnit * (1 + waste / 100);
+                    $('#swalEditRatioText').html(
+                        'Para produzir <strong>' + Math.round(yld) + '</strong> produto(s), utiliza <strong>' + qty.toFixed(4) + '</strong> de insumo' +
+                        ' → <strong>' + perUnit.toFixed(4) + '</strong>/un' +
+                        (waste > 0 ? ' (c/ perda: <strong>' + effective.toFixed(4) + '</strong>/un)' : '')
+                    );
+                };
+                $('#swalEditQty, #swalEditYield, #swalEditWaste').on('input change', updateRatio);
+                updateRatio();
+            },
             preConfirm: () => ({
                 id: bomId,
                 product_id: productId,
                 quantity: parseFloat($('#swalEditQty').val()),
+                yield_qty: Math.max(parseFloat($('#swalEditYield').val()) || 1, 1),
                 waste_percent: parseFloat($('#swalEditWaste').val()) || 0,
+                is_optional: $('#swalEditOptional').is(':checked') ? 1 : 0,
+                notes: $('#swalEditNotes').val(),
                 csrf_token: csrfToken
             })
         }).then(result => {

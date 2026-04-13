@@ -561,7 +561,7 @@ class Product {
      */
     public function updateBaseCostFromBOM(int $productId): float
     {
-        $sql = "SELECT COALESCE(SUM(ps.quantity * (1 + ps.waste_percent / 100) * s.cost_price), 0) AS total_cost
+        $sql = "SELECT COALESCE(SUM((ps.quantity / ps.yield_qty) * (1 + ps.waste_percent / 100) * s.cost_price), 0) AS total_cost
                 FROM product_supplies ps
                 JOIN supplies s ON s.id = ps.supply_id
                 WHERE ps.product_id = :product_id AND ps.is_optional = 0";
@@ -589,7 +589,7 @@ class Product {
     public function getMarginAnalysis(int $productId): array
     {
         $sql = "SELECT p.price,
-                       COALESCE(SUM(ps.quantity * (1 + ps.waste_percent / 100) * s.cost_price), 0) AS cost_mp
+                       COALESCE(SUM((ps.quantity / ps.yield_qty) * (1 + ps.waste_percent / 100) * s.cost_price), 0) AS cost_mp
                 FROM {$this->table_name} p
                 LEFT JOIN product_supplies ps ON ps.product_id = p.id AND ps.is_optional = 0
                 LEFT JOIN supplies s ON s.id = ps.supply_id

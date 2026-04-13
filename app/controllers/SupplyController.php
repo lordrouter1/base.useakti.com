@@ -298,7 +298,10 @@ class SupplyController
         $supplies = $this->supplyModel->getProductSupplies($productId);
 
         foreach ($supplies as &$s) {
-            $effective = $s['quantity'] * (1 + $s['waste_percent'] / 100);
+            $yieldQty = max((float)($s['yield_qty'] ?? 1), 0.0001);
+            $perUnit = (float)$s['quantity'] / $yieldQty;
+            $effective = $perUnit * (1 + $s['waste_percent'] / 100);
+            $s['per_unit_qty'] = round($perUnit, 4);
             $s['effective_qty'] = round($effective, 4);
             $s['line_cost'] = round($effective * $s['cost_price'], 4);
         }
@@ -315,6 +318,7 @@ class SupplyController
             'product_id'    => Input::post('product_id', 'int', 0),
             'supply_id'     => Input::post('supply_id', 'int', 0),
             'quantity'      => Input::post('quantity', 'float', 0),
+            'yield_qty'     => max(Input::post('yield_qty', 'float', 1), 0.0001),
             'unit_measure'  => Input::post('unit_measure', 'string', 'un'),
             'waste_percent' => Input::post('waste_percent', 'float', 0),
             'is_optional'   => Input::post('is_optional', 'int', 0),
@@ -346,6 +350,7 @@ class SupplyController
         $id = Input::post('id', 'int', 0);
         $data = [
             'quantity'      => Input::post('quantity', 'float', 0),
+            'yield_qty'     => max(Input::post('yield_qty', 'float', 1), 0.0001),
             'unit_measure'  => Input::post('unit_measure', 'string', 'un'),
             'waste_percent' => Input::post('waste_percent', 'float', 0),
             'is_optional'   => Input::post('is_optional', 'int', 0),
