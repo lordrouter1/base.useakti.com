@@ -52,9 +52,14 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" integrity="sha384-OXVF05DQEe311p6ohU11NwlnX08FzMCsyoXzGOaL+83dKAb3qS17yZJxESl8YrJQ" crossorigin="anonymous" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" integrity="sha384-IrMr0LFnIMa9H6HhC5VVqVuWNEIwspnRLKQc0SUyPj4Cy4s02DiWDZEoJOo5WNK6" crossorigin="anonymous" />
     <!-- Design System (must load BEFORE other CSS) -->
+    <?php if (\Akti\Utils\ViteAssets::isBuilt()): ?>
+    <?= \Akti\Utils\ViteAssets::tag('css', 'design-system') ?>
+    <?= \Akti\Utils\ViteAssets::tag('css', 'theme') ?>
+    <?php else: ?>
     <link rel="stylesheet" href="<?= asset('assets/css/design-system.css') ?>">
     <!-- Custom CSS (cache busting via asset()) -->
     <link rel="stylesheet" href="<?= asset('assets/css/theme.css') ?>">
+    <?php endif; ?>
     <link rel="stylesheet" href="<?= asset('assets/css/style.css') ?>">
     <link href="<?= asset('assets/css/walkthrough.css') ?>" rel="stylesheet">
     <!-- Module-specific CSS (loaded per page) -->

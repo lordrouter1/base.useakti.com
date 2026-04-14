@@ -33,7 +33,11 @@
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" integrity="sha384-QjoPbdj/93O7LUz0wqTxepA3tIabUD3jzfZX+x5QLvqFtHBzSw4eYFLSVthB+EDT" crossorigin="anonymous"></script>
 <!-- Script global do sistema (CSRF, atalhos, máscaras) -->
+<?php if (\Akti\Utils\ViteAssets::isBuilt()): ?>
+<?= \Akti\Utils\ViteAssets::tag('js', 'app') ?>
+<?php else: ?>
 <script src="<?= asset('assets/js/script.js') ?>"></script>
+<?php endif; ?>
 
 <!-- Session Flash Messages (success / error) -->
 <?php if (isset($_SESSION['success']) || isset($_SESSION['error'])): ?>
@@ -78,11 +82,19 @@ function fileUrl(path, size) {
 }
 </script>
 <!-- Design System Components -->
+<?php if (\Akti\Utils\ViteAssets::isBuilt()): ?>
+<?= \Akti\Utils\ViteAssets::tag('js', 'toast') ?>
+<?= \Akti\Utils\ViteAssets::tag('js', 'skeleton') ?>
+<?= \Akti\Utils\ViteAssets::tag('js', 'shortcuts') ?>
+<?= \Akti\Utils\ViteAssets::tag('js', 'command-palette') ?>
+<?= \Akti\Utils\ViteAssets::tag('js', 'notification-bell') ?>
+<?php else: ?>
 <script src="<?= asset('assets/js/components/toast.js') ?>"></script>
 <script src="<?= asset('assets/js/components/skeleton.js') ?>"></script>
 <script src="<?= asset('assets/js/components/shortcuts.js') ?>"></script>
 <script src="<?= asset('assets/js/components/command-palette.js') ?>"></script>
 <script src="<?= asset('assets/js/components/notification-bell.js') ?>"></script>
+<?php endif; ?>
 <script src="<?= asset('assets/js/components/dashboard-widgets.js') ?>"></script>
 <script src="<?= asset('assets/js/components/focus-trap.js') ?>"></script>
 
@@ -99,19 +111,35 @@ if (isset($_SESSION['user_id'])) {
      data-timeout="<?= $__sessionData['timeout_seconds'] ?>"
      data-warning="<?= $__sessionData['warning_seconds'] ?>"
      data-remaining="<?= $__sessionData['remaining_seconds'] ?>"></div>
+<?php if (\Akti\Utils\ViteAssets::isBuilt()): ?>
+<?= \Akti\Utils\ViteAssets::tag('js', 'session-timeout', 'defer') ?>
+<?php else: ?>
 <script src="<?= asset('assets/js/components/session-timeout.js') ?>" defer></script>
+<?php endif; ?>
 <?php endif; ?>
 
 <!-- DOMPurify (sanitização XSS para innerHTML) -->
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js" integrity="sha384-ngl0dx6W6SJEpB1BjYqLSDsKjUXUKbyZxjGnByuRFYMVwpiCHzpEuEaFRv7DaXcM" crossorigin="anonymous"></script>
 <!-- Walkthrough -->
+<?php if (\Akti\Utils\ViteAssets::isBuilt()): ?>
+<?= \Akti\Utils\ViteAssets::tag('js', 'walkthrough', 'defer') ?>
+<?php else: ?>
 <script src="assets/js/walkthrough.js" defer></script>
+<?php endif; ?>
 <!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" integrity="sha384-d3UHjPdzJkZuk5H3qKYMLRyWLAQBJbby2yr2Q58hXXtAGF8RSNO9jpLDlKKPv5v3" crossorigin="anonymous"></script>
 <!-- Product Select2 integration -->
+<?php if (\Akti\Utils\ViteAssets::isBuilt()): ?>
+<?= \Akti\Utils\ViteAssets::tag('js', 'product-select2') ?>
+<?php else: ?>
 <script src="assets/js/product-select2.js"></script>
+<?php endif; ?>
 <!-- Customer Select2 integration -->
+<?php if (\Akti\Utils\ViteAssets::isBuilt()): ?>
+<?= \Akti\Utils\ViteAssets::tag('js', 'customer-select2') ?>
+<?php else: ?>
 <script src="assets/js/customer-select2.js"></script>
+<?php endif; ?>
 <script nonce="<?= cspNonce() ?>">
     document.addEventListener('DOMContentLoaded', function() {
         // Botão de tutorial no rodapé

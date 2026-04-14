@@ -267,6 +267,77 @@ return [
     ],
 
     // ─── Itens ocultos do menu principal (ficam no menu direito) ───
+
+    // ─── Grupo: Gestão Avançada (novos módulos v3) ───
+    'gestao_avancada' => [
+        'label'    => 'Gestão Avançada',
+        'icon'     => 'fas fa-rocket',
+        'menu'     => true,
+        'children' => [
+            'tickets' => [
+                'label'      => 'Tickets / Suporte',
+                'icon'       => 'fas fa-headset',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'equipment' => [
+                'label'      => 'Equipamentos',
+                'icon'       => 'fas fa-tools',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'shipments' => [
+                'label'      => 'Entregas',
+                'icon'       => 'fas fa-shipping-fast',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'branches' => [
+                'label'      => 'Filiais',
+                'icon'       => 'fas fa-building',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'production_costs' => [
+                'label'      => 'Custos de Produção',
+                'icon'       => 'fas fa-calculator',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'whatsapp' => [
+                'label'      => 'WhatsApp',
+                'icon'       => 'fab fa-whatsapp',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'achievements' => [
+                'label'      => 'Gamificação',
+                'icon'       => 'fas fa-trophy',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'esg' => [
+                'label'      => 'ESG / Sustentabilidade',
+                'icon'       => 'fas fa-leaf',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'bi' => [
+                'label'      => 'Business Intelligence',
+                'icon'       => 'fas fa-chart-line',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'ai_assistant' => [
+                'label'      => 'Assistente IA',
+                'icon'       => 'fas fa-robot',
+                'menu'       => true,
+                'permission' => true,
+            ],
+        ],
+    ],
+
+    // ─── Itens ocultos do menu principal (ficam no menu direito) ───
     'financial' => [
         'label'      => 'Fiscal (Financeiro)',
         'icon'       => 'fas fa-coins',

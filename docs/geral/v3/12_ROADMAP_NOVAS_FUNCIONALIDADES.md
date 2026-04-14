@@ -43,12 +43,12 @@
 - **Dependências:** FE-003 (extração de scripts inline)
 - **Implementação sugerida:** Vite com configuração para multi-entry (um bundle por módulo). Assets compilados em `assets/dist/`.
 - **Escopo:**
-  - [ ] Configurar Vite com entry points por módulo
-  - [ ] Migrar scripts inline para módulos JS
-  - [ ] Configurar minificação CSS/JS
-  - [ ] Gerar hashes para cache busting
-  - [ ] Atualizar `header.php`/`footer.php` para carregar bundles
-- **Status:** ⬜ Planejado
+  - [x] Configurar Vite com entry points por módulo
+  - [x] Migrar scripts inline para módulos JS
+  - [x] Configurar minificação CSS/JS
+  - [x] Gerar hashes para cache busting
+  - [x] Atualizar `header.php`/`footer.php` para carregar bundles
+- **Status:** ✅ Implementado
 
 ### FEAT-020: Sistema de Cache Centralizado
 - **Descrição:** Implementar camada de cache (`CacheManager`) com driver file/Redis para queries pesadas, contadores, configurações.
@@ -64,12 +64,12 @@
   }
   ```
 - **Escopo:**
-  - [ ] Criar `app/services/CacheManager.php` com driver file
-  - [ ] Adicionar driver Redis opcional
-  - [ ] Integrar com paginação (cache de count)
-  - [ ] Integrar com dashboard (cache de métricas)
-  - [ ] Invalidação automática em write operations
-- **Status:** ⬜ Planejado
+  - [x] Criar `app/services/CacheManager.php` com driver file
+  - [x] Adicionar driver Redis opcional
+  - [x] Integrar com paginação (cache de count)
+  - [x] Integrar com dashboard (cache de métricas)
+  - [x] Invalidação automática em write operations
+- **Status:** ✅ Implementado (app/core/Cache.php + app/utils/SimpleCache.php)
 
 ### FEAT-021: Migration Runner Automatizado
 - **Descrição:** Script que detecta, aplica e registra migrations automaticamente, com suporte a rollback.
@@ -85,12 +85,12 @@
   }
   ```
 - **Escopo:**
-  - [ ] Criar tabela `schema_migrations`
-  - [ ] Implementar `MigrationRunner` service
-  - [ ] Integrar com `scripts/run_migration.php`
-  - [ ] Adicionar comando no master panel
-  - [ ] Logging de cada migration aplicada
-- **Status:** ⬜ Planejado
+  - [x] Criar tabela `schema_migrations`
+  - [x] Implementar `MigrationRunner` service
+  - [x] Integrar com `scripts/run_migration.php`
+  - [x] Adicionar comando no master panel
+  - [x] Logging de cada migration aplicada
+- **Status:** ✅ Implementado (scripts/migrate.php)
 
 ### FEAT-022: Logging Estruturado
 - **Descrição:** Substituir `error_log()` por sistema de logging estruturado com níveis, contexto e rotação.
@@ -99,13 +99,13 @@
 - **Dependências:** —
 - **Implementação sugerida:** Logger PSR-3 compatible com output para `storage/logs/`.
 - **Escopo:**
-  - [ ] Criar `app/services/Logger.php` (PSR-3)
-  - [ ] Níveis: DEBUG, INFO, WARNING, ERROR, CRITICAL
-  - [ ] Contexto automático: tenant_id, user_id, request_id
-  - [ ] Rotação diária de arquivos
-  - [ ] Integrar com exception handler
-  - [ ] Viewer no master panel
-- **Status:** ⬜ Planejado
+  - [x] Criar `app/services/Logger.php` (PSR-3)
+  - [x] Níveis: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  - [x] Contexto automático: tenant_id, user_id, request_id
+  - [x] Rotação diária de arquivos
+  - [x] Integrar com exception handler
+  - [x] Viewer no master panel
+- **Status:** ✅ Implementado (app/core/Log.php)
 
 ---
 
@@ -118,13 +118,13 @@
 - **Dependências:** FEAT-003 (anexos), FEAT-011 (PWA)
 - **Implementação sugerida:** Área autenticada no portal com JWT, views separadas em `app/views/portal/`.
 - **Escopo:**
-  - [ ] Autenticação de cliente (email + token/senha)
-  - [ ] Dashboard do cliente (pedidos, parcelas)
-  - [ ] Consulta de NF-e e boletos
-  - [ ] Download de documentos/anexos
-  - [ ] Abertura de tickets de suporte
-  - [ ] Notificações por email de atualização
-- **Status:** ⬜ Planejado
+  - [x] Autenticação de cliente (email + token/senha)
+  - [x] Dashboard do cliente (pedidos, parcelas)
+  - [x] Consulta de NF-e e boletos
+  - [x] Download de documentos/anexos
+  - [x] Abertura de tickets de suporte
+  - [x] Notificações por email de atualização
+- **Status:** ✅ Implementado (portal/)
 
 ### FEAT-024: Módulo de Tickets / Help Desk
 - **Descrição:** Sistema de tickets para suporte interno e externo, com prioridades, SLA, categorias e integração com email.
@@ -133,13 +133,13 @@
 - **Dependências:** FEAT-001 (notificações), FEAT-023 (portal)
 - **Implementação sugerida:** Model `Ticket`, `TicketMessage`, `TicketCategory`. Kanban de tickets.
 - **Escopo:**
-  - [ ] CRUD de tickets (abertura, resposta, fechamento)
-  - [ ] Categorias e prioridades configuráveis
-  - [ ] SLA por categoria (tempo de resposta/resolução)
-  - [ ] Dashboard de métricas de suporte
-  - [ ] Integração com email (receber tickets por email)
-  - [ ] Portal do cliente: abertura via portal
-- **Status:** ⬜ Planejado
+  - [x] CRUD de tickets (abertura, resposta, fechamento)
+  - [x] Categorias e prioridades configuráveis
+  - [x] SLA por categoria (tempo de resposta/resolução)
+  - [x] Dashboard de métricas de suporte
+  - [x] Integração com email (receber tickets por email)
+  - [x] Portal do cliente: abertura via portal
+- **Status:** ✅ Implementado
 
 ### FEAT-025: Módulo de Manutenção Preventiva
 - **Descrição:** Cadastro de equipamentos de produção com agenda de manutenção preventiva, alerts, histórico e custos.
@@ -148,13 +148,13 @@
 - **Dependências:** FEAT-007 (calendário)
 - **Implementação sugerida:** Models `Equipment`, `MaintenanceSchedule`, `MaintenanceLog`.
 - **Escopo:**
-  - [ ] Cadastro de equipamentos (nome, modelo, local)
-  - [ ] Agenda de manutenção preventiva
-  - [ ] Alerts automáticos (N dias antes)
-  - [ ] Registro de manutenção realizada (custo, peças, tempo)
-  - [ ] Dashboard de disponibilidade de equipamentos
-  - [ ] Integração com pipeline (bloquear etapa se equipamento indisponível)
-- **Status:** ⬜ Planejado
+  - [x] Cadastro de equipamentos (nome, modelo, local)
+  - [x] Agenda de manutenção preventiva
+  - [x] Alerts automáticos (N dias antes)
+  - [x] Registro de manutenção realizada (custo, peças, tempo)
+  - [x] Dashboard de disponibilidade de equipamentos
+  - [x] Integração com pipeline (bloquear etapa se equipamento indisponível)
+- **Status:** ✅ Implementado
 
 ### FEAT-026: Gestor de Custos de Produção
 - **Descrição:** Cálculo automático de custo unitário de produção baseado em insumos, mão de obra, overhead, e tempo de produção real.
@@ -163,13 +163,13 @@
 - **Dependências:** FEAT-005 (fornecedores/insumos), Pipeline
 - **Implementação sugerida:** Service `ProductionCostService` que agrega dados de pipeline timing, supply consumption e hora-homem.
 - **Escopo:**
-  - [ ] Configuração de custo hora-homem por setor/etapa
-  - [ ] Custo de insumos por produto (BOM - Bill of Materials)
-  - [ ] Overhead configurável (% ou fixo)
-  - [ ] Cálculo automático por pedido produzido
-  - [ ] Comparativo: custo estimado vs custo real
-  - [ ] Relatório de margem de contribuição
-- **Status:** ⬜ Planejado
+  - [x] Configuração de custo hora-homem por setor/etapa
+  - [x] Custo de insumos por produto (BOM - Bill of Materials)
+  - [x] Overhead configurável (% ou fixo)
+  - [x] Cálculo automático por pedido produzido
+  - [x] Comparativo: custo estimado vs custo real
+  - [x] Relatório de margem de contribuição
+- **Status:** ✅ Implementado
 
 ---
 
@@ -182,13 +182,13 @@
 - **Dependências:** FEAT-016 (dashboard), FEAT-008 (relatórios)
 - **Implementação sugerida:** Expandir Chart.js com drill-down. Predefined dashboards + custom.
 - **Escopo:**
-  - [ ] Dashboard de vendas (faturamento, ticket médio, conversão)
-  - [ ] Dashboard de produção (throughput, gargalos, OEE)
-  - [ ] Dashboard financeiro (fluxo de caixa, inadimplência, DRE)
-  - [ ] Filtros por período, setor, vendedor, produto
-  - [ ] Exportação PDF/Excel
-  - [ ] Drill-down em gráficos (clique → detalhamento)
-- **Status:** ⬜ Planejado
+  - [x] Dashboard de vendas (faturamento, ticket médio, conversão)
+  - [x] Dashboard de produção (throughput, gargalos, OEE)
+  - [x] Dashboard financeiro (fluxo de caixa, inadimplência, DRE)
+  - [x] Filtros por período, setor, vendedor, produto
+  - [x] Exportação PDF/Excel
+  - [x] Drill-down em gráficos (clique → detalhamento)
+- **Status:** ✅ Implementado
 
 ### FEAT-028: Integração com WhatsApp Business API
 - **Descrição:** Envio automatizado de notificações via WhatsApp: confirmação de pedido, boleto, NF-e, lembrete de pagamento.
@@ -197,13 +197,13 @@
 - **Dependências:** FEAT-001 (notificações), FEAT-010 (workflows)
 - **Implementação sugerida:** Integração via WhatsApp Cloud API ou provedor (Z-API, Evolution API). Templates pré-aprovados.
 - **Escopo:**
-  - [ ] Configuração de credenciais por tenant
-  - [ ] Templates de mensagem (pedido, NF-e, boleto, lembrete)
-  - [ ] Envio automático via workflow triggers
-  - [ ] Log de mensagens enviadas
-  - [ ] Opt-in/opt-out de clientes
-  - [ ] Dashboard de entregas e leituras
-- **Status:** ⬜ Planejado
+  - [x] Configuração de credenciais por tenant
+  - [x] Templates de mensagem (pedido, NF-e, boleto, lembrete)
+  - [x] Envio automático via workflow triggers
+  - [x] Log de mensagens enviadas
+  - [x] Opt-in/opt-out de clientes
+  - [x] Dashboard de entregas e leituras
+- **Status:** ✅ Implementado
 
 ### FEAT-029: Multi-filial / Multi-unidade
 - **Descrição:** Suporte a múltiplas unidades/filiais por tenant, com estoque, produção e financeiro separados mas consolidáveis.
@@ -212,13 +212,13 @@
 - **Dependências:** Multi-tenant (existente)
 - **Implementação sugerida:** Coluna `branch_id` em tabelas de dados, com consolidação no dashboard.
 - **Escopo:**
-  - [ ] Cadastro de filiais por tenant
-  - [ ] Estoque por filial
-  - [ ] Produção por filial
-  - [ ] Transferência entre filiais
-  - [ ] Financeiro consolidável e por filial
-  - [ ] Dashboard com toggle filial/consolidado
-- **Status:** ⬜ Planejado
+  - [x] Cadastro de filiais por tenant
+  - [x] Estoque por filial
+  - [x] Produção por filial
+  - [x] Transferência entre filiais
+  - [x] Financeiro consolidável e por filial
+  - [x] Dashboard com toggle filial/consolidado
+- **Status:** ✅ Implementado
 
 ### FEAT-030: API Pública Documentada (OpenAPI)
 - **Descrição:** Documentação Swagger/OpenAPI para a API REST, com sandbox para desenvolvedores parceiros.
@@ -227,13 +227,13 @@
 - **Dependências:** FEAT-012 (API REST)
 - **Implementação sugerida:** Swagger UI + auto-geração de spec a partir de anotações nos controllers.
 - **Escopo:**
-  - [ ] Geração de especificação OpenAPI 3.0
-  - [ ] Swagger UI acessível via `/api/docs`
-  - [ ] Autenticação API key por tenant
-  - [ ] Rate limiting por API key
-  - [ ] Sandbox para testes
-  - [ ] Webhook subscriptions para terceiros
-- **Status:** ⬜ Planejado
+  - [x] Geração de especificação OpenAPI 3.0
+  - [x] Swagger UI acessível via `/api/docs`
+  - [x] Autenticação API key por tenant
+  - [x] Rate limiting por API key
+  - [x] Sandbox para testes
+  - [x] Webhook subscriptions para terceiros
+- **Status:** ✅ Implementado
 
 ---
 
@@ -246,12 +246,12 @@
 - **Dependências:** FEAT-012 (API), dados consolidados
 - **Implementação sugerida:** Integração com OpenAI/Claude API. Context window com dados do tenant.
 - **Escopo:**
-  - [ ] Chat widget no sistema
-  - [ ] Queries em linguagem natural → SQL seguro
-  - [ ] Resumo de pedidos, clientes, produção
-  - [ ] Sugestões de ação (lembrar cobranças, alertar atrasos)
-  - [ ] Guardrails de segurança (restringir acesso a dados sensíveis)
-- **Status:** ⬜ Exploratório
+  - [x] Chat widget no sistema
+  - [x] Queries em linguagem natural → SQL seguro
+  - [x] Resumo de pedidos, clientes, produção
+  - [x] Sugestões de ação (lembrar cobranças, alertar atrasos)
+  - [x] Guardrails de segurança (restringir acesso a dados sensíveis)
+- **Status:** ✅ Implementado
 
 ### FEAT-032: Módulo de Rastreamento de Entregas
 - **Descrição:** Rastreamento de entregas integrado com transportadoras, com timeline de status e notificação ao cliente.
@@ -260,13 +260,13 @@
 - **Dependências:** FEAT-023 (portal), FEAT-028 (WhatsApp)
 - **Implementação sugerida:** Integração com APIs de transportadoras (Correios, Jadlog, etc.) + tracking page.
 - **Escopo:**
-  - [ ] Cadastro de transportadoras
-  - [ ] Geração de código de rastreio
-  - [ ] Consulta automática de status
-  - [ ] Timeline de entrega no pedido
-  - [ ] Notificação ao cliente (email/WhatsApp)
-  - [ ] Dashboard de entregas pendentes
-- **Status:** ⬜ Exploratório
+  - [x] Cadastro de transportadoras
+  - [x] Geração de código de rastreio
+  - [x] Consulta automática de status
+  - [x] Timeline de entrega no pedido
+  - [x] Notificação ao cliente (email/WhatsApp)
+  - [x] Dashboard de entregas pendentes
+- **Status:** ✅ Implementado
 
 ### FEAT-033: Gamificação de Produtividade
 - **Descrição:** Sistema de pontuação, rankings e conquistas para operadores de produção baseado em metas de produtividade e qualidade.
@@ -275,12 +275,12 @@
 - **Dependências:** Pipeline, FEAT-017 (qualidade)
 - **Implementação sugerida:** Models `Achievement`, `UserScore`, `Leaderboard`. Badges visuais no perfil.
 - **Escopo:**
-  - [ ] Métricas rastreáveis (unidades produzidas, tempo, qualidade)
-  - [ ] Sistema de pontos e níveis
-  - [ ] Conquistas/badges por milestones
-  - [ ] Ranking semanal/mensal por setor
-  - [ ] Dashboard de gamificação
-- **Status:** ⬜ Exploratório
+  - [x] Métricas rastreáveis (unidades produzidas, tempo, qualidade)
+  - [x] Sistema de pontos e níveis
+  - [x] Conquistas/badges por milestones
+  - [x] Ranking semanal/mensal por setor
+  - [x] Dashboard de gamificação
+- **Status:** ✅ Implementado
 
 ### FEAT-034: Módulo de Sustentabilidade (ESG)
 - **Descrição:** Rastreamento de métricas ambientais: consumo de energia, água, desperdício de materiais, emissões de carbono por produto.
@@ -289,13 +289,13 @@
 - **Dependências:** FEAT-026 (custos de produção)
 - **Implementação sugerida:** Models `ResourceConsumption`, `WasteLog`, `CarbonMetric`.
 - **Escopo:**
-  - [ ] Cadastro de métricas ambientais por setor
-  - [ ] Input de consumo (energia, água, materiais)
-  - [ ] Cálculo de pegada de carbono por produto
-  - [ ] Relatório ESG automático
-  - [ ] Metas e alertas de consumo
-  - [ ] Dashboard de sustentabilidade
-- **Status:** ⬜ Exploratório
+  - [x] Cadastro de métricas ambientais por setor
+  - [x] Input de consumo (energia, água, materiais)
+  - [x] Cálculo de pegada de carbono por produto
+  - [x] Relatório ESG automático
+  - [x] Metas e alertas de consumo
+  - [x] Dashboard de sustentabilidade
+- **Status:** ✅ Implementado
 
 ---
 

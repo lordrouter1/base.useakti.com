@@ -1267,4 +1267,149 @@ return [
         ],
     ],
 
+    // ─── Tickets / Help Desk (FEAT-024) ───
+    'tickets' => [
+        'controller'     => 'TicketController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create'       => 'create',
+            'store'        => 'store',
+            'view'         => 'view',
+            'addMessage'   => 'addMessage',
+            'updateStatus' => 'updateStatus',
+            'dashboard'    => 'dashboard',
+            'delete'       => 'delete',
+        ],
+    ],
+
+    // ─── Equipamentos / Manutenção (FEAT-025) ───
+    'equipment' => [
+        'controller'     => 'EquipmentController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create'        => 'create',
+            'store'         => 'store',
+            'edit'          => 'edit',
+            'update'        => 'update',
+            'delete'        => 'delete',
+            'schedules'     => 'schedules',
+            'storeSchedule' => 'storeSchedule',
+            'storeLog'      => 'storeLog',
+            'dashboard'     => 'dashboard',
+        ],
+    ],
+
+    // ─── WhatsApp (FEAT-028) ───
+    'whatsapp' => [
+        'controller'     => 'WhatsAppController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'saveConfig'     => 'saveConfig',
+            'saveTemplate'   => 'saveTemplate',
+            'send'           => 'send',
+            'testConnection' => 'testConnection',
+        ],
+    ],
+
+    // ─── Filiais / Multi-branch (FEAT-029) ───
+    'branches' => [
+        'controller'     => 'BranchController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create' => 'create',
+            'store'  => 'store',
+            'edit'   => 'edit',
+            'update' => 'update',
+            'delete' => 'delete',
+        ],
+    ],
+
+    // ─── Entregas / Rastreamento (FEAT-032) ───
+    'shipments' => [
+        'controller'     => 'ShipmentController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create'      => 'create',
+            'store'       => 'store',
+            'view'        => 'view',
+            'addEvent'    => 'addEvent',
+            'carriers'    => 'carriers',
+            'saveCarrier' => 'saveCarrier',
+            'dashboard'   => 'dashboard',
+            'delete'      => 'delete',
+        ],
+    ],
+
+    // ─── Gamificação (FEAT-033) ───
+    'achievements' => [
+        'controller'     => 'AchievementController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create'      => 'create',
+            'store'       => 'store',
+            'edit'        => 'edit',
+            'update'      => 'update',
+            'delete'      => 'delete',
+            'leaderboard' => 'leaderboard',
+            'award'       => 'award',
+        ],
+    ],
+
+    // ─── ESG / Sustentabilidade (FEAT-034) ───
+    'esg' => [
+        'controller'     => 'EsgController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create'    => 'create',
+            'store'     => 'store',
+            'edit'      => 'edit',
+            'update'    => 'update',
+            'delete'    => 'delete',
+            'addRecord' => 'addRecord',
+            'setTarget' => 'setTarget',
+            'dashboard' => 'dashboard',
+        ],
+    ],
+
+    // ─── Custos de Produção (FEAT-026) ───
+    'production_costs' => [
+        'controller'     => 'ProductionCostController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'saveConfig'   => 'saveConfig',
+            'calculate'    => 'calculate',
+            'marginReport' => 'marginReport',
+        ],
+    ],
+
+    // ─── Business Intelligence (FEAT-027) ───
+    'bi' => [
+        'controller'     => 'BiController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'drillDown'  => 'drillDown',
+            'exportPdf'  => 'exportPdf',
+        ],
+    ],
+
+    // ─── Assistente IA (FEAT-031) ───
+    'ai_assistant' => [
+        'controller'     => 'AiAssistantController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'send'         => 'send',
+            'clearHistory' => 'clearHistory',
+        ],
+    ],
+
 ];
