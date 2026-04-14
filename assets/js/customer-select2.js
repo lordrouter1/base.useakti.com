@@ -35,20 +35,28 @@
     if (item.loading) return item.text;
     if (!item.id) return item.text;
 
-    var doc = item.document ? '<span class="badge bg-secondary ms-1" style="font-size:0.65rem;">' + escapeHtml(item.document) + '</span>' : '';
-    var phone = item.phone ? '<i class="fas fa-phone me-1 text-muted" style="font-size:0.7rem;"></i>' + escapeHtml(formatPhone(item.phone)) : '';
-    var email = item.email ? '<i class="fas fa-envelope me-1 text-muted" style="font-size:0.7rem;"></i>' + escapeHtml(item.email) : '';
-    var details = [];
-    if (phone) details.push(phone);
-    if (email) details.push(email);
-    var detailsHtml = details.length > 0
-      ? '<div class="small text-muted text-truncate" style="max-width:400px;">' + details.join(' &middot; ') + '</div>'
-      : '';
+    var $container = $('<div class="py-1"></div>');
+    var $name = $('<div class="fw-semibold"></div>');
+    $name.append(document.createTextNode(item.text || ''));
+    if (item.document) {
+      var $doc = $('<span class="badge bg-secondary ms-1" style="font-size:0.65rem;"></span>');
+      $doc.text(item.document);
+      $name.append($doc);
+    }
+    $container.append($name);
 
-    return $('<div class="py-1">' +
-      '<div class="fw-semibold">' + escapeHtml(item.text) + doc + '</div>' +
-      detailsHtml +
-      '</div>');
+    var details = [];
+    if (item.phone) {
+      details.push('<i class="fas fa-phone me-1 text-muted" style="font-size:0.7rem;"></i>' + escapeHtml(formatPhone(item.phone)));
+    }
+    if (item.email) {
+      details.push('<i class="fas fa-envelope me-1 text-muted" style="font-size:0.7rem;"></i>' + escapeHtml(item.email));
+    }
+    if (details.length > 0) {
+      $container.append($('<div class="small text-muted text-truncate" style="max-width:400px;"></div>').html(details.join(' &middot; ')));
+    }
+
+    return $container;
   }
 
   /**

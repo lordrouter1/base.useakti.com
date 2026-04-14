@@ -34,18 +34,31 @@
     if (item.loading) return item.text;
     if (!item.id) return item.text;
 
-    var price = item.price ? ' — ' + formatPrice(item.price) : '';
-    var sku = item.sku ? '<span class="badge bg-secondary ms-1" style="font-size:0.65rem;">' + escapeHtml(item.sku) + '</span>' : '';
-    var combos = '';
-    if (item.combinations && item.combinations.length > 0) {
-      combos = ' <span class="badge bg-info ms-1" style="font-size:0.65rem;">' + item.combinations.length + ' variação(ões)</span>';
+    var $container = $('<div class="py-1"></div>');
+    var $name = $('<div class="fw-semibold"></div>');
+    $name.append(document.createTextNode(item.text || ''));
+    if (item.price) {
+      $name.append(document.createTextNode(' — ' + formatPrice(item.price)));
     }
-    var desc = item.description ? '<div class="small text-muted text-truncate" style="max-width:350px;">' + escapeHtml(item.description) + '</div>' : '';
+    if (item.sku) {
+      var $sku = $('<span class="badge bg-secondary ms-1" style="font-size:0.65rem;"></span>');
+      $sku.text(item.sku);
+      $name.append($sku);
+    }
+    if (item.combinations && item.combinations.length > 0) {
+      var $combos = $('<span class="badge bg-info ms-1" style="font-size:0.65rem;"></span>');
+      $combos.text(item.combinations.length + ' variação(ões)');
+      $name.append($combos);
+    }
+    $container.append($name);
 
-    return $('<div class="py-1">' +
-      '<div class="fw-semibold">' + escapeHtml(item.text) + price + sku + combos + '</div>' +
-      desc +
-      '</div>');
+    if (item.description) {
+      var $desc = $('<div class="small text-muted text-truncate" style="max-width:350px;"></div>');
+      $desc.text(item.description);
+      $container.append($desc);
+    }
+
+    return $container;
   }
 
   /**

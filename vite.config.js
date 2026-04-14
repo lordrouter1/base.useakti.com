@@ -25,6 +25,14 @@ export default defineConfig({
                 // Módulos de página
                 stock: resolve(__dirname, 'assets/js/modules/stock.js'),
                 pipeline: resolve(__dirname, 'assets/js/modules/pipeline.js'),
+                'workflows-index': resolve(__dirname, 'assets/js/modules/workflows-index.js'),
+                'workflows-form': resolve(__dirname, 'assets/js/modules/workflows-form.js'),
+                'supply-movements': resolve(__dirname, 'assets/js/modules/supply-movements.js'),
+                // Select2 integrations
+                'customer-select2': resolve(__dirname, 'assets/js/customer-select2.js'),
+                'product-select2': resolve(__dirname, 'assets/js/product-select2.js'),
+                // Walkthrough
+                walkthrough: resolve(__dirname, 'assets/js/walkthrough.js'),
             },
             output: {
                 entryFileNames: 'js/[name].[hash].js',

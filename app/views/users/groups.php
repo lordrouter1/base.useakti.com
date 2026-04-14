@@ -69,7 +69,7 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
                                 <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="toggleAll('perm_page_', false)" style="font-size:0.7rem;">Nenhum</button>
                             </div>
                         </div>
-                        <div class="border rounded p-3 bg-light">
+                        <div class="border rounded p-3 bg-body-secondary">
                             <div class="row g-2">
                             <?php foreach($pages as $key => $info): 
                                 $checked = in_array($key, $currentPermissions) ? 'checked' : '';
@@ -98,7 +98,7 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
                                 <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="toggleAll('perm_stage_', false)" style="font-size:0.7rem;">Nenhum</button>
                             </div>
                         </div>
-                        <div class="border rounded p-3 bg-light">
+                        <div class="border rounded p-3 bg-body-secondary">
                             <div class="row g-2">
                             <?php foreach($pipelineStages as $stageKey => $stageInfo): 
                                 $stagePermKey = 'stage_' . $stageKey;
@@ -129,7 +129,7 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
                                 <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="toggleAll('perm_sector_', false)" style="font-size:0.7rem;">Nenhum</button>
                             </div>
                         </div>
-                        <div class="border rounded p-3 bg-light">
+                        <div class="border rounded p-3 bg-body-secondary">
                             <div class="row g-2">
                             <?php foreach($sectors as $sector): 
                                 $sectorPermKey = 'sector_' . $sector['id'];
@@ -190,11 +190,11 @@ $currentPermissions = isset($editGroup) ? $editGroup['permissions'] : [];
                             <small class="text-muted"><?= e($group2['description']) ?></small>
                         </div>
                         <div class="d-flex gap-1">
-                            <a href="?page=users&action=groups&manage_id=<?= $group2['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
-                                <i class="fas fa-edit"></i>
+                            <a href="?page=users&action=groups&manage_id=<?= $group2['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar" aria-label="Editar grupo">
+                                <i class="fas fa-edit" aria-hidden="true"></i>
                             </a>
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-group" data-id="<?= $group2['id'] ?>" data-name="<?= e($group2['name']) ?>" title="Excluir">
-                                <i class="fas fa-trash"></i>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-group" data-id="<?= $group2['id'] ?>" data-name="<?= e($group2['name']) ?>" title="Excluir" aria-label="Excluir grupo">
+                                <i class="fas fa-trash" aria-hidden="true"></i>
                             </button>
                         </div>
                     </div>

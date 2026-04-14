@@ -63,7 +63,7 @@
     /* ── Text ── */
     --text-primary:   #E8E8E8;
     --text-secondary: #ADB5BD;
-    --text-muted:     #6C757D;
+    --text-muted:     #9CA3AB; /* WCAG AA ≥4.5:1 on all dark bgs */
     --text-inverse:   #212529;
 
     /* ── Accent ── */
@@ -108,7 +108,7 @@
         --bg-inverse:    #FFFFFF;
         --text-primary:   #E8E8E8;
         --text-secondary: #ADB5BD;
-        --text-muted:     #6C757D;
+        --text-muted:     #9CA3AB; /* WCAG AA ≥4.5:1 on all dark bgs */
         --text-inverse:   #212529;
         --accent:         #4DABF7;
         --accent-hover:   #339AF0;

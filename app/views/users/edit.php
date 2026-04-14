@@ -11,12 +11,12 @@
                     
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Nome Completo</label>
-                            <input type="text" class="form-control" name="name" required value="<?= eAttr($user['name']) ?>">
+                            <label class="form-label fw-bold small text-muted" for="editUserName">Nome Completo</label>
+                            <input type="text" class="form-control" name="name" id="editUserName" required value="<?= eAttr($user['name']) ?>">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Email</label>
-                            <input type="email" class="form-control" name="email" required value="<?= eAttr($user['email']) ?>">
+                            <label class="form-label fw-bold small text-muted" for="editUserEmail">Email</label>
+                            <input type="email" class="form-control" name="email" id="editUserEmail" required value="<?= eAttr($user['email']) ?>">
                         </div>
                         
                         <div class="col-md-6">

@@ -175,7 +175,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // ═══════════════════════════════════════════
     var ovCurrentPage = 1;
 
+    var _ovAbort = null;
     function loadStockItems(page) {
+        if (_ovAbort) _ovAbort.abort();
+        _ovAbort = new AbortController();
         ovCurrentPage = page || 1;
         var tbody = document.getElementById('stockTableBody');
         tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i>Carregando...</td></tr>';
@@ -190,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
             per_page: 25
         });
 
-        fetch('?' + params.toString())
+        fetch('?' + params.toString(), { signal: _ovAbort.signal })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (!data.success) {
@@ -258,7 +261,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     infoEl.textContent = 'Exibindo ' + from + '–' + to + ' de ' + data.total + ' registro(s)';
                 }
             })
-            .catch(function() {
+            .catch(function(err) {
+                if (err.name === 'AbortError') return;
                 tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Erro de comunicação ao carregar estoque.</td></tr>';
             });
     }
@@ -293,7 +297,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var typeIcons  = { entrada:'fas fa-arrow-down', saida:'fas fa-arrow-up', ajuste:'fas fa-sliders-h', transferencia:'fas fa-truck' };
     var typeLabels = { entrada:'Entrada', saida:'Saída', ajuste:'Ajuste', transferencia:'Transferência' };
 
+    var _movAbort = null;
     function loadMovements(page) {
+        if (_movAbort) _movAbort.abort();
+        _movAbort = new AbortController();
         movCurrentPage = page || 1;
         var tbody = document.getElementById('movTableBody');
         tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i>Carregando...</td></tr>';
@@ -310,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function() {
             per_page: 25
         });
 
-        fetch('?' + params.toString())
+        fetch('?' + params.toString(), { signal: _movAbort.signal })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (!data.success) {
@@ -388,7 +395,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 bindEditMovButtons();
             })
-            .catch(function() {
+            .catch(function(err) {
+                if (err.name === 'AbortError') return;
                 tbody.innerHTML = '<tr><td colspan="12" class="text-center text-danger py-4">Erro de comunicação ao carregar movimentações.</td></tr>';
             });
     }

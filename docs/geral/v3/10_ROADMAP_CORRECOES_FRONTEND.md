@@ -23,7 +23,7 @@
   ```
 - **Teste:** Injetar `<img src=x onerror=alert(1)>` no conteúdo de walkthrough.
 - **Esforço:** 2h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — DOMPurify.sanitize() aplicado em 3 innerHTML (SVG overlay com USE_PROFILES svg:true, modal e popover com default)
 - **v2:** Era FE-003/SEC-006. Mantido.
 
 ---
@@ -54,7 +54,7 @@
   <div class="bg-body-secondary">
   ```
 - **Esforço:** 4h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — 7 views corrigidas: bg-white→bg-body, bg-light→bg-body-secondary, text-dark→text-body, thead bg-light→table-light
 - **v2:** FE-004/005/006. Expandido com novos módulos.
 
 ### FE-003: Scripts Inline >50 linhas — Extrair para arquivos JS
@@ -86,7 +86,7 @@
   <script src="<?= asset('js/modules/workflows-index.js') ?>"></script>
   ```
 - **Esforço:** 16-24h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Parcial — workflows-index.js, workflows-form.js, supply-movements.js extraídos para assets/js/modules/ com pattern page-config JSON
 - **v2:** Era FE-007.
 
 ---
@@ -98,7 +98,7 @@
 - **Problema:** Templates de Select2 usam `innerHTML` para renderizar opções.
 - **Correção:** Usar `text()` ou template literals com textContent quando possível. Para HTML necessário, sanitizar.
 - **Esforço:** 2h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — customer-select2.js e product-select2.js refatorados para construção DOM via jQuery $().text()/.append()
 
 ### FE-005: Acessibilidade — `aria-label` em Botões de Ação
 - **Problema:** Botões com apenas ícones (sem texto) não possuem `aria-label`.
@@ -113,7 +113,7 @@
   </button>
   ```
 - **Esforço:** 8h (todas as views)
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — aria-label adicionado em botões de ação em workflows/index.php, users/groups.php, supply_stock/movements.php + aria-hidden nos ícones
 - **v2:** Era FE-008.
 
 ### FE-006: Acessibilidade — Tabelas sem `<caption>`
@@ -124,7 +124,7 @@
       <caption class="visually-hidden">Lista de clientes cadastrados</caption>
   ```
 - **Esforço:** 4h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — captions visually-hidden adicionados em 9+ tabelas (workflows, walkthrough/manual, supply_stock/movements)
 - **v2:** Era FE-009.
 
 ### FE-007: Acessibilidade — Forms sem `aria-describedby`
@@ -135,7 +135,7 @@
   <div id="emailHelp" class="form-text">Digite um email válido.</div>
   ```
 - **Esforço:** 8h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — aria-describedby + for/id implementados em users/profile.php, users/edit.php, users/create.php
 - **v2:** Era FE-010.
 
 ### FE-008: Minificação de JS/CSS
@@ -146,14 +146,14 @@
   npx clean-css-cli assets/css/style.css -o assets/css/style.min.css
   ```
 - **Esforço:** 4-8h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — vite.config.js atualizado com todos os novos módulos (terser + esbuild CSS já ativos)
 - **v2:** Era FE-012.
 
 ### FE-009: Contraste em Dark Mode
 - **Problema:** Alguns textos podem não ter contraste suficiente (4.5:1 WCAG AA) em dark mode.
 - **Correção:** Auditar com ferramenta de contraste e ajustar variáveis CSS.
 - **Esforço:** 4h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — --text-muted dark mode corrigido de #6C757D (~3.6:1) para #9CA3AB (≥4.9:1 WCAG AA em todos os bgs escuros)
 - **v2:** Era FE-011.
 
 ---
@@ -164,14 +164,14 @@
 - **Problema:** Font Awesome carregado completo, Bootstrap completo.
 - **Correção:** Avaliar subsets de ícones e CSS purgado.
 - **Esforço:** 8h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Avaliado — FA all.min.css mantido (3 famílias em uso: solid, regular, brands). Bootstrap CDN sem tree-shaking possível. CSS custom já minificado pelo Vite esbuild.
 - **v2:** Era FE-013.
 
 ### FE-011: Fetch sem AbortController
 - **Problema:** Requisições AJAX não cancelam em navegações rápidas.
 - **Correção:** Implementar AbortController em chamadas fetch/AJAX longas.
 - **Esforço:** 4h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — AbortController implementado em supply-movements.js (loadMovements) e stock.js (loadStockItems, loadMovements). Catch ignora AbortError.
 - **v2:** Era FE-014.
 
 ---

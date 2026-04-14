@@ -102,6 +102,8 @@ if (isset($_SESSION['user_id'])) {
 <script src="<?= asset('assets/js/components/session-timeout.js') ?>" defer></script>
 <?php endif; ?>
 
+<!-- DOMPurify (sanitização XSS para innerHTML) -->
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js" integrity="sha384-ngl0dx6W6SJEpB1BjYqLSDsKjUXUKbyZxjGnByuRFYMVwpiCHzpEuEaFRv7DaXcM" crossorigin="anonymous"></script>
 <!-- Walkthrough -->
 <script src="assets/js/walkthrough.js" defer></script>
 <!-- Select2 JS -->

@@ -26,10 +26,10 @@
 </div>
 <?php endif; ?>
 
-<div class="table-responsive bg-white rounded shadow-sm">
+<div class="table-responsive bg-body rounded shadow-sm">
     <table class="table table-hover align-middle mb-0">
         <caption class="visually-hidden">Lista de usuários</caption>
-        <thead class="bg-light">
+        <thead class="table-light">
             <tr>
                 <th class="py-3 ps-4">Nome</th>
                 <th class="py-3">E-mail</th>

@@ -17,7 +17,7 @@
                 </div>
                 <h5 class="mb-1"><?= e($user['name']) ?></h5>
                 <p class="text-muted small mb-2"><?= e($user['email']) ?></p>
-                <span class="badge bg-light text-dark border">ID: #<?= (int)$user['id'] ?></span>
+                <span class="badge bg-body-secondary text-body border">ID: #<?= (int)$user['id'] ?></span>
                 <?php if(!empty($user['group_name'])): ?>
                     <div class="mt-2"><span class="badge bg-info text-white"><?= e($user['group_name']) ?></span></div>
                 <?php endif; ?>
@@ -39,24 +39,25 @@
                     <?= csrf_field() ?>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted">Nome Completo</label>
-                        <input type="text" class="form-control" name="name" required value="<?= eAttr($user['name']) ?>" placeholder="Seu nome completo">
+                        <label class="form-label fw-bold small text-muted" for="profileName">Nome Completo</label>
+                        <input type="text" class="form-control" name="name" id="profileName" required value="<?= eAttr($user['name']) ?>" placeholder="Seu nome completo">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted">Email</label>
-                        <input type="email" class="form-control" name="email" required value="<?= eAttr($user['email']) ?>" placeholder="seu@email.com">
+                        <label class="form-label fw-bold small text-muted" for="profileEmail">Email</label>
+                        <input type="email" class="form-control" name="email" id="profileEmail" required value="<?= eAttr($user['email']) ?>" placeholder="seu@email.com">
                     </div>
                     
                     <hr>
                     <p class="small text-muted mb-2"><i class="fas fa-lock me-1"></i>Alterar Senha</p>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted">Nova Senha</label>
-                        <input type="password" class="form-control" name="password" placeholder="Deixe em branco para manter a atual" minlength="6">
-                        <div class="form-text">Preencha apenas se desejar alterar sua senha (mínimo 6 caracteres).</div>
+                        <label class="form-label fw-bold small text-muted" for="profilePassword">Nova Senha</label>
+                        <input type="password" class="form-control" name="password" id="profilePassword" placeholder="Deixe em branco para manter a atual" minlength="6" aria-describedby="profilePasswordHelp">
+                        <div class="form-text" id="profilePasswordHelp">Preencha apenas se desejar alterar sua senha (mínimo 6 caracteres).</div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted">Confirmar Nova Senha</label>
-                        <input type="password" class="form-control" name="password_confirm" id="password_confirm" placeholder="Repita a nova senha">
+                        <label class="form-label fw-bold small text-muted" for="password_confirm">Confirmar Nova Senha</label>
+                        <input type="password" class="form-control" name="password_confirm" id="password_confirm" placeholder="Repita a nova senha" aria-describedby="confirmPasswordHelp">
+                        <div class="form-text" id="confirmPasswordHelp">Repita a nova senha para confirmação.</div>
                     </div>
 
                     <div class="d-grid mt-4">

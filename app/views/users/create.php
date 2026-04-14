@@ -9,17 +9,18 @@
                     <?= csrf_field() ?>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Nome Completo</label>
-                            <input type="text" class="form-control" name="name" required placeholder="Ex: João da Silva">
+                            <label class="form-label fw-bold small text-muted" for="createUserName">Nome Completo</label>
+                            <input type="text" class="form-control" name="name" id="createUserName" required placeholder="Ex: João da Silva">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Email</label>
-                            <input type="email" class="form-control" name="email" required placeholder="email@empresa.com">
+                            <label class="form-label fw-bold small text-muted" for="createUserEmail">Email</label>
+                            <input type="email" class="form-control" name="email" id="createUserEmail" required placeholder="email@empresa.com">
                         </div>
                         
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Senha</label>
-                            <input type="password" class="form-control" name="password" required placeholder="Mínimo 6 caracteres">
+                            <label class="form-label fw-bold small text-muted" for="createUserPassword">Senha</label>
+                            <input type="password" class="form-control" name="password" id="createUserPassword" required placeholder="Mínimo 6 caracteres" aria-describedby="createPasswordHelp">
+                            <div class="form-text" id="createPasswordHelp">A senha deve ter no mínimo 6 caracteres.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Nível de Acesso</label>

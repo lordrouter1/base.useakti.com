@@ -17,18 +17,18 @@
                 <div class="card-body">
                     <h6 class="fw-bold text-muted mb-3"><i class="fas fa-list me-2"></i>Índice Rápido</h6>
                     <div class="row g-2">
-                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-home" class="btn btn-light btn-sm w-100 text-start"><i class="fas fa-home me-1 text-primary"></i> Página Inicial</a></div>
-                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-pedidos" class="btn btn-light btn-sm w-100 text-start"><i class="fas fa-clipboard-list me-1 text-success"></i> Pedidos</a></div>
-                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-pipeline" class="btn btn-light btn-sm w-100 text-start"><i class="fas fa-columns me-1 text-info"></i> Pipeline</a></div>
-                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-clientes" class="btn btn-light btn-sm w-100 text-start"><i class="fas fa-users me-1 text-warning"></i> Clientes</a></div>
-                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-produtos" class="btn btn-light btn-sm w-100 text-start"><i class="fas fa-boxes-stacked me-1 text-danger"></i> Produtos</a></div>
-                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-categorias" class="btn btn-light btn-sm w-100 text-start"><i class="fas fa-folder-open me-1 text-primary"></i> Categorias</a></div>
-                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-estoque" class="btn btn-light btn-sm w-100 text-start"><i class="fas fa-warehouse me-1 text-secondary"></i> Estoque</a></div>
-                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-setores" class="btn btn-light btn-sm w-100 text-start"><i class="fas fa-industry me-1 text-primary"></i> Setores</a></div>
-                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-fiscal" class="btn btn-light btn-sm w-100 text-start"><i class="fas fa-coins me-1 text-warning"></i> Fiscal</a></div>
-                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-config" class="btn btn-light btn-sm w-100 text-start"><i class="fas fa-cog me-1 text-muted"></i> Configurações</a></div>
-                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-usuarios" class="btn btn-light btn-sm w-100 text-start"><i class="fas fa-user-shield me-1 text-info"></i> Usuários</a></div>
-                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-perfil" class="btn btn-light btn-sm w-100 text-start"><i class="fas fa-user-circle me-1 text-success"></i> Perfil</a></div>
+                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-home" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-home me-1 text-primary"></i> Página Inicial</a></div>
+                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-pedidos" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-clipboard-list me-1 text-success"></i> Pedidos</a></div>
+                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-pipeline" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-columns me-1 text-info"></i> Pipeline</a></div>
+                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-clientes" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-users me-1 text-warning"></i> Clientes</a></div>
+                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-produtos" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-boxes-stacked me-1 text-danger"></i> Produtos</a></div>
+                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-categorias" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-folder-open me-1 text-primary"></i> Categorias</a></div>
+                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-estoque" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-warehouse me-1 text-secondary"></i> Estoque</a></div>
+                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-setores" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-industry me-1 text-primary"></i> Setores</a></div>
+                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-fiscal" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-coins me-1 text-warning"></i> Fiscal</a></div>
+                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-config" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-cog me-1 text-muted"></i> Configurações</a></div>
+                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-usuarios" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-user-shield me-1 text-info"></i> Usuários</a></div>
+                        <div class="col-6 col-md-4 col-lg-3"><a href="#sec-perfil" class="btn btn-outline-secondary btn-sm w-100 text-start"><i class="fas fa-user-circle me-1 text-success"></i> Perfil</a></div>
                     </div>
                 </div>
             </div>
@@ -126,6 +126,7 @@
                     <h6 class="fw-bold mt-3">Status dos pedidos:</h6>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered">
+                            <caption class="visually-hidden">Status dos pedidos</caption>
                             <thead class="table-light"><tr><th>Status</th><th>Descrição</th></tr></thead>
                             <tbody>
                                 <tr><td><span class="badge bg-secondary">Orçamento</span></td><td>Proposta gerada, aguardando aprovação do cliente</td></tr>
@@ -257,6 +258,7 @@
                     <p>Grades permitem criar variações de um produto (tamanho, cor, material). Ao configurar, o sistema gera <strong>todas as combinações automaticamente</strong>.</p>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered">
+                            <caption class="visually-hidden">Exemplos de grades de produtos</caption>
                             <thead class="table-light"><tr><th>Exemplo</th><th>Opções</th></tr></thead>
                             <tbody>
                                 <tr><td>Tamanho</td><td>P, M, G, GG, XG</td></tr>
@@ -441,6 +443,7 @@
                         <h6 class="fw-bold mt-3 small text-uppercase text-muted">Status das parcelas:</h6>
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered mb-2">
+                                <caption class="visually-hidden">Status das parcelas</caption>
                                 <thead class="table-light"><tr><th>Status</th><th>Descrição</th></tr></thead>
                                 <tbody>
                                     <tr><td><span class="badge bg-warning text-dark">Pendente</span></td><td>Parcela aguardando pagamento (dentro do prazo)</td></tr>
@@ -471,7 +474,7 @@
                         <h6 class="fw-bold mt-3 small text-uppercase text-muted">Tipos de transação:</h6>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <div class="border rounded p-2 h-100 bg-white">
+                                <div class="border rounded p-2 h-100 bg-body">
                                     <h6 class="fw-bold text-success small"><i class="fas fa-arrow-down me-1"></i> Entradas</h6>
                                     <ul class="small mb-0">
                                         <li>Pagamentos de pedidos (automático ao confirmar parcelas)</li>
@@ -482,7 +485,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="border rounded p-2 h-100 bg-white">
+                                <div class="border rounded p-2 h-100 bg-body">
                                     <h6 class="fw-bold text-danger small"><i class="fas fa-arrow-up me-1"></i> Saídas</h6>
                                     <ul class="small mb-0">
                                         <li>Compra de materiais</li>
@@ -508,6 +511,7 @@
                         <h6 class="fw-bold mt-3 small text-uppercase text-muted">Categorias de transação:</h6>
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered mb-0">
+                                <caption class="visually-hidden">Categorias de transação financeira</caption>
                                 <thead class="table-light"><tr><th>Categoria</th><th>Tipo</th><th>Descrição</th></tr></thead>
                                 <tbody>
                                     <tr><td>Pagamento de Pedido</td><td><span class="badge bg-success">Entrada</span></td><td>Gerado automaticamente ao confirmar parcela</td></tr>
@@ -557,6 +561,7 @@
 
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered mb-2">
+                                <caption class="visually-hidden">Campos fiscais para NF-e</caption>
                                 <thead class="table-light"><tr><th>Campo</th><th>Descrição</th><th>Exemplo</th></tr></thead>
                                 <tbody>
                                     <tr><td><strong>NCM</strong></td><td>Nomenclatura Comum do Mercosul — classifica o produto para fins de tributação internacional</td><td>6105.10.00</td></tr>
@@ -646,6 +651,7 @@
                     <h6 class="fw-bold mt-3">Tipos de usuário:</h6>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered">
+                            <caption class="visually-hidden">Tipos de usuário</caption>
                             <thead class="table-light"><tr><th>Tipo</th><th>Descrição</th></tr></thead>
                             <tbody>
                                 <tr><td><strong>Admin</strong></td><td>Acesso total a todas as funcionalidades do sistema, incluindo configurações e gestão de usuários</td></tr>
@@ -660,6 +666,7 @@
                     <h6 class="fw-bold mt-3">Exemplo de grupos:</h6>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered">
+                            <caption class="visually-hidden">Exemplos de grupos de permissão</caption>
                             <thead class="table-light"><tr><th>Grupo</th><th>Permissões sugeridas</th></tr></thead>
                             <tbody>
                                 <tr><td>Administração</td><td>Acesso total (admin)</td></tr>

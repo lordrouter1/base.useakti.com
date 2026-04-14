@@ -176,7 +176,7 @@ class AktiWalkthrough {
         this.overlay = document.createElement('div');
         this.overlay.className = 'wt-overlay';
         this.overlay.id = 'wtOverlay';
-        this.overlay.innerHTML = `<svg class="wt-overlay-svg" xmlns="http://www.w3.org/2000/svg">
+        const overlaySvg = `<svg class="wt-overlay-svg" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <mask id="wtMask">
                     <rect x="0" y="0" width="100%" height="100%" fill="white"/>
@@ -185,6 +185,7 @@ class AktiWalkthrough {
             </defs>
             <rect x="0" y="0" width="100%" height="100%" fill="rgba(15,23,42,0.72)" mask="url(#wtMask)"/>
         </svg>`;
+        this.overlay.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(overlaySvg, { USE_PROFILES: { svg: true } }) : overlaySvg;
         document.body.appendChild(this.overlay);
 
         this.overlay.addEventListener('click', (e) => e.stopPropagation());
@@ -353,7 +354,7 @@ class AktiWalkthrough {
 
         this.overlay.classList.add('active');
 
-        this.modalOverlay.innerHTML = `
+        const modalHtml = `
             <div class="wt-modal">
                 <div class="wt-modal-header">
                     <img src="assets/logos/akti-square-light.svg" alt="Akti" class="wt-modal-logo"
@@ -373,6 +374,7 @@ class AktiWalkthrough {
                 </div>
             </div>
         `;
+        this.modalOverlay.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(modalHtml) : modalHtml;
 
         requestAnimationFrame(() => this.modalOverlay.classList.add('active'));
 
@@ -427,7 +429,7 @@ class AktiWalkthrough {
             const isLastHighlight = !nextStep || nextStep.type === 'modal';
 
             // Montar popover
-            this.popover.innerHTML = `
+            const popoverHtml = `
                 <div class="wt-popover-header">
                     <div class="wt-popover-step-info">
                         <span class="wt-popover-step-badge">
@@ -452,6 +454,7 @@ class AktiWalkthrough {
                     </div>
                 </div>
             `;
+            this.popover.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(popoverHtml) : popoverHtml;
 
             this._positionPopover(el, step.position || 'bottom');
             requestAnimationFrame(() => this.popover.classList.add('active'));
