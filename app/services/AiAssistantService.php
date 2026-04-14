@@ -23,11 +23,11 @@ class AiAssistantService
 
     private function loadConfig(): void
     {
-        $stmt = $this->db->prepare("SELECT config_key, config_value FROM settings WHERE config_key IN ('ai_api_key','ai_api_url','ai_model')");
+        $stmt = $this->db->prepare("SELECT setting_key, setting_value FROM company_settings WHERE setting_key IN ('ai_api_key','ai_api_url','ai_model')");
         $stmt->execute();
         $config = [];
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-            $config[$row['config_key']] = $row['config_value'];
+            $config[$row['setting_key']] = $row['setting_value'];
         }
         $this->apiKey = $config['ai_api_key'] ?? '';
         $this->apiUrl = $config['ai_api_url'] ?? 'https://api.openai.com/v1/chat/completions';
