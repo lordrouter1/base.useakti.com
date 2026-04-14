@@ -23,18 +23,16 @@ class User {
     private $conn;
     private $table_name = "users";
 
-    /** @var int|null ID do usuário */
-    public $id;
-    /** @var string|null Nome completo do usuário */
-    public $name;
-    /** @var string|null Email do usuário (único) */
-    public $email;
-    /** @var string|null Senha em texto antes do hash (não logar) */
+    protected $id;
+    protected $name;
+    protected $email;
     protected $password;
-    /** @var string|null Papel do usuário (ex: 'admin', 'user') */
-    public $role;
-    /** @var int|null ID do grupo de permissões do usuário */
-    public $group_id;
+    protected $role;
+    protected $group_id;
+
+    private static array $fillable = [
+        'id', 'name', 'email', 'password', 'role', 'group_id',
+    ];
 
     /**
      * Construtor
@@ -43,6 +41,22 @@ class User {
      */
     public function __construct(\PDO $db) {
         $this->conn = $db;
+    }
+
+    public function __get(string $name): mixed {
+        if (in_array($name, self::$fillable, true)) {
+            return $this->$name ?? null;
+        }
+        trigger_error("Undefined property: User::\$$name", E_USER_NOTICE);
+        return null;
+    }
+
+    public function __set(string $name, mixed $value): void {
+        if (in_array($name, self::$fillable, true)) {
+            $this->$name = $value;
+            return;
+        }
+        trigger_error("Undefined property: User::\$$name", E_USER_NOTICE);
     }
 
     public function setPassword(string $password): void {

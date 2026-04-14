@@ -25,7 +25,6 @@ use Akti\Utils\Input;
  */
 class TransactionController extends BaseController
 {
-    private \PDO $db;
     private TransactionService $transactionService;
 
     public function __construct(\PDO $db, TransactionService $transactionService)
@@ -227,12 +226,6 @@ class TransactionController extends BaseController
     // ═══════════════════════════════════════════
     // Helpers privados
     // ═══════════════════════════════════════════
-
-    private function isAjax(): bool
-    {
-        return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
-            && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
-    }
 
     private function jsonResponse(array $data): void
     {

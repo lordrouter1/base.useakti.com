@@ -9,9 +9,10 @@ use Akti\Models\PaymentGateway;
 use Akti\Models\CompanySettings;
 use Akti\Gateways\GatewayManager;
 use Akti\Config\TenantManager;
+use Akti\Services\Contracts\CheckoutServiceInterface;
 use PDO;
 
-class CheckoutService
+class CheckoutService implements CheckoutServiceInterface
 {
     private PDO $db;
 

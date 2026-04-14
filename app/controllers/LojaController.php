@@ -17,7 +17,6 @@ use Akti\Services\TwigRenderer;
  */
 class LojaController extends BaseController
 {
-    private \PDO $db;
     private SiteBuilder $siteBuilder;
     private TwigRenderer $twig;
     private int $tenantId;

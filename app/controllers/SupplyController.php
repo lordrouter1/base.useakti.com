@@ -6,9 +6,7 @@ use Akti\Models\Supply;
 use Akti\Models\Supplier;
 use Akti\Utils\Input;
 
-class SupplyController
-{
-    private \PDO $db;
+class SupplyController extends BaseController {
     private Supply $supplyModel;
     private Supplier $supplierModel;
 
@@ -163,24 +161,22 @@ class SupplyController
         header('Content-Type: application/json');
         $name = Input::post('name', 'string', '');
         if (empty($name)) {
-            echo json_encode(['success' => false, 'message' => 'Nome é obrigatório.']);
-            return;
-        }
+            $this->json(['success' => false, 'message' => 'Nome é obrigatório.']);}
         $id = $this->supplyModel->createCategory(['name' => $name]);
-        echo json_encode(['success' => true, 'id' => $id, 'name' => $name]);
+        $this->json(['success' => true, 'id' => $id, 'name' => $name]);
     }
 
     public function getCategoriesAjax()
     {
         header('Content-Type: application/json');
-        echo json_encode($this->supplyModel->getCategories());
+        $this->json($this->supplyModel->getCategories());
     }
 
     public function searchSelect2()
     {
         header('Content-Type: application/json');
         $term = Input::get('term', 'string', '');
-        echo json_encode(['results' => $this->supplyModel->searchSelect2($term)]);
+        $this->json(['results' => $this->supplyModel->searchSelect2($term)]);
     }
 
     // ──── Vínculo Fornecedor AJAX (Fase 2) ────
@@ -192,11 +188,9 @@ class SupplyController
         $supplierId = Input::get('supplier_id', 'int', 0);
 
         if ($supplierId > 0) {
-            echo json_encode(['items' => $this->supplyModel->getSupplierInsumos($supplierId)]);
-            return;
-        }
+            $this->json(['items' => $this->supplyModel->getSupplierInsumos($supplierId)]);}
 
-        echo json_encode($this->supplyModel->getSuppliers($supplyId));
+        $this->json($this->supplyModel->getSuppliers($supplyId));
     }
 
     public function linkSupplier()
@@ -216,21 +210,19 @@ class SupplyController
         ];
 
         if (!$data['supply_id'] || !$data['supplier_id']) {
-            echo json_encode(['success' => false, 'message' => 'Insumo e fornecedor são obrigatórios.']);
-            return;
-        }
+            $this->json(['success' => false, 'message' => 'Insumo e fornecedor são obrigatórios.']);}
 
         try {
             $id = $this->supplyModel->linkSupplier($data);
             if ($data['is_preferred']) {
                 $this->supplyModel->setPreferredSupplier($data['supply_id'], $data['supplier_id']);
             }
-            echo json_encode(['success' => true, 'id' => $id]);
+            $this->json(['success' => true, 'id' => $id]);
         } catch (\PDOException $e) {
             if (str_contains($e->getMessage(), 'Duplicate entry')) {
-                echo json_encode(['success' => false, 'message' => 'Este fornecedor já está vinculado a este insumo.']);
+                $this->json(['success' => false, 'message' => 'Este fornecedor já está vinculado a este insumo.']);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Erro ao vincular fornecedor.']);
+                $this->json(['success' => false, 'message' => 'Erro ao vincular fornecedor.']);
             }
         }
     }
@@ -250,7 +242,7 @@ class SupplyController
             'notes'             => Input::post('notes', 'string', ''),
         ];
         $this->supplyModel->updateSupplierLink($id, $data);
-        echo json_encode(['success' => true]);
+        $this->json(['success' => true]);
     }
 
     public function unlinkSupplier()
@@ -258,7 +250,7 @@ class SupplyController
         header('Content-Type: application/json');
         $id = Input::post('id', 'int', 0);
         $this->supplyModel->unlinkSupplier($id);
-        echo json_encode(['success' => true]);
+        $this->json(['success' => true]);
     }
 
     public function searchSuppliers()
@@ -277,7 +269,7 @@ class SupplyController
                 ];
             }
         }
-        echo json_encode(['results' => $results]);
+        $this->json(['results' => $results]);
     }
 
     // ──── Histórico de Preços AJAX (Fase 5) ────
@@ -286,7 +278,7 @@ class SupplyController
     {
         header('Content-Type: application/json');
         $supplyId = Input::get('id', 'int', 0);
-        echo json_encode($this->supplyModel->getPriceHistory($supplyId));
+        $this->json($this->supplyModel->getPriceHistory($supplyId));
     }
 
     // ──── BOM AJAX (Fase 6) ────
@@ -308,7 +300,7 @@ class SupplyController
         unset($s);
 
         $totalCost = $this->supplyModel->calculateProductCost($productId);
-        echo json_encode(['supplies' => $supplies, 'total_cost' => $totalCost]);
+        $this->json(['supplies' => $supplies, 'total_cost' => $totalCost]);
     }
 
     public function addProductSupply()
@@ -327,19 +319,17 @@ class SupplyController
         ];
 
         if (!$data['product_id'] || !$data['supply_id'] || $data['quantity'] <= 0) {
-            echo json_encode(['success' => false, 'message' => 'Produto, insumo e quantidade são obrigatórios.']);
-            return;
-        }
+            $this->json(['success' => false, 'message' => 'Produto, insumo e quantidade são obrigatórios.']);}
 
         try {
             $id = $this->supplyModel->addProductSupply($data);
             $totalCost = $this->supplyModel->calculateProductCost($data['product_id']);
-            echo json_encode(['success' => true, 'id' => $id, 'total_cost' => $totalCost]);
+            $this->json(['success' => true, 'id' => $id, 'total_cost' => $totalCost]);
         } catch (\PDOException $e) {
             if (str_contains($e->getMessage(), 'Duplicate entry')) {
-                echo json_encode(['success' => false, 'message' => 'Este insumo já está vinculado a este produto.']);
+                $this->json(['success' => false, 'message' => 'Este insumo já está vinculado a este produto.']);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Erro ao vincular insumo.']);
+                $this->json(['success' => false, 'message' => 'Erro ao vincular insumo.']);
             }
         }
     }
@@ -360,7 +350,7 @@ class SupplyController
         $this->supplyModel->updateProductSupply($id, $data);
         $productId = Input::post('product_id', 'int', 0);
         $totalCost = $productId ? $this->supplyModel->calculateProductCost($productId) : 0;
-        echo json_encode(['success' => true, 'total_cost' => $totalCost]);
+        $this->json(['success' => true, 'total_cost' => $totalCost]);
     }
 
     public function removeProductSupply()
@@ -370,7 +360,7 @@ class SupplyController
         $productId = Input::post('product_id', 'int', 0);
         $this->supplyModel->removeProductSupply($id);
         $totalCost = $productId ? $this->supplyModel->calculateProductCost($productId) : 0;
-        echo json_encode(['success' => true, 'total_cost' => $totalCost]);
+        $this->json(['success' => true, 'total_cost' => $totalCost]);
     }
 
     public function estimateConsumption()
@@ -378,14 +368,14 @@ class SupplyController
         header('Content-Type: application/json');
         $productId = Input::get('product_id', 'int', 0);
         $qty = Input::get('qty', 'float', 1);
-        echo json_encode($this->supplyModel->estimateConsumption($productId, $qty));
+        $this->json($this->supplyModel->estimateConsumption($productId, $qty));
     }
 
     public function getSupplyProducts()
     {
         header('Content-Type: application/json');
         $supplyId = Input::get('id', 'int', 0);
-        echo json_encode($this->supplyModel->getSupplyProducts($supplyId));
+        $this->json($this->supplyModel->getSupplyProducts($supplyId));
     }
 
     // ──── Where Used Impact AJAX (Fase 7) ────
@@ -395,7 +385,7 @@ class SupplyController
         header('Content-Type: application/json');
         $supplyId = Input::get('supply_id', 'int', 0);
         $newCMP = Input::get('new_cmp', 'float', 0);
-        echo json_encode($this->supplyModel->getWhereUsedImpact($supplyId, $newCMP));
+        $this->json($this->supplyModel->getWhereUsedImpact($supplyId, $newCMP));
     }
 
     public function applyBOMCostUpdate()
@@ -404,9 +394,7 @@ class SupplyController
         $productIds = Input::post('product_ids', 'string', '');
         $ids = array_filter(array_map('intval', explode(',', $productIds)));
         if (empty($ids)) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum produto informado.']);
-            return;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhum produto informado.']);}
         $results = [];
         foreach ($ids as $pid) {
             $cost = $this->supplyModel->calculateProductCost($pid);
@@ -414,6 +402,6 @@ class SupplyController
             $stmt->execute([':cost' => $cost, ':id' => $pid]);
             $results[] = ['product_id' => $pid, 'new_cost' => $cost];
         }
-        echo json_encode(['success' => true, 'updated' => $results]);
+        $this->json(['success' => true, 'updated' => $results]);
     }
 }

@@ -7,9 +7,7 @@ use Akti\Services\EmailService;
 use Akti\Utils\Input;
 use PDO;
 
-class EmailMarketingController
-{
-    private \PDO $db;
+class EmailMarketingController extends BaseController {
     private EmailCampaign $model;
 
     public function __construct(\PDO $db, EmailCampaign $model)
@@ -197,14 +195,14 @@ class EmailMarketingController
         $template = $this->model->getTemplate($id);
         header('Content-Type: application/json');
         if ($template) {
-            echo json_encode([
+            $this->json([
                 'success' => true,
                 'subject' => $template['subject'] ?? '',
                 'body_html' => $template['body_html'] ?? '',
                 'variables' => json_decode($template['variables'] ?? '[]', true) ?: [],
             ]);
         } else {
-            echo json_encode(['success' => false]);
+            $this->json(['success' => false]);
         }
         exit;
     }
@@ -233,9 +231,7 @@ class EmailMarketingController
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         header('Content-Type: application/json');
-        echo json_encode(['results' => $results]);
-        exit;
-    }
+        $this->json(['results' => $results]);}
 
     public function previewTemplate()
     {
@@ -303,17 +299,13 @@ class EmailMarketingController
         $campaign = $this->model->readOne($id);
         if (!$campaign) {
             header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Campanha não encontrada.']);
-            exit;
-        }
+            $this->json(['success' => false, 'error' => 'Campanha não encontrada.']);}
 
         $emailService = new EmailService($this->db);
         $result = $emailService->sendCampaign($id);
 
         header('Content-Type: application/json');
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     public function sendTest()
     {
@@ -322,15 +314,11 @@ class EmailMarketingController
 
         if (empty($testEmail) || !filter_var($testEmail, FILTER_VALIDATE_EMAIL)) {
             header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'E-mail de teste inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'error' => 'E-mail de teste inválido.']);}
 
         $emailService = new EmailService($this->db);
         $result = $emailService->sendTest($id, $testEmail);
 
         header('Content-Type: application/json');
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 }

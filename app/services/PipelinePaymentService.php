@@ -12,7 +12,7 @@ use PDO;
  * Service responsável pela lógica de geração de links de pagamento do pipeline.
  * Extraído do PipelineController (Fase 2 — Refatoração de Controllers Monolíticos).
  */
-class PipelinePaymentService
+class PipelinePaymentService implements Contracts\PipelinePaymentServiceInterface
 {
     private $db;
 

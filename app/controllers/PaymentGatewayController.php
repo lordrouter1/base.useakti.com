@@ -18,9 +18,7 @@ use TenantManager;
  *
  * @package Akti\Controllers
  */
-class PaymentGatewayController
-{
-    private \PDO $db;
+class PaymentGatewayController extends BaseController {
     private PaymentGateway $gatewayModel;
 
     public function __construct(\PDO $db, PaymentGateway $gatewayModel)
@@ -168,9 +166,7 @@ class PaymentGatewayController
         $gateway = $this->gatewayModel->readOne($id);
 
         if (!$gateway) {
-            echo json_encode(['success' => false, 'message' => 'Gateway não encontrado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Gateway não encontrado.']);}
 
         try {
             $gatewayInstance = GatewayManager::make($gateway['gateway_slug']);
@@ -204,12 +200,10 @@ class PaymentGatewayController
             }
 
             if (!$hasAnyCredential) {
-                echo json_encode([
+                $this->json([
                     'success' => false,
                     'message' => 'Nenhuma credencial configurada. Preencha e salve as credenciais primeiro, depois teste a conexão.',
-                ]);
-                exit;
-            }
+                ]);}
 
             $settings = json_decode($gateway['settings_json'] ?? '{}', true) ?: [];
             $environment = ($_SERVER['REQUEST_METHOD'] === 'POST')
@@ -224,10 +218,10 @@ class PaymentGatewayController
             );
 
             $result = $instance->testConnection();
-            echo json_encode($result);
+            $this->json($result);
         } catch (\Exception $e) {
             Log::error('PaymentGatewayController: testConnection', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao testar conexão. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao testar conexão. Tente novamente.']);
         }
         exit;
     }
@@ -245,25 +239,19 @@ class PaymentGatewayController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $installmentId = Input::post('installment_id', 'int', 0);
         $gatewaySlug = Input::post('gateway_slug', 'string', '');
         $method = Input::post('method', 'string', 'pix');
 
         if (!$installmentId || !$gatewaySlug) {
-            echo json_encode(['success' => false, 'message' => 'Dados insuficientes.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Dados insuficientes.']);}
 
         // Buscar gateway
         $gatewayRow = $this->gatewayModel->readBySlug($gatewaySlug);
         if (!$gatewayRow || !$gatewayRow['is_active']) {
-            echo json_encode(['success' => false, 'message' => 'Gateway inativo ou não encontrado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Gateway inativo ou não encontrado.']);}
 
         // Buscar parcela e pedido
         $q = "SELECT oi.*, o.id as order_id, c.name as customer_name, c.email as customer_email, c.document as customer_document,
@@ -279,9 +267,7 @@ class PaymentGatewayController
         $installment = $s->fetch(PDO::FETCH_ASSOC);
 
         if (!$installment) {
-            echo json_encode(['success' => false, 'message' => 'Parcela não encontrada.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Parcela não encontrada.']);}
 
         try {
             $gateway = GatewayManager::resolveFromRow($gatewayRow);
@@ -331,10 +317,10 @@ class PaymentGatewayController
                 'event_type'          => 'charge.created',
             ]);
 
-            echo json_encode($result);
+            $this->json($result);
         } catch (\Exception $e) {
             Log::error('PaymentGatewayController: createCharge', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao processar cobrança. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao processar cobrança. Tente novamente.']);
         }
         exit;
     }
@@ -350,23 +336,19 @@ class PaymentGatewayController
         $externalId = Input::get('external_id', 'string', '');
 
         if (!$gatewaySlug || !$externalId) {
-            echo json_encode(['success' => false, 'message' => 'Dados insuficientes.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Dados insuficientes.']);}
 
         $gatewayRow = $this->gatewayModel->readBySlug($gatewaySlug);
         if (!$gatewayRow) {
-            echo json_encode(['success' => false, 'message' => 'Gateway não encontrado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Gateway não encontrado.']);}
 
         try {
             $gateway = GatewayManager::resolveFromRow($gatewayRow);
             $result = $gateway->getChargeStatus($externalId);
-            echo json_encode($result);
+            $this->json($result);
         } catch (\Exception $e) {
             Log::error('PaymentGatewayController: getChargeStatus', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao consultar cobrança. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao consultar cobrança. Tente novamente.']);
         }
         exit;
     }
@@ -392,9 +374,7 @@ class PaymentGatewayController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $orderId = Input::post('order_id', 'int', 0);
         $installmentId = Input::post('installment_id', 'int', 0) ?: null;
@@ -402,9 +382,7 @@ class PaymentGatewayController
         $allowedMethods = $_POST['allowed_methods'] ?? [];
 
         if (!$orderId) {
-            echo json_encode(['success' => false, 'message' => 'Pedido não informado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Pedido não informado.']);}
 
         if (!is_array($allowedMethods)) {
             $allowedMethods = [];
@@ -416,10 +394,10 @@ class PaymentGatewayController
         try {
             $service = new \Akti\Services\PipelinePaymentService($this->db);
             $result = $service->generateCheckoutLink($orderId, $installmentId, $gatewaySlug, $allowedMethods);
-            echo json_encode($result);
+            $this->json($result);
         } catch (\Exception $e) {
             \Akti\Core\Log::error('PaymentGatewayController: createCheckoutLink', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao gerar link de checkout.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao gerar link de checkout.']);
         }
         exit;
     }

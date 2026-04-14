@@ -6,9 +6,7 @@ use Akti\Models\Supplier;
 use Akti\Models\PurchaseOrder;
 use Akti\Utils\Input;
 
-class SupplierController
-{
-    private \PDO $db;
+class SupplierController extends BaseController {
     private Supplier $supplierModel;
     private PurchaseOrder $purchaseModel;
 

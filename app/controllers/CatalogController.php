@@ -22,9 +22,7 @@ use PDOException;
  * O catálogo permite ao cliente navegar produtos, adicionar/remover do carrinho,
  * e essas mudanças se refletem em tempo real nos itens do pedido.
  */
-class CatalogController {
-
-    private \PDO $db;
+class CatalogController extends BaseController {
     private CatalogCartService $cartService;
     private CatalogQuoteService $quoteService;
 
@@ -117,9 +115,7 @@ class CatalogController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método não permitido']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método não permitido']);}
 
         $orderId = Input::post('order_id', 'int');
         $showPrices = Input::post('show_prices', 'bool');
@@ -127,9 +123,7 @@ class CatalogController {
         $expiresIn = Input::post('expires_in', 'int');
 
         if (!$orderId) {
-            echo json_encode(['success' => false, 'message' => 'Pedido não informado']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Pedido não informado']);}
 
         // Se requer confirmação, forçar exibição de preços
         if ($requireConfirmation) {
@@ -161,7 +155,7 @@ class CatalogController {
                 }
             }
 
-            echo json_encode([
+            $this->json([
                 'success' => true,
                 'url' => $url,
                 'token' => $link['token'],
@@ -170,7 +164,7 @@ class CatalogController {
                 'expires_at' => $link['expires_at']
             ]);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Erro ao gerar link']);
+            $this->json(['success' => false, 'message' => 'Erro ao gerar link']);
         }
         exit;
     }
@@ -183,17 +177,15 @@ class CatalogController {
 
         $orderId = Input::post('order_id', 'int') ?: Input::get('order_id', 'int');
         if (!$orderId) {
-            echo json_encode(['success' => false, 'message' => 'Pedido não informado']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Pedido não informado']);}
 
         try {
             $catalogModel = new CatalogLink($this->db);
             $catalogModel->deactivateByOrder($orderId);
-            echo json_encode(['success' => true]);
+            $this->json(['success' => true]);
         } catch (PDOException $e) {
             Log::error('CatalogController: deactivateByOrder', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao desativar link. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao desativar link. Tente novamente.']);
         }
         exit;
     }
@@ -206,15 +198,13 @@ class CatalogController {
 
         $orderId = Input::get('order_id', 'int');
         if (!$orderId) {
-            echo json_encode(['success' => false]);
-            exit;
-        }
+            $this->json(['success' => false]);}
 
         $catalogModel = new CatalogLink($this->db);
         $link = $catalogModel->findActiveByOrder($orderId);
 
         if ($link) {
-            echo json_encode([
+            $this->json([
                 'success' => true,
                 'url' => CatalogLink::buildUrl($link['token']),
                 'token' => $link['token'],
@@ -224,7 +214,7 @@ class CatalogController {
                 'created_at' => $link['created_at']
             ]);
         } else {
-            echo json_encode(['success' => false]);
+            $this->json(['success' => false]);
         }
         exit;
     }
@@ -244,9 +234,7 @@ class CatalogController {
             Input::post('grade_description')
         );
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * API: Remover produto do carrinho (= remover item do pedido)
@@ -259,9 +247,7 @@ class CatalogController {
             Input::post('item_id', 'int')
         );
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * API: Atualizar quantidade de um item no carrinho
@@ -275,18 +261,14 @@ class CatalogController {
             Input::post('quantity', 'int', 1)
         );
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * API: Buscar carrinho atual (para polling do catálogo)
      */
     public function getCart() {
         header('Content-Type: application/json');
-        echo json_encode($this->cartService->getCart(Input::get('token')));
-        exit;
-    }
+        $this->json($this->cartService->getCart(Input::get('token')));}
 
     /**
      * API: Confirmar orçamento pelo cliente (via catálogo público)
@@ -296,15 +278,11 @@ class CatalogController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método não permitido']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método não permitido']);}
 
         $clientIp = CatalogQuoteService::getClientIp();
         $result = $this->quoteService->confirmQuote(Input::post('token'), $clientIp);
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * API: Revogar confirmação de orçamento pelo cliente (permite editar novamente)
@@ -313,15 +291,11 @@ class CatalogController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método não permitido']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método não permitido']);}
 
         $clientIp = CatalogQuoteService::getClientIp();
         $result = $this->quoteService->revokeQuote(Input::post('token'), $clientIp);
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * API: Buscar produtos paginados para o catálogo (AJAX)
@@ -343,9 +317,7 @@ class CatalogController {
         $link = $catalogModel->findByToken($token);
 
         if (!$link) {
-            echo json_encode(['success' => false, 'message' => 'Link inválido ou expirado']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Link inválido ou expirado']);}
 
         $customerId = $link['customer_id'];
         $showPrices = (bool)$link['show_prices'];
@@ -389,7 +361,7 @@ class CatalogController {
             ];
         }
 
-        echo json_encode([
+        $this->json([
             'success'     => true,
             'products'    => $items,
             'page'        => $page,
@@ -397,7 +369,5 @@ class CatalogController {
             'total'       => $totalProducts,
             'total_pages' => $totalPages,
             'has_more'    => $page < $totalPages,
-        ]);
-        exit;
-    }
+        ]);}
 }

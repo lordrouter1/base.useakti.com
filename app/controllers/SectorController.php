@@ -6,12 +6,10 @@ use Akti\Models\Logger;
 use Akti\Utils\Input;
 use TenantManager;
 
-class SectorController {
+class SectorController extends BaseController {
     
     private ProductionSector $sectorModel;
     private Logger $logger;
-    private \PDO $db;
-
     public function __construct(\PDO $db, ProductionSector $sectorModel, Logger $logger) {
         $this->db = $db;
         $this->sectorModel = $sectorModel;

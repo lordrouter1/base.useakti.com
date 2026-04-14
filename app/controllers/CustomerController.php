@@ -29,14 +29,13 @@ use TenantManager;
  *
  * @see docs/cadastro/ROADMAP_CADASTRO_CLIENTES.md
  */
-class CustomerController {
+class CustomerController extends BaseController {
     
     private Customer $customerModel;
     private CustomerContact $contactModel;
     private ImportBatch $importBatchModel;
     private ImportMappingProfile $mappingProfileModel;
     private Logger $logger;
-    private \PDO $db;
     private CustomerImportService $importService;
     private CustomerExportService $exportService;
     private CustomerFormService $formService;
@@ -542,15 +541,13 @@ class CustomerController {
         $excludeId = Input::get('exclude_id', 'int');
 
         if (empty($document)) {
-            echo json_encode(['exists' => false]);
-            exit;
-        }
+            $this->json(['exists' => false]);}
 
         $document = preg_replace('/\D/', '', $document);
         $result = $this->customerModel->checkDuplicate($document, $excludeId ?: null);
 
         if ($result) {
-            echo json_encode([
+            $this->json([
                 'exists'   => true,
                 'customer' => [
                     'id'       => $result['id'],
@@ -560,7 +557,7 @@ class CustomerController {
                 ],
             ]);
         } else {
-            echo json_encode(['exists' => false]);
+            $this->json(['exists' => false]);
         }
         exit;
     }
@@ -576,16 +573,12 @@ class CustomerController {
         $cep = preg_replace('/\D/', '', $cep ?? '');
 
         if (strlen($cep) !== 8) {
-            echo json_encode(['success' => false, 'message' => 'CEP deve ter 8 dígitos.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'CEP deve ter 8 dígitos.']);}
 
         // Verificar cache na sessão (1 hora)
         $cacheKey = 'cep_cache_' . $cep;
         if (isset($_SESSION[$cacheKey]) && $_SESSION[$cacheKey]['expires'] > time()) {
-            echo json_encode(['success' => true, 'data' => $_SESSION[$cacheKey]['data'], 'cached' => true]);
-            exit;
-        }
+            $this->json(['success' => true, 'data' => $_SESSION[$cacheKey]['data'], 'cached' => true]);}
 
         // Chamar ViaCEP
         $url = "https://viacep.com.br/ws/{$cep}/json/";
@@ -599,16 +592,12 @@ class CustomerController {
         $response = @file_get_contents($url, false, $context);
 
         if ($response === false) {
-            echo json_encode(['success' => false, 'message' => 'Não foi possível consultar o CEP.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Não foi possível consultar o CEP.']);}
 
         $viaCep = json_decode($response, true);
 
         if (!$viaCep || isset($viaCep['erro'])) {
-            echo json_encode(['success' => false, 'message' => 'CEP não encontrado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'CEP não encontrado.']);}
 
         $data = [
             'zipcode'              => preg_replace('/\D/', '', $viaCep['cep'] ?? ''),
@@ -622,9 +611,7 @@ class CustomerController {
         // Cachear por 1 hora
         $_SESSION[$cacheKey] = ['data' => $data, 'expires' => time() + 3600];
 
-        echo json_encode(['success' => true, 'data' => $data]);
-        exit;
-    }
+        $this->json(['success' => true, 'data' => $data]);}
 
     // ═══════════════════════════════════════════════
     //  Action: Proxy BrasilAPI CNPJ (AJAX) — Fase 2
@@ -637,22 +624,16 @@ class CustomerController {
         $cnpj = preg_replace('/\D/', '', $cnpj ?? '');
 
         if (strlen($cnpj) !== 14) {
-            echo json_encode(['success' => false, 'message' => 'CNPJ deve ter 14 dígitos.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'CNPJ deve ter 14 dígitos.']);}
 
         // Validar CNPJ
         if (!Validator::isValidCnpj($cnpj)) {
-            echo json_encode(['success' => false, 'message' => 'CNPJ inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'CNPJ inválido.']);}
 
         // Verificar cache na sessão (1 hora)
         $cacheKey = 'cnpj_cache_' . $cnpj;
         if (isset($_SESSION[$cacheKey]) && $_SESSION[$cacheKey]['expires'] > time()) {
-            echo json_encode(['success' => true, 'data' => $_SESSION[$cacheKey]['data'], 'cached' => true]);
-            exit;
-        }
+            $this->json(['success' => true, 'data' => $_SESSION[$cacheKey]['data'], 'cached' => true]);}
 
         // Chamar BrasilAPI
         $url = "https://brasilapi.com.br/api/cnpj/v1/{$cnpj}";
@@ -666,16 +647,12 @@ class CustomerController {
         $response = @file_get_contents($url, false, $context);
 
         if ($response === false) {
-            echo json_encode(['success' => false, 'message' => 'Não foi possível consultar o CNPJ.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Não foi possível consultar o CNPJ.']);}
 
         $apiData = json_decode($response, true);
 
         if (!$apiData || isset($apiData['message'])) {
-            echo json_encode(['success' => false, 'message' => $apiData['message'] ?? 'CNPJ não encontrado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => $apiData['message'] ?? 'CNPJ não encontrado.']);}
 
         $data = [
             'name'                 => $apiData['razao_social'] ?? '',
@@ -695,9 +672,7 @@ class CustomerController {
         // Cachear por 1 hora
         $_SESSION[$cacheKey] = ['data' => $data, 'expires' => time() + 3600];
 
-        echo json_encode(['success' => true, 'data' => $data]);
-        exit;
-    }
+        $this->json(['success' => true, 'data' => $data]);}
 
     // ═══════════════════════════════════════════════
     //  Action: Exportação CSV — Fase 2
@@ -730,12 +705,10 @@ class CustomerController {
 
         $tags = $this->customerModel->getAllTags();
 
-        echo json_encode([
+        $this->json([
             'success' => true,
             'tags'    => $tags,
-        ]);
-        exit;
-    }
+        ]);}
 
     // ═══════════════════════════════════════════════
     //  Action: Histórico de Pedidos do Cliente (AJAX) — Fase 4
@@ -755,16 +728,12 @@ class CustomerController {
         $perPage    = Input::get('per_page', 'int') ?: 10;
 
         if (!$customerId) {
-            echo json_encode(['success' => false, 'message' => 'ID do cliente não informado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID do cliente não informado.']);}
 
         $historyService = new CustomerOrderHistoryService($this->db);
         $result = $historyService->getOrderHistoryPaginated($customerId, $pageNum, $perPage);
 
-        echo json_encode(array_merge(['success' => true], $result));
-        exit;
-    }
+        $this->json(array_merge(['success' => true], $result));}
 
     // ═══════════════════════════════════════════════
     //  Action: Ações em lote (POST/AJAX) — Fase 2
@@ -774,17 +743,13 @@ class CustomerController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método não permitido.']);}
 
         $action = Input::post('bulk_action');
         $ids = array_map('intval', Input::postArray('ids'));
 
         if (empty($ids)) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum cliente selecionado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhum cliente selecionado.']);}
 
         $userName = $_SESSION['user_name'] ?? 'Sistema';
         $count = count($ids);
@@ -793,29 +758,29 @@ class CustomerController {
             case 'activate':
                 $affected = $this->customerModel->bulkUpdateStatus($ids, 'active');
                 $this->logger->log('CUSTOMER_STATUS', "Status de {$affected} clientes alterado para 'active' por {$userName}");
-                echo json_encode(['success' => true, 'message' => "{$affected} clientes ativados.", 'affected' => $affected]);
+                $this->json(['success' => true, 'message' => "{$affected} clientes ativados.", 'affected' => $affected]);
                 break;
 
             case 'inactivate':
                 $affected = $this->customerModel->bulkUpdateStatus($ids, 'inactive');
                 $this->logger->log('CUSTOMER_STATUS', "Status de {$affected} clientes alterado para 'inactive' por {$userName}");
-                echo json_encode(['success' => true, 'message' => "{$affected} clientes inativados.", 'affected' => $affected]);
+                $this->json(['success' => true, 'message' => "{$affected} clientes inativados.", 'affected' => $affected]);
                 break;
 
             case 'block':
                 $affected = $this->customerModel->bulkUpdateStatus($ids, 'blocked');
                 $this->logger->log('CUSTOMER_STATUS', "Status de {$affected} clientes alterado para 'blocked' por {$userName}");
-                echo json_encode(['success' => true, 'message' => "{$affected} clientes bloqueados.", 'affected' => $affected]);
+                $this->json(['success' => true, 'message' => "{$affected} clientes bloqueados.", 'affected' => $affected]);
                 break;
 
             case 'delete':
                 $affected = $this->customerModel->bulkDelete($ids);
                 $this->logger->log('CUSTOMER_DELETE', "Exclusão em lote de {$affected} clientes por {$userName}");
-                echo json_encode(['success' => true, 'message' => "{$affected} clientes excluídos.", 'affected' => $affected]);
+                $this->json(['success' => true, 'message' => "{$affected} clientes excluídos.", 'affected' => $affected]);
                 break;
 
             default:
-                echo json_encode(['success' => false, 'message' => 'Ação inválida.']);
+                $this->json(['success' => false, 'message' => 'Ação inválida.']);
                 break;
         }
         exit;
@@ -833,16 +798,12 @@ class CustomerController {
 
         $customerId = Input::get('customer_id', 'int');
         if (!$customerId) {
-            echo json_encode(['success' => false, 'message' => 'ID do cliente é obrigatório.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID do cliente é obrigatório.']);}
 
         $contactService = new CustomerContactService($this->db, $this->contactModel);
         $contacts = $contactService->listByCustomer($customerId);
 
-        echo json_encode(['success' => true, 'data' => $contacts]);
-        exit;
-    }
+        $this->json(['success' => true, 'data' => $contacts]);}
 
     /**
      * POST: Cria ou atualiza um contato (AJAX/JSON)
@@ -851,9 +812,7 @@ class CustomerController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método não permitido.']);}
 
         $contactService = new CustomerContactService($this->db, $this->contactModel);
         $result = $contactService->save([
@@ -872,9 +831,7 @@ class CustomerController {
             $this->logger->log('CUSTOMER_UPDATE', "Contato #{$result['id']} {$action} para cliente #" . Input::post('customer_id', 'int'));
         }
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * POST: Remove um contato (AJAX/JSON)
@@ -883,9 +840,7 @@ class CustomerController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método não permitido.']);}
 
         $contactId = Input::post('contact_id', 'int');
 
@@ -896,9 +851,7 @@ class CustomerController {
             $this->logger->log('CUSTOMER_UPDATE', "Contato #{$contactId} removido");
         }
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ═══════════════════════════════════════════════
     //  AJAX: Lista de clientes com filtro e paginação
@@ -920,16 +873,14 @@ class CustomerController {
         $totalPages = max(1, (int) ceil($total / $perPage));
         $items      = $result['data'];
 
-        echo json_encode([
+        $this->json([
             'success'     => true,
             'items'       => $items,
             'total'       => $total,
             'page'        => $page,
             'per_page'    => $perPage,
             'total_pages' => $totalPages,
-        ]);
-        exit;
-    }
+        ]);}
 
     // ═══════════════════════════════════════════════
     //  AJAX: Busca clientes para Select2
@@ -944,9 +895,7 @@ class CustomerController {
 
         $results = $this->customerModel->searchForSelect2($q, $limit);
 
-        echo json_encode(['data' => $results]);
-        exit;
-    }
+        $this->json(['data' => $results]);}
 
     // ═══════════════════════════════════════════════
     //  AJAX: Busca paginada de clientes (Select2 com scroll infinito)
@@ -967,14 +916,12 @@ class CustomerController {
 
         $result = $this->customerModel->searchPaginated($q, $page, $perPage);
 
-        echo json_encode([
+        $this->json([
             'success' => true,
             'data'    => $result['data'],
             'total'   => $result['total'],
             'hasMore' => $result['hasMore'],
-        ]);
-        exit;
-    }
+        ]);}
 
     // ═══════════════════════════════════════════════
     //  IMPORTAÇÃO: Parse do arquivo (Step 1 → Step 2)
@@ -984,14 +931,10 @@ class CustomerController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['import_file'])) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo enviado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhum arquivo enviado.']);}
 
         $result = $this->importService->parseFile($_FILES['import_file']);
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ═══════════════════════════════════════════════
     //  IMPORTAÇÃO: Executar import com mapeamento
@@ -1005,15 +948,11 @@ class CustomerController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $mapping = json_decode(Input::post('mapping'), true);
         if (empty($mapping)) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum mapeamento de colunas definido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhum mapeamento de colunas definido.']);}
 
         $importMode = Input::post('import_mode', 'string', 'create');
         if (!in_array($importMode, ['create', 'update', 'create_or_update'])) {
@@ -1024,9 +963,7 @@ class CustomerController {
         $tenantId = $_SESSION['tenant']['id'] ?? 0;
 
         $result = $this->importService->executeImport($mapping, $importMode, $userId, $tenantId);
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ═══════════════════════════════════════════════
     //  IMPORTAÇÃO: Progresso em tempo real (Rec 1)
@@ -1037,13 +974,9 @@ class CustomerController {
 
         $progress = $_SESSION['import_progress'] ?? null;
         if (!$progress) {
-            echo json_encode(['success' => false, 'message' => 'Nenhuma importação em andamento.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhuma importação em andamento.']);}
 
-        echo json_encode(['success' => true, 'progress' => $progress]);
-        exit;
-    }
+        $this->json(['success' => true, 'progress' => $progress]);}
 
     // ═══════════════════════════════════════════════
     //  IMPORTAÇÃO: Desfazer importação (Rec 3)
@@ -1053,26 +986,18 @@ class CustomerController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $batchId = (int) Input::post('batch_id', 'int', 0);
         if ($batchId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID do lote inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID do lote inválido.']);}
 
         $batch = $this->importBatchModel->findById($batchId);
         if (!$batch) {
-            echo json_encode(['success' => false, 'message' => 'Lote de importação não encontrado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Lote de importação não encontrado.']);}
 
         if ($batch['status'] === 'undone') {
-            echo json_encode(['success' => false, 'message' => 'Esta importação já foi desfeita.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Esta importação já foi desfeita.']);}
 
         // Obter itens criados neste lote
         $createdItems = $this->importBatchModel->getCreatedItems($batchId);
@@ -1097,13 +1022,11 @@ class CustomerController {
         $userName = $_SESSION['user_name'] ?? 'Sistema';
         $this->logger->log('CUSTOMER_IMPORT_UNDO', "Importação (lote #{$batchId}) desfeita por {$userName}. {$deletedCount} cliente(s) removido(s).");
 
-        echo json_encode([
+        $this->json([
             'success' => true,
             'message' => "{$deletedCount} cliente(s) removido(s) com sucesso.",
             'deleted' => $deletedCount,
-        ]);
-        exit;
-    }
+        ]);}
 
     // ═══════════════════════════════════════════════
     //  IMPORTAÇÃO: Histórico de importações
@@ -1115,12 +1038,10 @@ class CustomerController {
         $tenantId = $_SESSION['tenant']['id'] ?? 0;
         $batches = $this->importBatchModel->listByTenant($tenantId);
 
-        echo json_encode([
+        $this->json([
             'success'  => true,
             'batches'  => $batches,
-        ]);
-        exit;
-    }
+        ]);}
 
     // ═══════════════════════════════════════════════
     //  IMPORTAÇÃO: Detalhes de um lote
@@ -1133,15 +1054,11 @@ class CustomerController {
         $tenantId = $_SESSION['tenant']['id'] ?? 0;
 
         if ($batchId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'Lote inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Lote inválido.']);}
 
         $batch = $this->importBatchModel->findById($batchId);
         if (!$batch || (int) $batch['tenant_id'] !== (int) $tenantId) {
-            echo json_encode(['success' => false, 'message' => 'Lote não encontrado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Lote não encontrado.']);}
 
         $items = $this->importBatchModel->getItemsWithEntity($batchId, $batch['entity_type'] ?? 'customers');
 
@@ -1165,7 +1082,7 @@ class CustomerController {
         $errors   = !empty($batch['errors_json'])   ? json_decode($batch['errors_json'], true)   : [];
         $warnings = !empty($batch['warnings_json']) ? json_decode($batch['warnings_json'], true) : [];
 
-        echo json_encode([
+        $this->json([
             'success'  => true,
             'batch'    => [
                 'id'             => $batch['id'],
@@ -1184,9 +1101,7 @@ class CustomerController {
             'updated'  => $updated,
             'errors'   => $errors,
             'warnings' => $warnings,
-        ]);
-        exit;
-    }
+        ]);}
 
     // ═══════════════════════════════════════════════
     //  IMPORTAÇÃO: Perfis de mapeamento (Rec 4)
@@ -1198,20 +1113,16 @@ class CustomerController {
         $tenantId = $_SESSION['tenant']['id'] ?? 0;
         $profiles = $this->mappingProfileModel->listByTenant($tenantId, 'customers');
 
-        echo json_encode([
+        $this->json([
             'success'  => true,
             'profiles' => $profiles,
-        ]);
-        exit;
-    }
+        ]);}
 
     public function saveMappingProfile() {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $name = trim(Input::post('profile_name', 'string', ''));
         $mappingJson = Input::post('mapping');
@@ -1219,15 +1130,11 @@ class CustomerController {
         $profileId = (int) Input::post('profile_id', 'int', 0);
 
         if (empty($name)) {
-            echo json_encode(['success' => false, 'message' => 'Nome do perfil é obrigatório.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nome do perfil é obrigatório.']);}
 
         $mapping = json_decode($mappingJson, true);
         if (empty($mapping)) {
-            echo json_encode(['success' => false, 'message' => 'Mapeamento inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Mapeamento inválido.']);}
 
         try {
             $tenantId = $_SESSION['tenant']['id'] ?? 0;
@@ -1258,13 +1165,13 @@ class CustomerController {
                 $msg = 'Perfil salvo com sucesso.';
             }
 
-            echo json_encode(['success' => true, 'message' => $msg, 'profile_id' => $profileId]);
+            $this->json(['success' => true, 'message' => $msg, 'profile_id' => $profileId]);
         } catch (\Exception $e) {
             $errorMsg = $e->getMessage();
             if (strpos($errorMsg, 'Duplicate entry') !== false) {
-                echo json_encode(['success' => false, 'message' => 'Já existe um perfil com este nome.']);
+                $this->json(['success' => false, 'message' => 'Já existe um perfil com este nome.']);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Erro ao salvar perfil: ' . $errorMsg]);
+                $this->json(['success' => false, 'message' => 'Erro ao salvar perfil: ' . $errorMsg]);
             }
         }
         exit;
@@ -1274,21 +1181,17 @@ class CustomerController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $profileId = (int) Input::post('profile_id', 'int', 0);
         if ($profileId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID do perfil inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID do perfil inválido.']);}
 
         $result = $this->mappingProfileModel->delete($profileId);
         if ($result) {
-            echo json_encode(['success' => true, 'message' => 'Perfil excluído com sucesso.']);
+            $this->json(['success' => true, 'message' => 'Perfil excluído com sucesso.']);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Erro ao excluir perfil.']);
+            $this->json(['success' => false, 'message' => 'Erro ao excluir perfil.']);
         }
         exit;
     }
@@ -1619,11 +1522,6 @@ class CustomerController {
      *
      * @return bool
      */
-    private function isAjax(): bool
-    {
-        return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
-            && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-    }
 
     /**
      * Envia resposta JSON e encerra.
@@ -1633,9 +1531,7 @@ class CustomerController {
     private function jsonResponse(array $data): void
     {
         header('Content-Type: application/json');
-        echo json_encode($data);
-        exit;
-    }
+        $this->json($data);}
 
     // ═══════════════════════════════════════════════
     //  Helpers de parse CSV / Excel — delegados ao CustomerImportService

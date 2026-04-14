@@ -36,7 +36,6 @@ use Akti\Utils\Input;
  */
 class FinancialController extends BaseController
 {
-    private \PDO $db;
     private Financial $financial;
     private Installment $installmentModel;
     private InstallmentService $installmentService;

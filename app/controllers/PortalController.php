@@ -30,7 +30,6 @@ use Akti\Utils\Input;
  */
 class PortalController extends BaseController
 {
-    private \PDO $db;
     private PortalAccess $portalAccess;
     private ?CompanySettings $companySettings = null;
     private Logger $logger;
@@ -1543,17 +1542,6 @@ class PortalController extends BaseController
         require 'app/views/portal/layout/header_auth.php';
         require 'app/views/portal/disabled.php';
         require 'app/views/portal/layout/footer_auth.php';
-    }
-
-    /**
-     * Verifica se a requisição é AJAX.
-     */
-    private function isAjax(): bool
-    {
-        $xhrHeader = $_SERVER['HTTP_X_REQUESTED_WITH'] ?? '';
-        $acceptHeader = $_SERVER['HTTP_ACCEPT'] ?? '';
-        return strtolower($xhrHeader) === 'xmlhttprequest'
-            || stripos($acceptHeader, 'application/json') !== false;
     }
 
     /**

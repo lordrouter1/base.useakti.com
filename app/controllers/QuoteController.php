@@ -6,9 +6,7 @@ use Akti\Models\Quote;
 use Akti\Utils\Input;
 use PDO;
 
-class QuoteController
-{
-    private \PDO $db;
+class QuoteController extends BaseController {
     private Quote $model;
 
     public function __construct(\PDO $db, Quote $model)
@@ -205,7 +203,7 @@ class QuoteController
 
         $this->model->addItem($data);
         header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
+        $this->json(['success' => true]);
     }
 
     public function removeItem()
@@ -213,6 +211,6 @@ class QuoteController
         $itemId = Input::get('item_id', 'int', 0);
         $this->model->removeItem($itemId);
         header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
+        $this->json(['success' => true]);
     }
 }

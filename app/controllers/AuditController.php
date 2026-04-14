@@ -6,9 +6,7 @@ use Akti\Models\AuditLog;
 use Akti\Utils\Input;
 use PDO;
 
-class AuditController
-{
-    private \PDO $db;
+class AuditController extends BaseController {
     private AuditLog $model;
 
     public function __construct(\PDO $db, AuditLog $model)
@@ -51,7 +49,7 @@ class AuditController
         $logs = $this->model->readByEntity($entityType, $entityId);
 
         header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'data' => $logs]);
+        $this->json(['success' => true, 'data' => $logs]);
     }
 
     public function exportCsv()

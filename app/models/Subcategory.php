@@ -9,14 +9,34 @@ class Subcategory {
     private $conn;
     private $table_name = "subcategories";
 
-    public $id;
-    public $category_id;
-    public $name;
+    protected $id;
+    protected $category_id;
+    protected $name;
     protected $show_in_store = 1;
     protected $free_shipping = 0;
 
+    private static array $fillable = [
+        'id', 'category_id', 'name', 'show_in_store', 'free_shipping',
+    ];
+
     public function __construct(\PDO $db) {
         $this->conn = $db;
+    }
+
+    public function __get(string $name): mixed {
+        if (in_array($name, self::$fillable, true)) {
+            return $this->$name ?? null;
+        }
+        trigger_error("Undefined property: Subcategory::\$$name", E_USER_NOTICE);
+        return null;
+    }
+
+    public function __set(string $name, mixed $value): void {
+        if (in_array($name, self::$fillable, true)) {
+            $this->$name = $value;
+            return;
+        }
+        trigger_error("Undefined property: Subcategory::\$$name", E_USER_NOTICE);
     }
 
     public function readByCategoryId($categoryId) {

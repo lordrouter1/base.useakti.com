@@ -149,9 +149,9 @@ class Pipeline {
                 'user_id' => $userId,
             ]));
 
-            // Dispatch pipeline.completed when order reaches final stage
+            // Dispatch model.pipeline.completed when order reaches final stage
             if ($newStage === 'concluido') {
-                EventDispatcher::dispatch('pipeline.completed', new Event('pipeline.completed', [
+                EventDispatcher::dispatch('model.pipeline.completed', new Event('model.pipeline.completed', [
                     'id' => $orderId,
                     'from_stage' => $fromStage,
                     'user_id' => $userId,

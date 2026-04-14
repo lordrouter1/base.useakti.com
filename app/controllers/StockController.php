@@ -11,12 +11,11 @@ use Akti\Utils\Validator;
 use Akti\Utils\Sanitizer;
 use TenantManager;
 
-class StockController {
+class StockController extends BaseController {
 
     private Stock $stockModel;
     private Product $productModel;
     private Logger $logger;
-    private \PDO $db;
     private StockMovementService $movementService;
 
     public function __construct(
@@ -165,9 +164,7 @@ class StockController {
         // Se requisição JSON (para o mini-histórico na página de entrada)
         if (Input::get('format') === 'json') {
             header('Content-Type: application/json');
-            echo json_encode($movements);
-            exit;
-        }
+            $this->json($movements);}
 
         // Redireciona para página unificada na seção de movimentações
         header('Location: ?page=stock&section=movements');
@@ -196,16 +193,14 @@ class StockController {
         $offset = ($page - 1) * $perPage;
         $items = array_slice($allItems, $offset, $perPage);
 
-        echo json_encode([
+        $this->json([
             'success' => true,
             'items' => $items,
             'total' => $total,
             'page' => $page,
             'per_page' => $perPage,
             'total_pages' => $totalPages,
-        ]);
-        exit;
-    }
+        ]);}
 
     // ─── AJAX: Buscar movimentações (para filtros dinâmicos + paginação) ───
     public function getMovements() {
@@ -228,25 +223,21 @@ class StockController {
         $offset = ($page - 1) * $perPage;
         $items = array_slice($allMovements, $offset, $perPage);
 
-        echo json_encode([
+        $this->json([
             'success' => true,
             'items' => $items,
             'total' => $total,
             'page' => $page,
             'per_page' => $perPage,
             'total_pages' => $totalPages,
-        ]);
-        exit;
-    }
+        ]);}
 
     // ─── AJAX: Processar movimentação (entrada/saída/ajuste/transferência) ───
     public function storeMovement() {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $result = $this->movementService->processMovement(
             Input::post('warehouse_id', 'int', 0),
@@ -256,46 +247,32 @@ class StockController {
             Input::post('destination_warehouse_id', 'int', 0)
         );
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ─── AJAX: Buscar uma movimentação pelo ID ───
     public function getMovement() {
         header('Content-Type: application/json');
         $id = Input::get('id', 'int', 0);
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID inválido.']);}
         $movement = $this->stockModel->getMovement($id);
         if (!$movement) {
-            echo json_encode(['success' => false, 'message' => 'Movimentação não encontrada.']);
-            exit;
-        }
-        echo json_encode(['success' => true, 'movement' => $movement]);
-        exit;
-    }
+            $this->json(['success' => false, 'message' => 'Movimentação não encontrada.']);}
+        $this->json(['success' => true, 'movement' => $movement]);}
 
     // ─── AJAX: Atualizar uma movimentação existente ───
     public function updateMovement() {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $id = Input::post('id', 'int', 0);
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID inválido.']);}
 
         $movement = $this->stockModel->getMovement($id);
         if (!$movement) {
-            echo json_encode(['success' => false, 'message' => 'Movimentação não encontrada.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Movimentação não encontrada.']);}
 
         $data = [
             'type'     => Input::post('type', 'enum', $movement['type'], ['entrada', 'saida', 'ajuste']),
@@ -304,49 +281,35 @@ class StockController {
         ];
 
         $result = $this->movementService->updateMovement($id, $data);
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ─── AJAX: Excluir uma movimentação ───
     public function deleteMovement() {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $id = Input::post('id', 'int', 0);
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID inválido.']);}
 
         $result = $this->movementService->deleteMovement($id);
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ─── AJAX: Buscar combinações de um produto ───
     public function getProductCombinations() {
         header('Content-Type: application/json');
         $productId = Input::get('product_id', 'int', 0);
         if (!$productId) {
-            echo json_encode([]);
-            exit;
-        }
+            $this->json([]);}
         $combos = $this->stockModel->getProductCombinations($productId);
-        echo json_encode($combos);
-        exit;
-    }
+        $this->json($combos);}
 
     // ─── AJAX: Atualizar metadados de um item de estoque ───
     public function updateItemMeta() {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false]);
-            exit;
-        }
+            $this->json(['success' => false]);}
 
         $id = Input::post('id', 'int', 0);
         $minQty = Input::post('min_quantity', 'float', 0);
@@ -354,9 +317,9 @@ class StockController {
 
         if ($id) {
             $this->stockModel->updateStockItemMeta($id, $minQty, $locCode);
-            echo json_encode(['success' => true]);
+            $this->json(['success' => true]);
         } else {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
+            $this->json(['success' => false, 'message' => 'ID inválido.']);
         }
         exit;
     }
@@ -374,36 +337,26 @@ class StockController {
                 $result[] = $item;
             }
         }
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ─── AJAX: Definir armazém padrão ───
     public function setDefault() {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
         $id = Input::post('id', 'int', 0);
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID inválido.']);}
         $this->stockModel->setDefaultWarehouse($id);
         $wh = $this->stockModel->getWarehouse($id);
         $this->logger->log('STOCK_WAREHOUSE_DEFAULT', "Armazém padrão definido: " . ($wh['name'] ?? $id));
-        echo json_encode(['success' => true]);
-        exit;
-    }
+        $this->json(['success' => true]);}
 
     // ─── AJAX: Buscar armazém padrão ───
     public function getDefaultWarehouse() {
         header('Content-Type: application/json');
         $wh = $this->stockModel->getDefaultWarehouse();
-        echo json_encode(['success' => true, 'warehouse' => $wh]);
-        exit;
-    }
+        $this->json(['success' => true, 'warehouse' => $wh]);}
 
     // ─── AJAX: Verificar disponibilidade de estoque de um pedido em um armazém ───
     public function checkOrderStock() {
@@ -412,9 +365,7 @@ class StockController {
         $warehouseId = Input::get('warehouse_id', 'int', 0);
 
         if (!$orderId || !$warehouseId) {
-            echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Parâmetros inválidos.']);}
 
         $orderModel = new Order($this->db);
         $items = $orderModel->getItems($orderId);
@@ -447,11 +398,9 @@ class StockController {
             ];
         }
 
-        echo json_encode([
+        $this->json([
             'success' => true,
             'all_available' => $allAvailable,
             'items' => $result,
-        ]);
-        exit;
-    }
+        ]);}
 }

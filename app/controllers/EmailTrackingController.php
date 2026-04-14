@@ -4,10 +4,7 @@ namespace Akti\Controllers;
 
 use Akti\Utils\Input;
 
-class EmailTrackingController
-{
-    private \PDO $db;
-
+class EmailTrackingController extends BaseController {
     public function __construct(\PDO $db)
     {
         $this->db = $db;

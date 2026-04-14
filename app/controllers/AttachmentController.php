@@ -9,7 +9,6 @@ use PDO;
 
 class AttachmentController extends BaseController
 {
-    private \PDO $db;
     private Attachment $model;
 
     public function __construct(\PDO $db, Attachment $model)
@@ -86,12 +85,6 @@ class AttachmentController extends BaseController
 
         $_SESSION['flash_success'] = 'Arquivo enviado com sucesso.';
         header('Location: ?page=attachments');
-    }
-
-    private function isAjax(): bool
-    {
-        return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
-            && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
     }
 
     public function download()

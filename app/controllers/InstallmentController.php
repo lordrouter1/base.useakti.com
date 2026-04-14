@@ -32,9 +32,7 @@ use TenantManager;
  *
  * @package Akti\Controllers
  */
-class InstallmentController
-{
-    private \PDO $db;
+class InstallmentController extends BaseController {
     private Installment $installmentModel;
     private InstallmentService $installmentService;
     private TransactionService $transactionService;
@@ -345,9 +343,7 @@ class InstallmentController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $ids = $_POST['installment_ids'] ?? [];
         if (!is_array($ids)) {
@@ -358,28 +354,24 @@ class InstallmentController
         $dueDate = Input::post('due_date', 'date') ?: date('Y-m-d');
 
         if (count($ids) < 2) {
-            echo json_encode(['success' => false, 'message' => 'Selecione ao menos 2 parcelas em aberto para unificar.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Selecione ao menos 2 parcelas em aberto para unificar.']);}
 
         try {
             $newId = $this->installmentService->mergeInstallments($ids, $dueDate);
         } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao unificar parcelas. Tente novamente.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Erro interno ao unificar parcelas. Tente novamente.']);}
 
         if ($newId) {
             $logger = new \Akti\Models\Logger($this->db);
             $logger->log('INSTALLMENTS_MERGED', 'Merged installments [' . implode(',', $ids) . '] into #' . $newId);
 
-            echo json_encode([
+            $this->json([
                 'success' => true,
                 'message' => count($ids) . ' parcelas unificadas com sucesso.',
                 'new_id'  => $newId,
             ]);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Não foi possível unificar. Verifique se todas as parcelas estão em aberto e pertencem ao mesmo pedido.']);
+            $this->json(['success' => false, 'message' => 'Não foi possível unificar. Verifique se todas as parcelas estão em aberto e pertencem ao mesmo pedido.']);
         }
         exit;
     }
@@ -393,41 +385,33 @@ class InstallmentController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $installmentId = Input::post('installment_id', 'int', 0);
         $parts = Input::post('parts', 'int', 2);
         $firstDueDate = Input::post('first_due_date', 'date');
 
         if (!$installmentId) {
-            echo json_encode(['success' => false, 'message' => 'Parcela não informada.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Parcela não informada.']);}
         if ($parts < 2 || $parts > 24) {
-            echo json_encode(['success' => false, 'message' => 'Informe entre 2 e 24 partes.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Informe entre 2 e 24 partes.']);}
 
         try {
             $newIds = $this->installmentService->splitInstallment($installmentId, $parts, $firstDueDate);
         } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao dividir parcela. Tente novamente.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Erro interno ao dividir parcela. Tente novamente.']);}
 
         if (!empty($newIds)) {
             $logger = new \Akti\Models\Logger($this->db);
             $logger->log('INSTALLMENT_SPLIT', "Split installment #$installmentId into $parts parts [" . implode(',', $newIds) . "]");
 
-            echo json_encode([
+            $this->json([
                 'success' => true,
                 'message' => "Parcela dividida em $parts partes com sucesso.",
                 'new_ids' => $newIds,
             ]);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Não foi possível dividir. A parcela deve estar em aberto (pendente/atrasada).']);
+            $this->json(['success' => false, 'message' => 'Não foi possível dividir. A parcela deve estar em aberto (pendente/atrasada).']);
         }
         exit;
     }
@@ -452,7 +436,7 @@ class InstallmentController
 
         $result = $this->installmentModel->getPaginated($filters, $page, $perPage);
 
-        echo json_encode([
+        $this->json([
             'success'     => true,
             'items'       => $result['data'],
             'total'       => $result['total'],
@@ -460,9 +444,7 @@ class InstallmentController
             'per_page'    => $result['perPage'],
             'total_pages' => $result['totalPages'],
             'summary'     => $result['summary'],
-        ]);
-        exit;
-    }
+        ]);}
 
     // ═══════════════════════════════════════════
     // AJAX: Parcelas por pedido (JSON)
@@ -473,26 +455,15 @@ class InstallmentController
         $orderId = Input::get('order_id', 'int', 0);
         $installments = $this->installmentModel->getByOrderId($orderId);
         header('Content-Type: application/json');
-        echo json_encode([
+        $this->json([
             'success'      => true,
             'installments' => $installments,
             'count'        => count($installments),
-        ]);
-        exit;
-    }
+        ]);}
 
     // ═══════════════════════════════════════════
     // Helpers privados
     // ═══════════════════════════════════════════
-
-    /**
-     * Verifica se é uma requisição AJAX (XMLHttpRequest).
-     */
-    private function isAjax(): bool
-    {
-        return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
-            && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
-    }
 
     /**
      * Envia resposta JSON e encerra.
@@ -500,9 +471,7 @@ class InstallmentController
     private function jsonResponse(array $data): void
     {
         header('Content-Type: application/json');
-        echo json_encode($data);
-        exit;
-    }
+        $this->json($data);}
 
     /**
      * Faz upload de arquivo de comprovante e retorna o caminho.

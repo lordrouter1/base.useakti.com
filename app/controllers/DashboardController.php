@@ -6,10 +6,7 @@ use Akti\Models\Order;
 use Akti\Models\Customer;
 use Akti\Core\Log;
 
-class DashboardController {
-
-    private \PDO $db;
-
+class DashboardController extends BaseController {
     public function __construct(\PDO $db) {
         $this->db = $db;
     }
@@ -89,7 +86,7 @@ class DashboardController {
             $customerModel = new Customer($db);
             $totalCustomers = $customerModel->countAll();
 
-            echo json_encode([
+            $this->json([
                 'success' => true,
                 'data' => [
                     'pipeline'       => $pipelineStats,
@@ -101,7 +98,7 @@ class DashboardController {
                 ],
             ]);
         } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'error' => 'Erro ao buscar dados']);
+            $this->json(['success' => false, 'error' => 'Erro ao buscar dados']);
         }
         exit;
     }

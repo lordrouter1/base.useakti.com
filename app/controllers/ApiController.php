@@ -11,8 +11,7 @@ use Akti\Utils\JwtHelper;
  * O token inclui: user_id, user_name, tenant_id (subdomain key).
  * O segredo é compartilhado com o Node via variável de ambiente JWT_SECRET.
  */
-class ApiController
-{
+class ApiController extends BaseController {
     /**
      * GET ?page=api&action=token
      *
@@ -25,9 +24,7 @@ class ApiController
 
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Não autenticado.']);
-            return;
-        }
+            $this->json(['success' => false, 'message' => 'Não autenticado.']);}
 
         $secret = getenv('JWT_SECRET') ?: 'dev-only-secret';
 
@@ -44,7 +41,7 @@ class ApiController
 
         $token = JwtHelper::encode($payload, $secret, 7200); // 2h
 
-        echo json_encode([
+        $this->json([
             'success' => true,
             'token'   => $token,
             'expires_in' => 7200,

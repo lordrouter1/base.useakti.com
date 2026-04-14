@@ -46,9 +46,7 @@ use TenantManager;
  *
  * @package Akti\Controllers
  */
-class NfeDocumentController
-{
-    private \PDO $db;
+class NfeDocumentController extends BaseController {
     private NfeDocument $docModel;
     private NfeLog $logModel;
 
@@ -96,18 +94,14 @@ class NfeDocumentController
     private function checkWritePermission(): void
     {
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['success' => false, 'message' => 'Sessão expirada.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Sessão expirada.']);}
         $userModel = new User($this->db);
         // Verifica se o usuário tem permissão para a página — escrita requer a mesma permissão
         // O sistema usa permissão booleana por página; controle granular (view vs edit) pode ser
         // expandido futuramente. Aqui validamos que o user tem acesso ao módulo.
         if (!$userModel->checkPermission($_SESSION['user_id'], 'nfe_documents')) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Sem permissão para esta ação.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Sem permissão para esta ação.']);}
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -233,23 +227,17 @@ class NfeDocumentController
         // Rate limiting — proteção contra burst de emissões (FASE4-01)
         $rateCheck = RateLimitMiddleware::check('nfe_emit', 5);
         if (!$rateCheck['allowed']) {
-            echo json_encode(['success' => false, 'message' => "Aguarde {$rateCheck['retry_after']} segundo(s) entre emissões."]);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => "Aguarde {$rateCheck['retry_after']} segundo(s) entre emissões."]);}
 
         $orderId = Input::post('order_id', 'int', 0);
         if ($orderId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID do pedido inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID do pedido inválido.']);}
 
         try {
             // Verificar se já existe NF-e autorizada
             $existingNfe = $this->docModel->readByOrder($orderId);
             if ($existingNfe && $existingNfe['status'] === 'autorizada') {
-                echo json_encode(['success' => false, 'message' => "Pedido #{$orderId} já possui NF-e autorizada (Nº {$existingNfe['numero']})."]);
-                exit;
-            }
+                $this->json(['success' => false, 'message' => "Pedido #{$orderId} já possui NF-e autorizada (Nº {$existingNfe['numero']})."]);}
 
             // Montar dados via service
             $orderDataService = new NfeOrderDataService($this->db);
@@ -270,10 +258,10 @@ class NfeDocumentController
                 ]);
             }
 
-            echo json_encode($result);
+            $this->json($result);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: emit', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao emitir NF-e. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao emitir NF-e. Tente novamente.']);
         }
         exit;
     }
@@ -295,13 +283,9 @@ class NfeDocumentController
         $motivo = Input::post('motivo', 'string', '');
 
         if ($nfeId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID da NF-e inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID da NF-e inválido.']);}
         if (strlen(trim($motivo)) < 15) {
-            echo json_encode(['success' => false, 'message' => 'Justificativa deve ter no mínimo 15 caracteres.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Justificativa deve ter no mínimo 15 caracteres.']);}
 
         try {
             $nfeService = new NfeService($this->db);
@@ -321,10 +305,10 @@ class NfeDocumentController
                 ]);
             }
 
-            echo json_encode($result);
+            $this->json($result);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: cancel', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao cancelar NF-e. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao cancelar NF-e. Tente novamente.']);
         }
         exit;
     }
@@ -346,13 +330,9 @@ class NfeDocumentController
         $texto = Input::post('texto', 'string', '');
 
         if ($nfeId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID da NF-e inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID da NF-e inválido.']);}
         if (strlen(trim($texto)) < 15) {
-            echo json_encode(['success' => false, 'message' => 'Texto da correção deve ter no mínimo 15 caracteres.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Texto da correção deve ter no mínimo 15 caracteres.']);}
 
         try {
             $nfeService = new NfeService($this->db);
@@ -373,10 +353,10 @@ class NfeDocumentController
                 ]);
             }
 
-            echo json_encode($result);
+            $this->json($result);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: correction', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao registrar correção. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao registrar correção. Tente novamente.']);
         }
         exit;
     }
@@ -475,17 +455,15 @@ class NfeDocumentController
         }
 
         if ($id <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID da NF-e inválido.', 'details' => []]);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID da NF-e inválido.', 'details' => []]);}
 
         try {
             $nfeService = new NfeService($this->db);
             $result = $nfeService->checkStatus($id);
-            echo json_encode($result);
+            $this->json($result);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: checkStatus', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro ao consultar status. Tente novamente.', 'details' => []]);
+            $this->json(['success' => false, 'message' => 'Erro ao consultar status. Tente novamente.', 'details' => []]);
         }
         exit;
     }
@@ -613,15 +591,11 @@ class NfeDocumentController
 
         $orderIdsRaw = Input::post('order_ids', 'string', '');
         if (empty($orderIdsRaw)) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum pedido selecionado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhum pedido selecionado.']);}
 
         $orderIds = array_filter(array_map('intval', explode(',', $orderIdsRaw)));
         if (empty($orderIds)) {
-            echo json_encode(['success' => false, 'message' => 'IDs de pedidos inválidos.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'IDs de pedidos inválidos.']);}
 
         $queueService = new NfeQueueService($this->db);
         $result = $queueService->enqueueBatch($orderIds);
@@ -638,9 +612,7 @@ class NfeDocumentController
             ]);
         }
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ══════════════════════════════════════════════════════════════
     // FASE 5 — Fila de Emissão Assíncrona
@@ -697,9 +669,7 @@ class NfeDocumentController
         $queueService = new NfeQueueService($this->db);
         $result = $queueService->processMultiple(min($max, 20));
 
-        echo json_encode(['success' => true, 'result' => $result]);
-        exit;
-    }
+        $this->json(['success' => true, 'result' => $result]);}
 
     /**
      * Cancela item da fila (AJAX).
@@ -711,19 +681,15 @@ class NfeDocumentController
 
         $id = Input::post('id', 'int', 0);
         if ($id <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID inválido.']);}
 
         $queueModel = new NfeQueue($this->db);
         $ok = $queueModel->cancel($id);
 
-        echo json_encode([
+        $this->json([
             'success' => $ok,
             'message' => $ok ? 'Item removido da fila.' : 'Não foi possível cancelar (status não permite).',
-        ]);
-        exit;
-    }
+        ]);}
 
     // ══════════════════════════════════════════════════════════════
     // FASE 5 — Documentos Recebidos (DistDFe)
@@ -784,9 +750,7 @@ class NfeDocumentController
         // Auditoria
         $this->getAuditService()->logDistDFe($result['total'] ?? 0);
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * Consulta DistDFe por chave de acesso (AJAX).
@@ -800,16 +764,12 @@ class NfeDocumentController
         $chave = preg_replace('/\D/', '', $chave);
 
         if (strlen($chave) !== 44) {
-            echo json_encode(['success' => false, 'message' => 'Chave de acesso deve ter 44 dígitos.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Chave de acesso deve ter 44 dígitos.']);}
 
         $distdfeService = new NfeDistDFeService($this->db);
         $result = $distdfeService->queryByChave($chave);
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ══════════════════════════════════════════════════════════════
     // FASE 5 — Manifestação do Destinatário
@@ -828,13 +788,9 @@ class NfeDocumentController
         $justificativa = Input::post('justificativa', 'string', '');
 
         if ($docId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID do documento inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID do documento inválido.']);}
         if (empty($type)) {
-            echo json_encode(['success' => false, 'message' => 'Tipo de manifestação obrigatório.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Tipo de manifestação obrigatório.']);}
 
         $manifestService = new NfeManifestationService($this->db);
         $result = $manifestService->manifest($docId, $type, $justificativa);
@@ -853,9 +809,7 @@ class NfeDocumentController
             ]);
         }
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ══════════════════════════════════════════════════════════════
     // FASE 5 — Auditoria de Acessos
@@ -950,9 +904,7 @@ class NfeDocumentController
 
         $this->getAuditService()->record('webhook_config', 'nfe_webhook', $result['id'] ?? null, $result['message']);
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * Exclui um webhook (AJAX).
@@ -971,9 +923,7 @@ class NfeDocumentController
             $this->getAuditService()->record('webhook_delete', 'nfe_webhook', $id, 'Webhook excluído');
         }
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * Testa envio de webhook (AJAX).
@@ -988,9 +938,7 @@ class NfeDocumentController
         $whMgmt = new NfeWebhookManagementService($this->db);
         $result = $whMgmt->test($id);
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * Retorna logs de um webhook (AJAX/JSON).
@@ -1005,9 +953,7 @@ class NfeDocumentController
         $whMgmt = new NfeWebhookManagementService($this->db);
         $result = $whMgmt->getLogs($id, $page, 20);
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ══════════════════════════════════════════════════════════════
     // FASE 5 — Personalização DANFE
@@ -1078,21 +1024,15 @@ class NfeDocumentController
 
         $nfeId = Input::post('nfe_id', 'int', 0);
         if (!$nfeId) {
-            echo json_encode(['success' => false, 'message' => 'ID da NF-e não informado.']);
-            return;
-        }
+            $this->json(['success' => false, 'message' => 'ID da NF-e não informado.']);}
 
         $nfe = $this->docModel->readOne($nfeId);
         if (!$nfe || $nfe['status'] !== 'rejeitada') {
-            echo json_encode(['success' => false, 'message' => 'NF-e não encontrada ou não está rejeitada.']);
-            return;
-        }
+            $this->json(['success' => false, 'message' => 'NF-e não encontrada ou não está rejeitada.']);}
 
         $orderId = $nfe['order_id'] ?? 0;
         if (!$orderId) {
-            echo json_encode(['success' => false, 'message' => 'NF-e sem pedido vinculado.']);
-            return;
-        }
+            $this->json(['success' => false, 'message' => 'NF-e sem pedido vinculado.']);}
 
         try {
             // Marcar o registro rejeitado antigo
@@ -1120,11 +1060,11 @@ class NfeDocumentController
                 ]);
             }
 
-            echo json_encode($result);
+            $this->json($result);
         } catch (\Throwable $e) {
             $this->docModel->update($nfeId, ['status' => 'rejeitada']);
             Log::error('NfeDocumentController: retry', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao reenviar NF-e. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao reenviar NF-e. Tente novamente.']);
         }
     }
 
@@ -1150,17 +1090,11 @@ class NfeDocumentController
 
         // Validações
         if (!$numInicial || !$numFinal || $numInicial > $numFinal) {
-            echo json_encode(['success' => false, 'message' => 'Números inválidos. O número inicial deve ser menor ou igual ao final.']);
-            return;
-        }
+            $this->json(['success' => false, 'message' => 'Números inválidos. O número inicial deve ser menor ou igual ao final.']);}
         if (strlen(trim($justificativa)) < 15) {
-            echo json_encode(['success' => false, 'message' => 'Justificativa deve ter pelo menos 15 caracteres.']);
-            return;
-        }
+            $this->json(['success' => false, 'message' => 'Justificativa deve ter pelo menos 15 caracteres.']);}
         if (!in_array($modelo, [55, 65])) {
-            echo json_encode(['success' => false, 'message' => 'Modelo inválido.']);
-            return;
-        }
+            $this->json(['success' => false, 'message' => 'Modelo inválido.']);}
 
         try {
             $nfeService = new NfeService($this->db);
@@ -1178,13 +1112,13 @@ class NfeDocumentController
                     'serie'       => $serie,
                 ]);
 
-                echo json_encode(['success' => true, 'message' => $result['message'] ?? "Numeração {$numInicial} a {$numFinal} inutilizada com sucesso."]);
+                $this->json(['success' => true, 'message' => $result['message'] ?? "Numeração {$numInicial} a {$numFinal} inutilizada com sucesso."]);
             } else {
-                echo json_encode(['success' => false, 'message' => $result['message'] ?? 'Erro ao inutilizar numeração na SEFAZ.']);
+                $this->json(['success' => false, 'message' => $result['message'] ?? 'Erro ao inutilizar numeração na SEFAZ.']);
             }
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: Inutilizar', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao processar inutilização. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao processar inutilização. Tente novamente.']);
         }
     }
 
@@ -1205,15 +1139,11 @@ class NfeDocumentController
         // Rate limiting
         $rateCheck = RateLimitMiddleware::check('nfce_emit', 5);
         if (!$rateCheck['allowed']) {
-            echo json_encode(['success' => false, 'message' => "Aguarde {$rateCheck['retry_after']} segundo(s) entre emissões."]);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => "Aguarde {$rateCheck['retry_after']} segundo(s) entre emissões."]);}
 
         $orderId = Input::post('order_id', 'int', 0);
         if ($orderId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID do pedido inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'ID do pedido inválido.']);}
 
         try {
             // Montar dados via service
@@ -1236,10 +1166,10 @@ class NfeDocumentController
                 ]);
             }
 
-            echo json_encode($result);
+            $this->json($result);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: emitNfce', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao emitir NFC-e. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao emitir NFC-e. Tente novamente.']);
         }
         exit;
     }
@@ -1313,9 +1243,7 @@ class NfeDocumentController
         $contingency = new NfeContingencyService($this->db);
         $status = $contingency->getStatus();
 
-        echo json_encode(['success' => true, 'data' => $status]);
-        exit;
-    }
+        $this->json(['success' => true, 'data' => $status]);}
 
     /**
      * Ativa contingência manualmente (POST/JSON).
@@ -1338,9 +1266,7 @@ class NfeDocumentController
                 'Contingência ativada: ' . ($result['message'] ?? ''));
         }
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * Desativa contingência (POST/JSON).
@@ -1359,9 +1285,7 @@ class NfeDocumentController
                 'Contingência desativada. Pendentes: ' . ($result['pending'] ?? 0));
         }
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * Sincroniza NF-e emitidas em contingência (POST/JSON).
@@ -1378,9 +1302,7 @@ class NfeDocumentController
         $this->getAuditService()->record('contingency_sync', 'nfe_credential', null,
             "Sincronização: {$result['synced']} ok, {$result['failed']} falha, {$result['remaining']} restantes");
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * Retorna histórico de contingências (JSON).
@@ -1393,9 +1315,7 @@ class NfeDocumentController
         $contingency = new NfeContingencyService($this->db);
         $history = $contingency->getHistory();
 
-        echo json_encode(['success' => true, 'data' => $history]);
-        exit;
-    }
+        $this->json(['success' => true, 'data' => $history]);}
 
     // ══════════════════════════════════════════════════════════════
     // FASE 5 — Download XML em Lote (ZIP)
@@ -1624,10 +1544,10 @@ class NfeDocumentController
                     "Backup XML: {$result['total']} arquivo(s), tipo={$tipo}");
             }
 
-            echo json_encode($result);
+            $this->json($result);
         } catch (\Throwable $e) {
             Log::error('NfeDocumentController: backupXml', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao gerar backup XML. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao gerar backup XML. Tente novamente.']);
         }
         exit;
     }
@@ -1643,9 +1563,7 @@ class NfeDocumentController
         $backupMgmt = new NfeBackupManagementService($this->db);
         $history = $backupMgmt->getHistory();
 
-        echo json_encode(['success' => true, 'data' => $history]);
-        exit;
-    }
+        $this->json(['success' => true, 'data' => $history]);}
 
     /**
      * Página de configuração de backup e relatórios fiscais.

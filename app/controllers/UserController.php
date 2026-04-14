@@ -15,7 +15,7 @@ use Akti\Utils\Input;
 use Akti\Utils\Validator;
 use TenantManager;
 
-class UserController {
+class UserController extends BaseController {
 
     private User $userModel;
     private UserGroup $groupModel;

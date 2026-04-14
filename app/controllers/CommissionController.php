@@ -20,7 +20,6 @@ use Akti\Utils\Input;
  */
 class CommissionController extends BaseController
 {
-    private \PDO $db;
     private CommissionService $service;
     private Commission $model;
 

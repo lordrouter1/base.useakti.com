@@ -18,8 +18,6 @@ class OrderController extends BaseController {
     
     private Order $orderModel;
     private OrderItemService $itemService;
-    private \PDO $db;
-
     public function __construct(\PDO $db, Order $orderModel, OrderItemService $itemService) {
         $this->db = $db;
         $this->orderModel = $orderModel;

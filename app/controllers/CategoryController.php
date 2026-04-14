@@ -12,7 +12,7 @@ use Akti\Core\Log;
 use Akti\Services\CategoryService;
 use Akti\Utils\Input;
 
-class CategoryController {
+class CategoryController extends BaseController {
     
     private Category $categoryModel;
     private Subcategory $subcategoryModel;
@@ -21,8 +21,6 @@ class CategoryController {
     private CategoryGrade $categoryGradeModel;
     private Logger $logger;
     private CategoryService $categoryService;
-    private \PDO $db;
-
     public function __construct(
         \PDO $db,
         Category $categoryModel,
@@ -224,15 +222,13 @@ class CategoryController {
         $categoryId = Input::get('category_id', 'int');
 
         $result = $this->categoryGradeModel->getInheritedGrades($subcategoryId, $categoryId);
-        echo json_encode([
+        $this->json([
             'success' => true,
             'grades' => $result['grades'],
             'source' => $result['source'],
             'source_id' => $result['source_id'],
             'inactive_keys' => $result['inactive_keys']
-        ]);
-        exit;
-    }
+        ]);}
 
     // AJAX: Toggle combination for category
     public function toggleCategoryCombinationAjax() {
@@ -241,13 +237,9 @@ class CategoryController {
             $isActive = Input::post('is_active', 'int', 1);
             if ($id) {
                 $this->categoryGradeModel->toggleCategoryCombination($id, $isActive);
-                echo json_encode(['success' => true]);
-                exit;
-            }
+                $this->json(['success' => true]);}
         }
-        echo json_encode(['success' => false]);
-        exit;
-    }
+        $this->json(['success' => false]);}
 
     // AJAX: Toggle combination for subcategory
     public function toggleSubcategoryCombinationAjax() {
@@ -256,13 +248,9 @@ class CategoryController {
             $isActive = Input::post('is_active', 'int', 1);
             if ($id) {
                 $this->categoryGradeModel->toggleSubcategoryCombination($id, $isActive);
-                echo json_encode(['success' => true]);
-                exit;
-            }
+                $this->json(['success' => true]);}
         }
-        echo json_encode(['success' => false]);
-        exit;
-    }
+        $this->json(['success' => false]);}
 
     // ─────────────────────────────────────────────────────
     // AJAX: Get products for export modal
@@ -274,9 +262,7 @@ class CategoryController {
         $id = Input::get('id', 'int', 0);
 
         if (!$id || !in_array($type, ['category', 'subcategory'])) {
-            echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Parâmetros inválidos.']);}
 
         try {
             $productModel = new Product($this->db);
@@ -289,7 +275,7 @@ class CategoryController {
 
             $exportInfo = $this->categoryService->getSourceExportInfo($type, $id);
 
-            echo json_encode([
+            $this->json([
                 'success' => true,
                 'products' => $products,
                 'has_grades' => $exportInfo['has_grades'],
@@ -297,7 +283,7 @@ class CategoryController {
             ]);
         } catch (\Exception $e) {
             Log::error('CategoryController: getProducts', ['exception' => $e->getMessage()]);
-            echo json_encode([
+            $this->json([
                 'success' => false,
                 'message' => 'Erro interno ao buscar produtos. Tente novamente.',
                 'products' => []
@@ -313,9 +299,7 @@ class CategoryController {
     public function exportToProducts() {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $type = Input::post('type', 'enum', '', ['category', 'subcategory']);
         $sourceId = Input::post('source_id', 'int', 0);
@@ -324,18 +308,14 @@ class CategoryController {
         $exportSectors = Input::post('export_sectors', 'bool');
 
         if (!$sourceId || !in_array($type, ['category', 'subcategory']) || empty($productIds)) {
-            echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Parâmetros inválidos.']);}
 
         if (!$exportGrades && !$exportSectors) {
-            echo json_encode(['success' => false, 'message' => 'Selecione ao menos grades ou setores para exportar.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Selecione ao menos grades ou setores para exportar.']);}
 
         $results = $this->categoryService->exportToProducts($type, $sourceId, $productIds, $exportGrades, $exportSectors);
 
-        echo json_encode([
+        $this->json([
             'success' => true,
             'results' => $results,
             'message' => sprintf(
@@ -344,9 +324,7 @@ class CategoryController {
                 $results['sectors_applied'],
                 !empty($results['errors']) ? ' Erros: ' . count($results['errors']) : ''
             )
-        ]);
-        exit;
-    }
+        ]);}
 
     // ─────────────────────────────────────────────────────
     // AJAX: Get inherited sectors for a product (by subcategory/category)
@@ -376,11 +354,9 @@ class CategoryController {
             }
         }
 
-        echo json_encode([
+        $this->json([
             'success' => true,
             'sectors' => $sectors,
             'source' => $source
-        ]);
-        exit;
-    }
+        ]);}
 }

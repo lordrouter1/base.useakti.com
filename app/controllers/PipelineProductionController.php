@@ -18,7 +18,6 @@ use Akti\Utils\Input;
  */
 class PipelineProductionController extends BaseController
 {
-    private \PDO $db;
     private Pipeline $pipelineModel;
     private PipelineDetailService $detailService;
 

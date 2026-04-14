@@ -18,9 +18,7 @@ use Akti\Utils\Validator;
  *  - ReportPdfService   (PDF via TCPDF)
  *  - ReportExcelService (Excel via PhpSpreadsheet)
  */
-class ReportController
-{
-    private \PDO $db;
+class ReportController extends BaseController {
     private ReportModel $report;
     private NfeReportModel $nfeReport;
     private array $company;

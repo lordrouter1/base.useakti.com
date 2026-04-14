@@ -5,11 +5,9 @@ use Akti\Models\Walkthrough;
 use Akti\Models\UserGroup;
 use Akti\Utils\Input;
 
-class WalkthroughController {
+class WalkthroughController extends BaseController {
 
     private Walkthrough $walkthroughModel;
-    private \PDO $db;
-
     public function __construct(\PDO $db, Walkthrough $walkthroughModel) {
         $this->db = $db;
         $this->walkthroughModel = $walkthroughModel;
@@ -23,15 +21,13 @@ class WalkthroughController {
         header('Content-Type: application/json');
 
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['needs_walkthrough' => false]);
-            return;
-        }
+            $this->json(['needs_walkthrough' => false]);}
 
         $userId = (int) $_SESSION['user_id'];
         $needs = $this->walkthroughModel->needsWalkthrough($userId);
         $status = $this->walkthroughModel->getStatus($userId);
 
-        echo json_encode([
+        $this->json([
             'needs_walkthrough' => $needs,
             'current_step' => $status ? (int) $status['current_step'] : 0
         ]);
@@ -44,13 +40,11 @@ class WalkthroughController {
         header('Content-Type: application/json');
 
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['success' => false]);
-            return;
-        }
+            $this->json(['success' => false]);}
 
         $userId = (int) $_SESSION['user_id'];
         $result = $this->walkthroughModel->start($userId);
-        echo json_encode(['success' => $result]);
+        $this->json(['success' => $result]);
     }
 
     /**
@@ -60,13 +54,11 @@ class WalkthroughController {
         header('Content-Type: application/json');
 
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['success' => false]);
-            return;
-        }
+            $this->json(['success' => false]);}
 
         $userId = (int) $_SESSION['user_id'];
         $result = $this->walkthroughModel->complete($userId);
-        echo json_encode(['success' => $result]);
+        $this->json(['success' => $result]);
     }
 
     /**
@@ -76,13 +68,11 @@ class WalkthroughController {
         header('Content-Type: application/json');
 
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['success' => false]);
-            return;
-        }
+            $this->json(['success' => false]);}
 
         $userId = (int) $_SESSION['user_id'];
         $result = $this->walkthroughModel->skip($userId);
-        echo json_encode(['success' => $result]);
+        $this->json(['success' => $result]);
     }
 
     /**
@@ -92,14 +82,12 @@ class WalkthroughController {
         header('Content-Type: application/json');
 
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['success' => false]);
-            return;
-        }
+            $this->json(['success' => false]);}
 
         $userId = (int) $_SESSION['user_id'];
         $step = Input::post('step', 'int', 0);
         $result = $this->walkthroughModel->saveStep($userId, $step);
-        echo json_encode(['success' => $result]);
+        $this->json(['success' => $result]);
     }
 
     /**
@@ -109,13 +97,11 @@ class WalkthroughController {
         header('Content-Type: application/json');
 
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['success' => false]);
-            return;
-        }
+            $this->json(['success' => false]);}
 
         $userId = (int) $_SESSION['user_id'];
         $result = $this->walkthroughModel->reset($userId);
-        echo json_encode(['success' => $result]);
+        $this->json(['success' => $result]);
     }
 
     /**
@@ -134,9 +120,7 @@ class WalkthroughController {
         header('Content-Type: application/json');
 
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['steps' => []]);
-            return;
-        }
+            $this->json(['steps' => []]);}
 
         $role = $_SESSION['user_role'] ?? 'funcionario';
         $groupId = $_SESSION['group_id'] ?? null;
@@ -149,7 +133,7 @@ class WalkthroughController {
         }
 
         $steps = $this->buildSteps($role, $permissions);
-        echo json_encode(['steps' => $steps]);
+        $this->json(['steps' => $steps]);
     }
 
     /**

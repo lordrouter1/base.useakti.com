@@ -5,9 +5,7 @@ namespace Akti\Controllers;
 use Akti\Models\ReportTemplate;
 use Akti\Utils\Input;
 
-class CustomReportController
-{
-    private \PDO $db;
+class CustomReportController extends BaseController {
     private ReportTemplate $model;
 
     public function __construct(\PDO $db, ReportTemplate $model)
@@ -121,6 +119,6 @@ class CustomReportController
     {
         $entities = $this->model->getAvailableEntities();
         header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'data' => $entities]);
+        $this->json(['success' => true, 'data' => $entities]);
     }
 }

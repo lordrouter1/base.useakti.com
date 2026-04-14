@@ -3,6 +3,7 @@ namespace Akti\Services;
 
 use Akti\Models\NfeDocument;
 use Akti\Models\NfeLog;
+use Akti\Services\Contracts\NfeServiceInterface;
 use PDO;
 
 /**
@@ -17,7 +18,7 @@ use PDO;
  *
  * @package Akti\Services
  */
-class NfeService
+class NfeService implements NfeServiceInterface
 {
     private NfeSefazClient $sefazClient;
     private NfeEmissionService $emissionService;

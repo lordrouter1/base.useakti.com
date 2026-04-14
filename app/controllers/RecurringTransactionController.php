@@ -14,7 +14,6 @@ use Akti\Utils\Input;
  */
 class RecurringTransactionController extends BaseController
 {
-    private \PDO $db;
     private RecurringTransaction $model;
 
     public function __construct(\PDO $db, RecurringTransaction $model)

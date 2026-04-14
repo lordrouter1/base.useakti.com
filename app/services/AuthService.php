@@ -24,7 +24,7 @@ use PDO;
  *
  * @package Akti\Services
  */
-class AuthService
+class AuthService implements Contracts\AuthServiceInterface
 {
     private PDO $db;
     private User $userModel;

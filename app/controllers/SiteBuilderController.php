@@ -12,9 +12,7 @@ use Akti\Utils\Input;
  * As páginas são fixas (início, produtos, contato, carrinho, perfil).
  * O editor permite ajustar tema e conteúdo via settings.
  */
-class SiteBuilderController
-{
-    private \PDO $db;
+class SiteBuilderController extends BaseController {
     private SiteBuilder $siteBuilder;
     private int $tenantId;
 
@@ -29,7 +27,7 @@ class SiteBuilderController
     {
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        $this->json($data);
     }
 
     private function requireTenant(): bool

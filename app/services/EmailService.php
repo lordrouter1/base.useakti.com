@@ -6,8 +6,9 @@ use Akti\Controllers\EmailTrackingController;
 use PDO;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
+use Akti\Services\Contracts\EmailServiceInterface;
 
-class EmailService
+class EmailService implements EmailServiceInterface
 {
     private PDO $db;
     private array $config;

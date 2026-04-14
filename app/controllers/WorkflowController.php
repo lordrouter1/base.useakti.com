@@ -5,9 +5,7 @@ namespace Akti\Controllers;
 use Akti\Models\WorkflowRule;
 use Akti\Utils\Input;
 
-class WorkflowController
-{
-    private \PDO $db;
+class WorkflowController extends BaseController {
     private WorkflowRule $model;
 
     public function __construct(\PDO $db, WorkflowRule $model)
@@ -103,7 +101,7 @@ class WorkflowController
         $id = Input::get('id', 'int', 0);
         $this->model->toggle($id);
         header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
+        $this->json(['success' => true]);
     }
 
     public function logs()
@@ -111,7 +109,7 @@ class WorkflowController
         $ruleId = Input::get('rule_id', 'int', 0);
         $logs = $this->model->getLogs($ruleId);
         header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'data' => $logs]);
+        $this->json(['success' => true, 'data' => $logs]);
     }
 
     public function reorder()
@@ -128,9 +126,7 @@ class WorkflowController
         }
 
         header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
-        exit;
-    }
+        $this->json(['success' => true]);}
 
     private function getAvailableEvents(): array
     {

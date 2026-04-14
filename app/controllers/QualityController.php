@@ -5,9 +5,7 @@ namespace Akti\Controllers;
 use Akti\Models\QualityChecklist;
 use Akti\Utils\Input;
 
-class QualityController
-{
-    private \PDO $db;
+class QualityController extends BaseController {
     private QualityChecklist $model;
 
     public function __construct(\PDO $db, QualityChecklist $model)
@@ -99,7 +97,7 @@ class QualityController
 
         $this->model->addItem($data);
         header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
+        $this->json(['success' => true]);
     }
 
     public function removeItem()
@@ -107,7 +105,7 @@ class QualityController
         $itemId = Input::get('item_id', 'int', 0);
         $this->model->removeItem($itemId);
         header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
+        $this->json(['success' => true]);
     }
 
     public function inspect()
@@ -175,6 +173,6 @@ class QualityController
         $correctiveAction = Input::post('corrective_action', 'string', '');
         $this->model->resolveNonConformity($id, $correctiveAction);
         header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
+        $this->json(['success' => true]);
     }
 }

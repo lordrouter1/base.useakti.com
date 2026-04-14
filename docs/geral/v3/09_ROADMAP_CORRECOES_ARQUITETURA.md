@@ -74,8 +74,8 @@
   // View: $this->render($view, $data)
   ```
 - **Esforço:** 8-12h (gradual, por controller)
-- **Status:** ⚠️ Parcial (2025-04-14)
-- **Implementação:** BaseController::json(mixed $data, int $status) implementado. 23 controllers já extends BaseController com $this->json(). Porém **338 ocorrências** de `echo json_encode` persistem em 24 controllers (os maiores: CustomerController 61, NfeDocumentController 57, StockController 27, SupplyController 26). Removidos métodos privados json() duplicados de AttachmentController e LojaController. Commit `36c7a7b`.
+- **Status:** ✅ Concluído (2026-04-14)
+- **Implementação:** BaseController::json(mixed $data, int $status) implementado. Todos os 52 controllers agora extends BaseController. 335+221 = 556 `echo json_encode` substituídos por `$this->json()`. Restam apenas HealthController (2, excluído por conflito private $db) e BaseController (1, implementação). Removidos métodos privados json() duplicados (AttachmentController, LojaController) e isAjax() duplicados (6 controllers). Commits `36c7a7b`, `pendente`.
 - **v2:** Era ARCH-003. Parcialmente melhorado.
 
 ---
@@ -92,7 +92,8 @@
   }
   ```
 - **Esforço:** 8-16h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído (2026-04-14)
+- **Implementação:** 5 interfaces criadas em `app/services/Contracts/`: NfeServiceInterface, AuthServiceInterface, EmailServiceInterface, CheckoutServiceInterface, PipelinePaymentServiceInterface. PaymentGatewayInterface já existia em `app/gateways/Contracts/`. Os 5 services concretos agora `implements` suas interfaces. Autoloader PSR-4 já resolve sub-namespaces.
 - **v2:** Era ARCH-007. Mantido.
 
 ### ARCH-007: Models Retornam PDOStatement Direto
@@ -119,8 +120,8 @@
 - **Problema:** Alguns models usam properties públicas em vez de getters/setters.
 - **Correção:** Refatorar gradualmente para encapsulamento.
 - **Esforço:** 8-16h (gradual)
-- **Status:** ⚠️ Parcial (2025-04-14)
-- **Implementação:** Product.php (8 props → protected), Customer.php (4 props → protected), Subcategory.php (2 props → protected: show_in_store, free_shipping), Order.php (2 props → protected: quote_notes, created_at), User.php ($password → protected + setPassword/getPassword). **Restam públicas:** Order (8 props), Subcategory (3 props), User (5 props). Commit `36c7a7b`.
+- **Status:** ✅ Concluído (2026-04-14)
+- **Implementação:** Todas as properties agora protected em 5 models. Order (10 props), User (6 props), Subcategory (5 props), Product (8 props), Customer (4 props) — todos com `__get`/`__set` magic methods e whitelist `$fillable` para manter compatibilidade com callers existentes. Commits `36c7a7b`, `pendente`.
 - **v2:** Era ARCH-008. Mantido.
 
 ### ARCH-010: Eventos Apenas no Módulo NF-e
@@ -160,11 +161,11 @@
 |-----------|--------|--------|
 | CRÍTICA | ARCH-001 NfeService, ARCH-002 CustomerController | ✅ Ambos concluídos |
 | ALTA | ARCH-003 ProductController, ARCH-004 PipelineController | ✅ Ambos concluídos |
-| ALTA | ARCH-005 JSON Response | ⚠️ Parcial (23 controllers migrados, 338 `echo json_encode` restantes em 24 controllers) |
-| MÉDIA | ARCH-006 Interfaces | ⬜ Pendente |
+| ALTA | ARCH-005 JSON Response | ✅ Concluído (556 substituições, todos controllers extends BaseController) |
+| MÉDIA | ARCH-006 Interfaces | ✅ Concluído (5 interfaces + 5 implements) |
 | MÉDIA | ARCH-007 PDOStatement, ARCH-008 Type Hints | ✅ Ambos concluídos |
-| BAIXA | ARCH-009 Properties | ⚠️ Parcial (subset seguro encapsulado) |
+| BAIXA | ARCH-009 Properties | ✅ Concluído (5 models encapsulados com __get/__set) |
 | BAIXA | ARCH-010 Eventos | ✅ Concluído (11 novos listeners) |
 | BAIXA | ARCH-011 routes.php | ⚠️ Aceito |
 
-**Aplicado em:** 2025-04-14 — Commit `36c7a7b`
+**Aplicado em:** 2025-04-14 (fase 1) e 2026-04-14 (fase 2) — Commits `36c7a7b` + `pendente`

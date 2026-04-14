@@ -21,9 +21,7 @@ use Akti\Utils\Input;
  *
  * @package Akti\Controllers
  */
-class FinancialImportController
-{
-    private \PDO $db;
+class FinancialImportController extends BaseController {
     private FinancialImportService $importService;
 
     public function __construct(\PDO $db, FinancialImportService $importService)
@@ -31,9 +29,7 @@ class FinancialImportController
         if (!ModuleBootloader::isModuleEnabled('financial')) {
             http_response_code(403);
             header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Módulo financeiro desativado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Módulo financeiro desativado.']);}
 
         $this->db = $db;
         $this->importService = $importService;
@@ -56,14 +52,10 @@ class FinancialImportController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         if (empty($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo enviado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhum arquivo enviado.']);}
 
         $file = $_FILES['import_file'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -74,9 +66,7 @@ class FinancialImportController
         $allowedMimes = ['text/plain', 'text/csv', 'application/csv', 'application/octet-stream',
                          'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
         if (!in_array($mime, $allowedMimes)) {
-            echo json_encode(['success' => false, 'message' => 'Tipo de arquivo não permitido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Tipo de arquivo não permitido.']);}
 
         if ($ext === 'ofx' || $ext === 'ofc') {
             $content = file_get_contents($file['tmp_name']);
@@ -86,18 +76,18 @@ class FinancialImportController
                 $this->importService->saveImportTmpFile($file['tmp_name'], $ext);
             }
 
-            echo json_encode($result);
+            $this->json($result);
 
         } elseif (in_array($ext, ['csv', 'txt'])) {
             $this->importService->saveImportTmpFile($file['tmp_name'], $ext);
-            echo json_encode($this->importService->parseCsv($file['tmp_name']));
+            $this->json($this->importService->parseCsv($file['tmp_name']));
 
         } elseif (in_array($ext, ['xls', 'xlsx'])) {
             $this->importService->saveImportTmpFile($file['tmp_name'], $ext);
-            echo json_encode($this->importService->parseExcel($file['tmp_name']));
+            $this->json($this->importService->parseExcel($file['tmp_name']));
 
         } else {
-            echo json_encode(['success' => false, 'message' => 'Formato não suportado. Envie OFX, CSV, TXT, XLS ou XLSX.']);
+            $this->json(['success' => false, 'message' => 'Formato não suportado. Envie OFX, CSV, TXT, XLS ou XLSX.']);
         }
         exit;
     }
@@ -111,9 +101,7 @@ class FinancialImportController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         // Determinar origem do arquivo
         $filePath = null;
@@ -128,9 +116,7 @@ class FinancialImportController
         }
 
         if (!$filePath) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo enviado ou arquivo temporário expirado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhum arquivo enviado ou arquivo temporário expirado.']);}
 
         $mode = Input::post('import_mode', 'enum', 'registro', ['registro', 'contabilizar']);
         $userId = $_SESSION['user_id'] ?? null;
@@ -160,9 +146,7 @@ class FinancialImportController
         }
 
         if (empty($rows) || empty($selectedRows)) {
-            echo json_encode(['success' => false, 'message' => 'Nenhuma linha selecionada para importação.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhuma linha selecionada para importação.']);}
 
         // Resolve column-name→field mapping to column-index→field mapping
         $headers = array_map(function ($h) { return trim($h); }, $rows[0] ?? []);
@@ -191,12 +175,10 @@ class FinancialImportController
             $result = $this->importService->importCsvMapped($rows, $resolvedMapping, $selectedRows, $mode, $userId);
         } catch (\Exception $e) {
             Log::error('FinancialImportController: importCsv', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno na importação. Tente novamente.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Erro interno na importação. Tente novamente.']);}
 
         $modeLabel = $mode === 'registro' ? 'apenas registro (não contabilizado)' : 'contabilizado no caixa';
-        echo json_encode([
+        $this->json([
             'success'  => true,
             'imported' => $result['imported'],
             'skipped'  => $result['skipped'],
@@ -207,9 +189,7 @@ class FinancialImportController
                 $modeLabel,
                 !empty($result['errors']) ? ' Erros: ' . count($result['errors']) : ''
             )
-        ]);
-        exit;
-    }
+        ]);}
 
     // ═══════════════════════════════════════════
     // AJAX: Importar transações OFX selecionadas
@@ -220,9 +200,7 @@ class FinancialImportController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $mode = Input::post('import_mode', 'enum', 'registro', ['registro', 'contabilizar']);
         $userId = $_SESSION['user_id'] ?? null;
@@ -234,9 +212,7 @@ class FinancialImportController
         }
 
         $result = $this->importService->importOfxSelected($selectedIndexes, $mode, $userId);
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ═══════════════════════════════════════════
     // AJAX: Importar OFX direto (modo legado)
@@ -247,22 +223,16 @@ class FinancialImportController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         if (empty($_FILES['ofx_file']) || $_FILES['ofx_file']['error'] !== UPLOAD_ERR_OK) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo OFX enviado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhum arquivo OFX enviado.']);}
 
         $file = $_FILES['ofx_file'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
         if (!in_array($ext, ['ofx', 'ofc'])) {
-            echo json_encode(['success' => false, 'message' => 'Formato não suportado. Envie um arquivo .OFX']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Formato não suportado. Envie um arquivo .OFX']);}
 
         $mode = Input::post('import_mode', 'enum', 'registro', ['registro', 'contabilizar']);
         $userId = $_SESSION['user_id'] ?? null;
@@ -271,7 +241,7 @@ class FinancialImportController
             $result = $this->importService->importOfxDirect($file['tmp_name'], $mode, $userId);
 
             $modeLabel = $mode === 'registro' ? 'apenas registro (não contabilizado)' : 'contabilizado no caixa';
-            echo json_encode([
+            $this->json([
                 'success'  => true,
                 'imported' => $result['imported'],
                 'skipped'  => $result['skipped'],
@@ -285,7 +255,7 @@ class FinancialImportController
             ]);
         } catch (\Exception $e) {
             Log::error('FinancialImportController: validateRows', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno na importação. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno na importação. Tente novamente.']);
         }
         exit;
     }

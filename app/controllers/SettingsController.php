@@ -12,9 +12,7 @@ use Akti\Utils\Input;
 use Akti\Services\SettingsService;
 use TenantManager;
 
-class SettingsController {
-
-    private \PDO $db;
+class SettingsController extends BaseController {
     private CompanySettings $companySettings;
     private PriceTable $priceTable;
     private PreparationStep $preparationStep;
@@ -326,9 +324,7 @@ class SettingsController {
         $customerId = Input::get('customer_id', 'int');
         $prices = $this->priceTable->getAllPricesForCustomer($customerId);
         header('Content-Type: application/json');
-        echo json_encode($prices);
-        exit;
-    }
+        $this->json($prices);}
 
     // ──────── ETAPAS DE PREPARO GLOBAIS ────────
 
@@ -393,9 +389,9 @@ class SettingsController {
         $id = Input::post('id', 'int');
         if ($id) {
             $this->preparationStep->toggleActive($id);
-            echo json_encode(['success' => true]);
+            $this->json(['success' => true]);
         } else {
-            echo json_encode(['success' => false, 'message' => 'ID não informado']);
+            $this->json(['success' => false, 'message' => 'ID não informado']);
         }
         exit;
     }
@@ -475,17 +471,13 @@ class SettingsController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método não permitido.']);}
 
         $groupId = Input::post('group_id', 'int');
         $widgetsJson = Input::post('widgets');
 
         $result = $this->settingsService->saveDashboardWidgets($groupId, $widgetsJson ?? '');
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * Resetar configuração de widgets de um grupo para o padrão global (AJAX/JSON)
@@ -494,14 +486,10 @@ class SettingsController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método não permitido.']);}
 
         $groupId = Input::post('group_id', 'int');
         $result = $this->settingsService->resetDashboardWidgets($groupId);
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
 }

@@ -17,9 +17,7 @@ use TenantManager;
  *
  * @package Akti\Controllers
  */
-class NfeCredentialController
-{
-    private \PDO $db;
+class NfeCredentialController extends BaseController {
     private NfeCredential $credModel;
 
     public function __construct(\PDO $db, NfeCredential $credModel)
@@ -255,9 +253,7 @@ class NfeCredentialController
         $nfeService = new NfeService($this->db);
         $result = $nfeService->testConnection();
 
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     // ══════════════════════════════════════════════════════════════
     // Importação IBPTax (CSV)
@@ -274,35 +270,25 @@ class NfeCredentialController
 
         // Verificar permissão de escrita
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['success' => false, 'message' => 'Sessão expirada.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Sessão expirada.']);}
         $userModel = new User($this->db);
         if (!$userModel->checkPermission($_SESSION['user_id'], 'nfe_credentials')) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Sem permissão para esta ação.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Sem permissão para esta ação.']);}
 
         // Validar arquivo
         if (!isset($_FILES['ibptax_csv']) || $_FILES['ibptax_csv']['error'] !== UPLOAD_ERR_OK) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo CSV enviado ou erro no upload.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhum arquivo CSV enviado ou erro no upload.']);}
 
         $file = $_FILES['ibptax_csv'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
         if (!in_array($ext, ['csv', 'txt'])) {
-            echo json_encode(['success' => false, 'message' => 'Formato inválido. Envie um arquivo .csv ou .txt da tabela IBPTax.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Formato inválido. Envie um arquivo .csv ou .txt da tabela IBPTax.']);}
 
         // Limite de tamanho: 20MB
         if ($file['size'] > 20 * 1024 * 1024) {
-            echo json_encode(['success' => false, 'message' => 'Arquivo muito grande (máx. 20MB).']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Arquivo muito grande (máx. 20MB).']);}
 
         try {
             $ibptaxModel = new \Akti\Models\IbptaxModel($this->db);
@@ -325,7 +311,7 @@ class NfeCredentialController
                 $msg .= sprintf(' (%d registros anteriores removidos.)', $removed);
             }
 
-            echo json_encode([
+            $this->json([
                 'success'  => true,
                 'message'  => $msg,
                 'imported' => $result['imported'],
@@ -334,7 +320,7 @@ class NfeCredentialController
             ]);
         } catch (\Throwable $e) {
             Log::error('NfeCredentialController: importCertificates', ['exception' => $e->getMessage()]);
-            echo json_encode([
+            $this->json([
                 'success' => false,
                 'message' => 'Erro interno na importação. Tente novamente.',
             ]);
@@ -352,10 +338,10 @@ class NfeCredentialController
         try {
             $ibptaxModel = new \Akti\Models\IbptaxModel($this->db);
             $stats = $ibptaxModel->getStats();
-            echo json_encode(['success' => true, 'stats' => $stats]);
+            $this->json(['success' => true, 'stats' => $stats]);
         } catch (\Throwable $e) {
             Log::error('NfeCredentialController: ibptaxStats', ['exception' => $e->getMessage()]);
-            echo json_encode(['success' => false, 'message' => 'Erro interno ao consultar estatísticas. Tente novamente.']);
+            $this->json(['success' => false, 'message' => 'Erro interno ao consultar estatísticas. Tente novamente.']);
         }
         exit;
     }

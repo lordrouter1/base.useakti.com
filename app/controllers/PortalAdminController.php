@@ -22,7 +22,6 @@ use Akti\Utils\Input;
  */
 class PortalAdminController extends BaseController
 {
-    private \PDO $db;
     private PortalAccess $portalAccess;
     private PortalAdminService $service;
 

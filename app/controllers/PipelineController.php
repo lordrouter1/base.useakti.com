@@ -22,7 +22,6 @@ use Akti\Utils\Sanitizer;
 class PipelineController extends BaseController {
 
     private Pipeline $pipelineModel;
-    private \PDO $db;
     private Stock $stockModel;
     private PipelineService $pipelineService;
     private PipelineAlertService $alertService;

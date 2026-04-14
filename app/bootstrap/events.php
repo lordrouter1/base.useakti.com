@@ -1569,10 +1569,10 @@ foreach ($workflowEvents as $wfEvent) {
 $businessLogFile = (defined('AKTI_BASE_PATH') ? AKTI_BASE_PATH : '') . 'storage/logs/business.log';
 
 /**
- * pipeline.completed — Pedido concluiu o pipeline de produção.
+ * model.pipeline.completed — Pedido concluiu o pipeline de produção.
  * Payload: id, from_stage, user_id
  */
-EventDispatcher::listen('pipeline.completed', function (Event $event) use ($businessLogFile, $writeLog, $notifyAdmins) {
+EventDispatcher::listen('model.pipeline.completed', function (Event $event) use ($businessLogFile, $writeLog, $notifyAdmins) {
     $data = $event->getData();
 
     $writeLog($businessLogFile, sprintf(

@@ -9,19 +9,41 @@ class Order {
     private $conn;
     private $table_name = "orders";
 
-    public $id;
-    public $customer_id;
-    public $total_amount;
-    public $status;
-    public $pipeline_stage;
-    public $priority;
-    public $internal_notes;
+    protected $id;
+    protected $customer_id;
+    protected $total_amount;
+    protected $status;
+    protected $pipeline_stage;
+    protected $priority;
+    protected $internal_notes;
     protected $quote_notes;
-    public $scheduled_date;
+    protected $scheduled_date;
     protected $created_at;
+
+    private static array $fillable = [
+        'id', 'customer_id', 'total_amount', 'status',
+        'pipeline_stage', 'priority', 'internal_notes',
+        'quote_notes', 'scheduled_date', 'created_at',
+    ];
 
     public function __construct(\PDO $db) {
         $this->conn = $db;
+    }
+
+    public function __get(string $name): mixed {
+        if (in_array($name, self::$fillable, true)) {
+            return $this->$name ?? null;
+        }
+        trigger_error("Undefined property: Order::\$$name", E_USER_NOTICE);
+        return null;
+    }
+
+    public function __set(string $name, mixed $value): void {
+        if (in_array($name, self::$fillable, true)) {
+            $this->$name = $value;
+            return;
+        }
+        trigger_error("Undefined property: Order::\$$name", E_USER_NOTICE);
     }
 
     public function create() {

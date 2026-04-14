@@ -12,8 +12,7 @@ use Akti\Utils\Input;
  *
  * @package Akti\Controllers
  */
-class CustomerExportController
-{
+class CustomerExportController extends BaseController {
     private CustomerExportService $exportService;
 
     public function __construct(\PDO $db, CustomerExportService $exportService)

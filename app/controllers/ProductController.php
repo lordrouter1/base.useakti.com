@@ -16,7 +16,7 @@ use Akti\Utils\Sanitizer;
 use Akti\Utils\Validator;
 use TenantManager;
 
-class ProductController {
+class ProductController extends BaseController {
 
     private Product $productModel;
     private Category $categoryModel;
@@ -26,8 +26,6 @@ class ProductController {
     private Logger $logger;
     private ProductImportService $importService;
     private ProductGradeService $gradeService;
-    private \PDO $db;
-
     public function __construct(
         \PDO $db,
         Product $productModel,
@@ -202,9 +200,7 @@ class ProductController {
         $categoryId = Input::get('category_id', 'int');
         if ($categoryId) {
             $stmt = $this->categoryModel->getSubcategories($categoryId);
-            echo json_encode($stmt);
-            exit;
-        }
+            $this->json($stmt);}
     }
     
     // AJAX for create category on the fly
@@ -213,9 +209,9 @@ class ProductController {
             $name = Input::post('name');
             $this->categoryModel->name = $name;
             if ($this->categoryModel->create()) {
-                echo json_encode(['success' => true, 'id' => $this->categoryModel->id, 'name' => $name]);
+                $this->json(['success' => true, 'id' => $this->categoryModel->id, 'name' => $name]);
             } else {
-                echo json_encode(['success' => false]);
+                $this->json(['success' => false]);
             }
             exit;
         }
@@ -435,12 +431,12 @@ class ProductController {
                         unlink($image['image_path']);
                     }
                     $this->productModel->deleteImage($imageId);
-                    echo json_encode(['success' => true]);
+                    $this->json(['success' => true]);
                 } else {
-                    echo json_encode(['success' => false]);
+                    $this->json(['success' => false]);
                 }
             } else {
-                echo json_encode(['success' => false]);
+                $this->json(['success' => false]);
             }
             exit;
         }
@@ -459,9 +455,7 @@ class ProductController {
 
         $results = $this->productModel->searchForSelect2($q, $limit);
 
-        echo json_encode(['data' => $results]);
-        exit;
-    }
+        $this->json(['data' => $results]);}
 
     /**
      * AJAX: Busca paginada de produtos para Select2 com scroll infinito.
@@ -478,14 +472,12 @@ class ProductController {
 
         $result = $this->productModel->searchPaginated($q, $page, $perPage);
 
-        echo json_encode([
+        $this->json([
             'success' => true,
             'data'    => $result['data'],
             'total'   => $result['total'],
             'hasMore' => $result['hasMore'],
-        ]);
-        exit;
-    }
+        ]);}
 
     /**
      * AJAX: Lista produtos com filtros e paginação (para a seção de visão geral)
@@ -504,16 +496,14 @@ class ProductController {
         $totalPages = max(1, (int) ceil($total / $perPage));
         $items      = $result['data'];
 
-        echo json_encode([
+        $this->json([
             'success'     => true,
             'items'       => $items,
             'total'       => $total,
             'page'        => $page,
             'per_page'    => $perPage,
             'total_pages' => $totalPages,
-        ]);
-        exit;
-    }
+        ]);}
 
     /**
      * AJAX: Analisa arquivo de importação (CSV/XLS/XLSX) e retorna preview.
@@ -523,14 +513,10 @@ class ProductController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['import_file'])) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo enviado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhum arquivo enviado.']);}
 
         $result = $this->importService->parseImportFile($_FILES['import_file']);
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * AJAX: Importa produtos usando mapeamento de colunas definido pelo usuário.
@@ -540,20 +526,14 @@ class ProductController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Método inválido.']);}
 
         $mapping = json_decode(Input::post('mapping'), true);
         if (empty($mapping)) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum mapeamento de colunas definido.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhum mapeamento de colunas definido.']);}
 
         $result = $this->importService->importProductsMapped($mapping);
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
 
     /**
      * Download CSV import template.
@@ -572,14 +552,10 @@ class ProductController {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['import_file'])) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum arquivo enviado.']);
-            exit;
-        }
+            $this->json(['success' => false, 'message' => 'Nenhum arquivo enviado.']);}
 
         $result = $this->importService->importProductsDirect($_FILES['import_file']);
-        echo json_encode($result);
-        exit;
-    }
+        $this->json($result);}
     
     /**
      * AJAX: Create a new grade type on the fly.
@@ -591,12 +567,8 @@ class ProductController {
             $description = Input::post('description');
             $icon = Input::post('icon', 'string', 'fas fa-th');
             $result = $this->gradeService->createGradeType($name, $description ?: null, $icon);
-            echo json_encode($result);
-            exit;
-        }
-        echo json_encode(['success' => false]);
-        exit;
-    }
+            $this->json($result);}
+        $this->json(['success' => false]);}
 
     /**
      * AJAX: Get grade types list.
@@ -604,9 +576,7 @@ class ProductController {
      */
     public function getGradeTypes() {
         $types = $this->gradeService->getAllGradeTypes();
-        echo json_encode($types);
-        exit;
-    }
+        $this->json($types);}
 
     /**
      * AJAX: Generate and return combinations based on provided grades data.
@@ -616,10 +586,6 @@ class ProductController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $gradesData = Input::postArray('grades');
             $combinations = $this->gradeService->generateCombinations($gradesData);
-            echo json_encode(['success' => true, 'combinations' => $combinations]);
-            exit;
-        }
-        echo json_encode(['success' => false]);
-        exit;
-    }
+            $this->json(['success' => true, 'combinations' => $combinations]);}
+        $this->json(['success' => false]);}
 }

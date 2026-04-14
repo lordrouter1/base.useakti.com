@@ -5,9 +5,7 @@ namespace Akti\Controllers;
 use Akti\Models\CalendarEvent;
 use Akti\Utils\Input;
 
-class CalendarController
-{
-    private \PDO $db;
+class CalendarController extends BaseController {
     private CalendarEvent $model;
 
     public function __construct(\PDO $db, CalendarEvent $model)
@@ -52,7 +50,7 @@ class CalendarController
         }, $events);
 
         header('Content-Type: application/json');
-        echo json_encode($formatted);
+        $this->json($formatted);
     }
 
     public function store()
@@ -73,7 +71,7 @@ class CalendarController
         $id = $this->model->create($data);
 
         header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'id' => $id]);
+        $this->json(['success' => true, 'id' => $id]);
     }
 
     public function update()
@@ -94,7 +92,7 @@ class CalendarController
         $this->model->update($id, $data);
 
         header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
+        $this->json(['success' => true]);
     }
 
     public function delete()
@@ -103,7 +101,7 @@ class CalendarController
         $this->model->delete($id);
 
         header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
+        $this->json(['success' => true]);
     }
 
     public function sync()
@@ -113,7 +111,7 @@ class CalendarController
         $installmentsSync = $this->model->syncFromInstallments($tenantId);
 
         header('Content-Type: application/json');
-        echo json_encode([
+        $this->json([
             'success' => true,
             'synced'  => ['orders' => $ordersSync, 'installments' => $installmentsSync],
         ]);
