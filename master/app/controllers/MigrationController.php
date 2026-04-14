@@ -69,7 +69,8 @@ class MigrationController
             $diff = $this->migrationModel->compareSchema($dbName);
             echo json_encode(['success' => true, 'db' => $dbName, 'diff' => $diff]);
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            error_log('[MigrationController::compareSchema] ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao comparar schema.']);
         }
         exit;
     }
@@ -245,7 +246,8 @@ class MigrationController
             $this->migrationModel->toggleTenantUser($dbName, $userId);
             echo json_encode(['success' => true, 'message' => 'Status do usuário alterado']);
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            error_log('[MigrationController::toggleTenantUser] ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao alterar usuário.']);
         }
         exit;
     }
@@ -267,7 +269,8 @@ class MigrationController
             $users = $this->migrationModel->listUsersFromDatabase($dbName);
             echo json_encode(['success' => true, 'users' => $users]);
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            error_log('[MigrationController::dbUsers] ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Erro interno ao listar usuários.']);
         }
         exit;
     }

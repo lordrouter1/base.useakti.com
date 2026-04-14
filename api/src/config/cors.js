@@ -6,18 +6,22 @@ import { env } from './env.js';
  */
 export const corsOptions = {
   origin(origin, callback) {
-    // Allow requests with no origin (server-to-server, curl, mobile apps)
+    // Block requests with no origin in production (prevents null origin attacks).
+    // Allow in development for curl/Postman.
     if (!origin) {
-      return callback(null, true);
+      if (env.NODE_ENV === 'development') {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
     }
 
     const pattern = env.CORS_ORIGIN_PATTERN; // e.g. ".useakti.com"
+
+    // Strict origin validation using regex for subdomains
     const isAllowed =
+      /^https?:\/\/([a-z0-9-]+\.)*useakti\.com(:\d+)?$/.test(origin) ||
       origin.endsWith(pattern) ||
-      origin.includes('localhost') ||
-      origin.includes('127.0.0.1') ||
-      origin.includes('.useakti.com') ||
-      origin.includes('useakti.com');
+      (env.NODE_ENV === 'development' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
 
     if (isAllowed) {
       return callback(null, true);

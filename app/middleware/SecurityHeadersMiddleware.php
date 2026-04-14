@@ -22,6 +22,22 @@ namespace Akti\Middleware;
 class SecurityHeadersMiddleware
 {
     /**
+     * Nonce CSP gerado por request para inline scripts.
+     */
+    private static ?string $nonce = null;
+
+    /**
+     * Retorna o nonce CSP do request atual. Gera um novo se não existir.
+     */
+    public static function getNonce(): string
+    {
+        if (self::$nonce === null) {
+            self::$nonce = base64_encode(random_bytes(16));
+        }
+        return self::$nonce;
+    }
+
+    /**
      * Aplica todos os headers de segurança.
      * Deve ser chamado ANTES de qualquer output HTML/JSON.
      */
@@ -30,6 +46,8 @@ class SecurityHeadersMiddleware
         if (headers_sent()) {
             return;
         }
+
+        $nonce = self::getNonce();
 
         // Previne MIME type sniffing — o navegador respeita o Content-Type declarado
         header('X-Content-Type-Options: nosniff');
@@ -48,7 +66,19 @@ class SecurityHeadersMiddleware
         header('X-XSS-Protection: 0');
 
         // Content Security Policy — controla origens permitidas de scripts, styles e recursos
-        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com code.jquery.com; style-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com fonts.googleapis.com; font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com; img-src 'self' data: blob:");
+        // Nota: 'unsafe-inline' mantido como fallback para navegadores antigos.
+        // Em CSP Level 2+, 'unsafe-inline' é ignorado quando um nonce está presente.
+        $csp  = "default-src 'self'; ";
+        $csp .= "script-src 'self' 'unsafe-inline' 'nonce-{$nonce}' cdn.jsdelivr.net cdnjs.cloudflare.com code.jquery.com; ";
+        $csp .= "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com fonts.googleapis.com; ";
+        $csp .= "font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com; ";
+        $csp .= "img-src 'self' data: blob:; ";
+        $csp .= "connect-src 'self'; ";
+        $csp .= "object-src 'none'; ";
+        $csp .= "base-uri 'self'; ";
+        $csp .= "form-action 'self'; ";
+        $csp .= "frame-ancestors 'self'";
+        header("Content-Security-Policy: {$csp}");
 
         // HSTS — força HTTPS por 1 ano (apenas quando já em HTTPS)
         if (self::isHttps()) {

@@ -55,6 +55,19 @@ class CustomerImportService
             return ['success' => false, 'message' => 'Formato não suportado. Use CSV, XLS ou XLSX.'];
         }
 
+        // Validar MIME type via magic bytes
+        $allowedMimes = [
+            'text/plain', 'text/csv', 'application/csv',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/octet-stream',
+        ];
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $detectedMime = $finfo->file($file['tmp_name']);
+        if (!in_array($detectedMime, $allowedMimes, true)) {
+            return ['success' => false, 'message' => 'Conteúdo do arquivo inválido para o formato informado.'];
+        }
+
         $rows = $this->readFileRows($file['tmp_name'], $ext);
 
         if (empty($rows)) {

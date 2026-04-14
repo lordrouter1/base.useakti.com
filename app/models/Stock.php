@@ -525,7 +525,7 @@ class Stock {
         }
 
         $whereStr = implode(' AND ', $where);
-        $limit = !empty($filters['limit']) ? "LIMIT " . intval($filters['limit']) : "LIMIT 200";
+        $limitVal = !empty($filters['limit']) ? intval($filters['limit']) : 200;
 
         $stmt = $this->conn->prepare("
             SELECT sm.*, 
@@ -540,13 +540,14 @@ class Stock {
             LEFT JOIN product_grade_combinations pgc ON sm.combination_id = pgc.id
             LEFT JOIN warehouses dw ON sm.destination_warehouse_id = dw.id
             LEFT JOIN users u ON sm.user_id = u.id
-            WHERE $whereStr
+            WHERE {$whereStr}
             ORDER BY sm.created_at DESC
-            $limit
+            LIMIT :queryLimit
         ");
         foreach ($params as $k => $v) {
             $stmt->bindValue($k, $v);
         }
+        $stmt->bindValue(':queryLimit', $limitVal, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

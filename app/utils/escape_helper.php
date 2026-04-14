@@ -93,3 +93,16 @@ function eUrl($value): string
 {
     return \Akti\Utils\Escape::url($value);
 }
+
+/**
+ * Retorna o nonce CSP do request atual para uso em tags <script>.
+ *
+ * Exemplo:
+ *   <script nonce="<?= cspNonce() ?>">...</script>
+ *
+ * @return string
+ */
+function cspNonce(): string
+{
+    return \Akti\Middleware\SecurityHeadersMiddleware::getNonce();
+}

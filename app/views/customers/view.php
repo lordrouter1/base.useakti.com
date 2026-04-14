@@ -63,7 +63,7 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li><a class="dropdown-item small" href="?page=customers&action=export&format=csv&ids=<?= (int)$c['id'] ?>"><i class="fas fa-file-csv me-2 text-success"></i>Exportar CSV</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item small text-danger" href="#" onclick="deleteCustomer(<?= (int)$c['id'] ?>, '<?= addslashes(e($c['name'])) ?>')"><i class="fas fa-trash me-2"></i>Excluir</a></li>
+                    <li><a class="dropdown-item small text-danger" href="#" onclick="deleteCustomer(<?= (int)$c['id'] ?>, '<?= eJs($c['name']) ?>')"><i class="fas fa-trash me-2"></i>Excluir</a></li>
                 </ul>
             </div>
         </div>

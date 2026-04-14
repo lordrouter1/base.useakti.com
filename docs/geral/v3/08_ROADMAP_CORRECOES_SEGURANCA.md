@@ -21,7 +21,7 @@
   ```
 - **Teste:** Inserir `</script><script>alert(1)</script>` em campos de texto e verificar que o conteúdo é escapado corretamente.
 - **Esforço:** 2-4h (busca e substituição controlada)
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — `addslashes()` substituído por `eJs()` em 24 views + nonce CSP adicionado
 
 ### SEC-002: Double Escaping em customers/view.php
 - **Arquivo:** `app/views/customers/view.php:66`
@@ -37,7 +37,7 @@
   ```
 - **Teste:** Inserir nomes com aspas, apóstrofos e caracteres especiais.
 - **Esforço:** 15min
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — substituído por `eJs($c['name'])`
 
 ### SEC-003: SQL Interpolation em Models
 - **Arquivo:** `app/models/Stock.php:596`, `app/models/ReportTemplate.php:261`, `app/models/RecurringTransaction.php:110-251`, `app/models/Supplier.php:44`, `app/models/PriceTable.php:32-219`
@@ -54,7 +54,7 @@
   ```
 - **Teste:** Executar testes de SQLi com payloads como `' OR 1=1 --` nos campos afetados.
 - **Esforço:** 8-12h (cada model precisa refatoração individual)
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — Stock.php $limit parametrizado; demais models já usam whitelists internas seguras
 - **Nota:** SEC-003 da v2 (ProductionSector.php) pode estar corrigido. Novos locais identificados.
 
 ### SEC-004: Information Disclosure via `$e->getMessage()`
@@ -72,7 +72,7 @@
   ```
 - **Teste:** Provocar erros de migração e verificar que a resposta não contém informações de banco.
 - **Esforço:** 1h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — getMessage() substituído por mensagem genérica + error_log em 3 locais
 - **v2:** Era SEC-002. Mantido pendente.
 
 ---
@@ -95,7 +95,7 @@
   ```
 - **Teste:** Tentar upload de .php renomeado para .jpg; upload de arquivo com extensão válida mas MIME inválido.
 - **Esforço:** 4-6h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — MIME validation via finfo() adicionado em ProductImportService e CustomerImportService; FileManager já possuía validação
 - **v2:** Era SEC-004. Mantido pendente.
 
 ### SEC-006: CSP com `'unsafe-inline'`
@@ -108,7 +108,7 @@
   3. Substituir `'unsafe-inline'` por `'nonce-{valor}'`
 - **Teste:** Verificar que todas as páginas funcionam sem `'unsafe-inline'`.
 - **Esforço:** 16-24h (inclui migração de scripts inline)
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Parcial — Nonce CSP implementado (geração + helper `cspNonce()`), aplicado em footer.php e 24 toast scripts. CSP enriquecido com `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'self'`, `connect-src 'self'`. Manter `'unsafe-inline'` como fallback até todas as views receberem nonce.
 - **v2:** Na v2 CSP não existia (SEC-011). Agora existe mas com unsafe-inline.
 
 ### SEC-007: CORS Excessivamente Permissivo
@@ -126,7 +126,7 @@
   ```
 - **Teste:** Requisição com `Origin: null` e `Origin: https://evil.com` devem ser rejeitadas.
 - **Esforço:** 2h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — regex estrito para subdomínios, null origin bloqueado em produção, localhost restrito a dev
 
 ---
 
@@ -142,7 +142,7 @@
   ```
 - **Teste:** Inserir `<img src=x onerror=alert(1)>` no conteúdo.
 - **Esforço:** 2h
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — HTML escape via `_escHtml()` aplicado em step.title, step.description, step.icon, step.page
 - **v2:** Era SEC-006. Mantido pendente.
 
 ### SEC-009: Arquivos .bak em Produção
@@ -156,7 +156,7 @@
   </FilesMatch>
   ```
 - **Esforço:** 15min
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — 7 arquivos .bak removidos + .htaccess com FilesMatch para bloquear extensões sensíveis
 - **v2:** Era SEC-010. Mantido pendente.
 
 ### SEC-010: `EMULATE_PREPARES` não desabilitado
@@ -167,7 +167,7 @@
   $pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
   ```
 - **Esforço:** 15min
-- **Status:** ⬜ Pendente
+- **Status:** ✅ Concluído — `ATTR_EMULATE_PREPARES = false` e `ATTR_DEFAULT_FETCH_MODE = FETCH_ASSOC` adicionados em getInstance() e getConnection()
 
 ---
 

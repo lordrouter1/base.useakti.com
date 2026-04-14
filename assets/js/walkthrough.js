@@ -5,6 +5,16 @@
  */
 class AktiWalkthrough {
 
+    /**
+     * Escapa HTML para prevenir XSS em conteúdo dinâmico.
+     */
+    static _escHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
+    }
+
     constructor() {
         this.steps = [];
         this.currentIndex = 0;
@@ -348,11 +358,11 @@ class AktiWalkthrough {
                 <div class="wt-modal-header">
                     <img src="assets/logos/akti-square-light.svg" alt="Akti" class="wt-modal-logo"
                          onerror="this.style.display='none'">
-                    <span class="wt-modal-icon"><i class="${step.icon || 'fas fa-star'}"></i></span>
-                    <h3>${step.title}</h3>
+                    <span class="wt-modal-icon"><i class="${AktiWalkthrough._escHtml(step.icon) || 'fas fa-star'}"></i></span>
+                    <h3>${AktiWalkthrough._escHtml(step.title)}</h3>
                 </div>
                 <div class="wt-modal-body">
-                    <p>${step.description}</p>
+                    <p>${AktiWalkthrough._escHtml(step.description)}</p>
                 </div>
                 <div class="wt-modal-footer">
                     ${!isFirst && !isLast ? '<button class="wt-btn wt-btn-secondary" id="wtModalPrev"><i class="fas fa-arrow-left me-1"></i> Voltar</button>' : ''}
@@ -423,12 +433,12 @@ class AktiWalkthrough {
                         <span class="wt-popover-step-badge">
                             <i class="fas fa-map-pin"></i> Passo ${highlightIndex + 1} de ${totalHighlight}
                         </span>
-                        ${step.page ? '<span class="wt-popover-page-badge"><i class="fas fa-file-alt"></i> ' + this._formatPageName(step.page) + '</span>' : ''}
+                        ${step.page ? '<span class="wt-popover-page-badge"><i class="fas fa-file-alt"></i> ' + AktiWalkthrough._escHtml(this._formatPageName(step.page)) + '</span>' : ''}
                     </div>
-                    <h4>${step.title}</h4>
+                    <h4>${AktiWalkthrough._escHtml(step.title)}</h4>
                 </div>
                 <div class="wt-popover-body">
-                    <p>${step.description}</p>
+                    <p>${AktiWalkthrough._escHtml(step.description)}</p>
                 </div>
                 <div class="wt-popover-footer">
                     <div class="wt-progress">

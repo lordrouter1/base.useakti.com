@@ -37,7 +37,7 @@
 
 <!-- Session Flash Messages (success / error) -->
 <?php if (isset($_SESSION['success']) || isset($_SESSION['error'])): ?>
-<script>
+<script nonce="<?= cspNonce() ?>">
 document.addEventListener('DOMContentLoaded', function() {
     <?php if (isset($_SESSION['success'])): ?>
     if (typeof AktiToast !== 'undefined') {
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endif; ?>
 
 <!-- FileManager: JS helpers para thumbnail URLs -->
-<script>
+<script nonce="<?= cspNonce() ?>">
 function thumbUrl(path, w, h) {
     if (!path) return '';
     var ext = path.split('.').pop().toLowerCase();
@@ -110,7 +110,7 @@ if (isset($_SESSION['user_id'])) {
 <script src="assets/js/product-select2.js"></script>
 <!-- Customer Select2 integration -->
 <script src="assets/js/customer-select2.js"></script>
-<script>
+<script nonce="<?= cspNonce() ?>">
     document.addEventListener('DOMContentLoaded', function() {
         // Botão de tutorial no rodapé
         var wtBtn = document.getElementById('wtFooterHelp');

@@ -1,0 +1,10 @@
+# Bloquear acesso a arquivos de backup e temporários
+<FilesMatch "\.(bak|new|old|orig|swp|sql)$">
+    Require all denied
+</FilesMatch>
+
+# Bloquear acesso a diretórios sensíveis
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(app|sql|tests|scripts|storage|vendor|\.github)/ - [F,L]
+</IfModule>
