@@ -42,7 +42,7 @@ class Equipment
         $stmt = $this->conn->prepare("
             SELECT e.*, s.name AS sector_name
             FROM equipment e
-            LEFT JOIN sectors s ON e.sector_id = s.id
+            LEFT JOIN production_sectors s ON e.sector_id = s.id
             WHERE e.tenant_id = :tid AND e.deleted_at IS NULL
             ORDER BY e.name ASC
         ");
@@ -74,7 +74,7 @@ class Equipment
         $stmt = $this->conn->prepare("
             SELECT e.*, s.name AS sector_name
             FROM equipment e
-            LEFT JOIN sectors s ON e.sector_id = s.id
+            LEFT JOIN production_sectors s ON e.sector_id = s.id
             WHERE {$where}
             ORDER BY e.name ASC
             LIMIT :lim OFFSET :off
@@ -99,7 +99,7 @@ class Equipment
         $stmt = $this->conn->prepare("
             SELECT e.*, s.name AS sector_name
             FROM equipment e
-            LEFT JOIN sectors s ON e.sector_id = s.id
+            LEFT JOIN production_sectors s ON e.sector_id = s.id
             WHERE e.id = :id AND e.tenant_id = :tid AND e.deleted_at IS NULL
         ");
         $stmt->execute([':id' => $id, ':tid' => $tenantId]);

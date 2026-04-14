@@ -110,7 +110,7 @@ class EsgMetric
             SELECT er.*, em.name AS metric_name, em.unit, em.category, s.name AS sector_name
             FROM esg_records er
             JOIN esg_metrics em ON er.metric_id = em.id
-            LEFT JOIN sectors s ON er.sector_id = s.id
+            LEFT JOIN production_sectors s ON er.sector_id = s.id
             WHERE {$where}
             ORDER BY er.reference_date DESC
         ");
