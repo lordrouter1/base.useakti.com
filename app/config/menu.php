@@ -88,6 +88,18 @@ return [
                 'menu'       => true,
                 'permission' => true,
             ],
+            'tickets' => [
+                'label'      => 'Tickets / Suporte',
+                'icon'       => 'fas fa-headset',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'whatsapp' => [
+                'label'      => 'WhatsApp',
+                'icon'       => 'fab fa-whatsapp',
+                'menu'       => true,
+                'permission' => true,
+            ],
         ],
     ],
 
@@ -160,6 +172,24 @@ return [
                 'menu'       => true,
                 'permission' => true,
             ],
+            'equipment' => [
+                'label'      => 'Equipamentos',
+                'icon'       => 'fas fa-tools',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'production_costs' => [
+                'label'      => 'Custos de Produção',
+                'icon'       => 'fas fa-calculator',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'shipments' => [
+                'label'      => 'Entregas',
+                'icon'       => 'fas fa-shipping-fast',
+                'menu'       => true,
+                'permission' => true,
+            ],
         ],
     ],
 
@@ -205,37 +235,33 @@ return [
         ],
     ],
 
-    // ─── Site Builder (editor visual da loja online) ───
-    /*'site_builder' => [
-        'label'      => 'Site Builder',
-        'icon'       => 'fas fa-paint-brush',
-        'menu'       => true,
-        'permission' => true,
-    ],*/
-
-    // ─── Relatórios (item direto no menu principal) ───
-    'reports' => [
-        'label'      => 'Relatórios',
-        'icon'       => 'fas fa-chart-bar',
-        'menu'       => true,
-        'permission' => true,
-    ],
-
-    // ─── Grupo: Ferramentas ───
+    // ─── Grupo: Ferramentas & Relatórios ───
     'ferramentas' => [
         'label'    => 'Ferramentas',
         'icon'     => 'fas fa-toolbox',
         'menu'     => true,
         'children' => [
-            'site_builder' => [
-                'label'      => 'Site Builder',
-                'icon'       => 'fas fa-palette',
+            'reports' => [
+                'label'      => 'Relatórios',
+                'icon'       => 'fas fa-chart-bar',
                 'menu'       => true,
                 'permission' => true,
             ],
             'custom_reports' => [
                 'label'      => 'Relatórios Custom.',
                 'icon'       => 'fas fa-chart-line',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'bi' => [
+                'label'      => 'Business Intelligence',
+                'icon'       => 'fas fa-chart-area',
+                'menu'       => true,
+                'permission' => true,
+            ],
+            'site_builder' => [
+                'label'      => 'Site Builder',
+                'icon'       => 'fas fa-palette',
                 'menu'       => true,
                 'permission' => true,
             ],
@@ -263,50 +289,9 @@ return [
                 'menu'       => true,
                 'permission' => true,
             ],
-        ],
-    ],
-
-    // ─── Itens ocultos do menu principal (ficam no menu direito) ───
-
-    // ─── Grupo: Gestão Avançada (novos módulos v3) ───
-    'gestao_avancada' => [
-        'label'    => 'Gestão Avançada',
-        'icon'     => 'fas fa-rocket',
-        'menu'     => true,
-        'children' => [
-            'tickets' => [
-                'label'      => 'Tickets / Suporte',
-                'icon'       => 'fas fa-headset',
-                'menu'       => true,
-                'permission' => true,
-            ],
-            'equipment' => [
-                'label'      => 'Equipamentos',
-                'icon'       => 'fas fa-tools',
-                'menu'       => true,
-                'permission' => true,
-            ],
-            'shipments' => [
-                'label'      => 'Entregas',
-                'icon'       => 'fas fa-shipping-fast',
-                'menu'       => true,
-                'permission' => true,
-            ],
             'branches' => [
                 'label'      => 'Filiais',
                 'icon'       => 'fas fa-building',
-                'menu'       => true,
-                'permission' => true,
-            ],
-            'production_costs' => [
-                'label'      => 'Custos de Produção',
-                'icon'       => 'fas fa-calculator',
-                'menu'       => true,
-                'permission' => true,
-            ],
-            'whatsapp' => [
-                'label'      => 'WhatsApp',
-                'icon'       => 'fab fa-whatsapp',
                 'menu'       => true,
                 'permission' => true,
             ],
@@ -319,12 +304,6 @@ return [
             'esg' => [
                 'label'      => 'ESG / Sustentabilidade',
                 'icon'       => 'fas fa-leaf',
-                'menu'       => true,
-                'permission' => true,
-            ],
-            'bi' => [
-                'label'      => 'Business Intelligence',
-                'icon'       => 'fas fa-chart-line',
                 'menu'       => true,
                 'permission' => true,
             ],
