@@ -28,7 +28,7 @@ use Akti\Utils\Input;
  *
  * @package Akti\Controllers
  */
-class PortalController
+class PortalController extends BaseController
 {
     private \PDO $db;
     private PortalAccess $portalAccess;
@@ -427,9 +427,7 @@ class PortalController
 
             if (isset($passwordError)) {
                 if ($this->isAjax()) {
-                    header('Content-Type: application/json');
-                    echo json_encode(['success' => false, 'message' => $passwordError]);
-                    exit;
+                    $this->json(['success' => false, 'message' => $passwordError]);
                 }
                 header('Location: ?page=portal&action=profile&password_error=' . urlencode($passwordError));
                 exit;
@@ -443,9 +441,7 @@ class PortalController
 
         // Resposta JSON para AJAX
         if ($this->isAjax()) {
-            header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'message' => __p('profile_updated')]);
-            exit;
+            $this->json(['success' => true, 'message' => __p('profile_updated')]);
         }
 
         header('Location: ?page=portal&action=profile&updated=1');
@@ -932,16 +928,13 @@ class PortalController
             $perPage,
             $offset
         );
-
-        header('Content-Type: application/json');
-        echo json_encode([
+        $this->json([
             'success'  => true,
             'products' => $result['data'],
             'total'    => $result['total'],
             'pages'    => max(1, (int) ceil($result['total'] / $perPage)),
             'page'     => $page,
         ]);
-        exit;
     }
 
     /**
@@ -1024,10 +1017,7 @@ class PortalController
 
         $cartService = new PortalCartService($this->portalAccess);
         $summary = $cartService->getCartSummary();
-
-        header('Content-Type: application/json');
-        echo json_encode(array_merge(['success' => true], $summary));
-        exit;
+        $this->json(array_merge(['success' => true], $summary));
     }
 
     /**
@@ -1592,8 +1582,6 @@ class PortalController
      */
     private function jsonResponse(bool $success, string $message, array $data = []): void
     {
-        header('Content-Type: application/json');
-        echo json_encode(array_merge(['success' => $success, 'message' => $message], $data));
-        exit;
+        $this->json(array_merge(['success' => $success, 'message' => $message], $data));
     }
 }

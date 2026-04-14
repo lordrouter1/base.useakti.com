@@ -18,7 +18,7 @@ use Akti\Utils\Input;
  *
  * @package Akti\Controllers
  */
-class CommissionController
+class CommissionController extends BaseController
 {
     private \PDO $db;
     private CommissionService $service;
@@ -81,13 +81,11 @@ class CommissionController
         }
 
         if (empty($data['nome'])) {
-            echo json_encode(['success' => false, 'message' => 'Nome é obrigatório.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Nome é obrigatório.']);
         }
 
         $result = $this->service->createForma($data);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     public function updateForma()
@@ -96,8 +94,7 @@ class CommissionController
 
         $id = Input::post('id', 'int');
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ID inválido.']);
         }
 
         $data = [
@@ -114,8 +111,7 @@ class CommissionController
         }
 
         $result = $this->service->updateForma($id, $data);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     public function deleteForma()
@@ -123,20 +119,17 @@ class CommissionController
         header('Content-Type: application/json');
         $id = Input::get('id', 'int');
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ID inválido.']);
         }
         $result = $this->service->deleteForma($id);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     public function getFaixas()
     {
         header('Content-Type: application/json');
         $id = Input::get('id', 'int');
-        echo json_encode(['success' => true, 'data' => $this->service->getFaixas($id)]);
-        exit;
+        $this->json(['success' => true, 'data' => $this->service->getFaixas($id)]);
     }
 
     // ═══════════════════════════════════════════════════
@@ -160,13 +153,11 @@ class CommissionController
         $formaId = Input::post('forma_comissao_id', 'int');
 
         if (!$groupId || !$formaId) {
-            echo json_encode(['success' => false, 'message' => 'Dados incompletos.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Dados incompletos.']);
         }
 
         $result = $this->service->linkGrupoForma($groupId, $formaId);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     public function unlinkGrupo()
@@ -174,12 +165,10 @@ class CommissionController
         header('Content-Type: application/json');
         $id = Input::get('id', 'int') ?: Input::post('id', 'int');
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ID inválido.']);
         }
         $result = $this->service->unlinkGrupoForma($id);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     // ═══════════════════════════════════════════════════
@@ -204,13 +193,11 @@ class CommissionController
         $formaId = Input::post('forma_comissao_id', 'int');
 
         if (!$userId || !$formaId) {
-            echo json_encode(['success' => false, 'message' => 'Dados incompletos.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Dados incompletos.']);
         }
 
         $result = $this->service->linkUsuarioForma($userId, $formaId);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     public function unlinkUsuario()
@@ -218,12 +205,10 @@ class CommissionController
         header('Content-Type: application/json');
         $id = Input::get('id', 'int') ?: Input::post('id', 'int');
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ID inválido.']);
         }
         $result = $this->service->unlinkUsuarioForma($id);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     // ═══════════════════════════════════════════════════
@@ -259,13 +244,11 @@ class CommissionController
         ];
 
         if (!$data['product_id'] && !$data['category_id']) {
-            echo json_encode(['success' => false, 'message' => 'Selecione um produto ou categoria.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Selecione um produto ou categoria.']);
         }
 
         $result = $this->service->saveComissaoProduto($data);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     public function deleteProdutoRegra()
@@ -273,12 +256,10 @@ class CommissionController
         header('Content-Type: application/json');
         $id = Input::get('id', 'int') ?: Input::post('id', 'int');
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ID inválido.']);
         }
         $result = $this->service->deleteComissaoProduto($id);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     // ═══════════════════════════════════════════════════
@@ -308,17 +289,14 @@ class CommissionController
         ];
 
         if (!$context['user_id']) {
-            echo json_encode(['success' => false, 'message' => 'Selecione um usuário.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Selecione um usuário.']);
         }
         if ($context['valor_venda'] <= 0) {
-            echo json_encode(['success' => false, 'message' => 'Informe o valor da venda.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Informe o valor da venda.']);
         }
 
         $resultado = $this->service->simular($context);
-        echo json_encode(['success' => true, 'data' => $resultado]);
-        exit;
+        $this->json(['success' => true, 'data' => $resultado]);
     }
 
     // ═══════════════════════════════════════════════════
@@ -334,13 +312,11 @@ class CommissionController
         $obs     = Input::post('observacao');
 
         if (!$orderId || !$userId) {
-            echo json_encode(['success' => false, 'message' => 'Dados incompletos.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Dados incompletos.']);
         }
 
         $result = $this->service->calcularComissao($orderId, $userId, $obs);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     // ═══════════════════════════════════════════════════
@@ -373,8 +349,7 @@ class CommissionController
         $perPage = Input::get('per_page', 'int', 25);
 
         $result = $this->service->getComissoesRegistradas($filters, $page, $perPage);
-        echo json_encode(['success' => true] + $result);
-        exit;
+        $this->json(['success' => true] + $result);
     }
 
     // ═══════════════════════════════════════════════════
@@ -386,12 +361,10 @@ class CommissionController
         header('Content-Type: application/json');
         $id = Input::post('id', 'int');
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ID inválido.']);
         }
         $result = $this->service->aprovarComissao($id, (int) $_SESSION['user_id']);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     public function pagar()
@@ -399,12 +372,10 @@ class CommissionController
         header('Content-Type: application/json');
         $id = Input::post('id', 'int');
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ID inválido.']);
         }
         $result = $this->service->pagarComissao($id);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     public function cancelar()
@@ -412,12 +383,10 @@ class CommissionController
         header('Content-Type: application/json');
         $id = Input::post('id', 'int');
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ID inválido.']);
         }
         $result = $this->service->cancelarComissao($id);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     public function aprovarLote()
@@ -425,12 +394,10 @@ class CommissionController
         header('Content-Type: application/json');
         $ids = Input::post('ids', 'intArray', []);
         if (empty($ids)) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum item selecionado.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Nenhum item selecionado.']);
         }
         $result = $this->service->aprovarEmLote($ids, (int) $_SESSION['user_id']);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     public function pagarLote()
@@ -438,12 +405,10 @@ class CommissionController
         header('Content-Type: application/json');
         $ids = Input::post('ids', 'intArray', []);
         if (empty($ids)) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum item selecionado.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Nenhum item selecionado.']);
         }
         $result = $this->service->pagarEmLote($ids);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     // ═══════════════════════════════════════════════════
@@ -473,8 +438,7 @@ class CommissionController
         ];
 
         $result = $this->service->saveConfig($configs);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     // ═══════════════════════════════════════════════════
@@ -488,8 +452,7 @@ class CommissionController
     {
         header('Content-Type: application/json');
         $data = $this->service->getVendedoresComPendentes();
-        echo json_encode(['success' => true, 'data' => $data]);
-        exit;
+        $this->json(['success' => true, 'data' => $data]);
     }
 
     /**
@@ -502,13 +465,11 @@ class CommissionController
         $statusFilter = Input::get('status_filter'); // 'aprovacao' | 'pagamento' | null
 
         if (!$userId) {
-            echo json_encode(['success' => false, 'message' => 'Vendedor não informado.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Vendedor não informado.']);
         }
 
         $data = $this->service->getComissoesPorVendedor($userId, $statusFilter);
-        echo json_encode(['success' => true, 'data' => $data]);
-        exit;
+        $this->json(['success' => true, 'data' => $data]);
     }
 
     // ═══════════════════════════════════════════════════

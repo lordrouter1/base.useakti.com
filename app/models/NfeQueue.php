@@ -80,7 +80,7 @@ class NfeQueue
      * Usa SELECT FOR UPDATE para evitar concorrência.
      * @return array|false
      */
-    public function fetchNext()
+    public function fetchNext(): array|false
     {
         $q = "SELECT * FROM {$this->table}
               WHERE status = 'pending'
@@ -159,7 +159,7 @@ class NfeQueue
      * @param int $id
      * @return array|false
      */
-    public function readOne(int $id)
+    public function readOne(int $id): array|false
     {
         $q = "SELECT * FROM {$this->table} WHERE id = :id";
         $s = $this->conn->prepare($q);

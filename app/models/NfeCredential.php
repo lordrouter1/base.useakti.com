@@ -37,7 +37,7 @@ class NfeCredential
      * @param int|null $filialId ID da filial (ou null para a principal/ativa)
      * @return array|false
      */
-    public function get(?int $filialId = null)
+    public function get(?int $filialId = null): array|false
     {
         if ($filialId !== null) {
             $q = "SELECT * FROM {$this->table} WHERE filial_id = :filial AND is_active = 1 LIMIT 1";

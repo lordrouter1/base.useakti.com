@@ -72,7 +72,7 @@ class NfeReceivedDocument
      * @param int $id
      * @return array|false
      */
-    public function readOne(int $id)
+    public function readOne(int $id): array|false
     {
         $q = "SELECT * FROM {$this->table} WHERE id = :id";
         $s = $this->conn->prepare($q);
@@ -85,7 +85,7 @@ class NfeReceivedDocument
      * @param string $chave
      * @return array|false
      */
-    public function readByChave(string $chave)
+    public function readByChave(string $chave): array|false
     {
         $q = "SELECT * FROM {$this->table} WHERE chave = :chave LIMIT 1";
         $s = $this->conn->prepare($q);

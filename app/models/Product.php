@@ -9,14 +9,14 @@ class Product {
     private $conn;
     private $table_name = "products";
 
-    public $id;
-    public $name;
-    public $description;
-    public $category_id;
-    public $subcategory_id;
-    public $price;
-    public $stock_quantity;
-    public $photo_url;
+    protected $id;
+    protected $name;
+    protected $description;
+    protected $category_id;
+    protected $subcategory_id;
+    protected $price;
+    protected $stock_quantity;
+    protected $photo_url;
 
     // Campos fiscais (NF-e)
     public static $fiscalFields = [

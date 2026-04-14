@@ -229,8 +229,8 @@ class NfeDocumentTest extends TestCase
      */
     public function nfe_service_save_fiscal_totals_usa_colunas_corretas(): void
     {
-        $filePath = __DIR__ . '/../../app/services/NfeService.php';
-        $this->assertFileExists($filePath, 'NfeService.php deve existir');
+        $filePath = __DIR__ . '/../../app/services/NfeEmissionService.php';
+        $this->assertFileExists($filePath, 'NfeEmissionService.php deve existir');
 
         $code = file_get_contents($filePath);
 
@@ -256,7 +256,7 @@ class NfeDocumentTest extends TestCase
      */
     public function nfe_service_save_fiscal_totals_verifica_vicms_diretamente(): void
     {
-        $filePath = __DIR__ . '/../../app/services/NfeService.php';
+        $filePath = __DIR__ . '/../../app/services/NfeEmissionService.php';
         $code = file_get_contents($filePath);
 
         // Deve conter: isset($totals['vICMS']) e NÃO isset($totals['vBC']) para atribuir valor_icms
@@ -280,7 +280,7 @@ class NfeDocumentTest extends TestCase
      */
     public function nfe_service_save_fiscal_totals_inclui_tributos_aprox(): void
     {
-        $filePath = __DIR__ . '/../../app/services/NfeService.php';
+        $filePath = __DIR__ . '/../../app/services/NfeEmissionService.php';
         $code = file_get_contents($filePath);
 
         $this->assertStringContainsString(
@@ -424,7 +424,7 @@ class NfeDocumentTest extends TestCase
      */
     public function nfe_service_emit_salva_itens_e_totais(): void
     {
-        $filePath = __DIR__ . '/../../app/services/NfeService.php';
+        $filePath = __DIR__ . '/../../app/services/NfeEmissionService.php';
         $code = file_get_contents($filePath);
 
         $this->assertStringContainsString(
@@ -552,7 +552,7 @@ class NfeDocumentTest extends TestCase
      */
     public function nfe_service_save_items_usa_snake_case(): void
     {
-        $filePath = __DIR__ . '/../../app/services/NfeService.php';
+        $filePath = __DIR__ . '/../../app/services/NfeEmissionService.php';
         $code = file_get_contents($filePath);
 
         $colunasSnakeCase = ['c_prod', 'x_prod', 'u_com', 'q_com', 'v_un_com', 'v_prod', 'v_desc'];
@@ -834,7 +834,7 @@ class NfeDocumentTest extends TestCase
      */
     public function nfe_service_inutilizar_sem_todo(): void
     {
-        $filePath = __DIR__ . '/../../app/services/NfeService.php';
+        $filePath = __DIR__ . '/../../app/services/NfeEmissionService.php';
         $code = file_get_contents($filePath);
 
         $this->assertStringNotContainsString(

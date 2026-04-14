@@ -12,8 +12,8 @@ class Subcategory {
     public $id;
     public $category_id;
     public $name;
-    public $show_in_store = 1;
-    public $free_shipping = 0;
+    protected $show_in_store = 1;
+    protected $free_shipping = 0;
 
     public function __construct(\PDO $db) {
         $this->conn = $db;

@@ -12,7 +12,7 @@ use Akti\Utils\Input;
  *
  * @package Akti\Controllers
  */
-class RecurringTransactionController
+class RecurringTransactionController extends BaseController
 {
     private \PDO $db;
     private RecurringTransaction $model;
@@ -29,9 +29,7 @@ class RecurringTransactionController
     public function list()
     {
         if (!RecurringTransaction::tableExists($this->db)) {
-            header('Content-Type: application/json');
-            echo json_encode(['data' => [], 'summary' => ['entradas' => 0, 'saidas' => 0, 'saldo' => 0]]);
-            exit;
+            $this->json(['data' => [], 'summary' => ['entradas' => 0, 'saidas' => 0, 'saldo' => 0]]);
         }
 
         $items = $this->model->readAll();
@@ -46,10 +44,7 @@ class RecurringTransactionController
             $item['next_generation'] = $this->getNextGenerationDate($item);
         }
         unset($item);
-
-        header('Content-Type: application/json');
-        echo json_encode(['data' => $items, 'summary' => $summary]);
-        exit;
+        $this->json(['data' => $items, 'summary' => $summary]);
     }
 
     /**
@@ -78,17 +73,11 @@ class RecurringTransactionController
         ];
 
         if (empty($data['description']) || $data['amount'] <= 0) {
-            header('Content-Type: application/json');
-            http_response_code(422);
-            echo json_encode(['error' => 'Descrição e valor são obrigatórios.']);
-            exit;
+            $this->json(['error' => 'Descrição e valor são obrigatórios.'], 422);
         }
 
         $id = $this->model->create($data);
-
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'id' => $id]);
-        exit;
+        $this->json(['success' => true, 'id' => $id]);
     }
 
     /**
@@ -105,9 +94,7 @@ class RecurringTransactionController
         $id = (int) ($input['id'] ?? 0);
 
         if ($id <= 0) {
-            http_response_code(400);
-            echo json_encode(['error' => 'ID inválido']);
-            exit;
+            $this->json(['error' => 'ID inválido'], 400);
         }
 
         $data = [
@@ -123,10 +110,7 @@ class RecurringTransactionController
         ];
 
         $this->model->update($id, $data);
-
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
-        exit;
+        $this->json(['success' => true]);
     }
 
     /**
@@ -137,16 +121,11 @@ class RecurringTransactionController
         $id = Input::get('id', 'int') ?: (int) ($_POST['id'] ?? 0);
 
         if ($id <= 0) {
-            http_response_code(400);
-            echo json_encode(['error' => 'ID inválido']);
-            exit;
+            $this->json(['error' => 'ID inválido'], 400);
         }
 
         $this->model->delete($id);
-
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
-        exit;
+        $this->json(['success' => true]);
     }
 
     /**
@@ -159,10 +138,7 @@ class RecurringTransactionController
         $active = (bool) ($input['active'] ?? false);
 
         $this->model->toggleActive($id, $active);
-
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true]);
-        exit;
+        $this->json(['success' => true]);
     }
 
     /**
@@ -171,16 +147,11 @@ class RecurringTransactionController
     public function process()
     {
         if (!RecurringTransaction::tableExists($this->db)) {
-            header('Content-Type: application/json');
-            echo json_encode(['error' => 'Tabela de recorrências não encontrada.']);
-            exit;
+            $this->json(['error' => 'Tabela de recorrências não encontrada.']);
         }
 
         $result = $this->model->processMonth($_SESSION['user_id'] ?? null);
-
-        header('Content-Type: application/json');
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     /**
@@ -191,16 +162,11 @@ class RecurringTransactionController
         $id = Input::get('id', 'int');
 
         if (!$id) {
-            http_response_code(400);
-            echo json_encode(['error' => 'ID obrigatório']);
-            exit;
+            $this->json(['error' => 'ID obrigatório'], 400);
         }
 
         $item = $this->model->getById($id);
-
-        header('Content-Type: application/json');
-        echo json_encode($item ?: ['error' => 'Não encontrado']);
-        exit;
+        $this->json($item ?: ['error' => 'Não encontrado']);
     }
 
     // ═══════════════════════════════════════════

@@ -94,7 +94,7 @@ class UserController {
 
              $this->userModel->name = $name;
              $this->userModel->email = $email;
-             $this->userModel->password = $password;
+             $this->userModel->setPassword($password);
              $this->userModel->role = $role;
              $this->userModel->group_id = $groupId ?: null;
 
@@ -182,7 +182,7 @@ class UserController {
             
             // Password only if provided
             if (!empty($password)) {
-                $this->userModel->password = $password;
+                $this->userModel->setPassword($password);
             }
             
             if ($this->userModel->update()) {

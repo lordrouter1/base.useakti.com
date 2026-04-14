@@ -16,9 +16,9 @@ class Order {
     public $pipeline_stage;
     public $priority;
     public $internal_notes;
-    public $quote_notes;
+    protected $quote_notes;
     public $scheduled_date;
-    public $created_at;
+    protected $created_at;
 
     public function __construct(\PDO $db) {
         $this->conn = $db;
@@ -98,7 +98,7 @@ class Order {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function readAll() {
+    public function readAll(): array {
         $query = "SELECT o.id, o.total_amount, o.status, o.pipeline_stage, o.priority, 
                          o.deadline, o.payment_status, o.created_at, o.customer_approval_status,
                          c.name as customer_name 
@@ -107,7 +107,7 @@ class Order {
                   ORDER BY o.created_at DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
-        return $stmt;
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**

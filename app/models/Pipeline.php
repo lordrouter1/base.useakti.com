@@ -148,6 +148,15 @@ class Pipeline {
                 'to_stage' => $newStage,
                 'user_id' => $userId,
             ]));
+
+            // Dispatch pipeline.completed when order reaches final stage
+            if ($newStage === 'concluido') {
+                EventDispatcher::dispatch('pipeline.completed', new Event('pipeline.completed', [
+                    'id' => $orderId,
+                    'from_stage' => $fromStage,
+                    'user_id' => $userId,
+                ]));
+            }
         }
 
         return $result;

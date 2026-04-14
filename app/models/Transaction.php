@@ -22,7 +22,7 @@ class Transaction
      * Proxy para Financial::addTransaction().
      * Delega ao Financial original para manter backward compatibility.
      */
-    public function create(array $data)
+    public function create(array $data): mixed
     {
         return (new Financial($this->conn))->addTransaction($data);
     }
@@ -30,7 +30,7 @@ class Transaction
     /**
      * Proxy para Financial::getTransactionById().
      */
-    public function readOne(int $id)
+    public function readOne(int $id): mixed
     {
         return (new Financial($this->conn))->getTransactionById($id);
     }

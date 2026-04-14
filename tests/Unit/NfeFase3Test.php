@@ -582,7 +582,7 @@ class NfeFase3Test extends TestCase
      */
     public function nfe_service_inutilizar_integra_sefaz(): void
     {
-        $source = file_get_contents(__DIR__ . '/../../app/services/NfeService.php');
+        $source = file_get_contents(__DIR__ . '/../../app/services/NfeEmissionService.php');
 
         // Deve conter sefazInutiliza (chamada real)
         $this->assertStringContainsString(

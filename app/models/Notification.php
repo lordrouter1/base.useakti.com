@@ -27,7 +27,7 @@ class Notification
      * @param array  $data    Metadata JSON (opcional)
      * @return int|false ID inserido ou false
      */
-    public function create(int $userId, string $type, string $title, string $message = '', array $data = [])
+    public function create(int $userId, string $type, string $title, string $message = '', array $data = []): int|false
     {
         $sql = "INSERT INTO notifications (user_id, type, title, message, data, created_at)
                 VALUES (:user_id, :type, :title, :message, :data, NOW())";

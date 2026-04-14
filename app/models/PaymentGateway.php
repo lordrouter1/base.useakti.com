@@ -46,7 +46,7 @@ class PaymentGateway
      * @param int $id
      * @return array|false
      */
-    public function readOne(int $id)
+    public function readOne(int $id): array|false
     {
         $q = "SELECT * FROM payment_gateways WHERE id = :id";
         $s = $this->conn->prepare($q);
@@ -59,7 +59,7 @@ class PaymentGateway
      * @param string $slug
      * @return array|false
      */
-    public function readBySlug(string $slug)
+    public function readBySlug(string $slug): array|false
     {
         $q = "SELECT * FROM payment_gateways WHERE gateway_slug = :slug";
         $s = $this->conn->prepare($q);
@@ -71,7 +71,7 @@ class PaymentGateway
      * Retorna o gateway padrão (is_default=1 e is_active=1).
      * @return array|false
      */
-    public function getDefault()
+    public function getDefault(): array|false
     {
         $q = "SELECT * FROM payment_gateways WHERE is_default = 1 AND is_active = 1 LIMIT 1";
         $s = $this->conn->prepare($q);

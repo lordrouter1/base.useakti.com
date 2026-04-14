@@ -1559,3 +1559,146 @@ foreach ($workflowEvents as $wfEvent) {
         }
     });
 }
+
+// ══════════════════════════════════════════════════════════════
+// ARCH-010 — Expanded Event Listeners
+// Adds listeners for previously orphaned events and new
+// business-critical events (pipeline, orders, products, portal)
+// ══════════════════════════════════════════════════════════════
+
+$businessLogFile = (defined('AKTI_BASE_PATH') ? AKTI_BASE_PATH : '') . 'storage/logs/business.log';
+
+/**
+ * pipeline.completed — Pedido concluiu o pipeline de produção.
+ * Payload: id, from_stage, user_id
+ */
+EventDispatcher::listen('pipeline.completed', function (Event $event) use ($businessLogFile, $writeLog, $notifyAdmins) {
+    $data = $event->getData();
+
+    $writeLog($businessLogFile, sprintf(
+        '[Pipeline Concluído] Pedido #%d | Etapa anterior: %s | Usuário: %d',
+        $data['id'] ?? 0,
+        $data['from_stage'] ?? '?',
+        $data['user_id'] ?? 0
+    ));
+
+    try {
+        $notifyAdmins(
+            'Pipeline Concluído',
+            sprintf('Pedido #%d concluiu o pipeline de produção.', $data['id'] ?? 0),
+            'success'
+        );
+    } catch (\Throwable $e) {
+        // best-effort
+    }
+});
+
+/**
+ * model.order.deleted — Pedido foi excluído.
+ * Payload: id
+ */
+EventDispatcher::listen('model.order.deleted', function (Event $event) use ($businessLogFile, $writeLog) {
+    $data = $event->getData();
+
+    $writeLog($businessLogFile, sprintf(
+        '[Pedido Excluído] ID: %d | Usuário: %s',
+        $data['id'] ?? 0,
+        $_SESSION['user_name'] ?? 'Sistema'
+    ));
+});
+
+/**
+ * model.product.cost_updated — Custo do produto foi recalculado.
+ * Payload: product_id, old_cost, new_cost
+ */
+EventDispatcher::listen('model.product.cost_updated', function (Event $event) use ($businessLogFile, $writeLog) {
+    $data = $event->getData();
+
+    $writeLog($businessLogFile, sprintf(
+        '[Custo Atualizado] Produto #%d | Anterior: %.2f | Novo: %.2f',
+        $data['product_id'] ?? 0,
+        $data['old_cost'] ?? 0,
+        $data['new_cost'] ?? 0
+    ));
+});
+
+/**
+ * controller.user.logout — Usuário fez logout.
+ * Payload: user_id, user_name
+ */
+EventDispatcher::listen('controller.user.logout', function (Event $event) use ($securityLogFile, $writeLog) {
+    $data = $event->getData();
+
+    $writeLog($securityLogFile, sprintf(
+        '[Logout] Usuário: %s (ID: %d) | IP: %s',
+        $data['user_name'] ?? '?',
+        $data['user_id'] ?? 0,
+        $_SERVER['REMOTE_ADDR'] ?? '?'
+    ));
+});
+
+/**
+ * portal.order.rejected — Cliente rejeitou pedido no portal.
+ * Payload: order_id, customer_id, reason
+ */
+EventDispatcher::listen('portal.order.rejected', function (Event $event) use ($businessLogFile, $writeLog, $notifyAdmins) {
+    $data = $event->getData();
+
+    $writeLog($businessLogFile, sprintf(
+        '[Pedido Rejeitado pelo Cliente] Pedido #%d | Cliente ID: %d | Motivo: %s',
+        $data['order_id'] ?? 0,
+        $data['customer_id'] ?? 0,
+        $data['reason'] ?? '(não informado)'
+    ));
+
+    try {
+        $notifyAdmins(
+            'Pedido Rejeitado',
+            sprintf('O cliente rejeitou o pedido #%d. Motivo: %s', $data['order_id'] ?? 0, $data['reason'] ?? '—'),
+            'warning'
+        );
+    } catch (\Throwable $e) {
+        // best-effort
+    }
+});
+
+/**
+ * portal.message.sent — Mensagem enviada no portal.
+ * Payload: order_id, sender, message
+ */
+EventDispatcher::listen('portal.message.sent', function (Event $event) use ($businessLogFile, $writeLog) {
+    $data = $event->getData();
+
+    $writeLog($businessLogFile, sprintf(
+        '[Portal Mensagem] Pedido #%d | De: %s',
+        $data['order_id'] ?? 0,
+        $data['sender'] ?? '?'
+    ));
+});
+
+// Audit log expansion: delete events
+$auditDeleteEvents = [
+    'model.order.deleted'    => ['entity' => 'order',    'action' => 'deleted'],
+    'model.customer.deleted' => ['entity' => 'customer', 'action' => 'deleted'],
+    'model.product.deleted'  => ['entity' => 'product',  'action' => 'deleted'],
+    'model.category.deleted' => ['entity' => 'category', 'action' => 'deleted'],
+];
+
+foreach ($auditDeleteEvents as $eventName => $meta) {
+    EventDispatcher::listen($eventName, function (Event $event) use ($meta) {
+        try {
+            $db = (new \Database())->getConnection();
+            $service = new \Akti\Services\AuditLogService($db);
+            $data = $event->getData();
+            $service->log(
+                $meta['action'],
+                $meta['entity'],
+                $data['id'] ?? 0,
+                $data ?? [],
+                []
+            );
+        } catch (\Throwable $e) {
+            // best-effort
+        }
+    });
+}

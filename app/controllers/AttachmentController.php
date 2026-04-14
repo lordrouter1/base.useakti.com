@@ -7,7 +7,7 @@ use Akti\Services\FileManager;
 use Akti\Utils\Input;
 use PDO;
 
-class AttachmentController
+class AttachmentController extends BaseController
 {
     private \PDO $db;
     private Attachment $model;
@@ -241,12 +241,5 @@ class AttachmentController
         }
 
         $this->json(['results' => $results]);
-    }
-
-    private function json(array $data, int $code = 200): void
-    {
-        http_response_code($code);
-        header('Content-Type: application/json');
-        echo json_encode($data);
     }
 }

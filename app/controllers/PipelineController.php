@@ -19,7 +19,7 @@ use Akti\Services\PipelineDetailService;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
 
-class PipelineController {
+class PipelineController extends BaseController {
 
     private Pipeline $pipelineModel;
     private \PDO $db;
@@ -68,15 +68,15 @@ class PipelineController {
     }
 
     /**
-     * Mover pedido para outra etapa (GET — usado no detalhe do pedido)
-     * Delegado ao PipelineService para lógica de estoque e regras.
+     * Mover pedido para outra etapa (GET â€” usado no detalhe do pedido)
+     * Delegado ao PipelineService para lÃ³gica de estoque e regras.
      */
     /**
-     * Etapas bloqueadas quando existem parcelas pagas — gerenciado pelo PipelineService.
+     * Etapas bloqueadas quando existem parcelas pagas â€” gerenciado pelo PipelineService.
      */
 
     /**
-     * Remove a confirmação de orçamento quando o pedido é modificado.
+     * Remove a confirmaÃ§Ã£o de orÃ§amento quando o pedido Ã© modificado.
      * Delegado ao PipelineService.
      */
     private function clearQuoteConfirmation($orderId) {
@@ -109,7 +109,7 @@ class PipelineController {
 
     /**
      * Mover pedido via AJAX (drag-and-drop).
-     * Delegado ao PipelineService para regras de negócio.
+     * Delegado ao PipelineService para regras de negÃ³cio.
      */
     public function moveAjax() {
         header('Content-Type: application/json');
@@ -120,35 +120,30 @@ class PipelineController {
         $warehouseId = Input::post('warehouse_id', 'int');
 
         if (!$orderId || !$newStage) {
-            echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ParÃ¢metros invÃ¡lidos']);
         }
 
         $currentStage = $this->pipelineService->getCurrentStage($orderId);
         if (!$currentStage) {
-            echo json_encode(['success' => false, 'message' => 'Pedido não encontrado']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Pedido nÃ£o encontrado']);
         }
 
         if ($currentStage === $newStage) {
-            echo json_encode(['success' => true, 'message' => 'Sem alteração']);
-            exit;
+            $this->json(['success' => true, 'message' => 'Sem alteraÃ§Ã£o']);
         }
 
-        // Se a transição precisa de armazém e não foi informado, retorna flag
+        // Se a transiÃ§Ã£o precisa de armazÃ©m e nÃ£o foi informado, retorna flag
         if ($this->pipelineService->transitionNeedsWarehouse($currentStage, $newStage) && !$warehouseId) {
-            echo json_encode([
+            $this->json([
                 'success' => false,
                 'needs_warehouse' => true,
-                'message' => 'Selecione o armazém para dedução de estoque.',
+                'message' => 'Selecione o armazÃ©m para deduÃ§Ã£o de estoque.',
             ]);
-            exit;
         }
 
         $result = $this->pipelineService->moveOrder($orderId, $newStage, $userId, $warehouseId, 'Movido via drag-and-drop');
 
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     /**
@@ -168,7 +163,7 @@ class PipelineController {
             exit;
         }
 
-        // Extrair variáveis para a view
+        // Extrair variÃ¡veis para a view
         extract($data);
 
         require 'app/views/layout/header.php';
@@ -178,7 +173,7 @@ class PipelineController {
 
     /**
      * Atualizar detalhes do pedido (POST).
-     * Regeneração de parcelas delegada ao PipelineService.
+     * RegeneraÃ§Ã£o de parcelas delegada ao PipelineService.
      */
     public function updateDetails() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -213,13 +208,13 @@ class PipelineController {
             $logger = new Logger($this->db);
             $logger->log('PIPELINE_UPDATE', "Updated order details #" . $data['id']);
 
-            // Limpar confirmação de orçamento se desconto foi alterado
+            // Limpar confirmaÃ§Ã£o de orÃ§amento se desconto foi alterado
             $this->pipelineService->clearQuoteConfirmation($data['id']);
 
             // Auto-gerar/regenerar parcelas via service
             $this->pipelineService->regenerateInstallmentsIfNeeded($data['id'], $data);
 
-            // Redirecionar (com flag para impressão se solicitado)
+            // Redirecionar (com flag para impressÃ£o se solicitado)
             $printOrder = Input::post('print_order_after_save', 'bool');
             $redirectUrl = '?page=pipeline&action=detail&id=' . $data['id'] . '&status=success';
             if ($printOrder) {
@@ -232,67 +227,7 @@ class PipelineController {
     }
 
     /**
-     * API JSON: Conta parcelas existentes de um pedido (AJAX GET).
-     * Delegado ao PipelineAlertService.
-     */
-    public function countInstallments() {
-        header('Content-Type: application/json');
-        $orderId = Input::get('order_id', 'int');
-        if (!$orderId) {
-            echo json_encode(['success' => false, 'message' => 'ID do pedido não informado']);
-            exit;
-        }
-        $count = $this->alertService->countInstallments($orderId);
-        echo json_encode(['success' => true, 'count' => $count]);
-        exit;
-    }
-
-    /**
-     * API JSON: Remove todas as parcelas de um pedido (AJAX POST).
-     * Delegado ao PipelineAlertService.
-     */
-    public function deleteInstallments() {
-        header('Content-Type: application/json');
-        $orderId = Input::post('order_id', 'int');
-        if (!$orderId) {
-            echo json_encode(['success' => false, 'message' => 'ID do pedido não informado']);
-            exit;
-        }
-        $result = $this->alertService->deleteInstallments($orderId);
-        echo json_encode($result);
-        exit;
-    }
-
-    /**
-     * API JSON: Gera link de pagamento via Gateway configurado.
-     * Delegado ao PipelinePaymentService.
-     */
-    public function generatePaymentLink() {
-        header('Content-Type: application/json');
-
-        $orderId = Input::post('order_id', 'int');
-        if (!$orderId) {
-            echo json_encode(['success' => false, 'message' => 'Pedido não informado.']);
-            exit;
-        }
-
-        $gatewaySlug = Input::post('gateway_slug', 'string', '');
-        $method = Input::post('method', 'string', 'auto');
-
-        $result = $this->paymentService->generatePaymentLink($orderId, $gatewaySlug, $method);
-        echo json_encode($result);
-        exit;
-    }
-
-    /**
-     * Alias para manter compatibilidade com chamadas antigas.
-     */
-    public function generateMercadoPagoLink() {
-        $this->generatePaymentLink();
-    }
-
-    /**
-     * Configurações de metas por etapa
+     * ConfiguraÃ§Ãµes de metas por etapa
      */
     public function settings() {
         $goals = $this->pipelineModel->getStageGoals();
@@ -304,7 +239,7 @@ class PipelineController {
     }
 
     /**
-     * Salvar configurações de metas (POST)
+     * Salvar configuraÃ§Ãµes de metas (POST)
      */
     public function saveSettings() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -322,18 +257,17 @@ class PipelineController {
     }
 
     /**
-     * API JSON: pedidos atrasados (para notificações).
+     * API JSON: pedidos atrasados (para notificaÃ§Ãµes).
      * Delegado ao PipelineAlertService.
      */
     public function alerts() {
         header('Content-Type: application/json');
         $result = $this->alertService->getDelayedOrders();
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     /**
-     * API JSON: Retorna preços de uma tabela de preço específica (AJAX)
+     * API JSON: Retorna preÃ§os de uma tabela de preÃ§o especÃ­fica (AJAX)
      */
     public function getPricesByTable() {
         $priceTableModel = new PriceTable($this->db);
@@ -342,12 +276,12 @@ class PipelineController {
 
         $prices = [];
         if ($tableId) {
-            // Buscar preços da tabela específica com fallback ao preço base
+            // Buscar preÃ§os da tabela especÃ­fica com fallback ao preÃ§o base
             $products = $this->db->query("SELECT id, price FROM products")->fetchAll(PDO::FETCH_ASSOC);
             foreach ($products as $p) {
                 $prices[$p['id']] = (float)$p['price'];
             }
-            // Sobrepor com preços da tabela selecionada
+            // Sobrepor com preÃ§os da tabela selecionada
             $items = $priceTableModel->getItems($tableId);
             foreach ($items as $item) {
                 $prices[$item['product_id']] = (float)$item['price'];
@@ -355,14 +289,11 @@ class PipelineController {
         } elseif ($customerId) {
             $prices = $priceTableModel->getAllPricesForCustomer($customerId);
         }
-
-        header('Content-Type: application/json');
-        echo json_encode($prices);
-        exit;
+        $this->json($prices);
     }
 
     /**
-     * API JSON: Verifica disponibilidade de estoque dos itens de um pedido num armazém (AJAX).
+     * API JSON: Verifica disponibilidade de estoque dos itens de um pedido num armazÃ©m (AJAX).
      * Delegado ao PipelineAlertService.
      */
     public function checkOrderStock() {
@@ -372,13 +303,11 @@ class PipelineController {
         $warehouseId = Input::get('warehouse_id', 'int');
 
         if (!$orderId) {
-            echo json_encode(['success' => false, 'message' => 'Pedido não informado']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Pedido nÃ£o informado']);
         }
 
         $result = $this->alertService->checkOrderStock($orderId, $warehouseId, $this->stockModel);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     /**
@@ -390,11 +319,11 @@ class PipelineController {
             $description = Input::post('extra_description');
             $amount = Input::post('extra_amount', 'float', 0);
 
-            // ═══ BLOQUEIO: Não permitir alterar custos se há parcelas pagas ═══
+            // â•â•â• BLOQUEIO: NÃ£o permitir alterar custos se hÃ¡ parcelas pagas â•â•â•
             if ($orderId) {
                 $financialModel = new Financial($this->db);
                 if ($financialModel->hasAnyPaidInstallment($orderId)) {
-                    $_SESSION['error'] = 'Não é possível adicionar custos extras porque existem parcelas já pagas. Estorne os pagamentos primeiro no módulo Financeiro.';
+                    $_SESSION['error'] = 'NÃ£o Ã© possÃ­vel adicionar custos extras porque existem parcelas jÃ¡ pagas. Estorne os pagamentos primeiro no mÃ³dulo Financeiro.';
                     header('Location: ?page=pipeline&action=detail&id=' . $orderId);
                     exit;
                 }
@@ -404,7 +333,7 @@ class PipelineController {
                 $orderModel = new Order($this->db);
                 $orderModel->addExtraCost($orderId, $description, $amount);
 
-                // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
+                // â•â•â• Limpar confirmaÃ§Ã£o de orÃ§amento (cliente precisa reaprovar) â•â•â•
                 $this->clearQuoteConfirmation($orderId);
             }
 
@@ -420,11 +349,11 @@ class PipelineController {
         $costId = Input::get('cost_id', 'int');
         $orderId = Input::get('order_id', 'int');
 
-        // ═══ BLOQUEIO: Não permitir remover custos se há parcelas pagas ═══
+        // â•â•â• BLOQUEIO: NÃ£o permitir remover custos se hÃ¡ parcelas pagas â•â•â•
         if ($orderId) {
             $financialModel = new Financial($this->db);
             if ($financialModel->hasAnyPaidInstallment($orderId)) {
-                $_SESSION['error'] = 'Não é possível remover custos extras porque existem parcelas já pagas. Estorne os pagamentos primeiro no módulo Financeiro.';
+                $_SESSION['error'] = 'NÃ£o Ã© possÃ­vel remover custos extras porque existem parcelas jÃ¡ pagas. Estorne os pagamentos primeiro no mÃ³dulo Financeiro.';
                 header('Location: ?page=pipeline&action=detail&id=' . $orderId);
                 exit;
             }
@@ -434,7 +363,7 @@ class PipelineController {
             $orderModel = new Order($this->db);
             $orderModel->deleteExtraCost($costId);
 
-            // ═══ Limpar confirmação de orçamento (cliente precisa reaprovar) ═══
+            // â•â•â• Limpar confirmaÃ§Ã£o de orÃ§amento (cliente precisa reaprovar) â•â•â•
             $this->clearQuoteConfirmation($orderId);
         }
 
@@ -443,172 +372,7 @@ class PipelineController {
     }
 
     /**
-     * Mover setor de produção de um item do pedido (AJAX)
-     */
-    public function moveSector() {
-        header('Content-Type: application/json');
-        
-        $orderId = Input::post('order_id', 'int') ?: Input::get('order_id', 'int');
-        $orderItemId = Input::post('order_item_id', 'int') ?: Input::get('order_item_id', 'int');
-        $sectorId = Input::post('sector_id', 'int') ?: Input::get('sector_id', 'int');
-        $action = Input::post('move_action') ?: Input::get('move_action', 'string', 'advance');
-        $userId = $_SESSION['user_id'] ?? null;
-
-        if (!$orderId || !$orderItemId || !$sectorId) {
-            echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos']);
-            exit;
-        }
-
-        // Verificar permissão do usuário para este setor
-        $userModel = new User($this->db);
-        $allowedSectors = $userModel->getAllowedSectorIds($userId);
-        if (!empty($allowedSectors) && !in_array((int)$sectorId, $allowedSectors)) {
-            echo json_encode(['success' => false, 'message' => 'Sem permissão para este setor']);
-            exit;
-        }
-
-        $result = false;
-        if ($action === 'advance') {
-            $result = $this->pipelineModel->advanceItemSector($orderId, $orderItemId, $sectorId, $userId);
-        } elseif ($action === 'revert') {
-            $result = $this->pipelineModel->revertItemSector($orderId, $orderItemId, $sectorId, $userId);
-        }
-
-        if ($result) {
-            $logger = new Logger($this->db);
-            $logger->log('PRODUCTION_SECTOR_MOVE', "Order #$orderId item #$orderItemId sector #$sectorId action:$action");
-        }
-
-        echo json_encode(['success' => $result]);
-        exit;
-    }
-
-    /**
-     * Painel de Produção: visão por setor com tabs.
-     * Dados carregados via PipelineDetailService.
-     */
-    public function productionBoard() {
-        $userModel = new User($this->db);
-        $userAllowedSectorIds = $userModel->getAllowedSectorIds($_SESSION['user_id'] ?? 0);
-
-        $data = $this->detailService->loadProductionBoardData($userAllowedSectorIds);
-        extract($data);
-
-        require 'app/views/layout/header.php';
-        require 'app/views/pipeline/production_board.php';
-        require 'app/views/layout/footer.php';
-    }
-
-    /**
-     * API JSON: Buscar logs de um item do pedido (AJAX — usado pelo modal do painel de produção e detalhe)
-     */
-    public function getItemLogs() {
-        header('Content-Type: application/json');
-        $logModel = new OrderItemLog($this->db);
-        $logModel->createTableIfNotExists();
-
-        $orderItemId = Input::get('order_item_id', 'int');
-        if (!$orderItemId) {
-            echo json_encode(['success' => false, 'message' => 'Item não informado']);
-            exit;
-        }
-
-        $logs = $logModel->getLogsByItem($orderItemId);
-        echo json_encode(['success' => true, 'logs' => $logs]);
-        exit;
-    }
-
-    /**
-     * Adicionar log a um item do pedido (AJAX POST, com suporte a upload)
-     * Suporta "todos os produtos" via order_item_ids[] + all_items=1
-     */
-    public function addItemLog() {
-        header('Content-Type: application/json');
-        $logModel = new OrderItemLog($this->db);
-        $logModel->createTableIfNotExists();
-
-        $orderId = Input::post('order_id', 'int');
-        $orderItemId = Input::post('order_item_id', 'int');
-        $allItems = Input::post('all_items');
-        $orderItemIds = Input::postArray('order_item_ids');
-        $message = Input::post('message');
-        $userId = $_SESSION['user_id'] ?? null;
-
-        if (!$orderId) {
-            echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos']);
-            exit;
-        }
-
-        // Se "todos os produtos" ou nem item individual
-        if ($allItems && !empty($orderItemIds)) {
-            // Registrar para todos os itens
-        } elseif ($orderItemId) {
-            $orderItemIds = [$orderItemId];
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Selecione um produto']);
-            exit;
-        }
-
-        // Processar upload se houver
-        $filePath = null;
-        $fileName = null;
-        $fileType = null;
-
-        if (!empty($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-            $firstItemId = $orderItemIds[0] ?? 0;
-            $uploadResult = $logModel->handleFileUpload($_FILES['file'], $orderId, $firstItemId);
-            if (isset($uploadResult['error'])) {
-                echo json_encode(['success' => false, 'message' => $uploadResult['error']]);
-                exit;
-            }
-            $filePath = $uploadResult['file_path'];
-            $fileName = $uploadResult['file_name'];
-            $fileType = $uploadResult['file_type'];
-        }
-
-        // Precisa ter pelo menos mensagem ou arquivo
-        if (empty($message) && empty($filePath)) {
-            echo json_encode(['success' => false, 'message' => 'Informe uma mensagem ou envie um arquivo.']);
-            exit;
-        }
-
-        $logIds = [];
-        foreach ($orderItemIds as $iid) {
-            $logId = $logModel->addLog($orderId, $iid, $userId, $message ?: null, $filePath, $fileName, $fileType);
-            $logIds[] = $logId;
-        }
-
-        // Log do sistema
-        $logger = new Logger($this->db);
-        $itemCount = count($logIds);
-        $logger->log('ITEM_LOG_ADDED', "Log added to order #$orderId for $itemCount item(s)");
-
-        echo json_encode(['success' => true, 'log_ids' => $logIds]);
-        exit;
-    }
-
-    /**
-     * Excluir um log de item (AJAX POST)
-     */
-    public function deleteItemLog() {
-        header('Content-Type: application/json');
-        $logModel = new OrderItemLog($this->db);
-
-        $logId = Input::post('log_id', 'int');
-        $userId = $_SESSION['user_id'] ?? null;
-
-        if (!$logId) {
-            echo json_encode(['success' => false, 'message' => 'ID do log não informado']);
-            exit;
-        }
-
-        $result = $logModel->deleteLog($logId, $userId);
-        echo json_encode(['success' => $result]);
-        exit;
-    }
-
-    /**
-     * Imprimir Ordem de Produção.
+     * Imprimir Ordem de ProduÃ§Ã£o.
      * Dados carregados via PipelineDetailService.
      */
     public function printProductionOrder() {
@@ -629,7 +393,7 @@ class PipelineController {
     }
 
     /**
-     * Alternar item do checklist de preparação (AJAX POST)
+     * Alternar item do checklist de preparaÃ§Ã£o (AJAX POST)
      */
     public function togglePreparation() {
         header('Content-Type: application/json');
@@ -640,15 +404,13 @@ class PipelineController {
         $userId = $_SESSION['user_id'] ?? null;
 
         if (!$orderId || !$key) {
-            echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ParÃ¢metros invÃ¡lidos']);
         }
 
-        // Verificar se o pedido está na etapa de preparação
+        // Verificar se o pedido estÃ¡ na etapa de preparaÃ§Ã£o
         $order = $this->pipelineModel->getOrderDetail($orderId);
         if (!$order || $order['pipeline_stage'] !== 'preparacao') {
-            echo json_encode(['success' => false, 'message' => 'Pedido não está em preparação']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Pedido nÃ£o estÃ¡ em preparaÃ§Ã£o']);
         }
 
         $checked = $prepModel->toggle($orderId, $key, $userId);
@@ -658,12 +420,11 @@ class PipelineController {
         $action = $checked ? 'checked' : 'unchecked';
         $logger->log('PREPARATION_TOGGLE', "Preparation '$key' $action for order #$orderId");
 
-        echo json_encode(['success' => true, 'checked' => $checked]);
-        exit;
+        $this->json(['success' => true, 'checked' => $checked]);
     }
 
     /**
-     * Imprimir cupom não fiscal (impressora térmica).
+     * Imprimir cupom nÃ£o fiscal (impressora tÃ©rmica).
      * Dados carregados via PipelineDetailService.
      */
     public function printThermalReceipt() {
@@ -681,114 +442,5 @@ class PipelineController {
 
         extract($data);
         require 'app/views/pipeline/print_thermal_receipt.php';
-    }
-
-    /**
-     * API JSON: Confirma pagamento da entrada/sinal (parcela número 0).
-     */
-    public function confirmDownPayment()
-    {
-        header('Content-Type: application/json');
-
-        $orderId = Input::post('order_id', 'int');
-        if (!$orderId) {
-            echo json_encode(['success' => false, 'message' => 'ID do pedido não informado.']);
-            exit;
-        }
-
-        $installmentModel = new \Akti\Models\Installment($this->db);
-        $installments = $installmentModel->getByOrderId($orderId);
-
-        $downPaymentInstallment = null;
-        foreach ($installments as $inst) {
-            if ((int) $inst['installment_number'] === 0 && in_array($inst['status'], ['pendente', 'atrasado'], true)) {
-                $downPaymentInstallment = $inst;
-                break;
-            }
-        }
-
-        if (!$downPaymentInstallment) {
-            echo json_encode(['success' => false, 'message' => 'Nenhuma parcela de entrada pendente encontrada.']);
-            exit;
-        }
-
-        $result = $installmentModel->pay((int) $downPaymentInstallment['id'], [
-            'paid_date'      => date('Y-m-d'),
-            'paid_amount'    => (float) $downPaymentInstallment['amount'],
-            'payment_method' => 'entrada',
-            'notes'          => 'Entrada/sinal confirmada via detalhe do pedido',
-            'user_id'        => $_SESSION['user_id'] ?? null,
-        ], true);
-
-        if ($result) {
-            $installmentModel->updateOrderPaymentStatus($orderId);
-            $logger = new Logger($this->db);
-            $logger->log('DOWN_PAYMENT_CONFIRMED', "Confirmed down payment for order #$orderId");
-            echo json_encode(['success' => true, 'message' => 'Entrada confirmada com sucesso.']);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Erro ao confirmar entrada.']);
-        }
-        exit;
-    }
-
-    /**
-     * API JSON: Sincroniza parcelas do pedido (AJAX POST).
-     * Delegado ao PipelineService.
-     */
-    public function syncInstallments() {
-        header('Content-Type: application/json');
-
-        $orderId       = Input::post('order_id', 'int');
-        $paymentMethod = Input::post('payment_method');
-        $numInst       = Input::post('installments', 'int') ?: 0;
-        $downPayment   = Input::post('down_payment', 'float', 0);
-        $discount      = Input::post('discount', 'float', 0);
-
-        if (!$orderId) {
-            echo json_encode(['success' => false, 'message' => 'ID do pedido não informado.']);
-            exit;
-        }
-
-        // Sanitizar datas de vencimento customizadas
-        $dueDates = [];
-        $rawDueDates = $_POST['due_dates'] ?? [];
-        if (is_array($rawDueDates)) {
-            foreach ($rawDueDates as $num => $dateVal) {
-                $sanitizedDate = Sanitizer::date($dateVal);
-                if ($sanitizedDate) {
-                    $dueDates[(int)$num] = $sanitizedDate;
-                }
-            }
-        }
-
-        $result = $this->pipelineService->syncInstallments($orderId, $paymentMethod, $numInst, $downPayment, $discount, $dueDates);
-        echo json_encode($result);
-        exit;
-    }
-
-    /**
-     * API JSON: Atualiza a data de vencimento de uma parcela individual (AJAX POST)
-     */
-    public function updateInstallmentDueDate() {
-        header('Content-Type: application/json');
-
-        $installmentId = Input::post('installment_id', 'int');
-        $dueDate       = Input::post('due_date', 'date');
-
-        if (!$installmentId || !$dueDate) {
-            echo json_encode(['success' => false, 'message' => 'Dados incompletos.']);
-            exit;
-        }
-
-        $financialModel = new Financial($this->db);
-        $result = $financialModel->updateInstallmentDueDate($installmentId, $dueDate);
-
-        if ($result) {
-            $logger = new Logger($this->db);
-            $logger->log('INSTALLMENT_DUE_DATE', "Updated due date of installment #$installmentId to $dueDate");
-        }
-
-        echo json_encode(['success' => (bool)$result]);
-        exit;
     }
 }

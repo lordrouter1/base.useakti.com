@@ -14,7 +14,7 @@ use Akti\Utils\Input;
 use Akti\Utils\Validator;
 use PDO;
 
-class OrderController {
+class OrderController extends BaseController {
     
     private Order $orderModel;
     private OrderItemService $itemService;
@@ -58,8 +58,7 @@ class OrderController {
         }
 
         $customerModel = new Customer($this->db);
-        $stmt_customers = $customerModel->readAll();
-        $customers = $stmt_customers->fetchAll(PDO::FETCH_ASSOC);
+        $customers = $customerModel->readAll();
 
         // Buscar contatos agendados para a agenda
         $agendaMonth = Input::get('agenda_month', 'int') ?: (int)date('m');
@@ -140,8 +139,7 @@ class OrderController {
         }
 
         $customerModel = new Customer($this->db);
-        $stmt_customers = $customerModel->readAll();
-        $customers = $stmt_customers->fetchAll(PDO::FETCH_ASSOC);
+        $customers = $customerModel->readAll();
 
         // Buscar itens do pedido
         $orderItems = $this->orderModel->getItems($order['id']);
@@ -313,24 +311,21 @@ class OrderController {
         $quantity = Input::post('quantity', 'int', 1);
 
         if (!$itemId) {
-            echo json_encode(['success' => false, 'message' => 'ID do item não informado']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ID do item não informado']);
         }
 
         // ═══ BLOQUEIO: Não permitir alterar quantidade se há parcelas pagas ═══
         $orderId = $this->itemService->getOrderIdFromItem($itemId);
         if ($orderId && $this->itemService->orderHasPaidInstallments($orderId)) {
-            echo json_encode([
+            $this->json([
                 'success' => false,
                 'message' => 'Não é possível alterar a quantidade porque existem parcelas já pagas. Estorne os pagamentos primeiro.',
                 'blocked_by_paid' => true,
             ]);
-            exit;
         }
 
         $result = $this->itemService->updateItemQuantity($itemId, $quantity);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     /**
@@ -343,24 +338,21 @@ class OrderController {
         $discount = Input::post('discount', 'float', 0);
 
         if (!$itemId) {
-            echo json_encode(['success' => false, 'message' => 'ID do item não informado']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ID do item não informado']);
         }
 
         // ═══ BLOQUEIO: Não permitir alterar desconto de item se há parcelas pagas ═══
         $orderId = $this->itemService->getOrderIdFromItem($itemId);
         if ($orderId && $this->itemService->orderHasPaidInstallments($orderId)) {
-            echo json_encode([
+            $this->json([
                 'success' => false,
                 'message' => 'Não é possível alterar o desconto porque existem parcelas já pagas. Estorne os pagamentos primeiro.',
                 'blocked_by_paid' => true,
             ]);
-            exit;
         }
 
         $result = $this->itemService->updateItemDiscount($itemId, $discount);
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     /**

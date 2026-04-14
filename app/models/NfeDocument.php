@@ -79,7 +79,7 @@ class NfeDocument
      * @param int $id
      * @return array|false
      */
-    public function readOne(int $id)
+    public function readOne(int $id): array|false
     {
         $q = "SELECT * FROM {$this->table} WHERE id = :id";
         $s = $this->conn->prepare($q);
@@ -94,7 +94,7 @@ class NfeDocument
      * @param int $modelo
      * @return array|false
      */
-    public function findByNumero(int $numero, int $serie = 1, int $modelo = 55)
+    public function findByNumero(int $numero, int $serie = 1, int $modelo = 55): array|false
     {
         $q = "SELECT * FROM {$this->table} WHERE numero = :numero AND serie = :serie AND modelo = :modelo LIMIT 1";
         $s = $this->conn->prepare($q);
@@ -107,7 +107,7 @@ class NfeDocument
      * @param int $orderId
      * @return array|false
      */
-    public function readByOrder(int $orderId)
+    public function readByOrder(int $orderId): array|false
     {
         $q = "SELECT * FROM {$this->table} WHERE order_id = :oid ORDER BY id DESC LIMIT 1";
         $s = $this->conn->prepare($q);

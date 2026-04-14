@@ -206,16 +206,20 @@ return [
             'deleteImage'            => 'deleteImage',
             'getSubcategories'       => 'getSubcategories',
             'createCategoryAjax'     => 'createCategoryAjax',
-            'createGradeType'        => 'createGradeTypeAjax',
-            'getGradeTypes'          => 'getGradeTypes',
-            'generateCombinations'   => 'generateCombinationsAjax',
-            'downloadImportTemplate' => 'downloadImportTemplate',
-            'importProducts'         => 'importProducts',
             'getProductsList'        => 'getProductsList',
             'searchSelect2'          => 'searchSelect2',
             'searchAjax'             => 'searchAjax',
-            'parseImportFile'        => 'parseImportFile',
-            'importProductsMapped'   => 'importProductsMapped',
+
+            // Grades — delegadas a ProductGradeController
+            'createGradeType'        => ['controller' => 'ProductGradeController', 'method' => 'createGradeTypeAjax'],
+            'getGradeTypes'          => ['controller' => 'ProductGradeController', 'method' => 'getGradeTypes'],
+            'generateCombinations'   => ['controller' => 'ProductGradeController', 'method' => 'generateCombinationsAjax'],
+
+            // Importação — delegada a ProductImportController
+            'downloadImportTemplate' => ['controller' => 'ProductImportController', 'method' => 'downloadImportTemplate'],
+            'importProducts'         => ['controller' => 'ProductImportController', 'method' => 'importProducts'],
+            'parseImportFile'        => ['controller' => 'ProductImportController', 'method' => 'parseImportFile'],
+            'importProductsMapped'   => ['controller' => 'ProductImportController', 'method' => 'importProductsMapped'],
         ],
     ],
 
@@ -281,7 +285,7 @@ return [
             'searchCnpj'              => 'searchCnpj',
 
             // Exportação (Fase 2)
-            'export'                  => 'export',
+            'export'                  => ['controller' => 'CustomerExportController', 'method' => 'export'],
 
             // Ações em lote (Fase 2)
             'bulkAction'              => 'bulkAction',
@@ -293,17 +297,17 @@ return [
             'saveContact'             => 'saveContact',
             'deleteContact'           => 'deleteContact',
 
-            // Importação
-            'parseImportFile'         => 'parseImportFile',
-            'importCustomersMapped'   => 'importCustomersMapped',
-            'downloadImportTemplate'  => 'downloadImportTemplate',
-            'getImportProgress'       => 'getImportProgress',
-            'undoImport'              => 'undoImport',
-            'getImportHistory'        => 'getImportHistory',
-            'getImportDetails'        => 'getImportDetails',
-            'getMappingProfiles'      => 'getMappingProfiles',
-            'saveMappingProfile'      => 'saveMappingProfile',
-            'deleteMappingProfile'    => 'deleteMappingProfile',
+            // Importação — delegada a CustomerImportController
+            'parseImportFile'         => ['controller' => 'CustomerImportController', 'method' => 'parseImportFile'],
+            'importCustomersMapped'   => ['controller' => 'CustomerImportController', 'method' => 'importCustomersMapped'],
+            'downloadImportTemplate'  => ['controller' => 'CustomerImportController', 'method' => 'downloadImportTemplate'],
+            'getImportProgress'       => ['controller' => 'CustomerImportController', 'method' => 'getImportProgress'],
+            'undoImport'              => ['controller' => 'CustomerImportController', 'method' => 'undoImport'],
+            'getImportHistory'        => ['controller' => 'CustomerImportController', 'method' => 'getImportHistory'],
+            'getImportDetails'        => ['controller' => 'CustomerImportController', 'method' => 'getImportDetails'],
+            'getMappingProfiles'      => ['controller' => 'CustomerImportController', 'method' => 'getMappingProfiles'],
+            'saveMappingProfile'      => ['controller' => 'CustomerImportController', 'method' => 'saveMappingProfile'],
+            'deleteMappingProfile'    => ['controller' => 'CustomerImportController', 'method' => 'deleteMappingProfile'],
 
             // Tags e Histórico (Fase 4)
             'getTags'                 => 'getTags',
@@ -360,32 +364,37 @@ return [
             'getPricesByTable'     => 'getPricesByTable',
             'addExtraCost'         => 'addExtraCost',
             'deleteExtraCost'      => 'deleteExtraCost',
-            'moveSector'           => 'moveSector',
-            'getItemLogs'          => 'getItemLogs',
-            'addItemLog'           => 'addItemLog',
-            'deleteItemLog'        => 'deleteItemLog',
             'togglePreparation'    => 'togglePreparation',
             'checkOrderStock'      => 'checkOrderStock',
-            'countInstallments'    => 'countInstallments',
-            'deleteInstallments'   => 'deleteInstallments',
-            'generateMercadoPagoLink' => 'generateMercadoPagoLink',
-            'generatePaymentLink'     => 'generatePaymentLink',
-            'productionBoard'      => 'productionBoard',
             'printProductionOrder' => 'printProductionOrder',
             'printThermalReceipt'  => 'printThermalReceipt',
-            'syncInstallments'     => 'syncInstallments',
-            'confirmDownPayment'   => 'confirmDownPayment',
-            'updateInstallmentDueDate' => 'updateInstallmentDueDate',
-            // Actions que usam CatalogController em vez de PipelineController
+
+            // Produção — delegada a PipelineProductionController
+            'moveSector'           => ['controller' => 'PipelineProductionController', 'method' => 'moveSector'],
+            'getItemLogs'          => ['controller' => 'PipelineProductionController', 'method' => 'getItemLogs'],
+            'addItemLog'           => ['controller' => 'PipelineProductionController', 'method' => 'addItemLog'],
+            'deleteItemLog'        => ['controller' => 'PipelineProductionController', 'method' => 'deleteItemLog'],
+            'productionBoard'      => ['controller' => 'PipelineProductionController', 'method' => 'productionBoard'],
+
+            // Financeiro — delegado a PipelinePaymentController
+            'countInstallments'        => ['controller' => 'PipelinePaymentController', 'method' => 'countInstallments'],
+            'deleteInstallments'       => ['controller' => 'PipelinePaymentController', 'method' => 'deleteInstallments'],
+            'generateMercadoPagoLink'  => ['controller' => 'PipelinePaymentController', 'method' => 'generateMercadoPagoLink'],
+            'generatePaymentLink'      => ['controller' => 'PipelinePaymentController', 'method' => 'generatePaymentLink'],
+            'syncInstallments'         => ['controller' => 'PipelinePaymentController', 'method' => 'syncInstallments'],
+            'confirmDownPayment'       => ['controller' => 'PipelinePaymentController', 'method' => 'confirmDownPayment'],
+            'updateInstallmentDueDate' => ['controller' => 'PipelinePaymentController', 'method' => 'updateInstallmentDueDate'],
+
+            // Catálogo
             'generateCatalogLink'    => ['controller' => 'CatalogController', 'method' => 'generate'],
             'deactivateCatalogLink'  => ['controller' => 'CatalogController', 'method' => 'deactivate'],
             'getCatalogLink'         => ['controller' => 'CatalogController', 'method' => 'getLink'],
         ],
     ],
 
-    // ── Painel de Produção (atalho de menu → usa PipelineController) ──
+    // ── Painel de Produção (atalho de menu → usa PipelineProductionController) ──
     'production_board' => [
-        'controller'     => 'PipelineController',
+        'controller'     => 'PipelineProductionController',
         'default_action' => 'productionBoard',
         'actions'        => [
             'moveSector'    => 'moveSector',

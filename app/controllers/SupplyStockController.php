@@ -64,8 +64,7 @@ class SupplyStockController extends BaseController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Método inválido.']);
         }
 
         $result = $this->movementService->processEntry(
@@ -75,8 +74,7 @@ class SupplyStockController extends BaseController
             $_SESSION['user']['id'] ?? 0
         );
 
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     // ──── Saída ────
@@ -95,8 +93,7 @@ class SupplyStockController extends BaseController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Método inválido.']);
         }
 
         $result = $this->movementService->processExit(
@@ -106,8 +103,7 @@ class SupplyStockController extends BaseController
             $_SESSION['user']['id'] ?? 0
         );
 
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     // ──── Transferência ────
@@ -126,8 +122,7 @@ class SupplyStockController extends BaseController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Método inválido.']);
         }
 
         $result = $this->movementService->processTransfer(
@@ -138,8 +133,7 @@ class SupplyStockController extends BaseController
             $_SESSION['user']['id'] ?? 0
         );
 
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     // ──── Ajuste ────
@@ -158,8 +152,7 @@ class SupplyStockController extends BaseController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Método inválido.']);
         }
 
         $result = $this->movementService->processAdjustment(
@@ -169,8 +162,7 @@ class SupplyStockController extends BaseController
             $_SESSION['user']['id'] ?? 0
         );
 
-        echo json_encode($result);
-        exit;
+        $this->json($result);
     }
 
     // ──── Movimentações (listagem paginada via AJAX) ────
@@ -205,7 +197,7 @@ class SupplyStockController extends BaseController
 
         $result = $this->stockModel->getMovements($filters, $page, $perPage);
 
-        echo json_encode([
+        $this->json([
             'success'     => true,
             'items'       => $result['data'],
             'total'       => $result['total'],
@@ -213,7 +205,6 @@ class SupplyStockController extends BaseController
             'per_page'    => $perPage,
             'total_pages' => $result['pages'],
         ]);
-        exit;
     }
 
     // ──── AJAX helpers ────
@@ -223,8 +214,7 @@ class SupplyStockController extends BaseController
         header('Content-Type: application/json');
         $term = Input::get('q');
         $results = $this->supplyModel->searchSelect2($term ?: '');
-        echo json_encode(['results' => $results]);
-        exit;
+        $this->json(['results' => $results]);
     }
 
     public function getStockInfo(): void
@@ -234,21 +224,19 @@ class SupplyStockController extends BaseController
         $warehouseId = Input::get('warehouse_id', 'int', 0);
 
         if (!$supplyId || !$warehouseId) {
-            echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Parâmetros inválidos.']);
         }
 
         $batches = $this->stockModel->getBatchesBySupply($supplyId, $warehouseId);
         $total   = $this->stockModel->getTotalStock($supplyId);
         $supply  = $this->supplyModel->readOne($supplyId);
 
-        echo json_encode([
+        $this->json([
             'success'  => true,
             'batches'  => $batches,
             'total'    => $total,
             'supply'   => $supply,
         ]);
-        exit;
     }
 
     public function getBatches(): void
@@ -258,8 +246,7 @@ class SupplyStockController extends BaseController
         $warehouseId = Input::get('warehouse_id', 'int', 0);
 
         $batches = $this->stockModel->getBatchesBySupply($supplyId, $warehouseId);
-        echo json_encode(['success' => true, 'batches' => $batches]);
-        exit;
+        $this->json(['success' => true, 'batches' => $batches]);
     }
 
     public function getStockItems(): void
@@ -276,7 +263,7 @@ class SupplyStockController extends BaseController
 
         $result = $this->stockModel->getItems($filters, $page, $perPage);
 
-        echo json_encode([
+        $this->json([
             'success'     => true,
             'items'       => $result['data'],
             'total'       => $result['total'],
@@ -284,7 +271,6 @@ class SupplyStockController extends BaseController
             'per_page'    => $perPage,
             'total_pages' => $result['pages'],
         ]);
-        exit;
     }
 
     // ──── MRP / Reorder (Fase 8) ────
@@ -293,8 +279,7 @@ class SupplyStockController extends BaseController
     {
         header('Content-Type: application/json');
         $items = $this->stockModel->getReorderItems();
-        echo json_encode(['success' => true, 'items' => $items]);
-        exit;
+        $this->json(['success' => true, 'items' => $items]);
     }
 
     // ──── Dashboard KPIs ────
@@ -304,7 +289,6 @@ class SupplyStockController extends BaseController
         header('Content-Type: application/json');
         $warehouseId = Input::get('warehouse_id', 'int');
         $summary = $this->stockModel->getDashboardSummary($warehouseId ?: null);
-        echo json_encode(['success' => true, 'data' => $summary]);
-        exit;
+        $this->json(['success' => true, 'data' => $summary]);
     }
 }

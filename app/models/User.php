@@ -30,7 +30,7 @@ class User {
     /** @var string|null Email do usuário (único) */
     public $email;
     /** @var string|null Senha em texto antes do hash (não logar) */
-    public $password;
+    protected $password;
     /** @var string|null Papel do usuário (ex: 'admin', 'user') */
     public $role;
     /** @var int|null ID do grupo de permissões do usuário */
@@ -43,6 +43,14 @@ class User {
      */
     public function __construct(\PDO $db) {
         $this->conn = $db;
+    }
+
+    public function setPassword(string $password): void {
+        $this->password = $password;
+    }
+
+    public function getPassword(): ?string {
+        return $this->password;
     }
 
     /**

@@ -13,7 +13,7 @@ use Akti\Models\DashboardWidget;
  *   ?page=dashboard_widgets&action=load&widget=cards_summary  → HTML de um widget
  *   ?page=dashboard_widgets&action=config                     → Config do grupo do usuário (JSON)
  */
-class DashboardWidgetController
+class DashboardWidgetController extends BaseController
 {
     /** @var \PDO */
     private \PDO $db;
@@ -36,9 +36,7 @@ class DashboardWidgetController
 
         if (!isset($available[$widgetKey])) {
             http_response_code(404);
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['success' => false, 'error' => 'Widget não encontrado.']);
-            exit;
+            $this->json(['success' => false, 'error' => 'Widget não encontrado.']);
         }
 
         $widgetInfo = $available[$widgetKey];
@@ -46,9 +44,7 @@ class DashboardWidgetController
 
         if (!file_exists($file)) {
             http_response_code(404);
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['success' => false, 'error' => 'Arquivo do widget não encontrado.']);
-            exit;
+            $this->json(['success' => false, 'error' => 'Arquivo do widget não encontrado.']);
         }
 
         // Preparar variáveis que os widgets precisam
@@ -63,19 +59,14 @@ class DashboardWidgetController
         } catch (\Throwable $e) {
             ob_end_clean();
             http_response_code(500);
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['success' => false, 'error' => 'Erro ao renderizar widget.']);
-            exit;
+            $this->json(['success' => false, 'error' => 'Erro ao renderizar widget.']);
         }
         $html = ob_get_clean();
-
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode([
+        $this->json([
             'success' => true,
             'widget'  => $widgetKey,
             'html'    => $html,
         ]);
-        exit;
     }
 
     /**
@@ -102,13 +93,10 @@ class DashboardWidgetController
                 ];
             }
         }
-
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode([
+        $this->json([
             'success' => true,
             'widgets' => $widgets,
         ]);
-        exit;
     }
 
     // ── Helpers ──
@@ -117,9 +105,7 @@ class DashboardWidgetController
     {
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['success' => false, 'error' => 'Não autenticado.']);
-            exit;
+            $this->json(['success' => false, 'error' => 'Não autenticado.']);
         }
     }
 }

@@ -24,7 +24,7 @@ abstract class BaseController
     /**
      * Retorna resposta JSON e encerra a execução.
      */
-    protected function json(array $data, int $status = 200): void
+    protected function json(mixed $data, int $status = 200): void
     {
         while (ob_get_level()) {
             ob_end_clean();

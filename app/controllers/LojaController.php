@@ -15,7 +15,7 @@ use Akti\Services\TwigRenderer;
  * com configurações de tema do Site Builder e catálogo de produtos.
  * Páginas fixas: home, produtos, contato, carrinho, perfil.
  */
-class LojaController
+class LojaController extends BaseController
 {
     private \PDO $db;
     private SiteBuilder $siteBuilder;
@@ -306,17 +306,6 @@ class LojaController
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         return $scheme . '://' . $host;
-    }
-
-    /**
-     * Responde com JSON.
-     */
-    private function json(array $data, int $statusCode = 200): void
-    {
-        http_response_code($statusCode);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
-        exit;
     }
 
     /**

@@ -374,7 +374,7 @@ class Installment
      * @param bool $autoConfirm
      * @return array|false ['order_id' => int] or false
      */
-    public function pay(int $installmentId, array $data, bool $autoConfirm = false)
+    public function pay(int $installmentId, array $data, bool $autoConfirm = false): array|false
     {
         $isConfirmed = $autoConfirm ? 1 : 0;
 
@@ -430,7 +430,7 @@ class Installment
      * @param string|null $dueDate
      * @return int|false ID da nova parcela ou false
      */
-    public function createRemaining(int $originalInstallmentId, float $remainingAmount, ?string $dueDate = null)
+    public function createRemaining(int $originalInstallmentId, float $remainingAmount, ?string $dueDate = null): int|false
     {
         $q = "SELECT order_id, installment_number, due_date FROM order_installments WHERE id = :id";
         $s = $this->conn->prepare($q);
@@ -637,7 +637,7 @@ class Installment
      * @param string $dueDate
      * @return int|false ID da nova parcela ou false
      */
-    public function merge(array $installmentIds, string $dueDate)
+    public function merge(array $installmentIds, string $dueDate): int|false
     {
         if (count($installmentIds) < 2) return false;
 

@@ -34,7 +34,7 @@ use Akti\Utils\Input;
  * @see     TransactionController
  * @see     FinancialImportController
  */
-class FinancialController
+class FinancialController extends BaseController
 {
     private \PDO $db;
     private Financial $financial;
@@ -138,9 +138,7 @@ class FinancialController
         $month = Input::get('month', 'int') ?: (int) date('m');
         $year  = Input::get('year', 'int') ?: (int) date('Y');
         $summary = $this->reportService->getSummary($month, $year);
-        header('Content-Type: application/json');
-        echo json_encode($summary);
-        exit;
+        $this->json($summary);
     }
 
     // ═══════════════════════════════════════════
@@ -160,10 +158,7 @@ class FinancialController
         if (!preg_match('/^\d{4}-\d{2}$/', $toMonth)) $toMonth = date('Y-m');
 
         $dre = $this->reportService->getDre($fromMonth, $toMonth);
-
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'data' => $dre]);
-        exit;
+        $this->json(['success' => true, 'data' => $dre]);
     }
 
     // ═══════════════════════════════════════════
@@ -181,10 +176,7 @@ class FinancialController
         if ($months < 1 || $months > 24) $months = 6;
 
         $projection = $this->reportService->getCashflowProjection($months, (bool) $includeRecurring);
-
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'data' => $projection]);
-        exit;
+        $this->json(['success' => true, 'data' => $projection]);
     }
 
     // ═══════════════════════════════════════════
@@ -280,7 +272,7 @@ class FinancialController
 
         $result = $auditService->getPaginated($filters, $page, $perPage);
 
-        echo json_encode([
+        $this->json([
             'success'     => true,
             'items'       => $result['data'],
             'total'       => $result['total'],
@@ -288,7 +280,6 @@ class FinancialController
             'per_page'    => $result['perPage'],
             'total_pages' => $result['totalPages'],
         ]);
-        exit;
     }
 
     /**

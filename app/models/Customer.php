@@ -17,10 +17,10 @@ class Customer {
     private $conn;
     private $table_name = "customers";
 
-    public $id;
-    public $name;
-    public $email;
-    public $phone;
+    protected $id;
+    protected $name;
+    protected $email;
+    protected $phone;
 
     /**
      * Construtor do model
@@ -36,13 +36,13 @@ class Customer {
 
     /**
      * Retorna todos os clientes (exclui soft-deleted)
-     * @return PDOStatement Lista de clientes (fetchAll)
+     * @return array Lista de clientes
      */
-    public function readAll() {
+    public function readAll(): array {
         $query = "SELECT * FROM {$this->table_name} WHERE deleted_at IS NULL ORDER BY created_at DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
-        return $stmt;
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**
@@ -67,7 +67,7 @@ class Customer {
      * @param int $id ID do cliente
      * @return array|null Dados do cliente ou null
      */
-    public function readOne($id) {
+    public function readOne($id): array|false {
         $query = "SELECT * FROM {$this->table_name} WHERE id = :id LIMIT 1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
@@ -101,7 +101,7 @@ class Customer {
      * @return int ID do cliente criado
      * Evento disparado: 'model.customer.created' com ['id', 'name', 'email', 'code']
      */
-    public function create($data) {
+    public function create($data): int {
         // Gerar código sequencial se não fornecido
         $code = !empty($data['code']) ? $data['code'] : $this->generateCode();
 
@@ -195,7 +195,7 @@ class Customer {
      * @return bool Sucesso ou falha na operação
      * Evento disparado: 'model.customer.updated' com ['id', 'name', 'email']
      */
-    public function update($data) {
+    public function update($data): bool {
         // Mapa de todos os campos atualizáveis e seus tratamentos
         $fieldMap = [
             'person_type'          => 'string',
@@ -310,7 +310,7 @@ class Customer {
      * @return bool Sucesso ou falha na operação
      * Evento disparado: 'model.customer.deleted' com ['id']
      */
-    public function delete($id) {
+    public function delete($id): bool {
         $query = "DELETE FROM {$this->table_name} WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
@@ -361,7 +361,7 @@ class Customer {
      * Retorna o total de clientes (exclui soft-deleted)
      * @return int Total de clientes
      */
-    public function countAll() {
+    public function countAll(): int {
         $query = "SELECT COUNT(*) FROM {$this->table_name} WHERE deleted_at IS NULL";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
@@ -615,7 +615,7 @@ class Customer {
      * @param int|null $excludeId ID a excluir da verificação (edição)
      * @return array|false Dados do duplicado, ou false se não existir
      */
-    public function checkDuplicate(string $document, ?int $excludeId = null)
+    public function checkDuplicate(string $document, ?int $excludeId = null): array|false
     {
         $document = preg_replace('/\D/', '', $document);
         if ($document === '') return false;
@@ -841,7 +841,7 @@ class Customer {
      * @param array $data Dados mapeados
      * @return int|false ID do cliente criado ou false
      */
-    public function importFromMapped(array $data)
+    public function importFromMapped(array $data): int|false
     {
         // Manter campo address JSON para retrocompatibilidade
         $address = json_encode([

@@ -23,7 +23,7 @@ use Akti\Utils\Input;
  *
  * @package Akti\Controllers
  */
-class TransactionController
+class TransactionController extends BaseController
 {
     private \PDO $db;
     private TransactionService $transactionService;
@@ -133,18 +133,15 @@ class TransactionController
 
         $id = Input::get('id', 'int', 0);
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ID inválido.']);
         }
 
         $tx = $this->transactionService->getById($id);
         if (!$tx) {
-            echo json_encode(['success' => false, 'message' => 'Transação não encontrada.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Transação não encontrada.']);
         }
 
-        echo json_encode(['success' => true, 'transaction' => $tx]);
-        exit;
+        $this->json(['success' => true, 'transaction' => $tx]);
     }
 
     // ═══════════════════════════════════════════
@@ -156,20 +153,17 @@ class TransactionController
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Método inválido.']);
         }
 
         $id = Input::post('transaction_id', 'int', 0);
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'ID da transação inválido.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'ID da transação inválido.']);
         }
 
         $tx = $this->transactionService->getById($id);
         if (!$tx) {
-            echo json_encode(['success' => false, 'message' => 'Transação não encontrada.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'Transação não encontrada.']);
         }
 
         $type = Input::post('type', 'enum', 'entrada', ['entrada', 'saida', 'registro']);
@@ -184,19 +178,16 @@ class TransactionController
         ];
 
         if ($data['amount'] <= 0) {
-            echo json_encode(['success' => false, 'message' => 'O valor deve ser maior que zero.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'O valor deve ser maior que zero.']);
         }
 
         if (empty($data['description'])) {
-            echo json_encode(['success' => false, 'message' => 'A descrição é obrigatória.']);
-            exit;
+            $this->json(['success' => false, 'message' => 'A descrição é obrigatória.']);
         }
 
         $this->transactionService->update($id, $data);
 
-        echo json_encode(['success' => true, 'message' => 'Transação atualizada com sucesso!']);
-        exit;
+        $this->json(['success' => true, 'message' => 'Transação atualizada com sucesso!']);
     }
 
     // ═══════════════════════════════════════════
@@ -221,7 +212,7 @@ class TransactionController
 
         $result = $this->transactionService->getPaginated($filters, $page, $perPage);
 
-        echo json_encode([
+        $this->json([
             'success'       => true,
             'items'         => $result['data'],
             'total'         => $result['total'],
@@ -231,7 +222,6 @@ class TransactionController
             'totalEntradas' => $result['totalEntradas'],
             'totalSaidas'   => $result['totalSaidas'],
         ]);
-        exit;
     }
 
     // ═══════════════════════════════════════════
@@ -246,8 +236,6 @@ class TransactionController
 
     private function jsonResponse(array $data): void
     {
-        header('Content-Type: application/json');
-        echo json_encode($data);
-        exit;
+        $this->json($data);
     }
 }

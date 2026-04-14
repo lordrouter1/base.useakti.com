@@ -20,7 +20,7 @@ use Akti\Utils\Input;
  *
  * @package Akti\Controllers
  */
-class PortalAdminController
+class PortalAdminController extends BaseController
 {
     private \PDO $db;
     private PortalAccess $portalAccess;
@@ -431,9 +431,7 @@ class PortalAdminController
     public function metrics(): void
     {
         $metrics = $this->service->getPortalMetrics();
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'metrics' => $metrics]);
-        exit;
+        $this->json(['success' => true, 'metrics' => $metrics]);
     }
 
     // ══════════════════════════════════════════════
@@ -445,8 +443,6 @@ class PortalAdminController
      */
     private function jsonResponse(bool $success, string $message, array $data = []): void
     {
-        header('Content-Type: application/json');
-        echo json_encode(array_merge(['success' => $success, 'message' => $message], $data));
-        exit;
+        $this->json(array_merge(['success' => $success, 'message' => $message], $data));
     }
 }

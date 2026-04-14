@@ -580,7 +580,7 @@ class Commission
     /**
      * Retorna valor de uma configuração específica.
      */
-    public function getConfigValue(string $key, $default = null)
+    public function getConfigValue(string $key, $default = null): mixed
     {
         $stmt = $this->conn->prepare("SELECT config_value FROM comissao_config WHERE config_key = :k");
         $stmt->execute([':k' => $key]);
