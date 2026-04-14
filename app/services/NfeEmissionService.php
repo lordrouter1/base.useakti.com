@@ -96,6 +96,7 @@ class NfeEmissionService
             $this->db->commit();
         } catch (\Exception $e) {
             $this->db->rollBack();
+            Log::error('NfeEmissionService::emit rollback - reservar número', ['exception' => $e->getMessage()]);
             return [
                 'success' => false,
                 'message' => 'Erro ao reservar número NF-e: ' . $e->getMessage(),

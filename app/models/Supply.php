@@ -335,6 +335,7 @@ class Supply
             return true;
         } catch (\Throwable $e) {
             $this->conn->rollBack();
+            error_log('[ROLLBACK] Supply::setPreferredSupplier - ' . $e->getMessage());
             return false;
         }
     }

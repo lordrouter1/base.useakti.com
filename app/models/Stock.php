@@ -140,7 +140,7 @@ class Stock {
 
         if ($warehouseId) {
             $where[] = "si.warehouse_id = :wid";
-            $params[':wid'] = $warehouseId;
+            $params[':wid'] = (int) $warehouseId;
         }
         if ($search) {
             $where[] = "(p.name LIKE :search OR pgc.combination_label LIKE :search2 OR si.location_code LIKE :search3)";
@@ -152,6 +152,7 @@ class Stock {
             $where[] = "si.quantity <= si.min_quantity AND si.min_quantity > 0";
         }
 
+        // SAFETY: $whereStr built from hardcoded SQL fragments + named placeholders only
         $whereStr = implode(' AND ', $where);
 
         $stmt = $this->conn->prepare("
@@ -505,15 +506,18 @@ class Stock {
 
         if (!empty($filters['warehouse_id'])) {
             $where[] = "sm.warehouse_id = :wid";
-            $params[':wid'] = $filters['warehouse_id'];
+            $params[':wid'] = (int) $filters['warehouse_id'];
         }
         if (!empty($filters['product_id'])) {
             $where[] = "sm.product_id = :pid";
-            $params[':pid'] = $filters['product_id'];
+            $params[':pid'] = (int) $filters['product_id'];
         }
         if (!empty($filters['type'])) {
-            $where[] = "sm.type = :type";
-            $params[':type'] = $filters['type'];
+            $allowedTypes = ['entrada', 'saida', 'ajuste', 'transferencia'];
+            if (in_array($filters['type'], $allowedTypes, true)) {
+                $where[] = "sm.type = :type";
+                $params[':type'] = $filters['type'];
+            }
         }
         if (!empty($filters['date_from'])) {
             $where[] = "sm.created_at >= :date_from";
@@ -524,6 +528,7 @@ class Stock {
             $params[':date_to'] = $filters['date_to'] . ' 23:59:59';
         }
 
+        // SAFETY: $whereStr built from hardcoded SQL fragments + named placeholders only
         $whereStr = implode(' AND ', $where);
         $limitVal = !empty($filters['limit']) ? intval($filters['limit']) : 200;
 
@@ -572,15 +577,18 @@ class Stock {
 
         if (!empty($filters['warehouse_id'])) {
             $where[] = "sm.warehouse_id = :wid";
-            $params[':wid'] = $filters['warehouse_id'];
+            $params[':wid'] = (int) $filters['warehouse_id'];
         }
         if (!empty($filters['product_id'])) {
             $where[] = "sm.product_id = :pid";
-            $params[':pid'] = $filters['product_id'];
+            $params[':pid'] = (int) $filters['product_id'];
         }
         if (!empty($filters['type'])) {
-            $where[] = "sm.type = :type";
-            $params[':type'] = $filters['type'];
+            $allowedTypes = ['entrada', 'saida', 'ajuste', 'transferencia'];
+            if (in_array($filters['type'], $allowedTypes, true)) {
+                $where[] = "sm.type = :type";
+                $params[':type'] = $filters['type'];
+            }
         }
         if (!empty($filters['date_from'])) {
             $where[] = "sm.created_at >= :date_from";
@@ -591,6 +599,7 @@ class Stock {
             $params[':date_to'] = $filters['date_to'] . ' 23:59:59';
         }
 
+        // SAFETY: $whereStr built from hardcoded SQL fragments + named placeholders only
         $whereStr = implode(' AND ', $where);
 
         // Contar total

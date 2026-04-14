@@ -8,9 +8,20 @@
 ALTER TABLE `checkout_tokens`
     MODIFY COLUMN `tenant_id` INT NULL DEFAULT NULL;
 
--- Remover FK restritiva e recriá-la com ON DELETE SET NULL
-ALTER TABLE `checkout_tokens`
-    DROP FOREIGN KEY `fk_checkout_tokens_tenant`;
+-- Remover FK restritiva e recriá-la com ON DELETE SET NULL (idempotente)
+SET @fk_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'checkout_tokens'
+    AND CONSTRAINT_NAME = 'fk_checkout_tokens_tenant'
+    AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+
+SET @sql = IF(@fk_exists > 0,
+    'ALTER TABLE `checkout_tokens` DROP FOREIGN KEY `fk_checkout_tokens_tenant`',
+    'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 ALTER TABLE `checkout_tokens`
     ADD CONSTRAINT `fk_checkout_tokens_tenant`

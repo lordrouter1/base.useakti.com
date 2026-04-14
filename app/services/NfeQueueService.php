@@ -141,6 +141,7 @@ class NfeQueueService
             $this->db->commit();
         } catch (\Throwable $e) {
             $this->db->rollBack();
+            error_log('[ROLLBACK] NfeQueueService::processNext - ' . $e->getMessage());
             return ['processed' => false, 'queue_id' => null, 'message' => 'Erro ao buscar item: ' . $e->getMessage()];
         }
 

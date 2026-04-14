@@ -110,6 +110,7 @@ class SiteBuilder
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }
+            error_log('[ROLLBACK] SiteBuilder::saveSettingsBatch - ' . $e->getMessage());
             return false;
         }
     }

@@ -36,6 +36,8 @@ class Supplier
             $params[':s4'] = '%' . $search . '%';
         }
 
+        // SAFETY: $where is built from hardcoded SQL fragments only.
+        // User search value is always bound via named parameters.
         $countStmt = $this->conn->prepare("SELECT COUNT(*) FROM suppliers" . $where);
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
