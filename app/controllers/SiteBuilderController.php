@@ -23,13 +23,6 @@ class SiteBuilderController extends BaseController {
         $this->tenantId = (int) ($_SESSION['tenant']['id'] ?? 0);
     }
 
-    private function json(array $data, int $status = 200): void
-    {
-        http_response_code($status);
-        header('Content-Type: application/json; charset=utf-8');
-        $this->json($data);
-    }
-
     private function requireTenant(): bool
     {
         if ($this->tenantId <= 0) {
@@ -45,7 +38,6 @@ class SiteBuilderController extends BaseController {
     public function index(): void
     {
         if ($this->tenantId <= 0) {
-            http_response_code(403);
             require 'app/views/layout/header.php';
             echo '<div class="container mt-4"><div class="alert alert-danger mb-0"><i class="fas fa-ban me-2"></i>Tenant inválido para o Site Builder.</div></div>';
             require 'app/views/layout/footer.php';
