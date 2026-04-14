@@ -53,6 +53,49 @@ class Shipment
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function readPaginated(int $tenantId, int $page = 1, int $perPage = 15, array $filters = []): array
+    {
+        $where = 's.tenant_id = :tid';
+        $params = [':tid' => $tenantId];
+
+        if (!empty($filters['status'])) {
+            $where .= ' AND s.status = :status';
+            $params[':status'] = $filters['status'];
+        }
+        if (!empty($filters['search'])) {
+            $where .= ' AND (s.tracking_code LIKE :search OR c.name LIKE :search2)';
+            $params[':search'] = '%' . $filters['search'] . '%';
+            $params[':search2'] = '%' . $filters['search'] . '%';
+        }
+
+        $countStmt = $this->conn->prepare("SELECT COUNT(*) FROM shipments s LEFT JOIN carriers c ON s.carrier_id = c.id WHERE {$where}");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $offset = ($page - 1) * $perPage;
+        $stmt = $this->conn->prepare("
+            SELECT s.*, c.name AS carrier_name, c.tracking_url_pattern
+            FROM shipments s
+            LEFT JOIN carriers c ON s.carrier_id = c.id
+            WHERE {$where}
+            ORDER BY s.created_at DESC
+            LIMIT :lim OFFSET :off
+        ");
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'data'         => $stmt->fetchAll(PDO::FETCH_ASSOC),
+            'total'        => $total,
+            'pages'        => (int) ceil($total / $perPage),
+            'current_page' => $page,
+        ];
+    }
+
     public function readOne(int $id, int $tenantId): ?array
     {
         $stmt = $this->conn->prepare("
