@@ -61,6 +61,7 @@
     <link rel="stylesheet" href="<?= asset('assets/css/theme.css') ?>">
     <?php endif; ?>
     <link rel="stylesheet" href="<?= asset('assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= asset('assets/css/sidebar.css') ?>">
     <link href="<?= asset('assets/css/walkthrough.css') ?>" rel="stylesheet">
     <!-- Module-specific CSS (loaded per page) -->
     <?php
@@ -106,14 +107,34 @@
     <style>
     /* Critical CSS — inline above-the-fold styles to prevent FOUC */
     body{font-family:'Inter',system-ui,sans-serif;background:var(--bg-body,#f1f5f9);color:var(--text-main,#1e293b);margin:0}
-    .app-navbar{height:var(--navbar-height,64px);background:var(--primary-color,#1e293b);position:sticky;top:0;z-index:1030;display:flex;align-items:center}
-    .app-sidebar{width:260px;background:var(--bg-card,#fff);border-right:1px solid var(--border-color,#e2e8f0);position:fixed;top:var(--navbar-height,64px);bottom:0;overflow-y:auto;z-index:1020}
-    .app-content{margin-left:260px;padding:1.5rem;min-height:calc(100vh - var(--navbar-height,64px))}
-    @media(max-width:991.98px){.app-sidebar{transform:translateX(-100%)}.app-content{margin-left:0}}
+    .navbar-akti.sidebar-mode{height:var(--navbar-height,64px);padding-left:260px;transition:padding-left .25s cubic-bezier(.4,0,.2,1)}
+    body.sidebar-collapsed .navbar-akti.sidebar-mode{padding-left:68px}
+    .akti-sidebar{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--primary-color,#1e293b);z-index:1050;transition:width .25s cubic-bezier(.4,0,.2,1)}
+    body.sidebar-collapsed .akti-sidebar{width:68px}
+    .akti-main-wrapper{margin-left:260px;transition:margin-left .25s cubic-bezier(.4,0,.2,1);min-height:100vh;display:flex;flex-direction:column}
+    body.sidebar-collapsed .akti-main-wrapper{margin-left:68px}
+    @media(max-width:991.98px){.akti-sidebar{transform:translateX(-100%);width:260px!important}.akti-main-wrapper{margin-left:0!important}.navbar-akti.sidebar-mode{padding-left:0!important}}
     [data-theme="dark"] body,.dark body{background:#1A1A2E;color:#E8E8E8}
-    [data-theme="dark"] .app-sidebar{background:#16213E;border-color:#2C3E50}
+    [data-theme="dark"] .akti-sidebar{background:#0f172a;border-color:rgba(255,255,255,.04)}
+    html.sidebar-pre-collapsed .akti-sidebar{width:68px}
+    html.sidebar-pre-collapsed .akti-main-wrapper{margin-left:68px}
+    html.sidebar-pre-collapsed .navbar-akti.sidebar-mode{padding-left:68px}
     </style>
     <script src="<?= asset('assets/js/components/theme-toggle.js') ?>"></script>
+    <script>
+    /* Restore sidebar state before render to prevent layout shift */
+    (function(){
+        try {
+            if (localStorage.getItem('akti-sidebar-collapsed') === 'true' && window.innerWidth >= 992) {
+                document.documentElement.classList.add('sidebar-pre-collapsed');
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.body.classList.add('sidebar-collapsed');
+                    document.documentElement.classList.remove('sidebar-pre-collapsed');
+                });
+            }
+        } catch(e) {}
+    })();
+    </script>
     <script src="<?= asset('assets/js/utils/fetch-timeout.js') ?>"></script>
     <?= \Akti\Core\ModuleBootloader::injectJS() ?>
 </head>
@@ -193,59 +214,115 @@
     }
 ?>
 
-<nav class="navbar navbar-expand-lg navbar-akti sticky-top">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="?">
-        <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti" style="height: 70px !important;">
-    </a>
-    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
+<!-- ═══ SIDEBAR NAVIGATION ═══ -->
+<aside class="akti-sidebar" id="aktiSidebar" role="navigation" aria-label="Menu principal">
+    <!-- Sidebar Header: Brand + Toggle -->
+    <div class="akti-sidebar-header">
+        <a class="akti-sidebar-brand" href="?">
+            <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti">
+        </a>
+        <button class="akti-sidebar-toggle" data-sidebar-toggle title="Recolher menu" aria-label="Recolher menu">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+    </div>
 
-      <!-- ── Menu Principal (com suporte a submenus) ── -->
-      <ul class="navbar-nav">
+    <!-- Sidebar Scrollable Menu -->
+    <div class="akti-sidebar-menu">
         <?php foreach ($menuPages as $pageKey => $pageInfo): ?>
           <?php if (empty($pageInfo['menu'])) continue; ?>
 
           <?php if (isset($pageInfo['children'])): ?>
-            <?php // ── DROPDOWN (submenu) ── ?>
+            <?php // ── GROUP with children ── ?>
             <?php if (!hasVisibleChild($pageInfo['children'], $isAdmin, $userPermissions)) continue; ?>
-            <li class="nav-item me-1 dropdown" data-wt-group="<?= $pageKey ?>">
-              <a class="nav-link dropdown-toggle <?= isChildActive($pageInfo['children'], $currentPage) ? 'active' : '' ?>"
-                 href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"
-                 data-wt-toggle="<?= $pageKey ?>">
-                <i class="<?= $pageInfo['icon'] ?> me-1"></i><?= $pageInfo['label'] ?>
-              </a>
-              <ul class="dropdown-menu" data-wt-menu="<?= $pageKey ?>">
+            <div class="akti-sidebar-group-label"><?= e($pageInfo['label']) ?></div>
+            <div class="akti-sidebar-item" data-has-children="true">
+              <button class="akti-sidebar-link <?= isChildActive($pageInfo['children'], $currentPage) ? 'active' : '' ?>"
+                      data-submenu-toggle data-group="<?= $pageKey ?>"
+                      data-bs-toggle="tooltip" data-bs-title="<?= e($pageInfo['label']) ?>"
+                      aria-expanded="false" data-wt-toggle="<?= $pageKey ?>">
+                  <i class="<?= $pageInfo['icon'] ?> sidebar-icon"></i>
+                  <span class="sidebar-label"><?= e($pageInfo['label']) ?></span>
+                  <i class="fas fa-chevron-right sidebar-arrow"></i>
+              </button>
+              <ul class="akti-sidebar-submenu akti-sidebar-nav" data-wt-menu="<?= $pageKey ?>">
                 <?php foreach ($pageInfo['children'] as $childKey => $childInfo): ?>
                   <?php if (empty($childInfo['menu'])) continue; ?>
                   <?php if (!canShowInMenu($childKey, $childInfo, $isAdmin, $userPermissions)) continue; ?>
                   <li>
-                    <a class="dropdown-item <?= ($currentPage == $childKey) ? 'active' : '' ?>"
+                    <a class="akti-sidebar-link <?= ($currentPage == $childKey) ? 'active' : '' ?>"
                        href="?page=<?= $childKey ?>">
-                      <i class="<?= $childInfo['icon'] ?> me-2"></i><?= $childInfo['label'] ?>
+                      <i class="<?= $childInfo['icon'] ?> sidebar-icon"></i>
+                      <span class="sidebar-label"><?= e($childInfo['label']) ?></span>
                     </a>
                   </li>
                 <?php endforeach; ?>
               </ul>
-            </li>
+              <!-- Popover for collapsed hover -->
+              <div class="akti-sidebar-popover">
+                  <div class="popover-title"><?= e($pageInfo['label']) ?></div>
+                  <?php foreach ($pageInfo['children'] as $childKey => $childInfo): ?>
+                    <?php if (empty($childInfo['menu'])) continue; ?>
+                    <?php if (!canShowInMenu($childKey, $childInfo, $isAdmin, $userPermissions)) continue; ?>
+                    <a class="akti-sidebar-link <?= ($currentPage == $childKey) ? 'active' : '' ?>"
+                       href="?page=<?= $childKey ?>">
+                      <i class="<?= $childInfo['icon'] ?> sidebar-icon"></i>
+                      <span class="sidebar-label"><?= e($childInfo['label']) ?></span>
+                    </a>
+                  <?php endforeach; ?>
+              </div>
+            </div>
           <?php else: ?>
-            <?php // ── LINK DIRETO (sem submenu) ── ?>
+            <?php // ── DIRECT LINK ── ?>
             <?php if (!canShowInMenu($pageKey, $pageInfo, $isAdmin, $userPermissions)) continue; ?>
-            <li class="nav-item me-1">
-              <a class="nav-link <?= ($currentPage == $pageKey) ? 'active' : '' ?>"
-                 href="<?= $pageKey === 'home' ? '?' : '?page=' . $pageKey ?>">
-                <i class="<?= $pageInfo['icon'] ?> me-1"></i><?= $pageInfo['label'] ?>
-              </a>
-            </li>
+            <ul class="akti-sidebar-nav">
+              <li>
+                <a class="akti-sidebar-link <?= ($currentPage == $pageKey) ? 'active' : '' ?>"
+                   href="<?= $pageKey === 'home' ? '?' : '?page=' . $pageKey ?>"
+                   data-bs-toggle="tooltip" data-bs-title="<?= e($pageInfo['label']) ?>">
+                  <i class="<?= $pageInfo['icon'] ?> sidebar-icon"></i>
+                  <span class="sidebar-label"><?= e($pageInfo['label']) ?></span>
+                </a>
+              </li>
+            </ul>
           <?php endif; ?>
-
         <?php endforeach; ?>
-      </ul>
+    </div>
 
-      <!-- ── Menu Direito (Perfil / Config / Sair) ── -->
-      <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center gap-1">
+    <!-- Sidebar Footer: Quick links -->
+    <div class="akti-sidebar-footer">
+        <?php if($isAdmin || in_array('settings', $userPermissions)): ?>
+        <a class="akti-sidebar-link <?= ($currentPage == 'settings') ? 'active' : '' ?>"
+           href="?page=settings" data-bs-toggle="tooltip" data-bs-title="Configurações">
+            <i class="fas fa-cog sidebar-icon"></i>
+            <span class="sidebar-label">Configurações</span>
+        </a>
+        <?php endif; ?>
+        <a class="akti-sidebar-link" href="?page=login&action=logout"
+           data-bs-toggle="tooltip" data-bs-title="Sair do sistema">
+            <i class="fas fa-sign-out-alt sidebar-icon" style="color: var(--danger-color);"></i>
+            <span class="sidebar-label" style="color: var(--danger-color);">Sair</span>
+        </a>
+    </div>
+</aside>
+
+<!-- Sidebar Mobile Overlay -->
+<div class="akti-sidebar-overlay" id="aktiSidebarOverlay"></div>
+
+<!-- ═══ TOP NAVBAR (slim — utilities only) ═══ -->
+<nav class="navbar navbar-expand-lg navbar-akti sidebar-mode sticky-top">
+  <div class="container-fluid">
+    <!-- Mobile: toggle sidebar -->
+    <button class="akti-sidebar-toggle akti-mobile-toggle me-2" data-sidebar-mobile-toggle
+            title="Abrir menu" aria-label="Abrir menu">
+        <i class="fas fa-bars"></i>
+    </button>
+    <!-- Mobile: brand (shown only on small screens) -->
+    <a class="navbar-brand d-lg-none" href="?">
+        <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti" style="height: 36px;">
+    </a>
+
+    <!-- ── Right-side utilities ── -->
+    <ul class="navbar-nav ms-auto align-items-center gap-1">
         <!-- Command Palette Trigger -->
         <li class="nav-item d-none d-lg-block">
           <button type="button" class="akti-btn-icon" id="cmdPaletteTrigger"
@@ -254,7 +331,7 @@
             <i class="fas fa-search"></i>
           </button>
         </li>
-        <!-- Dark Mode Toggle (cycles: Light → Dark → Auto) -->
+        <!-- Dark Mode Toggle -->
         <li class="nav-item">
           <button type="button" class="akti-btn-icon" id="themeToggleBtn"
                   onclick="if(window.AktiTheme)AktiTheme.toggle();"
@@ -262,7 +339,7 @@
             <i id="themeToggleIcon" class="fas fa-moon"></i>
           </button>
         </li>
-        <!-- Notifications Bell (unified: system notifications + delayed orders) -->
+        <!-- Notifications Bell -->
         <?php if (isset($_SESSION['user_id'])): ?>
         <li class="nav-item dropdown" id="notifBellContainer">
           <a href="#" class="nav-link nav-icon-btn dropdown-toggle" 
@@ -425,6 +502,7 @@
         </li>
         <?php endif; ?>
         <li class="nav-item d-none d-lg-block"><span class="nav-divider"></span></li>
+        <!-- User Profile -->
         <li class="nav-item">
           <a href="?page=profile"
              class="nav-link <?= ($currentPage == 'profile') ? 'active' : '' ?>"
@@ -435,7 +513,8 @@
               <?= isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin' ? 'Admin' : 'Usuário' ?>
             </span>
           </a>
-        </li>        
+        </li>
+        <!-- Settings Dropdown -->
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle btn-logout" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
             <i class="fa-solid fa-gear"></i>
@@ -481,19 +560,17 @@
             </li>
           </ul>
         </li>
-      </ul>
-
-    </div>
+    </ul>
   </div>
 </nav>
 
 <!-- Skip link for accessibility -->
 <a href="#main-content" class="akti-skip-link">Ir para conteúdo principal</a>
 
-<div class="container-fluid">
-    <div class="row">
-        <!-- Main Content -->
-        <main class="col-md-12 ms-sm-auto px-md-4 py-4 main-bg" id="main-content">
+<!-- ═══ Main Content Wrapper ═══ -->
+<div class="akti-main-wrapper">
+    <!-- Main Content -->
+    <main class="px-md-4 py-4 main-bg" id="main-content">
             <?php
             // Render contextual breadcrumb
             if (isset($_SESSION['user_id'])) {

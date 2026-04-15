@@ -1,6 +1,4 @@
 </main>
-    </div>
-</div>
 
 <!-- Footer do sistema -->
 <footer class="app-footer mt-auto">
@@ -25,6 +23,7 @@
         </div>
     </div>
 </footer>
+</div><!-- /.akti-main-wrapper -->
 
 <!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs" crossorigin="anonymous"></script>
@@ -38,6 +37,8 @@
 <?php else: ?>
 <script src="<?= asset('assets/js/script.js') ?>"></script>
 <?php endif; ?>
+<!-- Sidebar Navigation -->
+<script src="<?= asset('assets/js/sidebar.js') ?>"></script>
 
 <!-- Session Flash Messages (success / error) -->
 <?php if (isset($_SESSION['success']) || isset($_SESSION['error'])): ?>
