@@ -27,11 +27,20 @@
     --sidebar-scrollbar-hover: rgba(255,255,255,0.2);
 }
 
-/* ═══ Top Navbar (slimmed — only brand + utilities) ═══ */
+/* ═══ Top Navbar (slimmed — brand + utilities) ═══ */
 .navbar-akti.sidebar-mode {
     height: var(--navbar-height);
     padding-left: var(--sidebar-width);
     transition: padding-left var(--sidebar-transition);
+}
+
+.navbar-akti.sidebar-mode .topnav-brand-img {
+    height: 28px;
+    transition: opacity var(--transition-fast);
+}
+
+.navbar-akti.sidebar-mode .topnav-brand-img:hover {
+    opacity: 0.85;
 }
 
 body.sidebar-collapsed .navbar-akti.sidebar-mode {
@@ -59,37 +68,15 @@ body.sidebar-collapsed .akti-sidebar {
     width: var(--sidebar-collapsed-width);
 }
 
-/* ── Sidebar Header (brand + toggle) ── */
+/* ── Sidebar Header (toggle only) ── */
 .akti-sidebar-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     height: var(--navbar-height);
-    padding: 0 0.75rem;
+    padding: 0 0.5rem;
     border-bottom: 1px solid var(--sidebar-border);
     flex-shrink: 0;
-}
-
-.akti-sidebar-brand {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-.akti-sidebar-brand img {
-    height: 52px;
-    flex-shrink: 0;
-    transition: opacity var(--transition-fast);
-}
-
-.akti-sidebar-brand:hover img {
-    opacity: 0.85;
-}
-
-body.sidebar-collapsed .akti-sidebar-brand img {
-    height: 32px;
 }
 
 /* Toggle button */
@@ -126,10 +113,6 @@ body.sidebar-collapsed .akti-sidebar-toggle i {
 body.sidebar-collapsed .akti-sidebar-header {
     justify-content: center;
     padding: 0 0.5rem;
-}
-
-body.sidebar-collapsed .akti-sidebar-brand {
-    display: none;
 }
 
 /* ── Sidebar Scrollable Menu Area ── */
@@ -320,16 +303,7 @@ body.sidebar-collapsed .akti-sidebar-link[data-bs-toggle="tooltip"]::after {
     content: none;
 }
 
-/* ── Sidebar Footer (user info) ── */
-.akti-sidebar-footer {
-    border-top: 1px solid var(--sidebar-border);
-    padding: 0.5rem;
-    flex-shrink: 0;
-}
-
-.akti-sidebar-footer .akti-sidebar-link {
-    font-size: 0.8rem;
-}
+/* ── Sidebar has no footer now (logout moved to topnav dropdown) ── */
 
 /* ═══ Main Content Wrapper ═══ */
 .akti-main-wrapper {
@@ -388,13 +362,9 @@ body.sidebar-collapsed .akti-main-wrapper {
         padding: 1rem 0.75rem 0.35rem;
     }
 
-    body.sidebar-collapsed .akti-sidebar-brand {
-        display: flex;
-    }
-
     body.sidebar-collapsed .akti-sidebar-header {
-        justify-content: space-between;
-        padding: 0 0.75rem;
+        justify-content: center;
+        padding: 0 0.5rem;
     }
 
     body.sidebar-collapsed .akti-sidebar-submenu {

@@ -107,7 +107,7 @@
     <style>
     /* Critical CSS — inline above-the-fold styles to prevent FOUC */
     body{font-family:'Inter',system-ui,sans-serif;background:var(--bg-body,#f1f5f9);color:var(--text-main,#1e293b);margin:0}
-    .navbar-akti.sidebar-mode{height:var(--navbar-height,64px);padding-left:260px;transition:padding-left .25s cubic-bezier(.4,0,.2,1)}
+    .navbar-akti.sidebar-mode{height:var(--navbar-height,44px);padding-left:260px;transition:padding-left .25s cubic-bezier(.4,0,.2,1)}
     body.sidebar-collapsed .navbar-akti.sidebar-mode{padding-left:68px}
     .akti-sidebar{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--primary-color,#1e293b);z-index:1050;transition:width .25s cubic-bezier(.4,0,.2,1)}
     body.sidebar-collapsed .akti-sidebar{width:68px}
@@ -216,11 +216,8 @@
 
 <!-- ═══ SIDEBAR NAVIGATION ═══ -->
 <aside class="akti-sidebar" id="aktiSidebar" role="navigation" aria-label="Menu principal">
-    <!-- Sidebar Header: Brand + Toggle -->
+    <!-- Sidebar Header: Toggle only -->
     <div class="akti-sidebar-header">
-        <a class="akti-sidebar-brand" href="?">
-            <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti">
-        </a>
         <button class="akti-sidebar-toggle" data-sidebar-toggle title="Recolher menu" aria-label="Recolher menu">
             <i class="fas fa-chevron-left"></i>
         </button>
@@ -288,43 +285,28 @@
         <?php endforeach; ?>
     </div>
 
-    <!-- Sidebar Footer: Quick links -->
-    <div class="akti-sidebar-footer">
-        <?php if($isAdmin || in_array('settings', $userPermissions)): ?>
-        <a class="akti-sidebar-link <?= ($currentPage == 'settings') ? 'active' : '' ?>"
-           href="?page=settings" data-bs-toggle="tooltip" data-bs-title="Configurações">
-            <i class="fas fa-cog sidebar-icon"></i>
-            <span class="sidebar-label">Configurações</span>
-        </a>
-        <?php endif; ?>
-        <a class="akti-sidebar-link" href="?page=login&action=logout"
-           data-bs-toggle="tooltip" data-bs-title="Sair do sistema">
-            <i class="fas fa-sign-out-alt sidebar-icon" style="color: var(--danger-color);"></i>
-            <span class="sidebar-label" style="color: var(--danger-color);">Sair</span>
-        </a>
-    </div>
 </aside>
 
 <!-- Sidebar Mobile Overlay -->
 <div class="akti-sidebar-overlay" id="aktiSidebarOverlay"></div>
 
-<!-- ═══ TOP NAVBAR (slim — utilities only) ═══ -->
-<nav class="navbar navbar-expand-lg navbar-akti sidebar-mode sticky-top">
+<!-- ═══ TOP NAVBAR (slim — brand + utilities) ═══ -->
+<nav class="navbar navbar-akti sidebar-mode sticky-top">
   <div class="container-fluid">
     <!-- Mobile: toggle sidebar -->
     <button class="akti-sidebar-toggle akti-mobile-toggle me-2" data-sidebar-mobile-toggle
             title="Abrir menu" aria-label="Abrir menu">
         <i class="fas fa-bars"></i>
     </button>
-    <!-- Mobile: brand (shown only on small screens) -->
-    <a class="navbar-brand d-lg-none" href="?">
-        <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti" style="height: 36px;">
+    <!-- Brand -->
+    <a class="navbar-brand" href="?">
+        <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti" class="topnav-brand-img">
     </a>
 
     <!-- ── Right-side utilities ── -->
     <ul class="navbar-nav ms-auto align-items-center gap-1">
         <!-- Command Palette Trigger -->
-        <li class="nav-item d-none d-lg-block">
+        <li class="nav-item">
           <button type="button" class="akti-btn-icon" id="cmdPaletteTrigger"
                   onclick="if(window.AktiCommandPalette)AktiCommandPalette.open();"
                   title="Busca rápida (Ctrl+K)" aria-label="Busca rápida">
@@ -550,12 +532,6 @@
             <li>
                 <a class="dropdown-item" href="javascript:void(0);" onclick="if(window.AktiShortcuts)AktiShortcuts.showHelp();">
                     <i class="fas fa-keyboard me-2 text-info"></i>Atalhos de Teclado
-                </a>
-            </li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-                <a class="dropdown-item text-danger" href="?page=login&action=logout">
-                <i class="fas fa-sign-out-alt me-2"></i>Sair do sistema
                 </a>
             </li>
           </ul>
