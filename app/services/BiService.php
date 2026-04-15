@@ -174,11 +174,12 @@ class BiService
         // Fluxo de caixa por mês
         $stmt = $this->db->prepare("
             SELECT
-                DATE_FORMAT(due_date, '%Y-%m') AS mes,
-                SUM(CASE WHEN type = 'receita' THEN amount ELSE 0 END) AS entradas,
-                SUM(CASE WHEN type = 'despesa' THEN amount ELSE 0 END) AS saidas
-            FROM financial_entries
-            WHERE due_date BETWEEN :from AND :to
+                DATE_FORMAT(transaction_date, '%Y-%m') AS mes,
+                SUM(CASE WHEN type = 'entrada' THEN amount ELSE 0 END) AS entradas,
+                SUM(CASE WHEN type = 'saida' THEN amount ELSE 0 END) AS saidas
+            FROM financial_transactions
+            WHERE is_confirmed = 1
+              AND transaction_date BETWEEN :from AND :to
             GROUP BY mes ORDER BY mes
         ");
         $stmt->execute([':from' => $dateFrom, ':to' => $dateTo]);
@@ -187,12 +188,12 @@ class BiService
         // DRE simplificado
         $stmt = $this->db->prepare("
             SELECT
-                COALESCE(SUM(CASE WHEN type = 'receita' AND status = 'pago' THEN amount ELSE 0 END), 0) AS receita_realizada,
-                COALESCE(SUM(CASE WHEN type = 'despesa' AND status = 'pago' THEN amount ELSE 0 END), 0) AS despesa_realizada,
-                COALESCE(SUM(CASE WHEN type = 'receita' THEN amount ELSE 0 END), 0) AS receita_prevista,
-                COALESCE(SUM(CASE WHEN type = 'despesa' THEN amount ELSE 0 END), 0) AS despesa_prevista
-            FROM financial_entries
-            WHERE due_date BETWEEN :from AND :to
+                COALESCE(SUM(CASE WHEN type = 'entrada' AND is_confirmed = 1 THEN amount ELSE 0 END), 0) AS receita_realizada,
+                COALESCE(SUM(CASE WHEN type = 'saida' AND is_confirmed = 1 THEN amount ELSE 0 END), 0) AS despesa_realizada,
+                COALESCE(SUM(CASE WHEN type = 'entrada' THEN amount ELSE 0 END), 0) AS receita_prevista,
+                COALESCE(SUM(CASE WHEN type = 'saida' THEN amount ELSE 0 END), 0) AS despesa_prevista
+            FROM financial_transactions
+            WHERE transaction_date BETWEEN :from AND :to
         ");
         $stmt->execute([':from' => $dateFrom, ':to' => $dateTo]);
         $dre = $stmt->fetch(\PDO::FETCH_ASSOC);
