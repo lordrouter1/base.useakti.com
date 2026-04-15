@@ -30,8 +30,57 @@
 /* ═══ Top Navbar (slimmed — brand + utilities) ═══ */
 .navbar-akti.sidebar-mode {
     height: var(--navbar-height);
+    min-height: var(--navbar-height);
     padding-left: var(--sidebar-width);
     transition: padding-left var(--sidebar-transition);
+    overflow: visible;
+}
+
+/* Slim adjustments — fit icons in 44px bar */
+.navbar-akti.sidebar-mode .navbar-nav {
+    align-items: center;
+}
+
+.navbar-akti.sidebar-mode .nav-link {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.8rem;
+    line-height: 1.2;
+}
+
+.navbar-akti.sidebar-mode .akti-btn-icon {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    font-size: 0.8rem;
+}
+
+.navbar-akti.sidebar-mode .nav-icon-btn {
+    padding: 0.25rem 0.4rem !important;
+    font-size: 0.8rem;
+}
+
+.navbar-akti.sidebar-mode .user-badge {
+    font-size: 0.55rem;
+    padding: 0.1rem 0.3rem;
+}
+
+.navbar-akti.sidebar-mode .notification-badge {
+    top: 0;
+    right: -2px;
+    font-size: 0.5rem;
+    min-width: 14px;
+    height: 14px;
+    border-width: 1.5px;
+}
+
+.navbar-akti.sidebar-mode .btn-logout {
+    padding: 0.2rem 0.5rem !important;
+    font-size: 0.75rem;
+}
+
+.navbar-akti.sidebar-mode .nav-divider {
+    height: 18px;
 }
 
 .navbar-akti.sidebar-mode .topnav-brand-img {
