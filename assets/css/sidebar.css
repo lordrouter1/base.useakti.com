@@ -32,6 +32,9 @@
     height: var(--navbar-height);
     padding-left: var(--sidebar-width);
     transition: padding-left var(--sidebar-transition);
+    z-index: 1041;
+    position: sticky;
+    top: 0;
 }
 
 body.sidebar-collapsed .navbar-akti.sidebar-mode {
