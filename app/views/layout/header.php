@@ -107,18 +107,18 @@
     <style>
     /* Critical CSS — inline above-the-fold styles to prevent FOUC */
     body{font-family:'Inter',system-ui,sans-serif;background:var(--bg-body,#f1f5f9);color:var(--text-main,#1e293b);margin:0}
-    .navbar-akti.sidebar-mode{height:var(--navbar-height,44px);max-height:44px;padding:0 .75rem;padding-left:calc(260px + .75rem);display:flex;align-items:center;overflow:visible;transition:padding-left .25s cubic-bezier(.4,0,.2,1)}
-    body.sidebar-collapsed .navbar-akti.sidebar-mode{padding-left:calc(68px + .75rem)}
+    .navbar-akti.sidebar-mode{height:var(--navbar-height,64px);padding-left:260px;transition:padding-left .25s cubic-bezier(.4,0,.2,1)}
+    body.sidebar-collapsed .navbar-akti.sidebar-mode{padding-left:68px}
     .akti-sidebar{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--primary-color,#1e293b);z-index:1050;transition:width .25s cubic-bezier(.4,0,.2,1)}
     body.sidebar-collapsed .akti-sidebar{width:68px}
     .akti-main-wrapper{margin-left:260px;transition:margin-left .25s cubic-bezier(.4,0,.2,1);min-height:100vh;display:flex;flex-direction:column}
     body.sidebar-collapsed .akti-main-wrapper{margin-left:68px}
-    @media(max-width:991.98px){.akti-sidebar{transform:translateX(-100%);width:260px!important}.akti-main-wrapper{margin-left:0!important}.navbar-akti.sidebar-mode{padding-left:.75rem!important}}
+    @media(max-width:991.98px){.akti-sidebar{transform:translateX(-100%);width:260px!important}.akti-main-wrapper{margin-left:0!important}.navbar-akti.sidebar-mode{padding-left:0!important}}
     [data-theme="dark"] body,.dark body{background:#1A1A2E;color:#E8E8E8}
     [data-theme="dark"] .akti-sidebar{background:#0f172a;border-color:rgba(255,255,255,.04)}
     html.sidebar-pre-collapsed .akti-sidebar{width:68px}
     html.sidebar-pre-collapsed .akti-main-wrapper{margin-left:68px}
-    html.sidebar-pre-collapsed .navbar-akti.sidebar-mode{padding-left:calc(68px + .75rem)}
+    html.sidebar-pre-collapsed .navbar-akti.sidebar-mode{padding-left:68px}
     </style>
     <script src="<?= asset('assets/js/components/theme-toggle.js') ?>"></script>
     <script>
@@ -216,8 +216,11 @@
 
 <!-- ═══ SIDEBAR NAVIGATION ═══ -->
 <aside class="akti-sidebar" id="aktiSidebar" role="navigation" aria-label="Menu principal">
-    <!-- Sidebar Header: Toggle only -->
+    <!-- Sidebar Header: Brand + Toggle -->
     <div class="akti-sidebar-header">
+        <a class="akti-sidebar-brand" href="?">
+            <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti">
+        </a>
         <button class="akti-sidebar-toggle" data-sidebar-toggle title="Recolher menu" aria-label="Recolher menu">
             <i class="fas fa-chevron-left"></i>
         </button>
@@ -285,28 +288,43 @@
         <?php endforeach; ?>
     </div>
 
+    <!-- Sidebar Footer: Quick links -->
+    <div class="akti-sidebar-footer">
+        <?php if($isAdmin || in_array('settings', $userPermissions)): ?>
+        <a class="akti-sidebar-link <?= ($currentPage == 'settings') ? 'active' : '' ?>"
+           href="?page=settings" data-bs-toggle="tooltip" data-bs-title="Configurações">
+            <i class="fas fa-cog sidebar-icon"></i>
+            <span class="sidebar-label">Configurações</span>
+        </a>
+        <?php endif; ?>
+        <a class="akti-sidebar-link" href="?page=login&action=logout"
+           data-bs-toggle="tooltip" data-bs-title="Sair do sistema">
+            <i class="fas fa-sign-out-alt sidebar-icon" style="color: var(--danger-color);"></i>
+            <span class="sidebar-label" style="color: var(--danger-color);">Sair</span>
+        </a>
+    </div>
 </aside>
 
 <!-- Sidebar Mobile Overlay -->
 <div class="akti-sidebar-overlay" id="aktiSidebarOverlay"></div>
 
-<!-- ═══ TOP NAVBAR (slim — brand + utilities) ═══ -->
-<nav class="navbar navbar-akti sidebar-mode sticky-top">
+<!-- ═══ TOP NAVBAR (slim — utilities only) ═══ -->
+<nav class="navbar navbar-expand-lg navbar-akti sidebar-mode sticky-top">
   <div class="container-fluid">
     <!-- Mobile: toggle sidebar -->
     <button class="akti-sidebar-toggle akti-mobile-toggle me-2" data-sidebar-mobile-toggle
             title="Abrir menu" aria-label="Abrir menu">
         <i class="fas fa-bars"></i>
     </button>
-    <!-- Brand -->
-    <a class="navbar-brand" href="?">
-        <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti" class="topnav-brand-img">
+    <!-- Mobile: brand (shown only on small screens) -->
+    <a class="navbar-brand d-lg-none" href="?">
+        <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti" style="height: 36px;">
     </a>
 
     <!-- ── Right-side utilities ── -->
     <ul class="navbar-nav ms-auto align-items-center gap-1">
         <!-- Command Palette Trigger -->
-        <li class="nav-item">
+        <li class="nav-item d-none d-lg-block">
           <button type="button" class="akti-btn-icon" id="cmdPaletteTrigger"
                   onclick="if(window.AktiCommandPalette)AktiCommandPalette.open();"
                   title="Busca rápida (Ctrl+K)" aria-label="Busca rápida">
@@ -532,6 +550,12 @@
             <li>
                 <a class="dropdown-item" href="javascript:void(0);" onclick="if(window.AktiShortcuts)AktiShortcuts.showHelp();">
                     <i class="fas fa-keyboard me-2 text-info"></i>Atalhos de Teclado
+                </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <a class="dropdown-item text-danger" href="?page=login&action=logout">
+                <i class="fas fa-sign-out-alt me-2"></i>Sair do sistema
                 </a>
             </li>
           </ul>

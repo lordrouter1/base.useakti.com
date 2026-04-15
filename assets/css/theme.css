@@ -32,7 +32,7 @@
     --border-color: #e2e8f0; /* Slate 200 — Bordas */
     --border-light: #f1f5f9; /* Slate 100 — Bordas sutis */
     
-    --navbar-height: 44px;
+    --navbar-height: 64px;
     --footer-height: 56px;
     --transition-fast: 0.15s ease;
     --transition-normal: 0.25s ease;
