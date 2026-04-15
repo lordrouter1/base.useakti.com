@@ -31,35 +31,55 @@
         <div class="tab-pane fade <?= $tab === 'sales' ? 'show active' : '' ?>" id="tabSales">
             <!-- KPIs -->
             <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="card border-start border-primary border-4">
-                        <div class="card-body">
-                            <div class="text-muted small">Faturamento</div>
-                            <div class="h4 mb-0">R$ <?= number_format((float)($salesData['summary']['faturamento'] ?? 0), 2, ',', '.') ?></div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="icon-circle icon-circle-xxl icon-circle-primary me-3">
+                                <i class="fas fa-dollar-sign fa-lg text-primary"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase">Faturamento</div>
+                                <div class="fw-bold fs-4">R$ <?= number_format((float)($salesData['summary']['faturamento'] ?? 0), 2, ',', '.') ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-start border-success border-4">
-                        <div class="card-body">
-                            <div class="text-muted small">Pedidos</div>
-                            <div class="h4 mb-0"><?= (int)($salesData['summary']['total_orders'] ?? 0) ?></div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="icon-circle icon-circle-xxl icon-circle-green me-3">
+                                <i class="fas fa-shopping-cart fa-lg text-success"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase">Pedidos</div>
+                                <div class="fw-bold fs-4"><?= (int)($salesData['summary']['total_orders'] ?? 0) ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-start border-info border-4">
-                        <div class="card-body">
-                            <div class="text-muted small">Ticket Médio</div>
-                            <div class="h4 mb-0">R$ <?= number_format((float)($salesData['summary']['ticket_medio'] ?? 0), 2, ',', '.') ?></div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="icon-circle icon-circle-xxl icon-circle-info me-3">
+                                <i class="fas fa-receipt fa-lg text-info"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase">Ticket Médio</div>
+                                <div class="fw-bold fs-4">R$ <?= number_format((float)($salesData['summary']['ticket_medio'] ?? 0), 2, ',', '.') ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-start border-warning border-4">
-                        <div class="card-body">
-                            <div class="text-muted small">Clientes Ativos</div>
-                            <div class="h4 mb-0"><?= (int)($salesData['summary']['clientes_ativos'] ?? 0) ?></div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="icon-circle icon-circle-xxl icon-circle-warning me-3">
+                                <i class="fas fa-users fa-lg text-warning"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase">Clientes Ativos</div>
+                                <div class="fw-bold fs-4"><?= (int)($salesData['summary']['clientes_ativos'] ?? 0) ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -68,29 +88,29 @@
             <div class="row g-4">
                 <!-- Faturamento Mensal -->
                 <div class="col-lg-8">
-                    <div class="card">
-                        <div class="card-header"><i class="fas fa-chart-bar me-2"></i>Faturamento Mensal</div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent"><i class="fas fa-chart-bar me-2 text-primary"></i>Faturamento Mensal</div>
                         <div class="card-body"><canvas id="chartSalesMonthly" height="280"></canvas></div>
                     </div>
                 </div>
                 <!-- Pedidos por Status (drill-down) -->
                 <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header"><i class="fas fa-chart-pie me-2"></i>Pedidos por Status</div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent"><i class="fas fa-chart-pie me-2 text-primary"></i>Pedidos por Status</div>
                         <div class="card-body"><canvas id="chartOrderStatus" height="280"></canvas></div>
                     </div>
                 </div>
                 <!-- Top Produtos -->
                 <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header"><i class="fas fa-trophy me-2"></i>Top 10 Produtos</div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent"><i class="fas fa-trophy me-2 text-warning"></i>Top 10 Produtos</div>
                         <div class="card-body"><canvas id="chartTopProducts" height="300"></canvas></div>
                     </div>
                 </div>
                 <!-- Top Clientes -->
                 <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header"><i class="fas fa-users me-2"></i>Top 10 Clientes</div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent"><i class="fas fa-users me-2 text-success"></i>Top 10 Clientes</div>
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover mb-0">
@@ -116,35 +136,55 @@
         <div class="tab-pane fade <?= $tab === 'production' ? 'show active' : '' ?>" id="tabProduction">
             <!-- KPIs -->
             <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="card border-start border-primary border-4">
-                        <div class="card-body">
-                            <div class="text-muted small">Pedidos Ativos</div>
-                            <div class="h4 mb-0"><?= (int)($productionData['pipeline_stats']['total_active'] ?? 0) ?></div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="icon-circle icon-circle-xxl icon-circle-primary me-3">
+                                <i class="fas fa-industry fa-lg text-primary"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase">Pedidos Ativos</div>
+                                <div class="fw-bold fs-4"><?= (int)($productionData['pipeline_stats']['total_active'] ?? 0) ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-start border-danger border-4">
-                        <div class="card-body">
-                            <div class="text-muted small">Atrasados</div>
-                            <div class="h4 mb-0"><?= (int)($productionData['pipeline_stats']['total_delayed'] ?? 0) ?></div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="icon-circle icon-circle-xxl icon-circle-danger me-3">
+                                <i class="fas fa-exclamation-triangle fa-lg text-danger"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase">Atrasados</div>
+                                <div class="fw-bold fs-4"><?= (int)($productionData['pipeline_stats']['total_delayed'] ?? 0) ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-start border-success border-4">
-                        <div class="card-body">
-                            <div class="text-muted small">Concluídos (mês)</div>
-                            <div class="h4 mb-0"><?= (int)($productionData['pipeline_stats']['completed_month'] ?? 0) ?></div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="icon-circle icon-circle-xxl icon-circle-green me-3">
+                                <i class="fas fa-check-circle fa-lg text-success"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase">Concluídos (mês)</div>
+                                <div class="fw-bold fs-4"><?= (int)($productionData['pipeline_stats']['completed_month'] ?? 0) ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-start border-info border-4">
-                        <div class="card-body">
-                            <div class="text-muted small">Valor em Produção</div>
-                            <div class="h4 mb-0">R$ <?= number_format((float)($productionData['pipeline_stats']['total_value'] ?? 0), 2, ',', '.') ?></div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="icon-circle icon-circle-xxl icon-circle-info me-3">
+                                <i class="fas fa-coins fa-lg text-info"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase">Valor em Produção</div>
+                                <div class="fw-bold fs-4">R$ <?= number_format((float)($productionData['pipeline_stats']['total_value'] ?? 0), 2, ',', '.') ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -153,29 +193,29 @@
             <div class="row g-4">
                 <!-- Pipeline por Etapa (drill-down) -->
                 <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header"><i class="fas fa-layer-group me-2"></i>Pipeline por Etapa <small class="text-muted">(clique para detalhar)</small></div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent"><i class="fas fa-layer-group me-2 text-primary"></i>Pipeline por Etapa <small class="text-muted">(clique para detalhar)</small></div>
                         <div class="card-body"><canvas id="chartPipelineStages" height="300"></canvas></div>
                     </div>
                 </div>
                 <!-- Throughput Diário -->
                 <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header"><i class="fas fa-tachometer-alt me-2"></i>Throughput (concluídos/dia)</div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent"><i class="fas fa-tachometer-alt me-2 text-success"></i>Throughput (concluídos/dia)</div>
                         <div class="card-body"><canvas id="chartThroughput" height="300"></canvas></div>
                     </div>
                 </div>
                 <!-- Gargalos -->
                 <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header"><i class="fas fa-exclamation-triangle me-2"></i>Gargalos (atrasados por etapa)</div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent"><i class="fas fa-exclamation-triangle me-2 text-danger"></i>Gargalos (atrasados por etapa)</div>
                         <div class="card-body"><canvas id="chartBottlenecks" height="250"></canvas></div>
                     </div>
                 </div>
                 <!-- Tempo Médio por Etapa -->
                 <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header"><i class="fas fa-clock me-2"></i>Tempo Médio por Transição (horas)</div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent"><i class="fas fa-clock me-2 text-warning"></i>Tempo Médio por Transição (horas)</div>
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover mb-0">
@@ -183,8 +223,8 @@
                                     <tbody>
                                     <?php foreach ($productionData['stage_time'] as $st): ?>
                                     <tr>
-                                        <td><?= e($st['stage_from'] ?? '-') ?></td>
-                                        <td><?= e($st['stage_to'] ?? '-') ?></td>
+                                        <td><?= e($st['from_stage'] ?? '-') ?></td>
+                                        <td><?= e($st['to_stage'] ?? '-') ?></td>
                                         <td class="text-end"><?= number_format((float)($st['avg_hours'] ?? 0), 1) ?></td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -201,35 +241,55 @@
         <div class="tab-pane fade <?= $tab === 'financial' ? 'show active' : '' ?>" id="tabFinancial">
             <!-- KPIs -->
             <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="card border-start border-success border-4">
-                        <div class="card-body">
-                            <div class="text-muted small">Receita (mês)</div>
-                            <div class="h4 mb-0">R$ <?= number_format((float)($financialData['summary']['receita_mes'] ?? 0), 2, ',', '.') ?></div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="icon-circle icon-circle-xxl icon-circle-green me-3">
+                                <i class="fas fa-file-invoice-dollar fa-lg text-success"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase">Receita (mês)</div>
+                                <div class="fw-bold fs-4">R$ <?= number_format((float)($financialData['summary']['receita_mes'] ?? 0), 2, ',', '.') ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-start border-primary border-4">
-                        <div class="card-body">
-                            <div class="text-muted small">Recebido (mês)</div>
-                            <div class="h4 mb-0">R$ <?= number_format((float)($financialData['summary']['recebido_mes'] ?? 0), 2, ',', '.') ?></div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="icon-circle icon-circle-xxl icon-circle-primary me-3">
+                                <i class="fas fa-hand-holding-usd fa-lg text-primary"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase">Recebido (mês)</div>
+                                <div class="fw-bold fs-4">R$ <?= number_format((float)($financialData['summary']['recebido_mes'] ?? 0), 2, ',', '.') ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-start border-warning border-4">
-                        <div class="card-body">
-                            <div class="text-muted small">A Receber Total</div>
-                            <div class="h4 mb-0">R$ <?= number_format((float)($financialData['summary']['a_receber_total'] ?? 0), 2, ',', '.') ?></div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="icon-circle icon-circle-xxl icon-circle-warning me-3">
+                                <i class="fas fa-clock fa-lg text-warning"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase">A Receber Total</div>
+                                <div class="fw-bold fs-4">R$ <?= number_format((float)($financialData['summary']['a_receber_total'] ?? 0), 2, ',', '.') ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-start border-danger border-4">
-                        <div class="card-body">
-                            <div class="text-muted small">Inadimplentes</div>
-                            <div class="h4 mb-0">R$ <?= number_format((float)($financialData['summary']['atrasados_total'] ?? 0), 2, ',', '.') ?></div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
+                        <div class="card-body d-flex align-items-center p-3">
+                            <div class="icon-circle icon-circle-xxl icon-circle-danger me-3">
+                                <i class="fas fa-exclamation-circle fa-lg text-danger"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase">Inadimplentes</div>
+                                <div class="fw-bold fs-4">R$ <?= number_format((float)($financialData['summary']['atrasados_total'] ?? 0), 2, ',', '.') ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -238,15 +298,15 @@
             <div class="row g-4">
                 <!-- Fluxo de Caixa -->
                 <div class="col-lg-8">
-                    <div class="card">
-                        <div class="card-header"><i class="fas fa-chart-area me-2"></i>Fluxo de Caixa</div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent"><i class="fas fa-chart-area me-2 text-primary"></i>Fluxo de Caixa</div>
                         <div class="card-body"><canvas id="chartCashFlow" height="280"></canvas></div>
                     </div>
                 </div>
                 <!-- DRE Simplificado -->
                 <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header"><i class="fas fa-balance-scale me-2"></i>DRE Simplificado</div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent"><i class="fas fa-balance-scale me-2 text-info"></i>DRE Simplificado</div>
                         <div class="card-body">
                             <?php $dre = $financialData['dre'] ?? []; $lucro = ($dre['receita_realizada'] ?? 0) - ($dre['despesa_realizada'] ?? 0); ?>
                             <table class="table table-sm mb-0">
@@ -262,9 +322,9 @@
                 </div>
                 <!-- Inadimplentes (drill-down) -->
                 <div class="col-lg-12">
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-exclamation-circle me-2"></i>Parcelas em Atraso</span>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-exclamation-circle me-2 text-danger"></i>Parcelas em Atraso</span>
                             <button class="btn btn-outline-danger btn-sm" onclick="biDrillDown('overdue_installments')">
                                 <i class="fas fa-search-plus me-1"></i>Ver Detalhes
                             </button>
