@@ -193,6 +193,20 @@
     sidebar.querySelectorAll('[data-submenu-toggle]').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
             e.preventDefault();
+            // If sidebar is collapsed, expand it first then open this submenu
+            if (body.classList.contains('sidebar-collapsed') && window.innerWidth >= MOBILE_BREAKPOINT) {
+                body.classList.remove('sidebar-collapsed');
+                localStorage.setItem(STORAGE_KEY, 'false');
+                destroyTooltips();
+                // Ensure submenu opens after expand
+                var submenu = btn.nextElementSibling;
+                if (submenu && !submenu.classList.contains('show')) {
+                    submenu.classList.add('show');
+                    btn.setAttribute('aria-expanded', 'true');
+                    saveOpenGroups();
+                }
+                return;
+            }
             toggleSubmenu(btn);
         });
     });
