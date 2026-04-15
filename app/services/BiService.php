@@ -113,38 +113,41 @@ class BiService
         // Throughput: pedidos concluídos por dia
         $stmt = $this->db->prepare("
             SELECT DATE(updated_at) AS dia, COUNT(*) AS concluidos
-            FROM pipeline_orders
-            WHERE current_stage = 'concluido'
+            FROM orders
+            WHERE pipeline_stage = 'concluido'
               AND updated_at BETWEEN :from AND :to
             GROUP BY dia ORDER BY dia
         ");
         $stmt->execute([':from' => $dateFrom . ' 00:00:00', ':to' => $dateTo . ' 23:59:59']);
         $throughput = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Tempo médio por etapa (pipeline_logs)
+        // Tempo médio por etapa (pipeline_history)
         $stmt = $this->db->prepare("
             SELECT
-                stage_from,
-                stage_to,
-                AVG(TIMESTAMPDIFF(HOUR, created_at, 
-                    COALESCE((SELECT MIN(pl2.created_at) FROM pipeline_logs pl2 
-                              WHERE pl2.order_id = pipeline_logs.order_id 
-                              AND pl2.created_at > pipeline_logs.created_at), NOW())
+                from_stage,
+                to_stage,
+                AVG(TIMESTAMPDIFF(HOUR, ph.created_at, 
+                    COALESCE((SELECT MIN(ph2.created_at) FROM pipeline_history ph2 
+                              WHERE ph2.order_id = ph.order_id 
+                              AND ph2.created_at > ph.created_at), NOW())
                 )) AS avg_hours
-            FROM pipeline_logs
-            WHERE created_at BETWEEN :from AND :to
-            GROUP BY stage_from, stage_to
+            FROM pipeline_history ph
+            WHERE ph.created_at BETWEEN :from AND :to
+            GROUP BY from_stage, to_stage
             ORDER BY avg_hours DESC
         ");
         $stmt->execute([':from' => $dateFrom . ' 00:00:00', ':to' => $dateTo . ' 23:59:59']);
         $stageTime = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Pedidos atrasados por etapa
+        // Pedidos atrasados por etapa (comparando horas na etapa com meta)
         $stmt = $this->db->prepare("
-            SELECT current_stage, COUNT(*) AS atrasados
-            FROM pipeline_orders
-            WHERE is_delayed = 1
-            GROUP BY current_stage
+            SELECT o.pipeline_stage AS current_stage, COUNT(*) AS atrasados
+            FROM orders o
+            JOIN pipeline_stage_goals g ON g.stage = o.pipeline_stage
+            WHERE o.pipeline_stage NOT IN ('concluido','cancelado')
+              AND o.status != 'cancelado'
+              AND TIMESTAMPDIFF(HOUR, o.pipeline_entered_at, NOW()) > g.max_hours
+            GROUP BY o.pipeline_stage
         ");
         $stmt->execute();
         $bottlenecks = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -233,14 +236,13 @@ class BiService
 
             case 'orders_by_stage':
                 if (!empty($filters['stage'])) {
-                    $where[] = 'po.current_stage = :stage';
+                    $where[] = 'o.pipeline_stage = :stage';
                     $params[':stage'] = $filters['stage'];
                 }
-                $sql = "SELECT o.id, o.order_number, c.name AS customer, o.total_amount, po.current_stage, po.updated_at
+                $sql = "SELECT o.id, o.order_number, c.name AS customer, o.total_amount, o.pipeline_stage AS current_stage, o.updated_at
                         FROM orders o
-                        JOIN pipeline_orders po ON po.order_id = o.id
                         LEFT JOIN customers c ON c.id = o.customer_id
-                        WHERE " . implode(' AND ', $where) . " ORDER BY po.updated_at DESC LIMIT 100";
+                        WHERE " . implode(' AND ', $where) . " ORDER BY o.updated_at DESC LIMIT 100";
                 break;
 
             case 'top_product_orders':
