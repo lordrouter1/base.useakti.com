@@ -110,12 +110,12 @@ class BiService
     {
         $pipelineStats = $this->pipeline->getStats();
 
-        // Throughput: pedidos concluídos por dia
+        // Throughput: pedidos concluídos por dia (usando pipeline_history)
         $stmt = $this->db->prepare("
-            SELECT DATE(updated_at) AS dia, COUNT(*) AS concluidos
-            FROM orders
-            WHERE pipeline_stage = 'concluido'
-              AND updated_at BETWEEN :from AND :to
+            SELECT DATE(ph.created_at) AS dia, COUNT(*) AS concluidos
+            FROM pipeline_history ph
+            WHERE ph.to_stage = 'concluido'
+              AND ph.created_at BETWEEN :from AND :to
             GROUP BY dia ORDER BY dia
         ");
         $stmt->execute([':from' => $dateFrom . ' 00:00:00', ':to' => $dateTo . ' 23:59:59']);
