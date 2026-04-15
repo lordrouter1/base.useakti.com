@@ -216,11 +216,8 @@
 
 <!-- ═══ SIDEBAR NAVIGATION ═══ -->
 <aside class="akti-sidebar" id="aktiSidebar" role="navigation" aria-label="Menu principal">
-    <!-- Sidebar Header: Brand + Toggle -->
+    <!-- Sidebar Header: Toggle only -->
     <div class="akti-sidebar-header">
-        <a class="akti-sidebar-brand" href="?">
-            <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti">
-        </a>
         <button class="akti-sidebar-toggle" data-sidebar-toggle title="Recolher menu" aria-label="Recolher menu">
             <i class="fas fa-chevron-left"></i>
         </button>
@@ -288,15 +285,8 @@
         <?php endforeach; ?>
     </div>
 
-    <!-- Sidebar Footer: Quick links -->
+    <!-- Sidebar Footer: Sair -->
     <div class="akti-sidebar-footer">
-        <?php if($isAdmin || in_array('settings', $userPermissions)): ?>
-        <a class="akti-sidebar-link <?= ($currentPage == 'settings') ? 'active' : '' ?>"
-           href="?page=settings" data-bs-toggle="tooltip" data-bs-title="Configurações">
-            <i class="fas fa-cog sidebar-icon"></i>
-            <span class="sidebar-label">Configurações</span>
-        </a>
-        <?php endif; ?>
         <a class="akti-sidebar-link" href="?page=login&action=logout"
            data-bs-toggle="tooltip" data-bs-title="Sair do sistema">
             <i class="fas fa-sign-out-alt sidebar-icon" style="color: var(--danger-color);"></i>
@@ -316,9 +306,9 @@
             title="Abrir menu" aria-label="Abrir menu">
         <i class="fas fa-bars"></i>
     </button>
-    <!-- Mobile: brand (shown only on small screens) -->
-    <a class="navbar-brand d-lg-none" href="?">
-        <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti" style="height: 36px;">
+    <!-- Brand -->
+    <a class="navbar-brand" href="?">
+        <img src="assets/logos/akti-logo-dark-nBg.svg" alt="Akti">
     </a>
 
     <!-- ── Right-side utilities ── -->
@@ -550,12 +540,6 @@
             <li>
                 <a class="dropdown-item" href="javascript:void(0);" onclick="if(window.AktiShortcuts)AktiShortcuts.showHelp();">
                     <i class="fas fa-keyboard me-2 text-info"></i>Atalhos de Teclado
-                </a>
-            </li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-                <a class="dropdown-item text-danger" href="?page=login&action=logout">
-                <i class="fas fa-sign-out-alt me-2"></i>Sair do sistema
                 </a>
             </li>
           </ul>

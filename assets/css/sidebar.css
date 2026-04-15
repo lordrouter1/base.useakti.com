@@ -59,37 +59,15 @@ body.sidebar-collapsed .akti-sidebar {
     width: var(--sidebar-collapsed-width);
 }
 
-/* ── Sidebar Header (brand + toggle) ── */
+/* ── Sidebar Header (toggle) ── */
 .akti-sidebar-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     height: var(--navbar-height);
     padding: 0 0.75rem;
     border-bottom: 1px solid var(--sidebar-border);
     flex-shrink: 0;
-}
-
-.akti-sidebar-brand {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-.akti-sidebar-brand img {
-    height: 52px;
-    flex-shrink: 0;
-    transition: opacity var(--transition-fast);
-}
-
-.akti-sidebar-brand:hover img {
-    opacity: 0.85;
-}
-
-body.sidebar-collapsed .akti-sidebar-brand img {
-    height: 32px;
 }
 
 /* Toggle button */
@@ -126,10 +104,6 @@ body.sidebar-collapsed .akti-sidebar-toggle i {
 body.sidebar-collapsed .akti-sidebar-header {
     justify-content: center;
     padding: 0 0.5rem;
-}
-
-body.sidebar-collapsed .akti-sidebar-brand {
-    display: none;
 }
 
 /* ── Sidebar Scrollable Menu Area ── */
@@ -388,13 +362,9 @@ body.sidebar-collapsed .akti-main-wrapper {
         padding: 1rem 0.75rem 0.35rem;
     }
 
-    body.sidebar-collapsed .akti-sidebar-brand {
-        display: flex;
-    }
-
     body.sidebar-collapsed .akti-sidebar-header {
-        justify-content: space-between;
-        padding: 0 0.75rem;
+        justify-content: center;
+        padding: 0 0.5rem;
     }
 
     body.sidebar-collapsed .akti-sidebar-submenu {
