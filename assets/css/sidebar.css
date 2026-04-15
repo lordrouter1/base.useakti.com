@@ -27,64 +27,32 @@
     --sidebar-scrollbar-hover: rgba(255,255,255,0.2);
 }
 
-/* ═══ Top Navbar (slimmed — brand + utilities) ═══ */
+/* ═══ Top Navbar (slim bar — 44px with sidebar layout) ═══ */
 .navbar-akti.sidebar-mode {
     height: var(--navbar-height);
-    min-height: var(--navbar-height);
-    padding-left: var(--sidebar-width);
+    max-height: var(--navbar-height);
+    padding: 0 0.75rem;
+    padding-left: calc(var(--sidebar-width) + 0.75rem);
     transition: padding-left var(--sidebar-transition);
+    display: flex;
+    align-items: center;
     overflow: visible;
 }
 
-/* Slim adjustments — fit icons in 44px bar */
-.navbar-akti.sidebar-mode .navbar-nav {
+body.sidebar-collapsed .navbar-akti.sidebar-mode {
+    padding-left: calc(var(--sidebar-collapsed-width) + 0.75rem);
+}
+
+/* Brand in topnav */
+.navbar-akti.sidebar-mode .navbar-brand {
+    padding: 0;
+    margin-right: auto;
+    display: flex;
     align-items: center;
 }
 
-.navbar-akti.sidebar-mode .nav-link {
-    padding: 0.25rem 0.5rem !important;
-    font-size: 0.8rem;
-    line-height: 1.2;
-}
-
-.navbar-akti.sidebar-mode .akti-btn-icon {
-    width: 30px;
-    height: 30px;
-    min-width: 30px;
-    min-height: 30px;
-    font-size: 0.8rem;
-}
-
-.navbar-akti.sidebar-mode .nav-icon-btn {
-    padding: 0.25rem 0.4rem !important;
-    font-size: 0.8rem;
-}
-
-.navbar-akti.sidebar-mode .user-badge {
-    font-size: 0.55rem;
-    padding: 0.1rem 0.3rem;
-}
-
-.navbar-akti.sidebar-mode .notification-badge {
-    top: 0;
-    right: -2px;
-    font-size: 0.5rem;
-    min-width: 14px;
-    height: 14px;
-    border-width: 1.5px;
-}
-
-.navbar-akti.sidebar-mode .btn-logout {
-    padding: 0.2rem 0.5rem !important;
-    font-size: 0.75rem;
-}
-
-.navbar-akti.sidebar-mode .nav-divider {
-    height: 18px;
-}
-
 .navbar-akti.sidebar-mode .topnav-brand-img {
-    height: 28px;
+    height: 24px;
     transition: opacity var(--transition-fast);
 }
 
@@ -92,8 +60,98 @@
     opacity: 0.85;
 }
 
-body.sidebar-collapsed .navbar-akti.sidebar-mode {
-    padding-left: var(--sidebar-collapsed-width);
+/* Utility nav */
+.navbar-akti.sidebar-mode .navbar-nav {
+    align-items: center;
+    gap: 2px;
+    margin: 0;
+    flex-wrap: nowrap;
+}
+
+.navbar-akti.sidebar-mode .nav-item {
+    display: flex;
+    align-items: center;
+}
+
+/* All nav-links inside slim bar */
+.navbar-akti.sidebar-mode .nav-link {
+    padding: 0.2rem 0.4rem !important;
+    font-size: 0.78rem !important;
+    line-height: 1 !important;
+    gap: 0.25rem !important;
+    height: 30px;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+/* Icon buttons (search, theme) */
+.navbar-akti.sidebar-mode .akti-btn-icon {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Bell / notification icon link */
+.navbar-akti.sidebar-mode .nav-icon-btn {
+    padding: 0.15rem 0.35rem !important;
+    font-size: 0.78rem !important;
+    height: 28px;
+    display: inline-flex !important;
+    align-items: center !important;
+    position: relative;
+}
+
+/* Notification red badge */
+.navbar-akti.sidebar-mode .notification-badge {
+    top: -2px;
+    right: -4px;
+    font-size: 0.45rem;
+    min-width: 13px;
+    height: 13px;
+    border-width: 1.5px;
+    padding: 0 3px;
+}
+
+/* User badge (Admin / Usuário) */
+.navbar-akti.sidebar-mode .user-badge {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.25rem;
+    letter-spacing: 0.2px;
+}
+
+/* Gear dropdown trigger */
+.navbar-akti.sidebar-mode .btn-logout {
+    padding: 0.15rem 0.4rem !important;
+    font-size: 0.72rem !important;
+    gap: 0.2rem !important;
+    height: 28px;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+/* Divider */
+.navbar-akti.sidebar-mode .nav-divider {
+    height: 16px;
+    margin: 0 0.25rem;
+}
+
+/* Mobile toggle in topbar */
+.navbar-akti.sidebar-mode .akti-mobile-toggle {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    font-size: 0.85rem;
+}
+
+/* Dropdown toggle caret — smaller */
+.navbar-akti.sidebar-mode .dropdown-toggle::after {
+    font-size: 0.5rem;
+    vertical-align: 0.1em;
+    margin-left: 0.15rem;
 }
 
 /* ═══ Sidebar Container ═══ */
@@ -425,7 +483,7 @@ body.sidebar-collapsed .akti-main-wrapper {
     }
 
     .navbar-akti.sidebar-mode {
-        padding-left: 0 !important;
+        padding-left: 0.75rem !important;
     }
 
     /* Mobile toggle in navbar */
@@ -533,6 +591,6 @@ body.sidebar-collapsed .akti-sidebar-badge {
     }
 
     .navbar-akti.sidebar-mode {
-        padding-left: 0 !important;
+        padding-left: 0.75rem !important;
     }
 }

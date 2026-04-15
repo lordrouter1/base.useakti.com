@@ -107,18 +107,18 @@
     <style>
     /* Critical CSS — inline above-the-fold styles to prevent FOUC */
     body{font-family:'Inter',system-ui,sans-serif;background:var(--bg-body,#f1f5f9);color:var(--text-main,#1e293b);margin:0}
-    .navbar-akti.sidebar-mode{height:var(--navbar-height,44px);padding-left:260px;transition:padding-left .25s cubic-bezier(.4,0,.2,1)}
-    body.sidebar-collapsed .navbar-akti.sidebar-mode{padding-left:68px}
+    .navbar-akti.sidebar-mode{height:var(--navbar-height,44px);max-height:44px;padding:0 .75rem;padding-left:calc(260px + .75rem);display:flex;align-items:center;overflow:visible;transition:padding-left .25s cubic-bezier(.4,0,.2,1)}
+    body.sidebar-collapsed .navbar-akti.sidebar-mode{padding-left:calc(68px + .75rem)}
     .akti-sidebar{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--primary-color,#1e293b);z-index:1050;transition:width .25s cubic-bezier(.4,0,.2,1)}
     body.sidebar-collapsed .akti-sidebar{width:68px}
     .akti-main-wrapper{margin-left:260px;transition:margin-left .25s cubic-bezier(.4,0,.2,1);min-height:100vh;display:flex;flex-direction:column}
     body.sidebar-collapsed .akti-main-wrapper{margin-left:68px}
-    @media(max-width:991.98px){.akti-sidebar{transform:translateX(-100%);width:260px!important}.akti-main-wrapper{margin-left:0!important}.navbar-akti.sidebar-mode{padding-left:0!important}}
+    @media(max-width:991.98px){.akti-sidebar{transform:translateX(-100%);width:260px!important}.akti-main-wrapper{margin-left:0!important}.navbar-akti.sidebar-mode{padding-left:.75rem!important}}
     [data-theme="dark"] body,.dark body{background:#1A1A2E;color:#E8E8E8}
     [data-theme="dark"] .akti-sidebar{background:#0f172a;border-color:rgba(255,255,255,.04)}
     html.sidebar-pre-collapsed .akti-sidebar{width:68px}
     html.sidebar-pre-collapsed .akti-main-wrapper{margin-left:68px}
-    html.sidebar-pre-collapsed .navbar-akti.sidebar-mode{padding-left:68px}
+    html.sidebar-pre-collapsed .navbar-akti.sidebar-mode{padding-left:calc(68px + .75rem)}
     </style>
     <script src="<?= asset('assets/js/components/theme-toggle.js') ?>"></script>
     <script>
