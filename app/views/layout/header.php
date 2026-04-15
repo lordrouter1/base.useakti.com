@@ -121,7 +121,7 @@
     html.sidebar-pre-collapsed .navbar-akti.sidebar-mode{padding-left:68px}
     </style>
     <script src="<?= asset('assets/js/components/theme-toggle.js') ?>"></script>
-    <script>
+    <script nonce="<?= cspNonce() ?>">
     /* Restore sidebar state before render to prevent layout shift */
     (function(){
         try {
@@ -316,7 +316,6 @@
         <!-- Command Palette Trigger -->
         <li class="nav-item d-none d-lg-block">
           <button type="button" class="akti-btn-icon" id="cmdPaletteTrigger"
-                  onclick="if(window.AktiCommandPalette)AktiCommandPalette.open();"
                   title="Busca rápida (Ctrl+K)" aria-label="Busca rápida">
             <i class="fas fa-search"></i>
           </button>
@@ -324,7 +323,6 @@
         <!-- Dark Mode Toggle -->
         <li class="nav-item">
           <button type="button" class="akti-btn-icon" id="themeToggleBtn"
-                  onclick="if(window.AktiTheme)AktiTheme.toggle();"
                   title="Alternar tema (Claro / Escuro / Auto)" aria-label="Alternar modo de tema">
             <i id="themeToggleIcon" class="fas fa-moon"></i>
           </button>
@@ -533,12 +531,12 @@
             <?php endif; ?>
             <li><hr class="dropdown-divider"></li>
             <li>
-                <a class="dropdown-item wt-help-trigger" href="javascript:void(0);" onclick="window.aktiWalkthrough.start(0);">
+                <a class="dropdown-item wt-help-trigger" href="#" data-action="start-tour">
                     <i class="fas fa-question-circle me-2 text-info"></i>Tour Guiado
                 </a>
             </li>
             <li>
-                <a class="dropdown-item" href="javascript:void(0);" onclick="if(window.AktiShortcuts)AktiShortcuts.showHelp();">
+                <a class="dropdown-item" href="#" data-action="show-shortcuts">
                     <i class="fas fa-keyboard me-2 text-info"></i>Atalhos de Teclado
                 </a>
             </li>

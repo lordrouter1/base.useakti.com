@@ -66,10 +66,11 @@ class SecurityHeadersMiddleware
         header('X-XSS-Protection: 0');
 
         // Content Security Policy — controla origens permitidas de scripts, styles e recursos
-        // Nota: 'unsafe-inline' mantido como fallback para navegadores antigos.
-        // Em CSP Level 2+, 'unsafe-inline' é ignorado quando um nonce está presente.
+        // Nota: 'unsafe-inline' necessário enquanto houver onclick/onchange inline nas views.
+        // TODO: Migrar todos os 200+ handlers inline para addEventListener, então re-habilitar nonce.
+        // O nonce permanece disponível via cspNonce() para <script nonce="..."> explícitos.
         $csp  = "default-src 'self'; ";
-        $csp .= "script-src 'self' 'unsafe-inline' 'nonce-{$nonce}' cdn.jsdelivr.net cdnjs.cloudflare.com code.jquery.com; ";
+        $csp .= "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com code.jquery.com; ";
         $csp .= "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com fonts.googleapis.com; ";
         $csp .= "font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com; ";
         $csp .= "img-src 'self' data: blob:; ";

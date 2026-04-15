@@ -234,6 +234,39 @@
         initTooltips();
     }
 
+    // ── Top navbar button bindings (CSP-safe — no inline onclick) ──
+    var cmdPaletteBtn = document.getElementById('cmdPaletteTrigger');
+    if (cmdPaletteBtn) {
+        cmdPaletteBtn.addEventListener('click', function () {
+            if (window.AktiCommandPalette) AktiCommandPalette.open();
+        });
+    }
+
+    var themeToggleBtn = document.getElementById('themeToggleBtn');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', function () {
+            if (window.AktiTheme) AktiTheme.toggle();
+        });
+    }
+
+    // Settings dropdown: Tour Guiado
+    var wtTrigger = document.querySelector('.wt-help-trigger');
+    if (wtTrigger) {
+        wtTrigger.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (window.aktiWalkthrough) aktiWalkthrough.start(0);
+        });
+    }
+
+    // Settings dropdown: Atalhos de Teclado
+    var shortcutsLink = document.querySelector('[data-action="show-shortcuts"]');
+    if (shortcutsLink) {
+        shortcutsLink.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (window.AktiShortcuts) AktiShortcuts.showHelp();
+        });
+    }
+
     // Expose API
     window.AktiSidebar = {
         toggle: toggleCollapse,
