@@ -24,3 +24,5 @@ api/node_modules/
 api/.env
 api/certs/
 .env
+
+prompts/
