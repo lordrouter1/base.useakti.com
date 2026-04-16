@@ -37,35 +37,55 @@
 
     <!-- KPIs -->
     <div class="row g-3 mb-4">
-        <div class="col-lg-3 col-md-6">
-            <div class="card border-start border-primary border-4">
-                <div class="card-body py-3">
-                    <div class="text-muted small">Eficiência Global</div>
-                    <div class="h4 mb-0"><?= number_format($kpis['efficiency_percent'] ?? 100, 1) ?>%</div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="icon-circle icon-circle-lg bg-primary bg-opacity-10 text-primary me-3">
+                        <i class="fas fa-bullseye fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Eficiência Global</small>
+                        <span class="fw-bold fs-5"><?= number_format($kpis['efficiency_percent'] ?? 100, 1) ?>%</span>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6">
-            <div class="card border-start border-warning border-4">
-                <div class="card-body py-3">
-                    <div class="text-muted small">Variação Média</div>
-                    <div class="h4 mb-0"><?= number_format($kpis['avg_variance_percent'] ?? 0, 1) ?>%</div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="icon-circle icon-circle-lg bg-warning bg-opacity-10 text-warning me-3">
+                        <i class="fas fa-percent fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Variação Média</small>
+                        <span class="fw-bold fs-5"><?= number_format($kpis['avg_variance_percent'] ?? 0, 1) ?>%</span>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6">
-            <div class="card border-start border-danger border-4">
-                <div class="card-body py-3">
-                    <div class="text-muted small">Custo de Perda</div>
-                    <div class="h4 mb-0">R$ <?= number_format($kpis['waste_cost'] ?? 0, 2, ',', '.') ?></div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="icon-circle icon-circle-lg bg-danger bg-opacity-10 text-danger me-3">
+                        <i class="fas fa-trash-alt fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Custo de Perda</small>
+                        <span class="fw-bold fs-5">R$ <?= number_format($kpis['waste_cost'] ?? 0, 2, ',', '.') ?></span>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6">
-            <div class="card border-start border-success border-4">
-                <div class="card-body py-3">
-                    <div class="text-muted small">Ordens no Período</div>
-                    <div class="h4 mb-0"><?= eNum($kpis['total_orders'] ?? 0) ?></div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="icon-circle icon-circle-lg bg-success bg-opacity-10 text-success me-3">
+                        <i class="fas fa-clipboard-list fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Ordens no Período</small>
+                        <span class="fw-bold fs-5"><?= eNum($kpis['total_orders'] ?? 0) ?></span>
+                    </div>
                 </div>
             </div>
         </div>

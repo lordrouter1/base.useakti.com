@@ -22,35 +22,55 @@ $csrfToken = csrf_token();
 
     <!-- KPIs -->
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm text-center">
-                <div class="card-body">
-                    <div class="h3 text-danger" id="kpiPending"><?= count(array_filter($alerts, fn($a) => $a['status'] === 'pending')) ?></div>
-                    <small class="text-muted">Pendentes</small>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="icon-circle icon-circle-lg bg-danger bg-opacity-10 text-danger me-3">
+                        <i class="fas fa-bell fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Pendentes</small>
+                        <span class="fw-bold fs-5" id="kpiPending"><?= count(array_filter($alerts, fn($a) => $a['status'] === 'pending')) ?></span>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm text-center">
-                <div class="card-body">
-                    <div class="h3 text-warning" id="kpiAcknowledged"><?= count(array_filter($alerts, fn($a) => $a['status'] === 'acknowledged')) ?></div>
-                    <small class="text-muted">Reconhecidos</small>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="icon-circle icon-circle-lg bg-warning bg-opacity-10 text-warning me-3">
+                        <i class="fas fa-eye fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Reconhecidos</small>
+                        <span class="fw-bold fs-5" id="kpiAcknowledged"><?= count(array_filter($alerts, fn($a) => $a['status'] === 'acknowledged')) ?></span>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm text-center">
-                <div class="card-body">
-                    <div class="h3 text-success" id="kpiApplied"><?= count(array_filter($alerts, fn($a) => $a['status'] === 'applied')) ?></div>
-                    <small class="text-muted">Aplicados</small>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="icon-circle icon-circle-lg bg-success bg-opacity-10 text-success me-3">
+                        <i class="fas fa-check-circle fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Aplicados</small>
+                        <span class="fw-bold fs-5" id="kpiApplied"><?= count(array_filter($alerts, fn($a) => $a['status'] === 'applied')) ?></span>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm text-center">
-                <div class="card-body">
-                    <div class="h3 text-secondary" id="kpiDismissed"><?= count(array_filter($alerts, fn($a) => $a['status'] === 'dismissed')) ?></div>
-                    <small class="text-muted">Dispensados</small>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-secondary border-4">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="icon-circle icon-circle-lg bg-secondary bg-opacity-10 text-secondary me-3">
+                        <i class="fas fa-ban fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Dispensados</small>
+                        <span class="fw-bold fs-5" id="kpiDismissed"><?= count(array_filter($alerts, fn($a) => $a['status'] === 'dismissed')) ?></span>
+                    </div>
                 </div>
             </div>
         </div>

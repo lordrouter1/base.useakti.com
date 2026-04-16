@@ -21,35 +21,55 @@ $csrfToken = csrf_token();
 
     <!-- KPIs -->
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card border-start border-danger border-4 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="h3 text-danger"><?= (int)($kpis['ruptured'] ?? 0) ?></div>
-                    <small class="text-muted">Em Ruptura</small>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="icon-circle icon-circle-lg bg-danger bg-opacity-10 text-danger me-3">
+                        <i class="fas fa-times-circle fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Em Ruptura</small>
+                        <span class="fw-bold fs-5"><?= (int)($kpis['ruptured'] ?? 0) ?></span>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-start border-warning border-4 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="h3 text-warning"><?= (int)($kpis['critical'] ?? 0) ?></div>
-                    <small class="text-muted">Crítico (≤ 7 dias)</small>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="icon-circle icon-circle-lg bg-warning bg-opacity-10 text-warning me-3">
+                        <i class="fas fa-exclamation-triangle fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Crítico (≤ 7 dias)</small>
+                        <span class="fw-bold fs-5"><?= (int)($kpis['critical'] ?? 0) ?></span>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-start border-info border-4 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="h3 text-info"><?= (int)($kpis['warning'] ?? 0) ?></div>
-                    <small class="text-muted">Atenção (≤ 30 dias)</small>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="icon-circle icon-circle-lg bg-info bg-opacity-10 text-info me-3">
+                        <i class="fas fa-exclamation-circle fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Atenção (≤ 30 dias)</small>
+                        <span class="fw-bold fs-5"><?= (int)($kpis['warning'] ?? 0) ?></span>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-start border-success border-4 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="h3 text-success"><?= (int)($kpis['ok'] ?? 0) ?></div>
-                    <small class="text-muted">Normal</small>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="icon-circle icon-circle-lg bg-success bg-opacity-10 text-success me-3">
+                        <i class="fas fa-check-circle fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Normal</small>
+                        <span class="fw-bold fs-5"><?= (int)($kpis['ok'] ?? 0) ?></span>
+                    </div>
                 </div>
             </div>
         </div>
