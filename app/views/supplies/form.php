@@ -27,6 +27,7 @@ $csrfToken = csrf_token();
         <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabDados">Dados</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabFornecedores">Fornecedores</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabProdutos">Produtos (BOM)</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabSubstitutos">Substitutos</a></li>
     </ul>
     <?php endif; ?>
 
@@ -101,6 +102,26 @@ $csrfToken = csrf_token();
                             <div class="col-md-2">
                                 <label class="form-label fw-bold">% Perda Padrão</label>
                                 <input type="number" name="waste_percent" class="form-control" step="0.01" min="0" max="100" value="<?= eAttr($s['waste_percent'] ?? '0') ?>">
+                            </div>
+                            <!-- Fracionamento -->
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Fracionamento</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input type="hidden" name="permite_fracionamento" value="0">
+                                    <input class="form-check-input" type="checkbox" name="permite_fracionamento" value="1" id="chkFracionamento"
+                                        <?= ((int)($s['permite_fracionamento'] ?? 1)) === 1 ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="chkFracionamento">Permite frações</label>
+                                </div>
+                                <small class="text-muted">Se desativado, consumo é arredondado para cima (ex: parafusos)</small>
+                            </div>
+                            <!-- Precisão Decimal -->
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Precisão Decimal</label>
+                                <select name="decimal_precision" class="form-select">
+                                    <?php for ($dp = 2; $dp <= 6; $dp++): ?>
+                                    <option value="<?= $dp ?>" <?= ((int)($s['decimal_precision'] ?? 4)) === $dp ? 'selected' : '' ?>><?= $dp ?> casas</option>
+                                    <?php endfor; ?>
+                                </select>
                             </div>
                             <!-- Descrição -->
                             <div class="col-12">
@@ -209,6 +230,36 @@ $csrfToken = csrf_token();
                             </thead>
                             <tbody id="productsBody">
                                 <tr><td colspan="6" class="text-center text-muted py-3">Carregando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Substitutos (v2) -->
+        <div class="tab-pane fade" id="tabSubstitutos">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-exchange-alt me-1"></i>Insumos Substitutos</span>
+                    <button class="btn btn-sm btn-primary" id="btnAddSubstitute"><i class="fas fa-plus me-1"></i>Adicionar</button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="substitutesTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Insumo Substituto</th>
+                                    <th>Código</th>
+                                    <th class="text-end">Taxa Conversão</th>
+                                    <th class="text-center">Prioridade</th>
+                                    <th class="text-center">Ativo</th>
+                                    <th>Notas</th>
+                                    <th class="text-end">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="substitutesBody">
+                                <tr><td colspan="7" class="text-center text-muted py-3">Carregando...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -356,6 +407,117 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         });
+
+    // ── Carregar Substitutos (v2) ──
+    function loadSubstitutes() {
+        fetch('?page=supplies&action=getSubstitutes&id=' + supplyId)
+            .then(r => r.json())
+            .then(data => {
+                const body = document.getElementById('substitutesBody');
+                if (!data.length) {
+                    body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Nenhum substituto cadastrado.</td></tr>';
+                    return;
+                }
+                body.innerHTML = data.map(s => `
+                    <tr>
+                        <td>${s.substitute_name}</td>
+                        <td><span class="badge bg-light text-dark">${s.substitute_code || '-'}</span></td>
+                        <td class="text-end">&times;${parseFloat(s.conversion_rate).toFixed(6)}</td>
+                        <td class="text-center"><span class="badge bg-secondary">${s.priority}</span></td>
+                        <td class="text-center">${parseInt(s.is_active) ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-danger"></i>'}</td>
+                        <td>${s.notes || '-'}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary btnEditSub" data-item='${JSON.stringify(s)}'><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-outline-danger btnDelSub" data-id="${s.id}"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                body.querySelectorAll('.btnDelSub').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const sid = this.dataset.id;
+                        Swal.fire({title:'Remover substituto?',icon:'warning',showCancelButton:true,confirmButtonColor:'#d33',confirmButtonText:'Sim',cancelButtonText:'Cancelar'}).then(r => {
+                            if (r.isConfirmed) {
+                                fetch('?page=supplies&action=removeSubstitute', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-TOKEN':csrfToken},body:'id='+sid+'&csrf_token='+csrfToken})
+                                    .then(r=>r.json()).then(r=>{ if(r.success){loadSubstitutes(); AktiToast.success('Substituto removido.');} else AktiToast.error(r.message||'Erro.'); });
+                            }
+                        });
+                    });
+                });
+
+                body.querySelectorAll('.btnEditSub').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const item = JSON.parse(this.dataset.item);
+                        showSubstituteModal(item);
+                    });
+                });
+            });
+    }
+    loadSubstitutes();
+
+    function showSubstituteModal(existing) {
+        const isEdit = !!existing;
+        Swal.fire({
+            title: isEdit ? 'Editar Substituto' : 'Adicionar Substituto',
+            html: `
+                <div class="text-start">
+                    <div class="mb-2"><label class="form-label">Insumo Substituto</label><select id="swalSubSupply" class="form-select" ${isEdit ? 'disabled' : ''}></select></div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-4"><label class="form-label">Taxa Conversão</label><input id="swalConvRate" class="form-control" type="number" step="0.000001" value="${existing ? existing.conversion_rate : '1'}"></div>
+                        <div class="col-4"><label class="form-label">Prioridade</label><input id="swalPriority" class="form-control" type="number" min="1" value="${existing ? existing.priority : '1'}"></div>
+                        <div class="col-4"><label class="form-label">Ativo</label><select id="swalSubActive" class="form-select"><option value="1" ${(!existing || parseInt(existing.is_active)) ? 'selected' : ''}>Sim</option><option value="0" ${(existing && !parseInt(existing.is_active)) ? 'selected' : ''}>Não</option></select></div>
+                    </div>
+                    <div class="mb-2"><label class="form-label">Notas</label><textarea id="swalSubNotes" class="form-control" rows="2">${existing ? (existing.notes||'') : ''}</textarea></div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: isEdit ? 'Salvar' : 'Adicionar',
+            cancelButtonText: 'Cancelar',
+            didOpen: () => {
+                fetch('?page=supplies&action=searchSelect2&term=').then(r=>r.json()).then(d=>{
+                    const sel = document.getElementById('swalSubSupply');
+                    d.results.forEach(s=>{
+                        if (s.id != supplyId) {
+                            const o=document.createElement('option'); o.value=s.id; o.text=s.text;
+                            if (existing && s.id == existing.substitute_id) o.selected = true;
+                            sel.add(o);
+                        }
+                    });
+                });
+            },
+            preConfirm: () => {
+                return {
+                    substitute_id: document.getElementById('swalSubSupply').value,
+                    conversion_rate: document.getElementById('swalConvRate').value,
+                    priority: document.getElementById('swalPriority').value,
+                    is_active: document.getElementById('swalSubActive').value,
+                    notes: document.getElementById('swalSubNotes').value,
+                };
+            }
+        }).then(result => {
+            if (result.isConfirmed) {
+                const d = result.value;
+                let bodyStr;
+                let action;
+                if (isEdit) {
+                    bodyStr = 'id=' + existing.id + '&conversion_rate=' + encodeURIComponent(d.conversion_rate) + '&priority=' + d.priority + '&is_active=' + d.is_active + '&notes=' + encodeURIComponent(d.notes) + '&csrf_token=' + csrfToken;
+                    action = 'updateSubstitute';
+                } else {
+                    bodyStr = 'supply_id=' + supplyId + '&substitute_id=' + d.substitute_id + '&conversion_rate=' + encodeURIComponent(d.conversion_rate) + '&priority=' + d.priority + '&is_active=' + d.is_active + '&notes=' + encodeURIComponent(d.notes) + '&csrf_token=' + csrfToken;
+                    action = 'addSubstitute';
+                }
+                fetch('?page=supplies&action=' + action, {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-TOKEN':csrfToken},body:bodyStr})
+                    .then(r=>r.json()).then(r=>{
+                        if (r.success) { loadSubstitutes(); AktiToast.success(isEdit ? 'Substituto atualizado.' : 'Substituto adicionado.'); }
+                        else AktiToast.error(r.message || 'Erro.');
+                    });
+            }
+        });
+    }
+
+    document.getElementById('btnAddSubstitute')?.addEventListener('click', function() {
+        showSubstituteModal(null);
+    });
     <?php endif; ?>
 
     // ── Nova Categoria (inline) ──

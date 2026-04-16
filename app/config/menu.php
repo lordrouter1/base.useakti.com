@@ -145,6 +145,12 @@ return [
                 'menu'       => true,
                 'permission' => true,
             ],
+            'supply_dashboard' => [
+                'label'      => 'Eficiência de Insumos',
+                'icon'       => 'fas fa-chart-line',
+                'menu'       => true,
+                'permission' => true,
+            ],
         ],
     ],
 

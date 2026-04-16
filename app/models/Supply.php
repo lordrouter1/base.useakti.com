@@ -125,11 +125,11 @@ class Supply
     {
         $stmt = $this->conn->prepare(
             "INSERT INTO supplies (category_id, code, name, description, unit_measure, cost_price,
-                min_stock, reorder_point, waste_percent, is_active, notes,
-                fiscal_ncm, fiscal_cest, fiscal_origem, fiscal_unidade)
+                min_stock, reorder_point, waste_percent, permite_fracionamento, decimal_precision,
+                is_active, notes, fiscal_ncm, fiscal_cest, fiscal_origem, fiscal_unidade)
              VALUES (:category_id, :code, :name, :description, :unit_measure, :cost_price,
-                :min_stock, :reorder_point, :waste_percent, :is_active, :notes,
-                :fiscal_ncm, :fiscal_cest, :fiscal_origem, :fiscal_unidade)"
+                :min_stock, :reorder_point, :waste_percent, :permite_fracionamento, :decimal_precision,
+                :is_active, :notes, :fiscal_ncm, :fiscal_cest, :fiscal_origem, :fiscal_unidade)"
         );
         $stmt->execute([
             ':category_id'    => $data['category_id'] ?: null,
@@ -141,6 +141,8 @@ class Supply
             ':min_stock'      => $data['min_stock'] ?? 0,
             ':reorder_point'  => $data['reorder_point'] ?? 0,
             ':waste_percent'  => $data['waste_percent'] ?? 0,
+            ':permite_fracionamento' => $data['permite_fracionamento'] ?? 1,
+            ':decimal_precision'     => $data['decimal_precision'] ?? 4,
             ':is_active'      => $data['is_active'] ?? 1,
             ':notes'          => $data['notes'] ?? null,
             ':fiscal_ncm'     => $data['fiscal_ncm'] ?? null,
@@ -166,8 +168,9 @@ class Supply
             "UPDATE supplies SET
                 category_id = :category_id, code = :code, name = :name, description = :description,
                 unit_measure = :unit_measure, cost_price = :cost_price, min_stock = :min_stock,
-                reorder_point = :reorder_point, waste_percent = :waste_percent, is_active = :is_active,
-                notes = :notes, fiscal_ncm = :fiscal_ncm, fiscal_cest = :fiscal_cest,
+                reorder_point = :reorder_point, waste_percent = :waste_percent,
+                permite_fracionamento = :permite_fracionamento, decimal_precision = :decimal_precision,
+                is_active = :is_active, notes = :notes, fiscal_ncm = :fiscal_ncm, fiscal_cest = :fiscal_cest,
                 fiscal_origem = :fiscal_origem, fiscal_unidade = :fiscal_unidade
              WHERE id = :id AND deleted_at IS NULL"
         );
@@ -182,6 +185,8 @@ class Supply
             ':min_stock'      => $data['min_stock'] ?? 0,
             ':reorder_point'  => $data['reorder_point'] ?? 0,
             ':waste_percent'  => $data['waste_percent'] ?? 0,
+            ':permite_fracionamento' => $data['permite_fracionamento'] ?? 1,
+            ':decimal_precision'     => $data['decimal_precision'] ?? 4,
             ':is_active'      => $data['is_active'] ?? 1,
             ':notes'          => $data['notes'] ?? null,
             ':fiscal_ncm'     => $data['fiscal_ncm'] ?? null,
@@ -612,16 +617,18 @@ class Supply
     public function addProductSupply(array $data): int
     {
         $stmt = $this->conn->prepare(
-            "INSERT INTO product_supplies (product_id, supply_id, quantity, yield_qty, unit_measure, waste_percent, is_optional, notes, sort_order)
-             VALUES (:product_id, :supply_id, :quantity, :yield_qty, :unit_measure, :waste_percent, :is_optional, :notes, :sort_order)"
+            "INSERT INTO product_supplies (product_id, variation_id, supply_id, quantity, yield_qty, unit_measure, waste_percent, loss_percent, is_optional, notes, sort_order)
+             VALUES (:product_id, :variation_id, :supply_id, :quantity, :yield_qty, :unit_measure, :waste_percent, :loss_percent, :is_optional, :notes, :sort_order)"
         );
         $stmt->execute([
             ':product_id'    => $data['product_id'],
+            ':variation_id'  => $data['variation_id'] ?? null,
             ':supply_id'     => $data['supply_id'],
             ':quantity'      => $data['quantity'] ?? 0,
             ':yield_qty'     => $data['yield_qty'] ?? 1,
             ':unit_measure'  => $data['unit_measure'] ?? 'un',
             ':waste_percent' => $data['waste_percent'] ?? 0,
+            ':loss_percent'  => $data['loss_percent'] ?? 0,
             ':is_optional'   => $data['is_optional'] ?? 0,
             ':notes'         => $data['notes'] ?? null,
             ':sort_order'    => $data['sort_order'] ?? 0,
@@ -644,16 +651,19 @@ class Supply
     {
         $stmt = $this->conn->prepare(
             "UPDATE product_supplies SET
-                quantity = :quantity, yield_qty = :yield_qty, unit_measure = :unit_measure,
-                waste_percent = :waste_percent, is_optional = :is_optional, notes = :notes, sort_order = :sort_order
+                variation_id = :variation_id, quantity = :quantity, yield_qty = :yield_qty,
+                unit_measure = :unit_measure, waste_percent = :waste_percent, loss_percent = :loss_percent,
+                is_optional = :is_optional, notes = :notes, sort_order = :sort_order
              WHERE id = :id"
         );
         return $stmt->execute([
             ':id'            => $id,
+            ':variation_id'  => $data['variation_id'] ?? null,
             ':quantity'      => $data['quantity'] ?? 0,
             ':yield_qty'     => $data['yield_qty'] ?? 1,
             ':unit_measure'  => $data['unit_measure'] ?? 'un',
             ':waste_percent' => $data['waste_percent'] ?? 0,
+            ':loss_percent'  => $data['loss_percent'] ?? 0,
             ':is_optional'   => $data['is_optional'] ?? 0,
             ':notes'         => $data['notes'] ?? null,
             ':sort_order'    => $data['sort_order'] ?? 0,

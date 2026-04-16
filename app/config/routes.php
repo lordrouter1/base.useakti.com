@@ -1241,6 +1241,11 @@ return [
             'getWhereUsedImpact'  => 'getWhereUsedImpact',
             'applyBOMCostUpdate'  => 'applyBOMCostUpdate',
             'categories'          => 'categories',
+            'getSubstitutes'      => 'getSubstitutes',
+            'addSubstitute'       => 'addSubstitute',
+            'updateSubstitute'    => 'updateSubstitute',
+            'removeSubstitute'    => 'removeSubstitute',
+            'costAlerts'          => 'costAlerts',
         ],
     ],
 
@@ -1264,6 +1269,8 @@ return [
             'getStockItems'      => 'getStockItems',
             'reorderSuggestions' => 'reorderSuggestions',
             'getDashboard'       => 'getDashboard',
+            'forecast'           => 'forecast',
+            'recalculateForecast'=> 'recalculateForecast',
         ],
     ],
 
@@ -1409,6 +1416,19 @@ return [
         'actions'        => [
             'send'         => 'send',
             'clearHistory' => 'clearHistory',
+        ],
+    ],
+
+    // ─── Dashboard de Insumos (v2) ───
+    'supply_dashboard' => [
+        'controller'     => 'SupplyDashboardController',
+        'default_action' => 'efficiency',
+        'public'         => false,
+        'actions'        => [
+            'efficiency'     => 'efficiency',
+            'efficiencyData' => 'efficiencyData',
+            'report'         => 'report',
+            'saveReport'     => 'saveReport',
         ],
     ],
 

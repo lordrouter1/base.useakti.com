@@ -4,6 +4,7 @@ namespace Akti\Controllers;
 
 use Akti\Models\Supply;
 use Akti\Models\Supplier;
+use Akti\Models\SupplySubstitute;
 use Akti\Utils\Input;
 
 /**
@@ -12,6 +13,7 @@ use Akti\Utils\Input;
 class SupplyController extends BaseController {
     private Supply $supplyModel;
     private Supplier $supplierModel;
+    private SupplySubstitute $substituteModel;
 
     /**
      * Construtor da classe SupplyController.
@@ -25,6 +27,7 @@ class SupplyController extends BaseController {
         $this->db = $db;
         $this->supplyModel = $supplyModel;
         $this->supplierModel = $supplierModel;
+        $this->substituteModel = new SupplySubstitute($db);
     }
 
     // ──── CRUD (Fase 1) ────
@@ -80,6 +83,8 @@ class SupplyController extends BaseController {
             'min_stock'      => Input::post('min_stock', 'float', 0),
             'reorder_point'  => Input::post('reorder_point', 'float', 0),
             'waste_percent'  => Input::post('waste_percent', 'float', 0),
+            'permite_fracionamento' => Input::post('permite_fracionamento', 'int', 1),
+            'decimal_precision'     => Input::post('decimal_precision', 'int', 4),
             'is_active'      => Input::post('is_active', 'int', 1),
             'notes'          => Input::post('notes', 'string', ''),
             'fiscal_ncm'     => Input::post('fiscal_ncm', 'string', ''),
@@ -146,6 +151,8 @@ class SupplyController extends BaseController {
             'min_stock'      => Input::post('min_stock', 'float', 0),
             'reorder_point'  => Input::post('reorder_point', 'float', 0),
             'waste_percent'  => Input::post('waste_percent', 'float', 0),
+            'permite_fracionamento' => Input::post('permite_fracionamento', 'int', 1),
+            'decimal_precision'     => Input::post('decimal_precision', 'int', 4),
             'is_active'      => Input::post('is_active', 'int', 1),
             'notes'          => Input::post('notes', 'string', ''),
             'fiscal_ncm'     => Input::post('fiscal_ncm', 'string', ''),
@@ -370,10 +377,12 @@ class SupplyController extends BaseController {
         $data = [
             'product_id'    => Input::post('product_id', 'int', 0),
             'supply_id'     => Input::post('supply_id', 'int', 0),
+            'variation_id'  => Input::post('variation_id', 'int', 0) ?: null,
             'quantity'      => Input::post('quantity', 'float', 0),
             'yield_qty'     => max(Input::post('yield_qty', 'float', 1), 0.0001),
             'unit_measure'  => Input::post('unit_measure', 'string', 'un'),
             'waste_percent' => Input::post('waste_percent', 'float', 0),
+            'loss_percent'  => Input::post('loss_percent', 'float', 0),
             'is_optional'   => Input::post('is_optional', 'int', 0),
             'notes'         => Input::post('notes', 'string', ''),
             'sort_order'    => Input::post('sort_order', 'int', 0),
@@ -403,10 +412,12 @@ class SupplyController extends BaseController {
         header('Content-Type: application/json');
         $id = Input::post('id', 'int', 0);
         $data = [
+            'variation_id'  => Input::post('variation_id', 'int', 0) ?: null,
             'quantity'      => Input::post('quantity', 'float', 0),
             'yield_qty'     => max(Input::post('yield_qty', 'float', 1), 0.0001),
             'unit_measure'  => Input::post('unit_measure', 'string', 'un'),
             'waste_percent' => Input::post('waste_percent', 'float', 0),
+            'loss_percent'  => Input::post('loss_percent', 'float', 0),
             'is_optional'   => Input::post('is_optional', 'int', 0),
             'notes'         => Input::post('notes', 'string', ''),
             'sort_order'    => Input::post('sort_order', 'int', 0),
@@ -482,5 +493,82 @@ class SupplyController extends BaseController {
             $results[] = ['product_id' => $pid, 'new_cost' => $cost];
         }
         $this->json(['success' => true, 'updated' => $results]);
+    }
+
+    // ──── Substitutos AJAX (v2) ────
+
+    /**
+     * Retorna substitutos de um insumo.
+     */
+    public function getSubstitutes()
+    {
+        header('Content-Type: application/json');
+        $supplyId = Input::get('id', 'int', 0);
+        $this->json($this->substituteModel->getBySupply($supplyId));
+    }
+
+    /**
+     * Adiciona substituto.
+     */
+    public function addSubstitute()
+    {
+        header('Content-Type: application/json');
+        $data = [
+            'supply_id'       => Input::post('supply_id', 'int', 0),
+            'substitute_id'   => Input::post('substitute_id', 'int', 0),
+            'conversion_rate' => Input::post('conversion_rate', 'float', 1.0),
+            'priority'        => Input::post('priority', 'int', 1),
+            'is_active'       => Input::post('is_active', 'int', 1),
+            'notes'           => Input::post('notes', 'string', ''),
+        ];
+
+        if (!$data['supply_id'] || !$data['substitute_id']) {
+            $this->json(['success' => false, 'message' => 'Insumo principal e substituto são obrigatórios.']);
+            return;
+        }
+
+        if ($data['supply_id'] === $data['substitute_id']) {
+            $this->json(['success' => false, 'message' => 'Um insumo não pode ser substituto de si mesmo.']);
+            return;
+        }
+
+        try {
+            $id = $this->substituteModel->create($data);
+            $this->json(['success' => true, 'id' => $id]);
+        } catch (\PDOException $e) {
+            if (str_contains($e->getMessage(), 'Duplicate entry')) {
+                $this->json(['success' => false, 'message' => 'Este substituto já está cadastrado.']);
+            } else {
+                $this->json(['success' => false, 'message' => 'Erro ao cadastrar substituto.']);
+            }
+        }
+    }
+
+    /**
+     * Atualiza substituto.
+     */
+    public function updateSubstitute()
+    {
+        header('Content-Type: application/json');
+        $id = Input::post('id', 'int', 0);
+        $data = [
+            'conversion_rate' => Input::post('conversion_rate', 'float', 1.0),
+            'priority'        => Input::post('priority', 'int', 1),
+            'is_active'       => Input::post('is_active', 'int', 1),
+            'notes'           => Input::post('notes', 'string', ''),
+        ];
+        $this->substituteModel->update($id, $data);
+        $this->json(['success' => true]);
+    }
+
+    /**
+     * Remove substituto.
+     */
+    public function removeSubstitute()
+    {
+        header('Content-Type: application/json');
+        $id = Input::post('id', 'int', 0);
+        $this->substituteModel->delete($id);
+        $this->json(['success' => true]);
     }
 }

@@ -418,4 +418,114 @@ class SupplyStockMovementService
         $batches = $this->stockModel->getBatchesBySupply($supplyId, $warehouseId);
         return !empty($batches) ? $batches[0] : null;
     }
+
+    /**
+     * Processa consumo de produção baseado em BOM calculada pelo InsumoService.
+     * Usa FEFO automaticamente e registra em production_consumption_log.
+     *
+     * @param int    $orderId      ID do pedido/ordem
+     * @param int    $warehouseId  Depósito
+     * @param array  $bomItems     Itens BOM calculados (output do InsumoService::calculateBomForLot)
+     * @param int    $createdBy    Usuário
+     * @param int    $productId    ID do produto
+     * @param int|null $variationId ID da variação
+     * @return array
+     */
+    public function processProductionConsumption(
+        int $orderId,
+        int $warehouseId,
+        array $bomItems,
+        int $createdBy,
+        int $productId,
+        ?int $variationId = null
+    ): array {
+        $processed = 0;
+        $errors = [];
+        $logEntries = [];
+
+        foreach ($bomItems as $i => $item) {
+            if ($item['is_optional'] ?? false) {
+                continue;
+            }
+
+            $supplyId = (int) $item['supply_id'];
+            $quantity = (float) $item['effective_qty'];
+
+            if ($quantity <= 0) {
+                continue;
+            }
+
+            if (!$this->validateSufficientStock($warehouseId, $supplyId, $quantity)) {
+                $errors[] = ($item['supply_name'] ?? "Insumo #{$supplyId}") . ": estoque insuficiente (necessário: {$quantity}).";
+                continue;
+            }
+
+            // FEFO exit
+            $batches = $this->stockModel->getBatchesBySupply($supplyId, $warehouseId);
+            $remaining = $quantity;
+            $batchUsed = null;
+
+            foreach ($batches as $batch) {
+                if ($remaining <= 0) break;
+
+                $consume = min($remaining, (float) $batch['quantity']);
+                $newQty = (float) $batch['quantity'] - $consume;
+                $this->stockModel->updateQuantity($batch['id'], $newQty);
+                $remaining -= $consume;
+                $batchUsed = $batch['batch_number'];
+
+                $this->stockModel->addMovement([
+                    'warehouse_id'   => $warehouseId,
+                    'supply_id'      => $supplyId,
+                    'type'           => 'saida',
+                    'quantity'       => $consume,
+                    'batch_number'   => $batch['batch_number'],
+                    'reason'         => "Consumo produção - Ordem #{$orderId}",
+                    'reference_type' => 'production',
+                    'reference_id'   => $orderId,
+                    'created_by'     => $createdBy,
+                ]);
+            }
+
+            // Log planejado no production_consumption_log
+            $stmt = $this->db->prepare(
+                "INSERT INTO production_consumption_log
+                    (order_id, product_id, variation_id, supply_id, warehouse_id, planned_quantity, batch_number, created_by, tenant_id)
+                 VALUES (:order_id, :product_id, :variation_id, :supply_id, :warehouse_id, :planned_qty, :batch, :created_by,
+                    (SELECT tenant_id FROM supplies WHERE id = :sid LIMIT 1))"
+            );
+            $stmt->execute([
+                ':order_id'     => $orderId,
+                ':product_id'   => $productId,
+                ':variation_id' => $variationId,
+                ':supply_id'    => $supplyId,
+                ':warehouse_id' => $warehouseId,
+                ':planned_qty'  => $quantity,
+                ':batch'        => $batchUsed,
+                ':created_by'   => $createdBy,
+                ':sid'          => $supplyId,
+            ]);
+
+            $logEntries[] = [
+                'log_id'    => (int) $this->db->lastInsertId(),
+                'supply_id' => $supplyId,
+                'planned'   => $quantity,
+            ];
+
+            $processed++;
+        }
+
+        if ($processed > 0) {
+            $this->logger->log('SUPPLY_PRODUCTION_CONSUMPTION', "Consumo de produção: {$processed} insumo(s) para Ordem #{$orderId}");
+            $this->checkReorderAlerts();
+        }
+
+        return [
+            'success'    => $processed > 0,
+            'processed'  => $processed,
+            'errors'     => $errors,
+            'log_entries' => $logEntries,
+            'message'    => $processed > 0 ? "Consumo de {$processed} insumo(s) registrado." : 'Nenhum item processado.',
+        ];
+    }
 }
