@@ -120,9 +120,9 @@ DEALLOCATE PREPARE stmt;
 -- 3. supply_substitutes — Insumos substitutos de emergência
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS `supply_substitutes` (
-    `id`              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `supply_id`       INT UNSIGNED NOT NULL COMMENT 'Insumo principal',
-    `substitute_id`   INT UNSIGNED NOT NULL COMMENT 'Insumo substituto',
+    `id`              INT AUTO_INCREMENT PRIMARY KEY,
+    `supply_id`       INT NOT NULL COMMENT 'Insumo principal',
+    `substitute_id`   INT NOT NULL COMMENT 'Insumo substituto',
     `conversion_rate` DECIMAL(12,6) NOT NULL DEFAULT 1.000000
                       COMMENT 'Proporção: 1 un do principal = X un do substituto',
     `priority`        TINYINT UNSIGNED NOT NULL DEFAULT 1
@@ -151,9 +151,9 @@ CREATE TABLE IF NOT EXISTS `supply_substitutes` (
 -- 4. supply_cost_alerts — Alertas de custo e margem
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS `supply_cost_alerts` (
-    `id`                INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `product_id`        INT UNSIGNED NOT NULL,
-    `supply_id`         INT UNSIGNED NOT NULL,
+    `id`                INT AUTO_INCREMENT PRIMARY KEY,
+    `product_id`        INT NOT NULL,
+    `supply_id`         INT NOT NULL,
     `old_cost`          DECIMAL(12,4) NOT NULL COMMENT 'Custo anterior do insumo',
     `new_cost`          DECIMAL(12,4) NOT NULL COMMENT 'Novo custo após recálculo CMP',
     `old_product_cost`  DECIMAL(12,4) NOT NULL COMMENT 'Custo de produção anterior do produto',
@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS `supply_cost_alerts` (
     `margin_threshold`  DECIMAL(5,2) NOT NULL COMMENT 'Limite mínimo configurado',
     `suggested_price`   DECIMAL(12,4) NULL COMMENT 'Preço sugerido para manter margem mínima',
     `status`            ENUM('pending','acknowledged','applied','dismissed') NOT NULL DEFAULT 'pending',
-    `acknowledged_by`   INT UNSIGNED NULL,
+    `acknowledged_by`   INT NULL,
     `acknowledged_at`   DATETIME NULL,
     `tenant_id`         INT NOT NULL,
     `created_at`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -188,12 +188,12 @@ CREATE TABLE IF NOT EXISTS `supply_cost_alerts` (
 -- 5. production_consumption_log — Apontamento de consumo real vs planejado
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS `production_consumption_log` (
-    `id`                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `order_id`            INT UNSIGNED NOT NULL COMMENT 'Pedido/ordem de produção',
-    `product_id`          INT UNSIGNED NOT NULL,
-    `variation_id`        INT UNSIGNED NULL,
-    `supply_id`           INT UNSIGNED NOT NULL,
-    `warehouse_id`        INT UNSIGNED NOT NULL,
+    `id`                  INT AUTO_INCREMENT PRIMARY KEY,
+    `order_id`            INT NOT NULL COMMENT 'Pedido/ordem de produção',
+    `product_id`          INT NOT NULL,
+    `variation_id`        INT NULL,
+    `supply_id`           INT NOT NULL,
+    `warehouse_id`        INT NOT NULL,
     `planned_quantity`    DECIMAL(12,4) NOT NULL COMMENT 'Quantidade calculada (ratio x lote)',
     `actual_quantity`     DECIMAL(12,4) NULL COMMENT 'Quantidade real apontada pelo operador',
     `batch_number`        VARCHAR(50) NULL COMMENT 'Lote consumido',
@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS `production_consumption_log` (
                               END
                           ) STORED COMMENT 'Variação percentual',
     `notes`               TEXT NULL,
-    `created_by`          INT UNSIGNED NOT NULL,
+    `created_by`          INT NOT NULL,
     `tenant_id`           INT NOT NULL,
     `created_at`          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -231,9 +231,9 @@ CREATE TABLE IF NOT EXISTS `production_consumption_log` (
 -- 6. supply_rupture_forecasts — Cache de previsão de ruptura
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS `supply_rupture_forecasts` (
-    `id`                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `supply_id`           INT UNSIGNED NOT NULL,
-    `warehouse_id`        INT UNSIGNED NULL COMMENT 'NULL = total consolidado',
+    `id`                  INT AUTO_INCREMENT PRIMARY KEY,
+    `supply_id`           INT NOT NULL,
+    `warehouse_id`        INT NULL COMMENT 'NULL = total consolidado',
     `current_stock`       DECIMAL(12,4) NOT NULL,
     `committed_quantity`  DECIMAL(12,4) NOT NULL COMMENT 'Soma dos pedidos em aberto',
     `available_stock`     DECIMAL(12,4) GENERATED ALWAYS AS (`current_stock` - `committed_quantity`) STORED,
@@ -260,7 +260,7 @@ CREATE TABLE IF NOT EXISTS `supply_rupture_forecasts` (
 -- 7. supply_settings — Configurações do módulo por tenant
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS `supply_settings` (
-    `id`                          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `id`                          INT AUTO_INCREMENT PRIMARY KEY,
     `min_margin_threshold`        DECIMAL(5,2) NOT NULL DEFAULT 15.00
                                   COMMENT 'Margem mínima (%) para gerar alerta de custo',
     `forecast_calculation_method` ENUM('average','weighted','last_30_days') NOT NULL DEFAULT 'weighted'
