@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `plan_page_permissions` (
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY `uk_plan_page` (`plan_id`, `page_key`),
     INDEX `idx_plan_id` (`plan_id`),
-    CONSTRAINT `fk_plan_page_perm_plan` FOREIGN KEY (`plan_id`) REFERENCES `plans`(`id`) ON DELETE CASCADE
+    CONSTRAINT `fk_plan_page_perm_plan` FOREIGN KEY (`plan_id`) REFERENCES `akti_master`.`plans`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS `tenant_page_permissions` (
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY `uk_tenant_page` (`tenant_client_id`, `page_key`),
     INDEX `idx_tenant_client_id` (`tenant_client_id`),
-    CONSTRAINT `fk_tenant_page_perm_client` FOREIGN KEY (`tenant_client_id`) REFERENCES `tenant_clients`(`id`) ON DELETE CASCADE
+    CONSTRAINT `fk_tenant_page_perm_client` FOREIGN KEY (`tenant_client_id`) REFERENCES `akti_master`.`tenant_clients`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
@@ -48,6 +48,6 @@ CREATE TABLE IF NOT EXISTS `master_ticket_replies` (
     INDEX `idx_admin_id` (`admin_id`),
     INDEX `idx_tenant_ticket` (`tenant_client_id`, `ticket_id`),
     INDEX `idx_created_at` (`created_at`),
-    CONSTRAINT `fk_ticket_reply_admin` FOREIGN KEY (`admin_id`) REFERENCES `admin_users`(`id`),
-    CONSTRAINT `fk_ticket_reply_tenant` FOREIGN KEY (`tenant_client_id`) REFERENCES `tenant_clients`(`id`) ON DELETE CASCADE
+    CONSTRAINT `fk_ticket_reply_admin` FOREIGN KEY (`admin_id`) REFERENCES `akti_master`.`admin_users`(`id`),
+    CONSTRAINT `fk_ticket_reply_tenant` FOREIGN KEY (`tenant_client_id`) REFERENCES `akti_master`.`tenant_clients`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
