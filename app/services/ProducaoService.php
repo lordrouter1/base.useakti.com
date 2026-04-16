@@ -20,7 +20,7 @@ class ProducaoService
     public function __construct(PDO $db)
     {
         $this->db = $db;
-        $this->insumoService = new InsumoService($db);
+        $this->insumoService = new InsumoService($db, new \Akti\Models\Supply($db), new \Akti\Models\SupplyStock($db));
         $this->movementService = new SupplyStockMovementService($db);
         $this->consumptionModel = new ProductionConsumption($db);
     }
