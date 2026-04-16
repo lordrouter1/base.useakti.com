@@ -6,15 +6,31 @@ use PDO;
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 
+/**
+ * Model de orçamentos/cotações.
+ */
 class Quote
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe Quote.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Read paginated.
+     *
+     * @param int $page Número da página
+     * @param int $perPage Registros por página
+     * @param array $filters Filtros aplicados
+     * @return array
+     */
     public function readPaginated(int $page = 1, int $perPage = 15, array $filters = []): array
     {
         $where = ' WHERE q.deleted_at IS NULL';
@@ -62,6 +78,12 @@ class Quote
         ];
     }
 
+ /**
+  * Read one.
+  *
+  * @param int $id ID do registro
+  * @return array|null
+  */
     public function readOne(int $id): ?array
     {
         $stmt = $this->conn->prepare(
@@ -75,6 +97,12 @@ class Quote
         return $row ?: null;
     }
 
+ /**
+  * Read by token.
+  *
+  * @param string $token Token de autenticação/verificação
+  * @return array|null
+  */
     public function readByToken(string $token): ?array
     {
         $stmt = $this->conn->prepare(
@@ -88,6 +116,12 @@ class Quote
         return $row ?: null;
     }
 
+ /**
+  * Create.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function create(array $data): int
     {
         $token = bin2hex(random_bytes(32));
@@ -114,6 +148,13 @@ class Quote
         return $id;
     }
 
+ /**
+  * Update.
+  *
+  * @param int $id ID do registro
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function update(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -139,12 +180,24 @@ class Quote
         return $result;
     }
 
+ /**
+  * Delete.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function delete(int $id): bool
     {
         $stmt = $this->conn->prepare("UPDATE quotes SET deleted_at = NOW() WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
 
+ /**
+  * Approve.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function approve(int $id): bool
     {
         $stmt = $this->conn->prepare(
@@ -153,6 +206,13 @@ class Quote
         return $stmt->execute([':id' => $id]);
     }
 
+ /**
+  * Convert to order.
+  *
+  * @param int $id ID do registro
+  * @param int $orderId ID do pedido
+  * @return bool
+  */
     public function convertToOrder(int $id, int $orderId): bool
     {
         $stmt = $this->conn->prepare(
@@ -161,6 +221,12 @@ class Quote
         return $stmt->execute([':id' => $id, ':order_id' => $orderId]);
     }
 
+ /**
+  * Get items.
+  *
+  * @param int $quoteId Quote id
+  * @return array
+  */
     public function getItems(int $quoteId): array
     {
         $stmt = $this->conn->prepare(
@@ -173,6 +239,12 @@ class Quote
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Add item.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function addItem(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -192,12 +264,27 @@ class Quote
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Remove item.
+  *
+  * @param int $itemId Item id
+  * @return bool
+  */
     public function removeItem(int $itemId): bool
     {
         $stmt = $this->conn->prepare("DELETE FROM quote_items WHERE id = :id");
         return $stmt->execute([':id' => $itemId]);
     }
 
+ /**
+  * Save version.
+  *
+  * @param int $quoteId Quote id
+  * @param int $version Version
+  * @param array $snapshot Snapshot
+  * @param int|null $userId ID do usuário
+  * @return int
+  */
     public function saveVersion(int $quoteId, int $version, array $snapshot, ?int $userId = null): int
     {
         $stmt = $this->conn->prepare(
@@ -215,6 +302,12 @@ class Quote
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Get versions.
+  *
+  * @param int $quoteId Quote id
+  * @return array
+  */
     public function getVersions(int $quoteId): array
     {
         $stmt = $this->conn->prepare(
@@ -224,6 +317,10 @@ class Quote
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get summary.
+  * @return array
+  */
     public function getSummary(): array
     {
         $stmt = $this->conn->prepare(

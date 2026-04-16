@@ -16,11 +16,20 @@ class ProductGradeController extends BaseController
 {
     private ProductGradeService $gradeService;
 
+    /**
+     * Construtor da classe ProductGradeController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param ProductGradeService $gradeService Grade service
+     */
     public function __construct(\PDO $db, ProductGradeService $gradeService)
     {
         $this->gradeService = $gradeService;
     }
 
+    /**
+     * Create grade type ajax.
+     */
     public function createGradeTypeAjax()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('name')) {
@@ -33,12 +42,18 @@ class ProductGradeController extends BaseController
         $this->json(['success' => false]);
     }
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getGradeTypes()
     {
         $types = $this->gradeService->getAllGradeTypes();
         $this->json($types);
     }
 
+    /**
+     * Gera conteúdo ou dados.
+     */
     public function generateCombinationsAjax()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {

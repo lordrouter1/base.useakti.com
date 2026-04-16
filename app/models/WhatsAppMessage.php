@@ -4,15 +4,29 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de mensagens do WhatsApp.
+ */
 class WhatsAppMessage
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe WhatsAppMessage.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $tenantId ID do tenant
+     * @return array|null
+     */
     public function getConfig(int $tenantId): ?array
     {
         $stmt = $this->conn->prepare("SELECT * FROM whatsapp_configs WHERE tenant_id = :tid LIMIT 1");
@@ -21,6 +35,13 @@ class WhatsAppMessage
         return $row ?: null;
     }
 
+    /**
+     * Salva dados.
+     *
+     * @param int $tenantId ID do tenant
+     * @param array $data Dados para processamento
+     * @return bool
+     */
     public function saveConfig(int $tenantId, array $data): bool
     {
         $existing = $this->getConfig($tenantId);
@@ -46,6 +67,12 @@ class WhatsAppMessage
         ]);
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $tenantId ID do tenant
+     * @return array
+     */
     public function getTemplates(int $tenantId): array
     {
         $stmt = $this->conn->prepare("SELECT * FROM whatsapp_templates WHERE tenant_id = :tid ORDER BY name");
@@ -53,6 +80,12 @@ class WhatsAppMessage
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Salva dados.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function saveTemplate(array $data): int
     {
         if (!empty($data['id'])) {
@@ -84,6 +117,12 @@ class WhatsAppMessage
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Registra informação no log.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function logMessage(array $data): int
     {
         $stmt = $this->conn->prepare("
@@ -101,6 +140,15 @@ class WhatsAppMessage
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Update message status.
+     *
+     * @param int $id ID do registro
+     * @param string $status Status do registro
+     * @param string|null $externalId External id
+     * @param string|null $error Error
+     * @return bool
+     */
     public function updateMessageStatus(int $id, string $status, ?string $externalId = null, ?string $error = null): bool
     {
         $extra = '';
@@ -123,6 +171,14 @@ class WhatsAppMessage
         return $stmt->execute($params);
     }
 
+ /**
+  * Get messages.
+  *
+  * @param int $tenantId ID do tenant
+  * @param int $page Número da página
+  * @param int $perPage Registros por página
+  * @return array
+  */
     public function getMessages(int $tenantId, int $page = 1, int $perPage = 50): array
     {
         $offset = ($page - 1) * $perPage;
@@ -142,6 +198,12 @@ class WhatsAppMessage
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get dashboard stats.
+  *
+  * @param int $tenantId ID do tenant
+  * @return array
+  */
     public function getDashboardStats(int $tenantId): array
     {
         $stmt = $this->conn->prepare("

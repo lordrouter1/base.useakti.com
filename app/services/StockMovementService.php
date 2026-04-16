@@ -29,6 +29,13 @@ class StockMovementService
         'transferencia' => 'Transferência',
     ];
 
+    /**
+     * Construtor da classe StockMovementService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param Stock $stockModel Stock model
+     * @param Logger $logger Logger
+     */
     public function __construct(PDO $db, Stock $stockModel, Logger $logger)
     {
         $this->db = $db;

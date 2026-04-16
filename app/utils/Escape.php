@@ -28,6 +28,9 @@
 
 namespace Akti\Utils;
 
+/**
+ * Utilitários de escape para prevenção de XSS.
+ */
 class Escape
 {
     /**

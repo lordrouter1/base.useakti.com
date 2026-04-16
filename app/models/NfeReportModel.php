@@ -22,6 +22,11 @@ class NfeReportModel
 {
     private $conn;
 
+    /**
+     * Construtor da classe NfeReportModel.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->conn = $db;

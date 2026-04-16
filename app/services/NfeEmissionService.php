@@ -26,6 +26,14 @@ class NfeEmissionService
     private NfeDocument $docModel;
     private NfeLog $logModel;
 
+    /**
+     * Construtor da classe NfeEmissionService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param NfeSefazClient $sefazClient Sefaz client
+     * @param NfeDocument $docModel Doc model
+     * @param NfeLog $logModel Log model
+     */
     public function __construct(PDO $db, NfeSefazClient $sefazClient, NfeDocument $docModel, NfeLog $logModel)
     {
         $this->db = $db;

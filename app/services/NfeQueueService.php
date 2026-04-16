@@ -21,6 +21,11 @@ class NfeQueueService
     private PDO $db;
     private NfeQueue $queueModel;
 
+    /**
+     * Construtor da classe NfeQueueService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;

@@ -14,16 +14,29 @@ use Akti\Utils\Input;
 use Akti\Utils\Validator;
 use PDO;
 
+/**
+ * Class OrderController.
+ */
 class OrderController extends BaseController {
     
     private Order $orderModel;
     private OrderItemService $itemService;
+    /**
+     * Construtor da classe OrderController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Order $orderModel Order model
+     * @param OrderItemService $itemService Item service
+     */
     public function __construct(\PDO $db, Order $orderModel, OrderItemService $itemService) {
         $this->db = $db;
         $this->orderModel = $orderModel;
         $this->itemService = $itemService;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index() {
         $perPage     = 15;
         $ctPage = max(1, (Input::get('pg', 'int')?? 1));
@@ -41,6 +54,9 @@ class OrderController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create() {
         
         $productModel = new Product($this->db);
@@ -68,6 +84,9 @@ class OrderController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $initialStage = Input::post('initial_stage', 'enum', 'contato', ['contato', 'orcamento']);
@@ -124,6 +143,9 @@ class OrderController extends BaseController {
         }
     }
 
+ /**
+  * Edit.
+  */
     public function edit() {
         $id = Input::get('id', 'int');
         if (!$id) {
@@ -167,6 +189,9 @@ class OrderController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+ /**
+  * Update.
+  */
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = Input::post('id', 'int');
@@ -408,6 +433,9 @@ class OrderController extends BaseController {
         require 'app/views/orders/print_order.php';
     }
 
+ /**
+  * Delete.
+  */
     public function delete() {
         $id = Input::get('id', 'int');
         if ($id) {

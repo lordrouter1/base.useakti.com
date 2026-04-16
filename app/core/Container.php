@@ -4,6 +4,9 @@ namespace Akti\Core;
 
 use Psr\Container\ContainerInterface;
 
+/**
+ * Container de injeção de dependências compatível com PSR-11.
+ */
 class Container implements ContainerInterface
 {
     /** @var array<string, callable> Factories registradas */

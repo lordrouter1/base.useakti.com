@@ -26,6 +26,13 @@ class CategoryService
     private ProductionSector $sectorModel;
     private Logger $logger;
 
+    /**
+     * Construtor da classe CategoryService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param CategoryGrade $categoryGradeModel Category grade model
+     * @param ProductionSector $sectorModel Sector model
+     */
     public function __construct(
         PDO $db,
         CategoryGrade $categoryGradeModel,

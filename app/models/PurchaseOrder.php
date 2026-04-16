@@ -4,15 +4,31 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de ordens de compra de insumos.
+ */
 class PurchaseOrder
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe PurchaseOrder.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Read paginated.
+     *
+     * @param int $page Número da página
+     * @param int $perPage Registros por página
+     * @param array $filters Filtros aplicados
+     * @return array
+     */
     public function readPaginated(int $page = 1, int $perPage = 15, array $filters = []): array
     {
         $where = ' WHERE po.deleted_at IS NULL';
@@ -60,6 +76,12 @@ class PurchaseOrder
         ];
     }
 
+ /**
+  * Read one.
+  *
+  * @param int $id ID do registro
+  * @return array|null
+  */
     public function readOne(int $id): ?array
     {
         $stmt = $this->conn->prepare(
@@ -73,6 +95,12 @@ class PurchaseOrder
         return $row ?: null;
     }
 
+ /**
+  * Create.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -92,6 +120,13 @@ class PurchaseOrder
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Update.
+  *
+  * @param int $id ID do registro
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function update(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -116,12 +151,24 @@ class PurchaseOrder
         ]);
     }
 
+ /**
+  * Delete.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function delete(int $id): bool
     {
         $stmt = $this->conn->prepare("UPDATE purchase_orders SET deleted_at = NOW() WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
 
+ /**
+  * Update totals.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function updateTotals(int $id): bool
     {
         $stmt = $this->conn->prepare(
@@ -133,6 +180,12 @@ class PurchaseOrder
         return $stmt->execute([':id1' => $id, ':id2' => $id]);
     }
 
+ /**
+  * Get items.
+  *
+  * @param int $orderId ID do pedido
+  * @return array
+  */
     public function getItems(int $orderId): array
     {
         $stmt = $this->conn->prepare(
@@ -146,6 +199,12 @@ class PurchaseOrder
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Add item.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function addItem(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -164,12 +223,24 @@ class PurchaseOrder
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Remove item.
+  *
+  * @param int $itemId Item id
+  * @return bool
+  */
     public function removeItem(int $itemId): bool
     {
         $stmt = $this->conn->prepare("DELETE FROM purchase_items WHERE id = :id");
         return $stmt->execute([':id' => $itemId]);
     }
 
+ /**
+  * Receive.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function receive(int $id): bool
     {
         $stmt = $this->conn->prepare(

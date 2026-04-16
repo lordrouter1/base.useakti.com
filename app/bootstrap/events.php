@@ -707,6 +707,9 @@ EventDispatcher::listen('model.nfe_document.authorized', function (Event $event)
         if ($enabled === false || $enabled === '0') return;
 
         // Verificar se módulo de estoque está disponível
+/**
+ * Class Unknown.
+ */
         if (!class_exists(\Akti\Models\Stock::class)) return;
 
         $stockModel = new \Akti\Models\Stock($db);
@@ -778,6 +781,9 @@ EventDispatcher::listen('model.nfe_document.cancelled', function (Event $event) 
         $enabled = $q->fetchColumn();
         if ($enabled === false || $enabled === '0') return;
 
+/**
+ * Class Unknown.
+ */
         if (!class_exists(\Akti\Models\Stock::class)) return;
 
         $stockModel = new \Akti\Models\Stock($db);

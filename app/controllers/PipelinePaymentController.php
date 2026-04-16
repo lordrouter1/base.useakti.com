@@ -10,12 +10,20 @@ use Akti\Services\PipelineService;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
 
+/**
+ * Class PipelinePaymentController.
+ */
 class PipelinePaymentController extends BaseController
 {
     private PipelineAlertService $alertService;
     private PipelinePaymentService $paymentService;
     private PipelineService $pipelineService;
 
+    /**
+     * Construtor da classe PipelinePaymentController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         parent::__construct($db);
@@ -24,6 +32,9 @@ class PipelinePaymentController extends BaseController
         $this->pipelineService = new PipelineService($db);
     }
 
+    /**
+     * Conta registros com critérios opcionais.
+     */
     public function countInstallments()
     {
         $orderId = Input::get('order_id', 'int');
@@ -34,6 +45,9 @@ class PipelinePaymentController extends BaseController
         $this->json(['success' => true, 'count' => $count]);
     }
 
+    /**
+     * Delete installments.
+     */
     public function deleteInstallments()
     {
         $orderId = Input::post('order_id', 'int');
@@ -44,6 +58,9 @@ class PipelinePaymentController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Gera conteúdo ou dados.
+     */
     public function generatePaymentLink()
     {
         $orderId = Input::post('order_id', 'int');
@@ -58,11 +75,17 @@ class PipelinePaymentController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Gera conteúdo ou dados.
+     */
     public function generateMercadoPagoLink()
     {
         $this->generatePaymentLink();
     }
 
+    /**
+     * Confirm down payment.
+     */
     public function confirmDownPayment()
     {
         $orderId = Input::post('order_id', 'int');
@@ -103,6 +126,9 @@ class PipelinePaymentController extends BaseController
         }
     }
 
+    /**
+     * Sincroniza dados.
+     */
     public function syncInstallments()
     {
         $orderId       = Input::post('order_id', 'int');
@@ -130,6 +156,9 @@ class PipelinePaymentController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Update installment due date.
+     */
     public function updateInstallmentDueDate()
     {
         $installmentId = Input::post('installment_id', 'int');

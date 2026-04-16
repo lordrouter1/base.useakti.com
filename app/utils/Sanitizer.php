@@ -16,6 +16,9 @@
 
 namespace Akti\Utils;
 
+/**
+ * Sanitizador de dados de entrada.
+ */
 class Sanitizer
 {
     // ──────────────────────────────────────────────

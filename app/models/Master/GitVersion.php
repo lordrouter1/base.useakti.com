@@ -2,10 +2,17 @@
 
 namespace Akti\Models\Master;
 
+/**
+ * Model de controle de versões Git.
+ */
 class GitVersion
 {
     private static $diagCache = null;
 
+    /**
+     * Obtém dados específicos.
+     * @return string
+     */
     public static function getBasePath(): string
     {
         if (defined('WWW_BASE_PATH')) {
@@ -28,6 +35,10 @@ class GitVersion
         return '/var/www';
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return string
+     */
     private static function getGitBin(): string
     {
         static $cached = null;
@@ -74,6 +85,10 @@ class GitVersion
         return $cached;
     }
 
+    /**
+     * Verifica permissão ou capacidade.
+     * @return bool
+     */
     private static function canExec(): bool
     {
         if (!function_exists('exec')) return false;
@@ -87,16 +102,33 @@ class GitVersion
 
     private static $debugLog = [];
 
+    /**
+     * Debug log.
+     *
+     * @param string $msg Msg
+     * @return void
+     */
     private static function debugLog(string $msg): void
     {
         self::$debugLog[] = $msg;
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return array
+     */
     public static function getDebugLog(): array
     {
         return self::$debugLog;
     }
 
+    /**
+     * Exec git.
+     *
+     * @param string $repoPath Repo path
+     * @param string $command Command
+     * @return array
+     */
     private static function execGit(string $repoPath, string $command): array
     {
         if (!self::canExec()) {
@@ -170,6 +202,10 @@ class GitVersion
         return $result;
     }
 
+ /**
+  * List repositories.
+  * @return array
+  */
     public static function listRepositories(): array
     {
         $basePath = self::getBasePath();
@@ -205,6 +241,10 @@ class GitVersion
         return $repos;
     }
 
+ /**
+  * Diagnose.
+  * @return array
+  */
     public static function diagnose(): array
     {
         if (self::$diagCache !== null) return self::$diagCache;
@@ -348,6 +388,12 @@ class GitVersion
         return $diag;
     }
 
+ /**
+  * Get repo info.
+  *
+  * @param string $repoPath Repo path
+  * @return array
+  */
     public static function getRepoInfo(string $repoPath): array
     {
         if (!is_dir($repoPath . DIRECTORY_SEPARATOR . '.git')) {
@@ -460,6 +506,10 @@ class GitVersion
         return $info;
     }
 
+ /**
+  * Get all repos info.
+  * @return array
+  */
     public static function getAllReposInfo(): array
     {
         $repos = self::listRepositories();
@@ -470,6 +520,12 @@ class GitVersion
         return $results;
     }
 
+ /**
+  * Fetch.
+  *
+  * @param string $repoPath Repo path
+  * @return array
+  */
     public static function fetch(string $repoPath): array
     {
         if (!self::validateRepoPath($repoPath)) {
@@ -478,6 +534,12 @@ class GitVersion
         return self::execGit($repoPath, 'fetch --all --prune');
     }
 
+ /**
+  * Pull.
+  *
+  * @param string $repoPath Repo path
+  * @return array
+  */
     public static function pull(string $repoPath): array
     {
         if (!self::validateRepoPath($repoPath)) {
@@ -486,6 +548,12 @@ class GitVersion
         return self::execGit($repoPath, 'pull');
     }
 
+ /**
+  * Pull rebase.
+  *
+  * @param string $repoPath Repo path
+  * @return array
+  */
     public static function pullRebase(string $repoPath): array
     {
         if (!self::validateRepoPath($repoPath)) {
@@ -494,6 +562,13 @@ class GitVersion
         return self::execGit($repoPath, 'pull --rebase');
     }
 
+ /**
+  * Get log.
+  *
+  * @param string $repoPath Repo path
+  * @param int $limit Limite de registros
+  * @return array
+  */
     public static function getLog(string $repoPath, int $limit = 20): array
     {
         if (!self::validateRepoPath($repoPath)) {
@@ -503,6 +578,13 @@ class GitVersion
         return $result['success'] ? $result['lines'] : [];
     }
 
+ /**
+  * Get detailed log.
+  *
+  * @param string $repoPath Repo path
+  * @param int $limit Limite de registros
+  * @return array
+  */
     public static function getDetailedLog(string $repoPath, int $limit = 20): array
     {
         if (!self::validateRepoPath($repoPath)) {
@@ -537,6 +619,12 @@ class GitVersion
         return $commits;
     }
 
+ /**
+  * Get branches.
+  *
+  * @param string $repoPath Repo path
+  * @return array
+  */
     public static function getBranches(string $repoPath): array
     {
         if (!self::validateRepoPath($repoPath)) {
@@ -561,6 +649,13 @@ class GitVersion
         return $branches;
     }
 
+ /**
+  * Checkout.
+  *
+  * @param string $repoPath Repo path
+  * @param string $branch Branch
+  * @return array
+  */
     public static function checkout(string $repoPath, string $branch): array
     {
         if (!self::validateRepoPath($repoPath)) {
@@ -574,6 +669,12 @@ class GitVersion
         return self::execGit($repoPath, 'checkout ' . escapeshellarg($branch));
     }
 
+ /**
+  * Stash and pull.
+  *
+  * @param string $repoPath Repo path
+  * @return array
+  */
     public static function stashAndPull(string $repoPath): array
     {
         if (!self::validateRepoPath($repoPath)) {
@@ -599,6 +700,12 @@ class GitVersion
         ];
     }
 
+ /**
+  * Force reset.
+  *
+  * @param string $repoPath Repo path
+  * @return array
+  */
     public static function forceReset(string $repoPath): array
     {
         if (!self::validateRepoPath($repoPath)) {
@@ -616,6 +723,12 @@ class GitVersion
         return self::execGit($repoPath, "reset --hard origin/{$branch}");
     }
 
+ /**
+  * Validate repo path.
+  *
+  * @param string $repoPath Repo path
+  * @return bool
+  */
     private static function validateRepoPath(string $repoPath): bool
     {
         $basePath = self::getBasePath();
@@ -638,6 +751,12 @@ class GitVersion
         return true;
     }
 
+ /**
+  * Get diff.
+  *
+  * @param string $repoPath Repo path
+  * @return string
+  */
     public static function getDiff(string $repoPath): string
     {
         if (!self::validateRepoPath($repoPath)) {
@@ -647,6 +766,12 @@ class GitVersion
         return $result['success'] ? $result['output'] : '';
     }
 
+ /**
+  * Get repo size.
+  *
+  * @param string $repoPath Repo path
+  * @return string
+  */
     public static function getRepoSize(string $repoPath): string
     {
         if (PHP_OS_FAMILY === 'Windows') {
@@ -671,6 +796,12 @@ class GitVersion
         return '?';
     }
 
+ /**
+  * Format bytes.
+  *
+  * @param int $bytes Bytes
+  * @return string
+  */
     private static function formatBytes(int $bytes): string
     {
         $units = ['B', 'KB', 'MB', 'GB'];

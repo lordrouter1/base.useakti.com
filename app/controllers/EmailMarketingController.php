@@ -7,15 +7,27 @@ use Akti\Services\EmailService;
 use Akti\Utils\Input;
 use PDO;
 
+/**
+ * Class EmailMarketingController.
+ */
 class EmailMarketingController extends BaseController {
     private EmailCampaign $model;
 
+    /**
+     * Construtor da classe EmailMarketingController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param EmailCampaign $model Model
+     */
     public function __construct(\PDO $db, EmailCampaign $model)
     {
         $this->db = $db;
         $this->model = $model;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $page = Input::get('p', 'int', 1);
@@ -29,6 +41,9 @@ class EmailMarketingController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $templates = $this->model->getTemplates();
@@ -39,6 +54,9 @@ class EmailMarketingController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $data = [
@@ -62,6 +80,9 @@ class EmailMarketingController extends BaseController {
         header('Location: ?page=email_marketing');
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit()
     {
         $id = Input::get('id', 'int', 0);
@@ -79,6 +100,9 @@ class EmailMarketingController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         $id = Input::post('id', 'int', 0);
@@ -103,6 +127,9 @@ class EmailMarketingController extends BaseController {
         header('Location: ?page=email_marketing');
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $id = Input::get('id', 'int', 0);
@@ -111,6 +138,9 @@ class EmailMarketingController extends BaseController {
         header('Location: ?page=email_marketing');
     }
 
+    /**
+     * Templates.
+     */
     public function templates()
     {
         $templates = $this->model->getTemplates();
@@ -120,6 +150,9 @@ class EmailMarketingController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Create template.
+     */
     public function createTemplate()
     {
         $template = null;
@@ -129,6 +162,9 @@ class EmailMarketingController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Store template.
+     */
     public function storeTemplate()
     {
         $variables = array_filter(array_map('trim', explode(',', Input::post('variables', 'string', ''))));
@@ -148,6 +184,9 @@ class EmailMarketingController extends BaseController {
         header('Location: ?page=email_marketing&action=templates');
     }
 
+    /**
+     * Edit template.
+     */
     public function editTemplate()
     {
         $id = Input::get('id', 'int', 0);
@@ -163,6 +202,9 @@ class EmailMarketingController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Update template.
+     */
     public function updateTemplate()
     {
         $id = Input::post('id', 'int', 0);
@@ -181,6 +223,9 @@ class EmailMarketingController extends BaseController {
         header('Location: ?page=email_marketing&action=templates');
     }
 
+    /**
+     * Delete template.
+     */
     public function deleteTemplate()
     {
         $id = Input::get('id', 'int', 0);
@@ -189,6 +234,9 @@ class EmailMarketingController extends BaseController {
         header('Location: ?page=email_marketing&action=templates');
     }
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getTemplateJson()
     {
         $id = Input::get('id', 'int', 0);
@@ -207,6 +255,9 @@ class EmailMarketingController extends BaseController {
         exit;
     }
 
+    /**
+     * Search customers.
+     */
     public function searchCustomers()
     {
         $term = Input::get('term', 'string', '');
@@ -233,6 +284,9 @@ class EmailMarketingController extends BaseController {
         header('Content-Type: application/json');
         $this->json(['results' => $results]);}
 
+ /**
+  * Preview template.
+  */
     public function previewTemplate()
     {
         $id = Input::get('id', 'int', 0);
@@ -248,6 +302,9 @@ class EmailMarketingController extends BaseController {
         exit;
     }
 
+ /**
+  * Preview campaign.
+  */
     public function previewCampaign()
     {
         $id = Input::get('id', 'int', 0);
@@ -263,6 +320,13 @@ class EmailMarketingController extends BaseController {
         exit;
     }
 
+ /**
+  * Render preview.
+  *
+  * @param string $bodyHtml Body html
+  * @param string $subject Assunto
+  * @return string
+  */
     private function renderPreview(string $bodyHtml, string $subject): string
     {
         $sampleVars = [
@@ -292,6 +356,9 @@ class EmailMarketingController extends BaseController {
             . '</div></body></html>';
     }
 
+ /**
+  * Send campaign.
+  */
     public function sendCampaign()
     {
         $id = Input::get('id', 'int', 0);
@@ -307,6 +374,9 @@ class EmailMarketingController extends BaseController {
         header('Content-Type: application/json');
         $this->json($result);}
 
+ /**
+  * Send test.
+  */
     public function sendTest()
     {
         $id = Input::get('id', 'int', 0);

@@ -9,6 +9,9 @@ use Akti\Models\Logger;
 use Akti\Services\CustomerImportService;
 use Akti\Utils\Input;
 
+/**
+ * Class CustomerImportController.
+ */
 class CustomerImportController extends BaseController
 {
     private CustomerImportService $importService;
@@ -17,6 +20,11 @@ class CustomerImportController extends BaseController
     private Customer $customerModel;
     private Logger $logger;
 
+    /**
+     * Construtor da classe CustomerImportController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         parent::__construct($db);
@@ -27,6 +35,9 @@ class CustomerImportController extends BaseController
         $this->logger = new Logger($db);
     }
 
+    /**
+     * Interpreta dados.
+     */
     public function parseImportFile()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['import_file'])) {
@@ -37,6 +48,9 @@ class CustomerImportController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Importa dados.
+     */
     public function importCustomersMapped()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -60,6 +74,9 @@ class CustomerImportController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getImportProgress()
     {
         $progress = $_SESSION['import_progress'] ?? null;
@@ -70,6 +87,9 @@ class CustomerImportController extends BaseController
         $this->json(['success' => true, 'progress' => $progress]);
     }
 
+    /**
+     * Undo import.
+     */
     public function undoImport()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -117,6 +137,9 @@ class CustomerImportController extends BaseController
         ]);
     }
 
+ /**
+  * Get import history.
+  */
     public function getImportHistory()
     {
         $tenantId = $_SESSION['tenant']['id'] ?? 0;
@@ -128,6 +151,9 @@ class CustomerImportController extends BaseController
         ]);
     }
 
+ /**
+  * Get import details.
+  */
     public function getImportDetails()
     {
         $batchId  = (int) ($_GET['batch_id'] ?? 0);
@@ -186,6 +212,9 @@ class CustomerImportController extends BaseController
         ]);
     }
 
+ /**
+  * Get mapping profiles.
+  */
     public function getMappingProfiles()
     {
         $tenantId = $_SESSION['tenant']['id'] ?? 0;
@@ -197,6 +226,9 @@ class CustomerImportController extends BaseController
         ]);
     }
 
+ /**
+  * Save mapping profile.
+  */
     public function saveMappingProfile()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -255,6 +287,9 @@ class CustomerImportController extends BaseController
         }
     }
 
+ /**
+  * Delete mapping profile.
+  */
     public function deleteMappingProfile()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -274,6 +309,9 @@ class CustomerImportController extends BaseController
         }
     }
 
+ /**
+  * Download import template.
+  */
     public function downloadImportTemplate()
     {
         $this->importService->generateTemplate();

@@ -29,6 +29,14 @@ class ReportController extends BaseController {
     /** @var ReportExcelService */
     private ReportExcelService $excelService;
 
+    /**
+     * Construtor da classe ReportController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param ReportModel $report Report
+     * @param NfeReportModel $nfeReport Nfe report
+     * @param CompanySettings $companySettings Company settings
+     */
     public function __construct(\PDO $db, ReportModel $report, NfeReportModel $nfeReport, CompanySettings $companySettings)
     {
         $this->db = $db;

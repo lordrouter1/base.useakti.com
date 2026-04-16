@@ -30,6 +30,12 @@ class CommissionEngine
     /** @var array<string, callable> Resolvers de regra (em ordem de prioridade) */
     private array $resolvers = [];
 
+    /**
+     * Construtor da classe CommissionEngine.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param Commission $model Model
+     */
     public function __construct(PDO $db, Commission $model)
     {
         $this->db = $db;
@@ -101,18 +107,36 @@ class CommissionEngine
 
     // ── Resolvers padrão ──
 
+    /**
+     * Resolve dependência ou valor.
+     *
+     * @param array $context Contexto adicional
+     * @return array|null
+     */
     protected function resolveUsuario(array $context): ?array
     {
         if (empty($context['user_id'])) return null;
         return $this->model->getRegraUsuario((int) $context['user_id']);
     }
 
+    /**
+     * Resolve dependência ou valor.
+     *
+     * @param array $context Contexto adicional
+     * @return array|null
+     */
     protected function resolveGrupo(array $context): ?array
     {
         if (empty($context['user_id'])) return null;
         return $this->model->getRegraGrupo((int) $context['user_id']);
     }
 
+    /**
+     * Resolve dependência ou valor.
+     *
+     * @param array $context Contexto adicional
+     * @return array|null
+     */
     protected function resolveProduto(array $context): ?array
     {
         // Regra por produto específico
@@ -142,6 +166,12 @@ class CommissionEngine
         return null;
     }
 
+    /**
+     * Resolve dependência ou valor.
+     *
+     * @param array $context Contexto adicional
+     * @return array|null
+     */
     protected function resolvePadrao(array $context): ?array
     {
         $pct = (float) $this->model->getConfigValue('comissao_padrao_percentual', 5);

@@ -41,6 +41,20 @@ class CustomerController extends BaseController {
     private CustomerFormService $formService;
     private ExternalApiService $externalApiService;
 
+    /**
+     * Construtor da classe CustomerController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Customer $customerModel Customer model
+     * @param CustomerContact $contactModel Contact model
+     * @param ImportBatch $importBatchModel Import batch model
+     * @param ImportMappingProfile $mappingProfileModel Mapping profile model
+     * @param Logger $logger Logger
+     * @param CustomerImportService $importService Import service
+     * @param CustomerExportService $exportService Export service
+     * @param CustomerFormService $formService Form service
+     * @param ExternalApiService $externalApiService External api service
+     */
     public function __construct(
         \PDO $db,
         Customer $customerModel,
@@ -69,6 +83,9 @@ class CustomerController extends BaseController {
     //  CRUD — Listagem (index)
     // ═══════════════════════════════════════════════
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index() {
         $totalItems = (int) $this->customerModel->countAll();
 
@@ -130,6 +147,9 @@ class CustomerController extends BaseController {
     //  CRUD — Formulário de Criação
     // ═══════════════════════════════════════════════
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create() {
         $priceTableModel = new PriceTable($this->db);
         $priceTables = $priceTableModel->readAll();
@@ -147,6 +167,9 @@ class CustomerController extends BaseController {
     //  CRUD — Processar Criação (POST) — Fase 2
     // ═══════════════════════════════════════════════
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ?page=customers');
@@ -238,6 +261,9 @@ class CustomerController extends BaseController {
     //  CRUD — Formulário de Edição
     // ═══════════════════════════════════════════════
 
+ /**
+  * Edit.
+  */
     public function edit() {
         $id = Input::get('id', 'int');
         if (!$id) {
@@ -273,6 +299,9 @@ class CustomerController extends BaseController {
     //  CRUD — Processar Edição (POST) — Fase 2
     // ═══════════════════════════════════════════════
 
+ /**
+  * Update.
+  */
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ?page=customers');
@@ -381,6 +410,9 @@ class CustomerController extends BaseController {
     //  CRUD — Exclusão (POST + Soft Delete) — Fase 2
     // ═══════════════════════════════════════════════
 
+ /**
+  * Delete.
+  */
     public function delete() {
         // Aceitar tanto POST (novo) quanto GET (retrocompatibilidade)
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -428,6 +460,9 @@ class CustomerController extends BaseController {
     //  Action: Restaurar cliente (POST) — Fase 2
     // ═══════════════════════════════════════════════
 
+ /**
+  * Restore.
+  */
     public function restore() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['success' => false, 'message' => 'Método não permitido.']);
@@ -452,6 +487,9 @@ class CustomerController extends BaseController {
     //  Action: Atualizar Status (POST/AJAX) — Fase 2
     // ═══════════════════════════════════════════════
 
+ /**
+  * Update status.
+  */
     public function updateStatus() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['success' => false, 'message' => 'Método não permitido.']);
@@ -485,6 +523,9 @@ class CustomerController extends BaseController {
     //  Action: Ficha completa do cliente — Fase 2
     // ═══════════════════════════════════════════════
 
+ /**
+  * View.
+  */
     public function view() {
         $id = Input::get('id', 'int');
         if (!$id) {
@@ -534,6 +575,9 @@ class CustomerController extends BaseController {
     //  Action: Verificar duplicidade (AJAX) — Fase 2
     // ═══════════════════════════════════════════════
 
+ /**
+  * Check duplicate.
+  */
     public function checkDuplicate() {
         header('Content-Type: application/json');
 
@@ -566,6 +610,9 @@ class CustomerController extends BaseController {
     //  Action: Proxy ViaCEP (AJAX) — Fase 2
     // ═══════════════════════════════════════════════
 
+ /**
+  * Search cep.
+  */
     public function searchCep() {
         header('Content-Type: application/json');
 
@@ -617,6 +664,9 @@ class CustomerController extends BaseController {
     //  Action: Proxy BrasilAPI CNPJ (AJAX) — Fase 2
     // ═══════════════════════════════════════════════
 
+ /**
+  * Search cnpj.
+  */
     public function searchCnpj() {
         header('Content-Type: application/json');
 
@@ -678,6 +728,9 @@ class CustomerController extends BaseController {
     //  Action: Exportação CSV — Fase 2
     // ═══════════════════════════════════════════════
 
+ /**
+  * Export.
+  */
     public function export() {
         $filters = $this->captureFilters();
 
@@ -739,6 +792,9 @@ class CustomerController extends BaseController {
     //  Action: Ações em lote (POST/AJAX) — Fase 2
     // ═══════════════════════════════════════════════
 
+ /**
+  * Bulk action.
+  */
     public function bulkAction() {
         header('Content-Type: application/json');
 
@@ -858,6 +914,9 @@ class CustomerController extends BaseController {
     //  (atualizado com filtros avançados — Fase 2)
     // ═══════════════════════════════════════════════
 
+ /**
+  * Get customers list.
+  */
     public function getCustomersList() {
         header('Content-Type: application/json');
 
@@ -886,6 +945,9 @@ class CustomerController extends BaseController {
     //  AJAX: Busca clientes para Select2
     // ═══════════════════════════════════════════════
 
+ /**
+  * Search select2.
+  */
     public function searchSelect2()
     {
         header('Content-Type: application/json');
@@ -927,6 +989,9 @@ class CustomerController extends BaseController {
     //  IMPORTAÇÃO: Parse do arquivo (Step 1 → Step 2)
     // ═══════════════════════════════════════════════
 
+ /**
+  * Parse import file.
+  */
     public function parseImportFile() {
         header('Content-Type: application/json');
 
@@ -944,6 +1009,9 @@ class CustomerController extends BaseController {
     //  Rec 6: Processamento chunked para grandes volumes
     // ═══════════════════════════════════════════════
 
+ /**
+  * Import customers mapped.
+  */
     public function importCustomersMapped() {
         header('Content-Type: application/json');
 
@@ -969,6 +1037,9 @@ class CustomerController extends BaseController {
     //  IMPORTAÇÃO: Progresso em tempo real (Rec 1)
     // ═══════════════════════════════════════════════
 
+ /**
+  * Get import progress.
+  */
     public function getImportProgress() {
         header('Content-Type: application/json');
 
@@ -982,6 +1053,9 @@ class CustomerController extends BaseController {
     //  IMPORTAÇÃO: Desfazer importação (Rec 3)
     // ═══════════════════════════════════════════════
 
+ /**
+  * Undo import.
+  */
     public function undoImport() {
         header('Content-Type: application/json');
 
@@ -1032,6 +1106,9 @@ class CustomerController extends BaseController {
     //  IMPORTAÇÃO: Histórico de importações
     // ═══════════════════════════════════════════════
 
+ /**
+  * Get import history.
+  */
     public function getImportHistory() {
         header('Content-Type: application/json');
 
@@ -1047,6 +1124,9 @@ class CustomerController extends BaseController {
     //  IMPORTAÇÃO: Detalhes de um lote
     // ═══════════════════════════════════════════════
 
+ /**
+  * Get import details.
+  */
     public function getImportDetails() {
         header('Content-Type: application/json');
 
@@ -1107,6 +1187,9 @@ class CustomerController extends BaseController {
     //  IMPORTAÇÃO: Perfis de mapeamento (Rec 4)
     // ═══════════════════════════════════════════════
 
+ /**
+  * Get mapping profiles.
+  */
     public function getMappingProfiles() {
         header('Content-Type: application/json');
 
@@ -1118,6 +1201,9 @@ class CustomerController extends BaseController {
             'profiles' => $profiles,
         ]);}
 
+ /**
+  * Save mapping profile.
+  */
     public function saveMappingProfile() {
         header('Content-Type: application/json');
 
@@ -1177,6 +1263,9 @@ class CustomerController extends BaseController {
         exit;
     }
 
+ /**
+  * Delete mapping profile.
+  */
     public function deleteMappingProfile() {
         header('Content-Type: application/json');
 
@@ -1522,12 +1611,12 @@ class CustomerController extends BaseController {
      *
      * @return bool
      */
-
-    /**
-     * Envia resposta JSON e encerra.
-     *
-     * @param array $data
-     */
+ /**
+  * Envia resposta JSON.
+  *
+  * @param array $data Dados para processamento
+  * @return void
+  */
     private function jsonResponse(array $data): void
     {
         header('Content-Type: application/json');
@@ -1537,18 +1626,40 @@ class CustomerController extends BaseController {
     //  Helpers de parse CSV / Excel — delegados ao CustomerImportService
     // ═══════════════════════════════════════════════
 
+ /**
+  * Parse csv file.
+  *
+  * @param mixed $filePath File path
+  */
     private function parseCsvFile($filePath) {
         return $this->importService->parseCsvFile($filePath);
     }
 
+ /**
+  * Parse excel file.
+  *
+  * @param mixed $filePath File path
+  */
     private function parseExcelFile($filePath) {
         return $this->importService->parseExcelFile($filePath);
     }
 
+ /**
+  * Normalize date for import.
+  *
+  * @param string $dateStr Date str
+  * @return string|null
+  */
     private function normalizeDateForImport(string $dateStr): ?string {
         return $this->importService->normalizeDateForImport($dateStr);
     }
 
+ /**
+  * Normalize uf for import.
+  *
+  * @param string $state State
+  * @return string
+  */
     private function normalizeUfForImport(string $state): string {
         return $this->importService->normalizeUfForImport($state);
     }

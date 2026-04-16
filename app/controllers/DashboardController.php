@@ -6,11 +6,22 @@ use Akti\Models\Order;
 use Akti\Models\Customer;
 use Akti\Core\Log;
 
+/**
+ * Class DashboardController.
+ */
 class DashboardController extends BaseController {
+    /**
+     * Construtor da classe DashboardController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db) {
         $this->db = $db;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index() {
         $db = $this->db;
 

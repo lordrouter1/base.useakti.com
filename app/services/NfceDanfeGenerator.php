@@ -22,6 +22,11 @@ class NfceDanfeGenerator
 {
     private $db;
 
+    /**
+     * Construtor da classe NfceDanfeGenerator.
+     *
+     * @param mixed $db Conexão PDO com o banco de dados
+     */
     public function __construct($db = null)
     {
         $this->db = $db;

@@ -6,15 +6,27 @@ use Akti\Models\AuditLog;
 use Akti\Utils\Input;
 use PDO;
 
+/**
+ * Class AuditController.
+ */
 class AuditController extends BaseController {
     private AuditLog $model;
 
+    /**
+     * Construtor da classe AuditController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param AuditLog $model Model
+     */
     public function __construct(\PDO $db, AuditLog $model)
     {
         $this->db = $db;
         $this->model = $model;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $page = Input::get('p', 'int', 1);
@@ -41,6 +53,9 @@ class AuditController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Detail.
+     */
     public function detail()
     {
         $entityType = Input::get('entity_type', 'string', '');
@@ -52,6 +67,9 @@ class AuditController extends BaseController {
         $this->json(['success' => true, 'data' => $logs]);
     }
 
+    /**
+     * Exporta dados.
+     */
     public function exportCsv()
     {
         $filters = [

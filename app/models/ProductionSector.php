@@ -5,10 +5,18 @@ use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
 
+/**
+ * Model de setores de produção.
+ */
 class ProductionSector {
     private $conn;
     private $table = 'production_sectors';
 
+    /**
+     * Construtor da classe ProductionSector.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db) {
         $this->conn = $db;
     }
@@ -22,6 +30,11 @@ class ProductionSector {
         return (int) $stmt->fetchColumn();
     }
 
+ /**
+  * Read all.
+  *
+  * @param mixed $onlyActive Only active
+  */
     public function readAll($onlyActive = false) {
         $sql = "SELECT * FROM {$this->table}";
         if ($onlyActive) {
@@ -82,12 +95,22 @@ class ProductionSector {
         ];
     }
 
+ /**
+  * Read one.
+  *
+  * @param mixed $id ID do registro
+  */
     public function readOne($id) {
         $stmt = $this->conn->prepare("SELECT * FROM {$this->table} WHERE id = :id");
         $stmt->execute([':id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Create.
+  *
+  * @param mixed $data Dados para processamento
+  */
     public function create($data) {
         $stmt = $this->conn->prepare("INSERT INTO {$this->table} (name, description, icon, color, sort_order) VALUES (:name, :desc, :icon, :color, :sort)");
         $stmt->execute([
@@ -105,6 +128,11 @@ class ProductionSector {
         return $newId;
     }
 
+ /**
+  * Update.
+  *
+  * @param mixed $data Dados para processamento
+  */
     public function update($data) {
         $stmt = $this->conn->prepare("UPDATE {$this->table} SET name = :name, description = :desc, icon = :icon, color = :color, sort_order = :sort, is_active = :active WHERE id = :id");
         $result = $stmt->execute([
@@ -125,6 +153,11 @@ class ProductionSector {
         return $result;
     }
 
+ /**
+  * Delete.
+  *
+  * @param mixed $id ID do registro
+  */
     public function delete($id) {
         $stmt = $this->conn->prepare("DELETE FROM {$this->table} WHERE id = :id");
         $result = $stmt->execute([':id' => $id]);

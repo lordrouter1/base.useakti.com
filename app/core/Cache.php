@@ -2,10 +2,17 @@
 
 namespace Akti\Core;
 
+/**
+ * Sistema de cache em arquivo com suporte a TTL e invalidação.
+ */
 class Cache
 {
     private static string $dir = '';
 
+    /**
+     * Dir.
+     * @return string
+     */
     private static function dir(): string
     {
         if (!self::$dir) {
@@ -36,6 +43,12 @@ class Cache
         return $value;
     }
 
+    /**
+     * Get.
+     *
+     * @param string $key Chave identificadora
+     * @return mixed
+     */
     public static function get(string $key): mixed
     {
         $file = self::filePath($key);
@@ -54,6 +67,14 @@ class Cache
         return $data['value'];
     }
 
+    /**
+     * Set.
+     *
+     * @param string $key Chave identificadora
+     * @param mixed $value Valor
+     * @param int $ttl Tempo de vida (time-to-live) em segundos
+     * @return void
+     */
     public static function set(string $key, mixed $value, int $ttl = 60): void
     {
         $file = self::filePath($key);
@@ -61,6 +82,12 @@ class Cache
         file_put_contents($file, $data, LOCK_EX);
     }
 
+    /**
+     * Forget.
+     *
+     * @param string $key Chave identificadora
+     * @return void
+     */
     public static function forget(string $key): void
     {
         $file = self::filePath($key);
@@ -87,6 +114,10 @@ class Cache
         }
     }
 
+    /**
+     * Descarrega dados pendentes.
+     * @return void
+     */
     public static function flush(): void
     {
         $files = glob(self::dir() . '/*.cache');
@@ -99,6 +130,12 @@ class Cache
         }
     }
 
+    /**
+     * File path.
+     *
+     * @param string $key Chave identificadora
+     * @return string
+     */
     private static function filePath(string $key): string
     {
         return self::dir() . '/' . md5($key) . '.cache';

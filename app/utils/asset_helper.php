@@ -13,13 +13,6 @@
  * @see ROADMAP_DETALHADO_2026.md — Fase 4, item 4.4
  * @package Akti\Utils
  */
-
-/**
- * Gera a URL de um asset com cache busting via file mtime.
- *
- * @param string $path Caminho relativo do asset (ex: 'assets/css/style.css')
- * @return string URL com query string de versão
- */
 function asset(string $path): string
 {
     $basePath = defined('AKTI_BASE_PATH') ? AKTI_BASE_PATH : (__DIR__ . '/../../');

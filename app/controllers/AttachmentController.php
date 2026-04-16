@@ -7,16 +7,28 @@ use Akti\Services\FileManager;
 use Akti\Utils\Input;
 use PDO;
 
+/**
+ * Class AttachmentController.
+ */
 class AttachmentController extends BaseController
 {
     private Attachment $model;
 
+    /**
+     * Construtor da classe AttachmentController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Attachment $model Model
+     */
     public function __construct(\PDO $db, Attachment $model)
     {
         $this->db = $db;
         $this->model = $model;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $page = Input::get('p', 'int', 1);
@@ -30,6 +42,9 @@ class AttachmentController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa upload de arquivo.
+     */
     public function upload()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -87,6 +102,9 @@ class AttachmentController extends BaseController
         header('Location: ?page=attachments');
     }
 
+    /**
+     * Gera download de arquivo.
+     */
     public function download()
     {
         $id = Input::get('id', 'int', 0);
@@ -102,6 +120,9 @@ class AttachmentController extends BaseController
         $fileManager->download($attachment['path'], $attachment['original_name']);
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $id = Input::get('id', 'int', 0);
@@ -116,6 +137,9 @@ class AttachmentController extends BaseController
         $this->json(['success' => true, 'message' => 'Anexo removido']);
     }
 
+    /**
+     * Lista registros filtrados por critério.
+     */
     public function listByEntity()
     {
         $entityType = Input::get('entity_type', 'string', '');
@@ -124,6 +148,9 @@ class AttachmentController extends BaseController
         $this->json(['success' => true, 'data' => $attachments]);
     }
 
+    /**
+     * Search entities.
+     */
     public function searchEntities()
     {
         $type = Input::get('type', 'string', '');

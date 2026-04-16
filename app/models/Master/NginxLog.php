@@ -2,8 +2,15 @@
 
 namespace Akti\Models\Master;
 
+/**
+ * Model de logs do Nginx.
+ */
 class NginxLog
 {
+    /**
+     * Obtém dados específicos.
+     * @return string
+     */
     private static function getLogPath(): string
     {
         if (defined('NGINX_LOG_PATH')) return NGINX_LOG_PATH;
@@ -13,6 +20,10 @@ class NginxLog
         return '/var/log/nginx';
     }
 
+    /**
+     * List log files.
+     * @return array
+     */
     public static function listLogFiles(): array
     {
         $path = self::getLogPath();
@@ -65,6 +76,13 @@ class NginxLog
         return ['success' => true, 'files' => $files, 'path' => $path];
     }
 
+ /**
+  * Read tail.
+  *
+  * @param string $filename Nome do arquivo
+  * @param int $lines Lines
+  * @return array
+  */
     public static function readTail(string $filename, int $lines = 200): array
     {
         $filename = basename($filename);
@@ -104,6 +122,13 @@ class NginxLog
         ];
     }
 
+ /**
+  * Read gz tail.
+  *
+  * @param string $path Caminho do arquivo
+  * @param int $lines Lines
+  * @return array
+  */
     private static function readGzTail(string $path, int $lines): array
     {
         if (PHP_OS_FAMILY !== 'Windows' && function_exists('exec')) {
@@ -142,6 +167,13 @@ class NginxLog
         ];
     }
 
+ /**
+  * Php tail.
+  *
+  * @param string $path Caminho do arquivo
+  * @param int $lines Lines
+  * @return string
+  */
     private static function phpTail(string $path, int $lines): string
     {
         $fp = @fopen($path, 'rb');
@@ -168,6 +200,14 @@ class NginxLog
         return implode("\n", $result);
     }
 
+ /**
+  * Search.
+  *
+  * @param string $filename Nome do arquivo
+  * @param string $query Consulta de busca
+  * @param int $maxResults Max results
+  * @return array
+  */
     public static function search(string $filename, string $query, int $maxResults = 100): array
     {
         $filename = basename($filename);
@@ -208,6 +248,13 @@ class NginxLog
         return ['success' => true, 'results' => $results, 'count' => count($results)];
     }
 
+ /**
+  * Analyze errors.
+  *
+  * @param string $filename Nome do arquivo
+  * @param int $limit Limite de registros
+  * @return array
+  */
     public static function analyzeErrors(string $filename, int $limit = 20): array
     {
         $tail = self::readTail($filename, 1000);
@@ -234,6 +281,12 @@ class NginxLog
         return array_slice($errors, 0, $limit, true);
     }
 
+ /**
+  * Get download path.
+  *
+  * @param string $filename Nome do arquivo
+  * @return string|null
+  */
     public static function getDownloadPath(string $filename): ?string
     {
         $filename = basename($filename);
@@ -258,6 +311,10 @@ class NginxLog
         return null;
     }
 
+ /**
+  * Diagnose.
+  * @return array
+  */
     public static function diagnose(): array
     {
         $path = self::getLogPath();
@@ -285,6 +342,12 @@ class NginxLog
         return $diag;
     }
 
+ /**
+  * Format bytes.
+  *
+  * @param int $bytes Bytes
+  * @return string
+  */
     private static function formatBytes(int $bytes): string
     {
         $units = ['B', 'KB', 'MB', 'GB'];

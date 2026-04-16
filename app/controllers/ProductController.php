@@ -16,6 +16,9 @@ use Akti\Utils\Sanitizer;
 use Akti\Utils\Validator;
 use TenantManager;
 
+/**
+ * Class ProductController.
+ */
 class ProductController extends BaseController {
 
     private Product $productModel;
@@ -26,6 +29,19 @@ class ProductController extends BaseController {
     private Logger $logger;
     private ProductImportService $importService;
     private ProductGradeService $gradeService;
+    /**
+     * Construtor da classe ProductController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Product $productModel Product model
+     * @param Category $categoryModel Category model
+     * @param Subcategory $subcategoryModel Subcategory model
+     * @param ProductionSector $sectorModel Sector model
+     * @param ProductGrade $gradeModel Grade model
+     * @param Logger $logger Logger
+     * @param ProductImportService $importService Import service
+     * @param ProductGradeService $gradeService Grade service
+     */
     public function __construct(
         \PDO $db,
         Product $productModel,
@@ -48,6 +64,9 @@ class ProductController extends BaseController {
         $this->gradeService = $gradeService;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index() {
         // Categorias para filtro
         $categories = $this->categoryModel->readAll();
@@ -74,6 +93,9 @@ class ProductController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create() {
         // Fetch categories for the dropdown
         $categories = $this->categoryModel->readAll();
@@ -97,6 +119,9 @@ class ProductController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $maxProducts = TenantManager::getTenantLimit('max_products');
@@ -196,6 +221,9 @@ class ProductController extends BaseController {
     }
     
     // AJAX for subcategories
+    /**
+     * Obtém dados específicos.
+     */
     public function getSubcategories() {
         $categoryId = Input::get('category_id', 'int');
         if ($categoryId) {
@@ -204,6 +232,9 @@ class ProductController extends BaseController {
     }
     
     // AJAX for create category on the fly
+    /**
+     * Create category ajax.
+     */
     public function createCategoryAjax() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('name')) {
             $name = Input::post('name');
@@ -217,6 +248,9 @@ class ProductController extends BaseController {
         }
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit() {
         $id = Input::get('id', 'int');
         if (!$id) {
@@ -260,6 +294,9 @@ class ProductController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Handle content update similar to store
@@ -402,6 +439,9 @@ class ProductController extends BaseController {
         }
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete() {
         $id = Input::get('id', 'int');
         if ($id) {
@@ -421,6 +461,9 @@ class ProductController extends BaseController {
         }
     }
 
+    /**
+     * Delete image.
+     */
     public function deleteImage() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $imageId = Input::post('image_id', 'int');

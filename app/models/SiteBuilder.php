@@ -11,6 +11,11 @@ class SiteBuilder
 {
     private $db;
 
+    /**
+     * Construtor da classe SiteBuilder.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->db = $db;
@@ -116,11 +121,25 @@ class SiteBuilder
     }
 
     // Alias para compatibilidade
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $tenantId ID do tenant
+     * @return array
+     */
     public function getThemeSettings(int $tenantId): array
     {
         return $this->getSettings($tenantId);
     }
 
+    /**
+     * Salva dados.
+     *
+     * @param int $tenantId ID do tenant
+     * @param array $settings Configurações
+     * @param string $group Group
+     * @return bool
+     */
     public function saveThemeSettings(int $tenantId, array $settings, string $group = 'general'): bool
     {
         return $this->saveSettingsBatch($tenantId, $settings, $group);

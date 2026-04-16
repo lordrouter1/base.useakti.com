@@ -6,6 +6,9 @@ use Akti\Core\Event;
 use Akti\Models\ProductionSector;
 use PDO;
 
+/**
+ * Model do pipeline Kanban de produção.
+ */
 class Pipeline {
     private $conn;
 
@@ -22,6 +25,11 @@ class Pipeline {
         'cancelado'  => ['label' => 'Cancelado',     'icon' => 'fas fa-ban',                   'color' => '#95a5a6', 'order' => 9],
     ];
 
+    /**
+     * Construtor da classe Pipeline.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db) {
         $this->conn = $db;
     }

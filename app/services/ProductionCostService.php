@@ -4,15 +4,30 @@ namespace Akti\Services;
 
 use PDO;
 
+/**
+ * Class ProductionCostService.
+ */
 class ProductionCostService
 {
     private PDO $db;
 
+    /**
+     * Construtor da classe ProductionCostService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;
     }
 
+    /**
+     * Calcula valor.
+     *
+     * @param int $orderId ID do pedido
+     * @param int $tenantId ID do tenant
+     * @return array
+     */
     public function calculateOrderCost(int $orderId, int $tenantId): array
     {
         $materialCost = $this->getMaterialCost($orderId, $tenantId);
@@ -54,6 +69,13 @@ class ProductionCostService
         ];
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $orderId ID do pedido
+     * @param int $tenantId ID do tenant
+     * @return array|null
+     */
     public function getOrderCost(int $orderId, int $tenantId): ?array
     {
         $stmt = $this->db->prepare("SELECT * FROM production_costs WHERE order_id = :oid AND tenant_id = :tid ORDER BY calculated_at DESC LIMIT 1");
@@ -62,6 +84,13 @@ class ProductionCostService
         return $row ?: null;
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $tenantId ID do tenant
+     * @param int|null $sectorId Sector id
+     * @return array
+     */
     public function getConfig(int $tenantId, ?int $sectorId = null): array
     {
         $where = 'tenant_id = :tid';
@@ -77,6 +106,13 @@ class ProductionCostService
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: ['labor_cost_per_hour' => 0, 'overhead_type' => 'percentage', 'overhead_value' => 0];
     }
 
+ /**
+  * Save config.
+  *
+  * @param int $tenantId ID do tenant
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function saveConfig(int $tenantId, array $data): bool
     {
         $sectorId = $data['sector_id'] ?? null;
@@ -104,6 +140,14 @@ class ProductionCostService
         ]);
     }
 
+ /**
+  * Get margin report.
+  *
+  * @param int $tenantId ID do tenant
+  * @param string|null $dateFrom Date from
+  * @param string|null $dateTo Date to
+  * @return array
+  */
     public function getMarginReport(int $tenantId, ?string $dateFrom = null, ?string $dateTo = null): array
     {
         $where = 'pc.tenant_id = :tid';
@@ -130,6 +174,13 @@ class ProductionCostService
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get material cost.
+  *
+  * @param int $orderId ID do pedido
+  * @param int $tenantId ID do tenant
+  * @return float
+  */
     private function getMaterialCost(int $orderId, int $tenantId): float
     {
         $stmt = $this->db->prepare("
@@ -143,6 +194,13 @@ class ProductionCostService
         return (float) $stmt->fetchColumn();
     }
 
+ /**
+  * Get labor cost.
+  *
+  * @param int $orderId ID do pedido
+  * @param int $tenantId ID do tenant
+  * @return float
+  */
     private function getLaborCost(int $orderId, int $tenantId): float
     {
         $timeMinutes = $this->getProductionTimeMinutes($orderId, $tenantId);
@@ -151,6 +209,13 @@ class ProductionCostService
         return round(($timeMinutes / 60) * $hourlyRate, 2);
     }
 
+ /**
+  * Get overhead cost.
+  *
+  * @param int $tenantId ID do tenant
+  * @param float $directCost Direct cost
+  * @return float
+  */
     private function getOverheadCost(int $tenantId, float $directCost): float
     {
         $config = $this->getConfig($tenantId);
@@ -160,6 +225,13 @@ class ProductionCostService
         return (float) $config['overhead_value'];
     }
 
+ /**
+  * Get estimated cost.
+  *
+  * @param int $orderId ID do pedido
+  * @param int $tenantId ID do tenant
+  * @return float
+  */
     private function getEstimatedCost(int $orderId, int $tenantId): float
     {
         $stmt = $this->db->prepare("SELECT estimated_cost FROM production_costs WHERE order_id = :oid AND tenant_id = :tid ORDER BY id ASC LIMIT 1");
@@ -168,6 +240,13 @@ class ProductionCostService
         return $val !== false ? (float) $val : 0;
     }
 
+ /**
+  * Get production time minutes.
+  *
+  * @param int $orderId ID do pedido
+  * @param int $tenantId ID do tenant
+  * @return int
+  */
     private function getProductionTimeMinutes(int $orderId, int $tenantId): int
     {
         $stmt = $this->db->prepare("

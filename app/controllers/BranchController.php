@@ -5,16 +5,27 @@ namespace Akti\Controllers;
 use Akti\Models\Branch;
 use Akti\Utils\Input;
 
+/**
+ * Class BranchController.
+ */
 class BranchController extends BaseController
 {
     private Branch $branchModel;
 
+    /**
+     * Construtor da classe BranchController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         parent::__construct($db);
         $this->branchModel = new Branch($db);
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $this->requireAuth();
@@ -26,6 +37,9 @@ class BranchController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $this->requireAuth();
@@ -36,6 +50,9 @@ class BranchController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $this->requireAuth();
@@ -65,6 +82,9 @@ class BranchController extends BaseController
         header('Location: ?page=branches');
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit()
     {
         $this->requireAuth();
@@ -81,6 +101,9 @@ class BranchController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         $this->requireAuth();
@@ -104,6 +127,9 @@ class BranchController extends BaseController
         header('Location: ?page=branches');
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $this->requireAuth();

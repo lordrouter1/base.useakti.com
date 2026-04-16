@@ -5,15 +5,27 @@ namespace Akti\Controllers;
 use Akti\Models\QualityChecklist;
 use Akti\Utils\Input;
 
+/**
+ * Class QualityController.
+ */
 class QualityController extends BaseController {
     private QualityChecklist $model;
 
+    /**
+     * Construtor da classe QualityController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param QualityChecklist $model Model
+     */
     public function __construct(\PDO $db, QualityChecklist $model)
     {
         $this->db = $db;
         $this->model = $model;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $checklists = $this->model->readAll();
@@ -24,6 +36,9 @@ class QualityController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $checklist = null;
@@ -32,6 +47,9 @@ class QualityController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $data = [
@@ -46,6 +64,9 @@ class QualityController extends BaseController {
         header('Location: ?page=quality&action=edit&id=' . $id);
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit()
     {
         $id = Input::get('id', 'int', 0);
@@ -62,6 +83,9 @@ class QualityController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         $id = Input::post('id', 'int', 0);
@@ -77,6 +101,9 @@ class QualityController extends BaseController {
         header('Location: ?page=quality&action=edit&id=' . $id);
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $id = Input::get('id', 'int', 0);
@@ -85,6 +112,9 @@ class QualityController extends BaseController {
         header('Location: ?page=quality');
     }
 
+    /**
+     * Add item.
+     */
     public function addItem()
     {
         $data = [
@@ -100,6 +130,9 @@ class QualityController extends BaseController {
         $this->json(['success' => true]);
     }
 
+    /**
+     * Remove item.
+     */
     public function removeItem()
     {
         $itemId = Input::get('item_id', 'int', 0);
@@ -108,6 +141,9 @@ class QualityController extends BaseController {
         $this->json(['success' => true]);
     }
 
+    /**
+     * Inspect.
+     */
     public function inspect()
     {
         $orderId = Input::get('order_id', 'int', 0);
@@ -119,6 +155,9 @@ class QualityController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Store inspection.
+     */
     public function storeInspection()
     {
         $data = [
@@ -136,6 +175,9 @@ class QualityController extends BaseController {
         header('Location: ?page=quality');
     }
 
+    /**
+     * Non conformities.
+     */
     public function nonConformities()
     {
         $filters = [
@@ -150,6 +192,9 @@ class QualityController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Store non conformity.
+     */
     public function storeNonConformity()
     {
         $data = [
@@ -167,6 +212,9 @@ class QualityController extends BaseController {
         header('Location: ?page=quality&action=nonConformities');
     }
 
+    /**
+     * Resolve dependência ou valor.
+     */
     public function resolveNonConformity()
     {
         $id = Input::post('id', 'int', 0);

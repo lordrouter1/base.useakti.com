@@ -13,6 +13,11 @@ class ProductGradeService
 {
     private $gradeModel;
 
+    /**
+     * Construtor da classe ProductGradeService.
+     *
+     * @param ProductGrade $gradeModel Grade model
+     */
     public function __construct(ProductGrade $gradeModel)
     {
         $this->gradeModel = $gradeModel;

@@ -96,6 +96,11 @@ class FileManager
         ],
     ];
 
+    /**
+     * Construtor da classe FileManager.
+     *
+     * @param \PDO|null $db Conexão PDO com o banco de dados
+     */
     public function __construct(?\PDO $db = null)
     {
         $this->db = $db ?? \Database::getInstance();

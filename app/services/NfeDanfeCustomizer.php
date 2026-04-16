@@ -22,6 +22,11 @@ class NfeDanfeCustomizer
     private PDO $db;
     private CompanySettings $settings;
 
+    /**
+     * Construtor da classe NfeDanfeCustomizer.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;

@@ -4,6 +4,9 @@ namespace Akti\Controllers\Master;
 
 use Akti\Models\Master\GitVersion;
 
+/**
+ * Class GitController.
+ */
 class GitController extends MasterBaseController
 {
     /**
@@ -50,6 +53,10 @@ class GitController extends MasterBaseController
         ]);
     }
 
+    /**
+     * Busca dados.
+     * @return void
+     */
     public function fetchAll(): void
     {
         $this->requireMasterAuth();
@@ -68,6 +75,10 @@ class GitController extends MasterBaseController
         $this->json(['success' => true, 'results' => $results]);
     }
 
+    /**
+     * Busca dados.
+     * @return void
+     */
     public function fetch(): void
     {
         $this->requireMasterAuth();
@@ -87,6 +98,10 @@ class GitController extends MasterBaseController
         ]);
     }
 
+    /**
+     * Pull.
+     * @return void
+     */
     public function pull(): void
     {
         $this->requireMasterAuth();
@@ -133,6 +148,10 @@ class GitController extends MasterBaseController
         ]);
     }
 
+ /**
+  * Force reset.
+  * @return void
+  */
     public function forceReset(): void
     {
         $this->requireMasterAuth();
@@ -165,6 +184,10 @@ class GitController extends MasterBaseController
         ]);
     }
 
+ /**
+  * Detail.
+  * @return void
+  */
     public function detail(): void
     {
         $this->requireMasterAuth();
@@ -190,6 +213,10 @@ class GitController extends MasterBaseController
         ]);
     }
 
+ /**
+  * Checkout.
+  * @return void
+  */
     public function checkout(): void
     {
         $this->requireMasterAuth();
@@ -219,6 +246,10 @@ class GitController extends MasterBaseController
         ]);
     }
 
+ /**
+  * Pull all.
+  * @return void
+  */
     public function pullAll(): void
     {
         $this->requireMasterAuth();
@@ -251,10 +282,17 @@ class GitController extends MasterBaseController
         $this->json(['success' => true, 'results' => $results]);
     }
 
+ /**
+  * Diagnose json.
+  * @return void
+  */
     public function diagnoseJson(): void
     {
         $this->requireMasterAuth();
 
+/**
+ * Class Unknown.
+ */
         $refClass = new \ReflectionClass(GitVersion::class);
         $prop = $refClass->getProperty('diagCache');
         $prop->setAccessible(true);

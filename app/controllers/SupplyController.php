@@ -6,10 +6,20 @@ use Akti\Models\Supply;
 use Akti\Models\Supplier;
 use Akti\Utils\Input;
 
+/**
+ * Class SupplyController.
+ */
 class SupplyController extends BaseController {
     private Supply $supplyModel;
     private Supplier $supplierModel;
 
+    /**
+     * Construtor da classe SupplyController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Supply $supplyModel Supply model
+     * @param Supplier $supplierModel Supplier model
+     */
     public function __construct(\PDO $db, Supply $supplyModel, Supplier $supplierModel)
     {
         $this->db = $db;
@@ -19,6 +29,9 @@ class SupplyController extends BaseController {
 
     // ──── CRUD (Fase 1) ────
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $page = Input::get('p', 'int', 1);
@@ -38,6 +51,9 @@ class SupplyController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $supply = null;
@@ -49,6 +65,9 @@ class SupplyController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $data = [
@@ -90,6 +109,9 @@ class SupplyController extends BaseController {
         header('Location: ?page=supplies');
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit()
     {
         $id = Input::get('id', 'int', 0);
@@ -108,6 +130,9 @@ class SupplyController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         $id = Input::post('id', 'int', 0);
@@ -146,6 +171,9 @@ class SupplyController extends BaseController {
         header('Location: ?page=supplies');
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $id = Input::get('id', 'int', 0);
@@ -156,6 +184,9 @@ class SupplyController extends BaseController {
 
     // ──── Categorias AJAX (Fase 1) ────
 
+    /**
+     * Create category ajax.
+     */
     public function createCategoryAjax()
     {
         header('Content-Type: application/json');
@@ -166,12 +197,18 @@ class SupplyController extends BaseController {
         $this->json(['success' => true, 'id' => $id, 'name' => $name]);
     }
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getCategoriesAjax()
     {
         header('Content-Type: application/json');
         $this->json($this->supplyModel->getCategories());
     }
 
+    /**
+     * Search select2.
+     */
     public function searchSelect2()
     {
         header('Content-Type: application/json');
@@ -181,6 +218,9 @@ class SupplyController extends BaseController {
 
     // ──── Vínculo Fornecedor AJAX (Fase 2) ────
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getSuppliers()
     {
         header('Content-Type: application/json');
@@ -193,6 +233,9 @@ class SupplyController extends BaseController {
         $this->json($this->supplyModel->getSuppliers($supplyId));
     }
 
+    /**
+     * Link supplier.
+     */
     public function linkSupplier()
     {
         header('Content-Type: application/json');
@@ -227,6 +270,9 @@ class SupplyController extends BaseController {
         }
     }
 
+    /**
+     * Update supplier link.
+     */
     public function updateSupplierLink()
     {
         header('Content-Type: application/json');
@@ -245,6 +291,9 @@ class SupplyController extends BaseController {
         $this->json(['success' => true]);
     }
 
+    /**
+     * Unlink supplier.
+     */
     public function unlinkSupplier()
     {
         header('Content-Type: application/json');
@@ -253,6 +302,9 @@ class SupplyController extends BaseController {
         $this->json(['success' => true]);
     }
 
+    /**
+     * Search suppliers.
+     */
     public function searchSuppliers()
     {
         header('Content-Type: application/json');
@@ -274,6 +326,9 @@ class SupplyController extends BaseController {
 
     // ──── Histórico de Preços AJAX (Fase 5) ────
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getPriceHistory()
     {
         header('Content-Type: application/json');
@@ -283,6 +338,9 @@ class SupplyController extends BaseController {
 
     // ──── BOM AJAX (Fase 6) ────
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getProductSupplies()
     {
         header('Content-Type: application/json');
@@ -303,6 +361,9 @@ class SupplyController extends BaseController {
         $this->json(['supplies' => $supplies, 'total_cost' => $totalCost]);
     }
 
+    /**
+     * Add product supply.
+     */
     public function addProductSupply()
     {
         header('Content-Type: application/json');
@@ -334,6 +395,9 @@ class SupplyController extends BaseController {
         }
     }
 
+    /**
+     * Update product supply.
+     */
     public function updateProductSupply()
     {
         header('Content-Type: application/json');
@@ -353,6 +417,9 @@ class SupplyController extends BaseController {
         $this->json(['success' => true, 'total_cost' => $totalCost]);
     }
 
+    /**
+     * Remove product supply.
+     */
     public function removeProductSupply()
     {
         header('Content-Type: application/json');
@@ -363,6 +430,9 @@ class SupplyController extends BaseController {
         $this->json(['success' => true, 'total_cost' => $totalCost]);
     }
 
+    /**
+     * Estimate consumption.
+     */
     public function estimateConsumption()
     {
         header('Content-Type: application/json');
@@ -371,6 +441,9 @@ class SupplyController extends BaseController {
         $this->json($this->supplyModel->estimateConsumption($productId, $qty));
     }
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getSupplyProducts()
     {
         header('Content-Type: application/json');
@@ -380,6 +453,9 @@ class SupplyController extends BaseController {
 
     // ──── Where Used Impact AJAX (Fase 7) ────
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getWhereUsedImpact()
     {
         header('Content-Type: application/json');
@@ -388,6 +464,9 @@ class SupplyController extends BaseController {
         $this->json($this->supplyModel->getWhereUsedImpact($supplyId, $newCMP));
     }
 
+    /**
+     * Apply b o m cost update.
+     */
     public function applyBOMCostUpdate()
     {
         header('Content-Type: application/json');

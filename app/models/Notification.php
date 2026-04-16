@@ -12,6 +12,11 @@ class Notification
     /** @var \PDO */
     private $db;
 
+    /**
+     * Construtor da classe Notification.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->db = $db;

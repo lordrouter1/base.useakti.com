@@ -43,6 +43,12 @@ class User {
         $this->conn = $db;
     }
 
+    /**
+     * __get.
+     *
+     * @param string $name Nome
+     * @return mixed
+     */
     public function __get(string $name): mixed {
         if (in_array($name, self::$fillable, true)) {
             return $this->$name ?? null;
@@ -51,6 +57,13 @@ class User {
         return null;
     }
 
+    /**
+     * __set.
+     *
+     * @param string $name Nome
+     * @param mixed $value Valor
+     * @return void
+     */
     public function __set(string $name, mixed $value): void {
         if (in_array($name, self::$fillable, true)) {
             $this->$name = $value;
@@ -59,10 +72,20 @@ class User {
         trigger_error("Undefined property: User::\$$name", E_USER_NOTICE);
     }
 
+    /**
+     * Define valor específico.
+     *
+     * @param string $password Senha
+     * @return void
+     */
     public function setPassword(string $password): void {
         $this->password = $password;
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return string|null
+     */
     public function getPassword(): ?string {
         return $this->password;
     }

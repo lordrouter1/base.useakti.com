@@ -28,6 +28,11 @@ class Installment
      */
     private bool $overdueUpdatedThisRequest = false;
 
+    /**
+     * Construtor da classe Installment.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;

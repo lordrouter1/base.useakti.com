@@ -20,6 +20,15 @@ class ProductImportService
     private $subcategoryModel;
     private $logger;
 
+    /**
+     * Construtor da classe ProductImportService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param Product $productModel Product model
+     * @param Category $categoryModel Category model
+     * @param Subcategory $subcategoryModel Subcategory model
+     * @param Logger $logger Logger
+     */
     public function __construct(PDO $db, Product $productModel, Category $categoryModel, Subcategory $subcategoryModel, Logger $logger)
     {
         $this->db = $db;
@@ -353,6 +362,12 @@ class ProductImportService
         return $this->parseCsvFile($filePath);
     }
 
+    /**
+     * Interpreta dados.
+     *
+     * @param string $filePath File path
+     * @return array
+     */
     private function parseCsvFile(string $filePath): array
     {
         $rows = [];
@@ -393,6 +408,12 @@ class ProductImportService
         return $rows;
     }
 
+    /**
+     * Interpreta dados.
+     *
+     * @param string $filePath File path
+     * @return array
+     */
     private function parseExcelFile(string $filePath): array
     {
         if (!class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {

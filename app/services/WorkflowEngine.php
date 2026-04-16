@@ -10,6 +10,11 @@ class WorkflowEngine
 {
     private \PDO $db;
 
+    /**
+     * Construtor da classe WorkflowEngine.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->db = $db;
@@ -105,6 +110,13 @@ class WorkflowEngine
         }
     }
 
+    /**
+     * Action notify.
+     *
+     * @param array $action Action
+     * @param array $payload Payload
+     * @return void
+     */
     private function actionNotify(array $action, array $payload): void
     {
         $userId  = $action['user_id'] ?? ($payload['user_id'] ?? null);
@@ -127,6 +139,13 @@ class WorkflowEngine
         ]);
     }
 
+    /**
+     * Action email.
+     *
+     * @param array $action Action
+     * @param array $payload Payload
+     * @return void
+     */
     private function actionEmail(array $action, array $payload): void
     {
         $to      = $this->interpolate($action['to'] ?? '', $payload);
@@ -138,6 +157,13 @@ class WorkflowEngine
         @mail($to, $subject, $body, "Content-Type: text/html; charset=UTF-8\r\nFrom: noreply@akti.com.br");
     }
 
+    /**
+     * Action update field.
+     *
+     * @param array $action Action
+     * @param array $payload Payload
+     * @return void
+     */
     private function actionUpdateField(array $action, array $payload): void
     {
         $table  = preg_replace('/[^a-z0-9_]/', '', $action['table'] ?? '');
@@ -153,6 +179,13 @@ class WorkflowEngine
         $stmt->execute([':val' => $value, ':id' => $id]);
     }
 
+ /**
+  * Action log.
+  *
+  * @param array $action Action
+  * @param array $payload Payload
+  * @return void
+  */
     private function actionLog(array $action, array $payload): void
     {
         $message = $this->interpolate($action['message'] ?? '', $payload);

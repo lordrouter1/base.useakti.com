@@ -33,6 +33,14 @@ class NfceXmlBuilder
     /** @var string URL do QR Code gerado */
     private string $qrcodeUrl = '';
 
+    /**
+     * Construtor da classe NfceXmlBuilder.
+     *
+     * @param array $emitente Emitente
+     * @param array $orderData Order data
+     * @param int $numero Numero
+     * @param int $serie Serie
+     */
     public function __construct(array $emitente, array $orderData, int $numero, int $serie)
     {
         $this->emitente  = $emitente;

@@ -5,6 +5,9 @@ use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
 
+/**
+ * Model de subcategorias de produtos.
+ */
 class Subcategory {
     private $conn;
     private $table_name = "subcategories";
@@ -19,10 +22,21 @@ class Subcategory {
         'id', 'category_id', 'name', 'show_in_store', 'free_shipping',
     ];
 
+    /**
+     * Construtor da classe Subcategory.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 
+    /**
+     * __get.
+     *
+     * @param string $name Nome
+     * @return mixed
+     */
     public function __get(string $name): mixed {
         if (in_array($name, self::$fillable, true)) {
             return $this->$name ?? null;
@@ -31,6 +45,13 @@ class Subcategory {
         return null;
     }
 
+    /**
+     * __set.
+     *
+     * @param string $name Nome
+     * @param mixed $value Valor
+     * @return void
+     */
     public function __set(string $name, mixed $value): void {
         if (in_array($name, self::$fillable, true)) {
             $this->$name = $value;
@@ -39,6 +60,11 @@ class Subcategory {
         trigger_error("Undefined property: Subcategory::\$$name", E_USER_NOTICE);
     }
 
+    /**
+     * Read by category id.
+     *
+     * @param mixed $categoryId Category id
+     */
     public function readByCategoryId($categoryId) {
         $query = "SELECT * FROM " . $this->table_name . " WHERE category_id = :category_id ORDER BY name ASC";
         $stmt = $this->conn->prepare($query);
@@ -47,6 +73,9 @@ class Subcategory {
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
     
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create() {
         $query = "INSERT INTO " . $this->table_name . " SET name=:name, category_id=:category_id, show_in_store=:show_in_store, free_shipping=:free_shipping";
         $stmt = $this->conn->prepare($query);
@@ -71,6 +100,9 @@ class Subcategory {
         return false;
     }
 
+    /**
+     * Retorna todos os registros.
+     */
     public function readAll() {
         $stmt = $this->conn->prepare("SELECT s.*, c.name as category_name 
             FROM subcategories s 
@@ -114,12 +146,26 @@ class Subcategory {
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Read one.
+  *
+  * @param mixed $id ID do registro
+  */
     public function readOne($id) {
         $stmt = $this->conn->prepare("SELECT s.*, c.name as category_name FROM subcategories s JOIN categories c ON s.category_id = c.id WHERE s.id = :id");
         $stmt->execute([':id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Update.
+  *
+  * @param mixed $id ID do registro
+  * @param mixed $name Nome
+  * @param mixed $categoryId Category id
+  * @param mixed $showInStore Show in store
+  * @param mixed $freeShipping Free shipping
+  */
     public function update($id, $name, $categoryId, $showInStore = null, $freeShipping = null) {
         $fields = ['name = :name', 'category_id = :cat'];
         $params = [
@@ -147,6 +193,11 @@ class Subcategory {
         return $result;
     }
 
+ /**
+  * Delete.
+  *
+  * @param mixed $id ID do registro
+  */
     public function delete($id) {
         $stmt = $this->conn->prepare("DELETE FROM subcategories WHERE id = :id");
         $result = $stmt->execute([':id' => $id]);
@@ -156,6 +207,11 @@ class Subcategory {
         return $result;
     }
 
+ /**
+  * Count products.
+  *
+  * @param mixed $subId Sub id
+  */
     public function countProducts($subId) {
         $stmt = $this->conn->prepare("SELECT COUNT(*) FROM products WHERE subcategory_id = :id");
         $stmt->execute([':id' => $subId]);

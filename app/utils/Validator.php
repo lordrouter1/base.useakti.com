@@ -25,6 +25,9 @@
 
 namespace Akti\Utils;
 
+/**
+ * Validador de dados com regras configuráveis.
+ */
 class Validator
 {
     /** @var array<string, string> campo => mensagem */

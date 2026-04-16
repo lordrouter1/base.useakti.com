@@ -20,6 +20,11 @@ class IbptaxModel
     private $conn;
     private string $table = 'tax_ibptax';
 
+    /**
+     * Construtor da classe IbptaxModel.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->conn = $db;

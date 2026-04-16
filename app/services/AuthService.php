@@ -31,6 +31,14 @@ class AuthService implements Contracts\AuthServiceInterface
     private LoginAttempt $loginAttempt;
     private Logger $logger;
 
+    /**
+     * Construtor da classe AuthService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param User $userModel User model
+     * @param LoginAttempt $loginAttempt Login attempt
+     * @param Logger $logger Logger
+     */
     public function __construct(PDO $db, User $userModel, LoginAttempt $loginAttempt, Logger $logger)
     {
         $this->db = $db;

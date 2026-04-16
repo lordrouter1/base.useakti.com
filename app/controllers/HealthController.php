@@ -18,6 +18,11 @@ class HealthController
     /** @var \PDO|null */
     private $db;
 
+    /**
+     * Construtor da classe HealthController.
+     *
+     * @param \PDO|null $db Conexão PDO com o banco de dados
+     */
     public function __construct(?\PDO $db = null)
     {
         $this->db = $db;

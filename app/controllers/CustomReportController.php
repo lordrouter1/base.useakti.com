@@ -5,15 +5,27 @@ namespace Akti\Controllers;
 use Akti\Models\ReportTemplate;
 use Akti\Utils\Input;
 
+/**
+ * Class CustomReportController.
+ */
 class CustomReportController extends BaseController {
     private ReportTemplate $model;
 
+    /**
+     * Construtor da classe CustomReportController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param ReportTemplate $model Model
+     */
     public function __construct(\PDO $db, ReportTemplate $model)
     {
         $this->db = $db;
         $this->model = $model;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $userId = $_SESSION['user_id'] ?? null;
@@ -25,6 +37,9 @@ class CustomReportController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $entities = $this->model->getAvailableEntities();
@@ -35,6 +50,9 @@ class CustomReportController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $data = [
@@ -54,6 +72,9 @@ class CustomReportController extends BaseController {
         header('Location: ?page=custom_reports&action=run&id=' . $id);
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit()
     {
         $id = Input::get('id', 'int', 0);
@@ -70,6 +91,9 @@ class CustomReportController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         $id = Input::post('id', 'int', 0);
@@ -88,6 +112,9 @@ class CustomReportController extends BaseController {
         header('Location: ?page=custom_reports&action=run&id=' . $id);
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $id = Input::get('id', 'int', 0);
@@ -96,6 +123,9 @@ class CustomReportController extends BaseController {
         header('Location: ?page=custom_reports');
     }
 
+    /**
+     * Executa um processo.
+     */
     public function run()
     {
         $id = Input::get('id', 'int', 0);
@@ -115,6 +145,9 @@ class CustomReportController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getEntities()
     {
         $entities = $this->model->getAvailableEntities();

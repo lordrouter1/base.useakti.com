@@ -12,6 +12,11 @@ use PDO;
 class PriceTable {
     private $conn;
 
+    /**
+     * Construtor da classe PriceTable.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db) {
         $this->conn = $db;
     }

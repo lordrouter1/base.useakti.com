@@ -20,6 +20,12 @@ use TenantManager;
 class NfeCredentialController extends BaseController {
     private NfeCredential $credModel;
 
+    /**
+     * Construtor da classe NfeCredentialController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param NfeCredential $credModel Cred model
+     */
     public function __construct(\PDO $db, NfeCredential $credModel)
     {
         if (!ModuleBootloader::isModuleEnabled('nfe')) {

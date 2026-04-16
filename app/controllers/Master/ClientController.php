@@ -6,11 +6,19 @@ use Akti\Models\Master\TenantClient;
 use Akti\Models\Master\Plan;
 use Akti\Models\Master\AdminUser;
 
+/**
+ * Class ClientController.
+ */
 class ClientController extends MasterBaseController
 {
     private TenantClient $clientModel;
     private Plan $planModel;
 
+    /**
+     * Construtor da classe ClientController.
+     *
+     * @param \PDO|null $db Conexão PDO com o banco de dados
+     */
     public function __construct(?\PDO $db = null)
     {
         parent::__construct($db);
@@ -18,6 +26,10 @@ class ClientController extends MasterBaseController
         $this->planModel = new Plan($this->db);
     }
 
+    /**
+     * Exibe a página de listagem.
+     * @return void
+     */
     public function index(): void
     {
         $this->requireMasterAuth();
@@ -25,6 +37,10 @@ class ClientController extends MasterBaseController
         $this->renderMaster('clients/index', compact('clients'));
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     * @return void
+     */
     public function create(): void
     {
         $this->requireMasterAuth();
@@ -32,6 +48,10 @@ class ClientController extends MasterBaseController
         $this->renderMaster('clients/create', compact('plans'));
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     * @return void
+     */
     public function store(): void
     {
         $this->requireMasterAuth();
@@ -143,6 +163,10 @@ class ClientController extends MasterBaseController
         $this->redirect('?page=master_clients');
     }
 
+ /**
+  * Edit.
+  * @return void
+  */
     public function edit(): void
     {
         $this->requireMasterAuth();
@@ -159,6 +183,10 @@ class ClientController extends MasterBaseController
         $this->renderMaster('clients/edit', compact('client', 'plans'));
     }
 
+ /**
+  * Update.
+  * @return void
+  */
     public function update(): void
     {
         $this->requireMasterAuth();
@@ -213,6 +241,10 @@ class ClientController extends MasterBaseController
         $this->redirect('?page=master_clients');
     }
 
+ /**
+  * Toggle active.
+  * @return void
+  */
     public function toggleActive(): void
     {
         $this->requireMasterAuth();
@@ -230,6 +262,10 @@ class ClientController extends MasterBaseController
         $this->redirect('?page=master_clients');
     }
 
+ /**
+  * Delete.
+  * @return void
+  */
     public function delete(): void
     {
         $this->requireMasterAuth();
@@ -288,6 +324,10 @@ class ClientController extends MasterBaseController
         $this->redirect('?page=master_clients');
     }
 
+ /**
+  * Create tenant user.
+  * @return void
+  */
     public function createTenantUser(): void
     {
         $this->requireMasterAuth();
@@ -343,6 +383,10 @@ class ClientController extends MasterBaseController
         $this->redirect("?page=master_clients&action=edit&id={$clientId}");
     }
 
+ /**
+  * Get plan limits.
+  * @return void
+  */
     public function getPlanLimits(): void
     {
         $this->requireMasterAuth();

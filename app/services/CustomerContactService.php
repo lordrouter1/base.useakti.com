@@ -14,6 +14,12 @@ class CustomerContactService
     private PDO $db;
     private CustomerContact $contactModel;
 
+    /**
+     * Construtor da classe CustomerContactService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param CustomerContact $contactModel Contact model
+     */
     public function __construct(PDO $db, CustomerContact $contactModel)
     {
         $this->db = $db;

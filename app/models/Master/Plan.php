@@ -4,15 +4,27 @@ namespace Akti\Models\Master;
 
 use PDO;
 
+/**
+ * Model de planos de assinatura.
+ */
 class Plan
 {
     private $db;
 
+    /**
+     * Construtor da classe Plan.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;
     }
 
+    /**
+     * Retorna todos os registros.
+     * @return array
+     */
     public function readAll(): array
     {
         $stmt = $this->db->query("
@@ -24,12 +36,22 @@ class Plan
         return $stmt->fetchAll();
     }
 
+    /**
+     * Read active.
+     * @return array
+     */
     public function readActive(): array
     {
         $stmt = $this->db->query("SELECT * FROM plans WHERE is_active = 1 ORDER BY price ASC");
         return $stmt->fetchAll();
     }
 
+    /**
+     * Retorna um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @return array
+     */
     public function readOne(int $id): array|false
     {
         $stmt = $this->db->prepare("SELECT * FROM plans WHERE id = :id LIMIT 1");
@@ -37,6 +59,12 @@ class Plan
         return $stmt->fetch();
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     *
+     * @param array $data Dados para processamento
+     * @return string
+     */
     public function create(array $data): string
     {
         $stmt = $this->db->prepare("
@@ -57,6 +85,13 @@ class Plan
         return $this->db->lastInsertId();
     }
 
+    /**
+     * Atualiza um registro existente.
+     *
+     * @param int $id ID do registro
+     * @param array $data Dados para processamento
+     * @return void
+     */
     public function update(int $id, array $data): void
     {
         $stmt = $this->db->prepare("
@@ -86,6 +121,12 @@ class Plan
         ]);
     }
 
+    /**
+     * Remove um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @return bool
+     */
     public function delete(int $id): bool
     {
         $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM tenant_clients WHERE plan_id = :id");

@@ -5,6 +5,9 @@ use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
 
+/**
+ * Model de produtos com suporte a grades e variações.
+ */
 class Product {
     private $conn;
     private $table_name = "products";
@@ -34,10 +37,18 @@ class Product {
         'free_shipping'
     ];
 
+    /**
+     * Construtor da classe Product.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 
+    /**
+     * Retorna todos os registros.
+     */
     function readAll() {
         $query = "SELECT p.*, 
                          c.name AS category_name,
@@ -148,6 +159,11 @@ class Product {
         ];
     }
 
+    /**
+     * Get images.
+     *
+     * @param mixed $productId ID do produto
+     */
     function getImages($productId) {
         $query = "SELECT * FROM product_images WHERE product_id = :product_id ORDER BY is_main DESC, id ASC";
         $stmt = $this->conn->prepare($query);
@@ -156,6 +172,9 @@ class Product {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Count all.
+     */
     function countAll() {
         $query = "SELECT COUNT(*) FROM " . $this->table_name;
         $stmt = $this->conn->prepare($query);
@@ -163,6 +182,11 @@ class Product {
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Create.
+     *
+     * @param mixed $data Dados para processamento
+     */
     function create($data) {
         // Build fiscal columns dynamically
         $fiscalCols = '';
@@ -226,6 +250,13 @@ class Product {
         return false;
     }
 
+    /**
+     * Add image.
+     *
+     * @param mixed $productId ID do produto
+     * @param mixed $imagePath Image path
+     * @param mixed $isMain Is main
+     */
     function addImage($productId, $imagePath, $isMain = 0) {
         $query = "INSERT INTO product_images (product_id, image_path, is_main, created_at) 
                   VALUES (:product_id, :image_path, :is_main, NOW())";
@@ -236,6 +267,11 @@ class Product {
         return $stmt->execute();
     }
 
+    /**
+     * Read one.
+     *
+     * @param mixed $id ID do registro
+     */
     function readOne($id) {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
@@ -244,6 +280,11 @@ class Product {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Update.
+     *
+     * @param mixed $data Dados para processamento
+     */
     function update($data) {
         // Build fiscal SET clause dynamically
         $fiscalSet = '';
@@ -311,6 +352,11 @@ class Product {
         return $result;
     }
 
+    /**
+     * Delete.
+     *
+     * @param mixed $id ID do registro
+     */
     function delete($id) {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);
@@ -322,6 +368,11 @@ class Product {
         return $result;
     }
     
+    /**
+     * Delete image.
+     *
+     * @param mixed $imageId Image id
+     */
     function deleteImage($imageId) {
         $query = "DELETE FROM product_images WHERE id = :id";
         $stmt = $this->conn->prepare($query);
@@ -329,6 +380,11 @@ class Product {
         return $stmt->execute();
     }
 
+    /**
+     * Get image.
+     *
+     * @param mixed $imageId Image id
+     */
     function getImage($imageId) {
         $query = "SELECT * FROM product_images WHERE id = :id";
         $stmt = $this->conn->prepare($query);
@@ -337,6 +393,12 @@ class Product {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
     
+    /**
+     * Set main image.
+     *
+     * @param mixed $productId ID do produto
+     * @param mixed $imageId Image id
+     */
     function setMainImage($productId, $imageId) {
         // Reset all to 0
         $query = "UPDATE product_images SET is_main = 0 WHERE product_id = :product_id";

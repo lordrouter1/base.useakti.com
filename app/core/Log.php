@@ -57,41 +57,97 @@ class Log
 
     // ── Métodos estáticos de conveniência (canal 'general') ──
 
+    /**
+     * Emergency.
+     *
+     * @param string $message Mensagem
+     * @param array $context Contexto adicional
+     * @return void
+     */
     public static function emergency(string $message, array $context = []): void
     {
         (new self())->log(self::EMERGENCY, $message, $context);
     }
 
+    /**
+     * Alert.
+     *
+     * @param string $message Mensagem
+     * @param array $context Contexto adicional
+     * @return void
+     */
     public static function alert(string $message, array $context = []): void
     {
         (new self())->log(self::ALERT, $message, $context);
     }
 
+    /**
+     * Critical.
+     *
+     * @param string $message Mensagem
+     * @param array $context Contexto adicional
+     * @return void
+     */
     public static function critical(string $message, array $context = []): void
     {
         (new self())->log(self::CRITICAL, $message, $context);
     }
 
+    /**
+     * Error.
+     *
+     * @param string $message Mensagem
+     * @param array $context Contexto adicional
+     * @return void
+     */
     public static function error(string $message, array $context = []): void
     {
         (new self())->log(self::ERROR, $message, $context);
     }
 
+    /**
+     * Warning.
+     *
+     * @param string $message Mensagem
+     * @param array $context Contexto adicional
+     * @return void
+     */
     public static function warning(string $message, array $context = []): void
     {
         (new self())->log(self::WARNING, $message, $context);
     }
 
+    /**
+     * Notice.
+     *
+     * @param string $message Mensagem
+     * @param array $context Contexto adicional
+     * @return void
+     */
     public static function notice(string $message, array $context = []): void
     {
         (new self())->log(self::NOTICE, $message, $context);
     }
 
+    /**
+     * Info.
+     *
+     * @param string $message Mensagem
+     * @param array $context Contexto adicional
+     * @return void
+     */
     public static function info(string $message, array $context = []): void
     {
         (new self())->log(self::INFO, $message, $context);
     }
 
+    /**
+     * Debug.
+     *
+     * @param string $message Mensagem
+     * @param array $context Contexto adicional
+     * @return void
+     */
     public static function debug(string $message, array $context = []): void
     {
         (new self())->log(self::DEBUG, $message, $context);

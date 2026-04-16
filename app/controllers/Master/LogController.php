@@ -4,8 +4,15 @@ namespace Akti\Controllers\Master;
 
 use Akti\Models\Master\NginxLog;
 
+/**
+ * Class LogController.
+ */
 class LogController extends MasterBaseController
 {
+    /**
+     * Exibe a página de listagem.
+     * @return void
+     */
     public function index(): void
     {
         $this->requireMasterAuth();
@@ -49,6 +56,10 @@ class LogController extends MasterBaseController
         ));
     }
 
+    /**
+     * Read.
+     * @return void
+     */
     public function read(): void
     {
         $this->requireMasterAuth();
@@ -71,6 +82,10 @@ class LogController extends MasterBaseController
         ]);
     }
 
+    /**
+     * Realiza busca com filtros.
+     * @return void
+     */
     public function search(): void
     {
         $this->requireMasterAuth();
@@ -92,6 +107,10 @@ class LogController extends MasterBaseController
         ]);
     }
 
+    /**
+     * Gera download de arquivo.
+     * @return void
+     */
     public function download(): void
     {
         $this->requireMasterAuth();

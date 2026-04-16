@@ -4,6 +4,9 @@ namespace Akti\Config;
 use PDO;
 use PDOException;
 
+/**
+ * Class TenantManager.
+ */
 class TenantManager
 {
     private static $tenantConfig = null;
@@ -17,6 +20,10 @@ class TenantManager
         return akti_env($name);
     }
 
+    /**
+     * Inicializa o componente.
+     * @return void
+     */
     public static function bootstrap(): void
     {
         if (self::$tenantConfig !== null) {
@@ -64,12 +71,20 @@ class TenantManager
         self::storeTenantSession(self::$tenantConfig, $subdomain, false, null, (int) $tenant['id']);
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return array
+     */
     public static function getTenantConfig(): array
     {
         self::bootstrap();
         return self::$tenantConfig;
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return array
+     */
     private static function getDefaultTenantConfig(): array
     {
         $dbPass = self::env('AKTI_DB_PASS');
@@ -96,6 +111,10 @@ class TenantManager
         ];
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return array
+     */
     public static function getMasterConfig(): array
     {
         $masterPass = self::env('AKTI_MASTER_DB_PASS') ?: self::env('AKTI_DB_PASS');
@@ -116,6 +135,12 @@ class TenantManager
         ];
     }
 
+    /**
+     * Busca registro(s) com critérios específicos.
+     *
+     * @param string $subdomain Subdomain
+     * @return array|null
+     */
     private static function findTenantBySubdomain(string $subdomain): ?array
     {
         $master = self::getMasterConfig();
@@ -150,6 +175,10 @@ class TenantManager
         }
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return string
+     */
     private static function getRequestHost(): string
     {
         if (!isset($_SERVER['HTTP_HOST'])) {
@@ -161,6 +190,12 @@ class TenantManager
         return $host;
     }
 
+    /**
+     * Extract subdomain.
+     *
+     * @param string $host Host
+     * @return string|null
+     */
     private static function extractSubdomain(string $host): ?string
     {
         $baseDomain = self::env('AKTI_BASE_DOMAIN') ?: 'useakti.com';
@@ -184,6 +219,12 @@ class TenantManager
         return null;
     }
 
+    /**
+     * Verifica uma condição booleana.
+     *
+     * @param string $host Host
+     * @return bool
+     */
     private static function isLocalHost(string $host): bool
     {
         if ($host === 'localhost' || $host === '127.0.0.1') {
@@ -193,6 +234,16 @@ class TenantManager
         return filter_var($host, FILTER_VALIDATE_IP) !== false;
     }
 
+    /**
+     * Store tenant session.
+     *
+     * @param array $tenantConfig Tenant config
+     * @param string $tenantKey Tenant key
+     * @param bool $hasError Has error
+     * @param string|null $errorMessage Error message
+     * @param int|null $tenantId ID do tenant
+     * @return void
+     */
     private static function storeTenantSession(array $tenantConfig, string $tenantKey, bool $hasError, ?string $errorMessage = null, ?int $tenantId = null): void
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -227,6 +278,12 @@ class TenantManager
         return 'assets/uploads/' . $safe . '/';
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param string $limitKey Limit key
+     * @return int|null
+     */
     public static function getTenantLimit(string $limitKey): ?int
     {
         self::bootstrap();
@@ -242,6 +299,10 @@ class TenantManager
         return (int) $value;
     }
 
+    /**
+     * Enforce tenant session.
+     * @return void
+     */
     public static function enforceTenantSession(): void
     {
         self::bootstrap();
@@ -265,5 +326,8 @@ class TenantManager
 
 // Backward compatibility — permite usar TenantManager sem namespace
 if (!class_exists('TenantManager', false)) {
+/**
+ * Class Unknown.
+ */
     class_alias(\Akti\Config\TenantManager::class, 'TenantManager');
 }

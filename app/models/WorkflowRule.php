@@ -4,15 +4,27 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de regras de workflow automatizado.
+ */
 class WorkflowRule
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe WorkflowRule.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Retorna todos os registros.
+     * @return array
+     */
     public function readAll(): array
     {
         $stmt = $this->conn->prepare(
@@ -22,6 +34,10 @@ class WorkflowRule
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Read active.
+     * @return array
+     */
     public function readActive(): array
     {
         $stmt = $this->conn->prepare(
@@ -31,6 +47,12 @@ class WorkflowRule
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Read by event.
+     *
+     * @param string $event Event
+     * @return array
+     */
     public function readByEvent(string $event): array
     {
         $stmt = $this->conn->prepare(
@@ -40,6 +62,12 @@ class WorkflowRule
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Retorna um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @return array|null
+     */
     public function readOne(int $id): ?array
     {
         $stmt = $this->conn->prepare("SELECT * FROM workflow_rules WHERE id = :id");
@@ -48,6 +76,12 @@ class WorkflowRule
         return $row ?: null;
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -68,6 +102,13 @@ class WorkflowRule
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Atualiza um registro existente.
+     *
+     * @param int $id ID do registro
+     * @param array $data Dados para processamento
+     * @return bool
+     */
     public function update(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -89,12 +130,24 @@ class WorkflowRule
         ]);
     }
 
+    /**
+     * Remove um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @return bool
+     */
     public function delete(int $id): bool
     {
         $stmt = $this->conn->prepare("DELETE FROM workflow_rules WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
 
+    /**
+     * Alterna estado de propriedade.
+     *
+     * @param int $id ID do registro
+     * @return bool
+     */
     public function toggle(int $id): bool
     {
         $stmt = $this->conn->prepare(
@@ -103,6 +156,12 @@ class WorkflowRule
         return $stmt->execute([':id' => $id]);
     }
 
+    /**
+     * Registra informação no log.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function logExecution(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -128,6 +187,13 @@ class WorkflowRule
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $ruleId Rule id
+     * @param int $limit Limite de registros
+     * @return array
+     */
     public function getLogs(int $ruleId, int $limit = 50): array
     {
         $stmt = $this->conn->prepare(
@@ -139,6 +205,13 @@ class WorkflowRule
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Update priority.
+     *
+     * @param int $id ID do registro
+     * @param int $priority Priority
+     * @return bool
+     */
     public function updatePriority(int $id, int $priority): bool
     {
         $stmt = $this->conn->prepare(

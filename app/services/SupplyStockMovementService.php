@@ -8,6 +8,9 @@ use Akti\Models\Logger;
 use Akti\Utils\Sanitizer;
 use PDO;
 
+/**
+ * Class SupplyStockMovementService.
+ */
 class SupplyStockMovementService
 {
     private PDO $db;
@@ -22,6 +25,14 @@ class SupplyStockMovementService
         'transferencia' => 'Transferência',
     ];
 
+    /**
+     * Construtor da classe SupplyStockMovementService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param SupplyStock $stockModel Stock model
+     * @param Supply $supplyModel Supply model
+     * @param Logger $logger Logger
+     */
     public function __construct(PDO $db, SupplyStock $stockModel, Supply $supplyModel, Logger $logger)
     {
         $this->db = $db;
@@ -349,6 +360,14 @@ class SupplyStockMovementService
 
     // ──── Métodos auxiliares ────
 
+ /**
+  * Validate sufficient stock.
+  *
+  * @param int $warehouseId Warehouse id
+  * @param int $supplyId Supply id
+  * @param float $quantity Quantidade
+  * @return bool
+  */
     public function validateSufficientStock(int $warehouseId, int $supplyId, float $quantity): bool
     {
         $batches = $this->stockModel->getBatchesBySupply($supplyId, $warehouseId);
@@ -359,6 +378,15 @@ class SupplyStockMovementService
         return $total >= $quantity;
     }
 
+ /**
+  * Calculate weighted average cost.
+  *
+  * @param float $currentStock Current stock
+  * @param float $currentCost Current cost
+  * @param float $newQty New qty
+  * @param float $newPrice New price
+  * @return float
+  */
     public function calculateWeightedAverageCost(float $currentStock, float $currentCost, float $newQty, float $newPrice): float
     {
         $totalQty = $currentStock + $newQty;
@@ -368,6 +396,10 @@ class SupplyStockMovementService
         return (($currentStock * $currentCost) + ($newQty * $newPrice)) / $totalQty;
     }
 
+ /**
+  * Check reorder alerts.
+  * @return array
+  */
     public function checkReorderAlerts(): array
     {
         $reorderItems = $this->stockModel->getReorderItems();

@@ -14,6 +14,9 @@ use Akti\Core\Container;
 $container = new Container();
 
 // ── PDO como singleton (via Database existente) ──
+/**
+ * Class Unknown.
+ */
 $container->singleton(\PDO::class, function () {
     return \Database::getInstance();
 });

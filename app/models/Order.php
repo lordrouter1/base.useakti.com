@@ -5,6 +5,9 @@ use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 use PDO;
 
+/**
+ * Model de pedidos/ordens de serviço.
+ */
 class Order {
     private $conn;
     private $table_name = "orders";
@@ -26,10 +29,21 @@ class Order {
         'quote_notes', 'scheduled_date', 'created_at',
     ];
 
+    /**
+     * Construtor da classe Order.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 
+    /**
+     * __get.
+     *
+     * @param string $name Nome
+     * @return mixed
+     */
     public function __get(string $name): mixed {
         if (in_array($name, self::$fillable, true)) {
             return $this->$name ?? null;
@@ -38,6 +52,13 @@ class Order {
         return null;
     }
 
+    /**
+     * __set.
+     *
+     * @param string $name Nome
+     * @param mixed $value Valor
+     * @return void
+     */
     public function __set(string $name, mixed $value): void {
         if (in_array($name, self::$fillable, true)) {
             $this->$name = $value;
@@ -46,6 +67,9 @@ class Order {
         trigger_error("Undefined property: Order::\$$name", E_USER_NOTICE);
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create() {
         $query = "INSERT INTO " . $this->table_name . " 
                   (customer_id, total_amount, status, pipeline_stage, pipeline_entered_at, priority, internal_notes, scheduled_date, created_at) 
@@ -120,6 +144,10 @@ class Order {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Retorna todos os registros.
+     * @return array
+     */
     public function readAll(): array {
         $query = "SELECT o.id, o.total_amount, o.status, o.pipeline_stage, o.priority, 
                          o.deadline, o.payment_status, o.created_at, o.customer_approval_status,
@@ -155,6 +183,11 @@ class Order {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Read one.
+  *
+  * @param mixed $id ID do registro
+  */
     public function readOne($id) {
         $query = "SELECT o.*, c.name as customer_name, c.phone as customer_phone, 
                          c.document as customer_document, c.email as customer_email, 
@@ -168,6 +201,9 @@ class Order {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Update.
+  */
     public function update() {
         $query = "UPDATE " . $this->table_name . " 
                   SET customer_id = :customer_id, total_amount = :total_amount, status = :status 
@@ -189,6 +225,11 @@ class Order {
         return $result;
     }
 
+ /**
+  * Delete.
+  *
+  * @param mixed $id ID do registro
+  */
     public function delete($id) {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);

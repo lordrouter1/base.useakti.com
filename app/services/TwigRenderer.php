@@ -15,6 +15,11 @@ class TwigRenderer
 {
     private Environment $twig;
 
+    /**
+     * Construtor da classe TwigRenderer.
+     *
+     * @param string $basePath Caminho base da aplicação
+     */
     public function __construct(string $basePath)
     {
         $loader = new FilesystemLoader([

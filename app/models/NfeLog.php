@@ -16,6 +16,11 @@ class NfeLog
     private $conn;
     private $table = 'nfe_logs';
 
+    /**
+     * Construtor da classe NfeLog.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->conn = $db;

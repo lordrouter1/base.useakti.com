@@ -4,15 +4,29 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de remessas/entregas.
+ */
 class Shipment
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe Shipment.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare("
@@ -32,6 +46,13 @@ class Shipment
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Retorna todos os registros.
+     *
+     * @param int $tenantId ID do tenant
+     * @param array $filters Filtros aplicados
+     * @return array
+     */
     public function readAll(int $tenantId, array $filters = []): array
     {
         $where = 's.tenant_id = :tid';
@@ -53,6 +74,15 @@ class Shipment
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Read paginated.
+  *
+  * @param int $tenantId ID do tenant
+  * @param int $page Número da página
+  * @param int $perPage Registros por página
+  * @param array $filters Filtros aplicados
+  * @return array
+  */
     public function readPaginated(int $tenantId, int $page = 1, int $perPage = 15, array $filters = []): array
     {
         $where = 's.tenant_id = :tid';
@@ -96,6 +126,13 @@ class Shipment
         ];
     }
 
+ /**
+  * Read one.
+  *
+  * @param int $id ID do registro
+  * @param int $tenantId ID do tenant
+  * @return array|null
+  */
     public function readOne(int $id, int $tenantId): ?array
     {
         $stmt = $this->conn->prepare("
@@ -108,6 +145,13 @@ class Shipment
         return $row ?: null;
     }
 
+ /**
+  * Read by order.
+  *
+  * @param int $orderId ID do pedido
+  * @param int $tenantId ID do tenant
+  * @return array|null
+  */
     public function readByOrder(int $orderId, int $tenantId): ?array
     {
         $stmt = $this->conn->prepare("
@@ -121,6 +165,14 @@ class Shipment
         return $row ?: null;
     }
 
+ /**
+  * Update.
+  *
+  * @param int $id ID do registro
+  * @param int $tenantId ID do tenant
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function update(int $id, int $tenantId, array $data): bool
     {
         $stmt = $this->conn->prepare("
@@ -139,6 +191,14 @@ class Shipment
         ]);
     }
 
+ /**
+  * Update status.
+  *
+  * @param int $id ID do registro
+  * @param int $tenantId ID do tenant
+  * @param string $status Status do registro
+  * @return bool
+  */
     public function updateStatus(int $id, int $tenantId, string $status): bool
     {
         $extra = '';
@@ -151,6 +211,12 @@ class Shipment
         return $stmt->execute([':status' => $status, ':id' => $id, ':tid' => $tenantId]);
     }
 
+ /**
+  * Add event.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function addEvent(array $data): int
     {
         $stmt = $this->conn->prepare("
@@ -168,6 +234,13 @@ class Shipment
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Get events.
+  *
+  * @param int $shipmentId Shipment id
+  * @param int $tenantId ID do tenant
+  * @return array
+  */
     public function getEvents(int $shipmentId, int $tenantId): array
     {
         $stmt = $this->conn->prepare("
@@ -177,6 +250,12 @@ class Shipment
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get carriers.
+  *
+  * @param int $tenantId ID do tenant
+  * @return array
+  */
     public function getCarriers(int $tenantId): array
     {
         $stmt = $this->conn->prepare("SELECT * FROM carriers WHERE tenant_id = :tid AND is_active = 1 ORDER BY name");
@@ -184,6 +263,12 @@ class Shipment
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Save carrier.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function saveCarrier(array $data): int
     {
         if (!empty($data['id'])) {
@@ -215,6 +300,12 @@ class Shipment
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Get dashboard stats.
+  *
+  * @param int $tenantId ID do tenant
+  * @return array
+  */
     public function getDashboardStats(int $tenantId): array
     {
         $stmt = $this->conn->prepare("

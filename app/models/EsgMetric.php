@@ -4,15 +4,29 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de métricas ESG (Environmental, Social, Governance).
+ */
 class EsgMetric
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe EsgMetric.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare("
@@ -29,6 +43,12 @@ class EsgMetric
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Retorna todos os registros.
+     *
+     * @param int $tenantId ID do tenant
+     * @return array
+     */
     public function readAll(int $tenantId): array
     {
         $stmt = $this->conn->prepare("SELECT * FROM esg_metrics WHERE tenant_id = :tid AND is_active = 1 ORDER BY category, name");
@@ -36,6 +56,13 @@ class EsgMetric
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Retorna um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @param int $tenantId ID do tenant
+     * @return array|null
+     */
     public function readOne(int $id, int $tenantId): ?array
     {
         $stmt = $this->conn->prepare("SELECT * FROM esg_metrics WHERE id = :id AND tenant_id = :tid");
@@ -44,6 +71,14 @@ class EsgMetric
         return $row ?: null;
     }
 
+    /**
+     * Atualiza um registro existente.
+     *
+     * @param int $id ID do registro
+     * @param int $tenantId ID do tenant
+     * @param array $data Dados para processamento
+     * @return bool
+     */
     public function update(int $id, int $tenantId, array $data): bool
     {
         $stmt = $this->conn->prepare("
@@ -60,12 +95,25 @@ class EsgMetric
         ]);
     }
 
+    /**
+     * Remove um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @param int $tenantId ID do tenant
+     * @return bool
+     */
     public function delete(int $id, int $tenantId): bool
     {
         $stmt = $this->conn->prepare("UPDATE esg_metrics SET is_active = 0 WHERE id = :id AND tenant_id = :tid");
         return $stmt->execute([':id' => $id, ':tid' => $tenantId]);
     }
 
+    /**
+     * Add record.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function addRecord(array $data): int
     {
         $stmt = $this->conn->prepare("
@@ -84,6 +132,13 @@ class EsgMetric
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $tenantId ID do tenant
+     * @param array $filters Filtros aplicados
+     * @return array
+     */
     public function getRecords(int $tenantId, array $filters = []): array
     {
         $where = 'er.tenant_id = :tid';
@@ -118,6 +173,12 @@ class EsgMetric
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Save target.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function saveTarget(array $data): int
     {
         if (!empty($data['id'])) {
@@ -148,6 +209,12 @@ class EsgMetric
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Get targets.
+  *
+  * @param int $tenantId ID do tenant
+  * @return array
+  */
     public function getTargets(int $tenantId): array
     {
         $stmt = $this->conn->prepare("
@@ -161,6 +228,12 @@ class EsgMetric
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get dashboard summary.
+  *
+  * @param int $tenantId ID do tenant
+  * @return array
+  */
     public function getDashboardSummary(int $tenantId): array
     {
         $stmt = $this->conn->prepare("

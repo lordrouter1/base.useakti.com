@@ -12,6 +12,11 @@ class PortalCartService
 {
     private PortalAccess $portalAccess;
 
+    /**
+     * Construtor da classe PortalCartService.
+     *
+     * @param PortalAccess $portalAccess Portal access
+     */
     public function __construct(PortalAccess $portalAccess)
     {
         $this->portalAccess = $portalAccess;

@@ -4,12 +4,20 @@ namespace Akti\Controllers\Master;
 
 use Akti\Models\Master\AdminUser;
 
+/**
+ * Class AdminController.
+ */
 class AdminController extends MasterBaseController
 {
     private AdminUser $adminModel;
 
     private const VALID_ROLES = ['superadmin', 'operator', 'viewer'];
 
+    /**
+     * Construtor da classe AdminController.
+     *
+     * @param \PDO|null $db Conexão PDO com o banco de dados
+     */
     public function __construct(?\PDO $db = null)
     {
         parent::__construct($db);
@@ -36,6 +44,10 @@ class AdminController extends MasterBaseController
         }
     }
 
+    /**
+     * Exibe a página de listagem.
+     * @return void
+     */
     public function index(): void
     {
         $this->requireMasterAuth();
@@ -51,6 +63,10 @@ class AdminController extends MasterBaseController
         $this->renderMaster('admins/index', compact('admins', 'roleLabels'));
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     * @return void
+     */
     public function create(): void
     {
         $this->requireMasterAuth();
@@ -60,6 +76,10 @@ class AdminController extends MasterBaseController
         $this->renderMaster('admins/create', compact('roles'));
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     * @return void
+     */
     public function store(): void
     {
         $this->requireMasterAuth();
@@ -113,6 +133,10 @@ class AdminController extends MasterBaseController
         $this->redirect('?page=master_admins');
     }
 
+ /**
+  * Edit.
+  * @return void
+  */
     public function edit(): void
     {
         $this->requireMasterAuth();
@@ -133,6 +157,10 @@ class AdminController extends MasterBaseController
         $this->renderMaster('admins/edit', compact('admin', 'roles'));
     }
 
+ /**
+  * Update.
+  * @return void
+  */
     public function update(): void
     {
         $this->requireMasterAuth();
@@ -209,6 +237,10 @@ class AdminController extends MasterBaseController
         $this->redirect('?page=master_admins');
     }
 
+ /**
+  * Delete.
+  * @return void
+  */
     public function delete(): void
     {
         $this->requireMasterAuth();

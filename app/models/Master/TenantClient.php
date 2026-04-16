@@ -5,15 +5,27 @@ namespace Akti\Models\Master;
 use PDO;
 use PDOException;
 
+/**
+ * Model de clientes/tenants do sistema multi-tenant.
+ */
 class TenantClient
 {
     private $db;
 
+    /**
+     * Construtor da classe TenantClient.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;
     }
 
+    /**
+     * Retorna todos os registros.
+     * @return array
+     */
     public function readAll(): array
     {
         $stmt = $this->db->query("
@@ -25,6 +37,12 @@ class TenantClient
         return $stmt->fetchAll();
     }
 
+    /**
+     * Retorna um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @return array
+     */
     public function readOne(int $id): array|false
     {
         $stmt = $this->db->prepare("
@@ -37,6 +55,12 @@ class TenantClient
         return $stmt->fetch();
     }
 
+    /**
+     * Busca registro(s) com critérios específicos.
+     *
+     * @param string $subdomain Subdomain
+     * @return array
+     */
     public function findBySubdomain(string $subdomain): array|false
     {
         $stmt = $this->db->prepare("SELECT * FROM tenant_clients WHERE subdomain = :subdomain LIMIT 1");
@@ -44,6 +68,12 @@ class TenantClient
         return $stmt->fetch();
     }
 
+    /**
+     * Busca registro(s) com critérios específicos.
+     *
+     * @param string $dbName Db name
+     * @return array
+     */
     public function findByDbName(string $dbName): array|false
     {
         $stmt = $this->db->prepare("SELECT * FROM tenant_clients WHERE db_name = :db_name LIMIT 1");
@@ -51,6 +81,12 @@ class TenantClient
         return $stmt->fetch();
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     *
+     * @param array $data Dados para processamento
+     * @return string
+     */
     public function create(array $data): string
     {
         $stmt = $this->db->prepare("
@@ -77,6 +113,13 @@ class TenantClient
         return $this->db->lastInsertId();
     }
 
+    /**
+     * Atualiza um registro existente.
+     *
+     * @param int $id ID do registro
+     * @param array $data Dados para processamento
+     * @return void
+     */
     public function update(int $id, array $data): void
     {
         $stmt = $this->db->prepare("
@@ -118,6 +161,13 @@ class TenantClient
         ]);
     }
 
+    /**
+     * Update limits from plan.
+     *
+     * @param int $clientId Client id
+     * @param array $plan Plan
+     * @return void
+     */
     public function updateLimitsFromPlan(int $clientId, array $plan): void
     {
         $stmt = $this->db->prepare("
@@ -141,18 +191,34 @@ class TenantClient
         ]);
     }
 
+    /**
+     * Alterna estado de propriedade.
+     *
+     * @param int $id ID do registro
+     * @return void
+     */
     public function toggleActive(int $id): void
     {
         $stmt = $this->db->prepare("UPDATE tenant_clients SET is_active = NOT is_active WHERE id = :id");
         $stmt->execute(['id' => $id]);
     }
 
+    /**
+     * Remove um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @return void
+     */
     public function delete(int $id): void
     {
         $stmt = $this->db->prepare("DELETE FROM tenant_clients WHERE id = :id");
         $stmt->execute(['id' => $id]);
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return array
+     */
     public function getStats(): array
     {
         $stats = [];
@@ -184,6 +250,17 @@ class TenantClient
         return $stats;
     }
 
+    /**
+     * Provision database.
+     *
+     * @param string $dbHost Db host
+     * @param int $dbPort Db port
+     * @param string $dbName Db name
+     * @param string $dbUser Db user
+     * @param string $dbPassword Db password
+     * @param string $dbCharset Db charset
+     * @return array
+     */
     public function provisionDatabase(string $dbHost, int $dbPort, string $dbName, string $dbUser, string $dbPassword, string $dbCharset = 'utf8mb4'): array
     {
         // Validar identificadores SQL para prevenir injeção
@@ -289,6 +366,15 @@ class TenantClient
         }
     }
 
+ /**
+  * Drop database.
+  *
+  * @param string $dbHost Db host
+  * @param int $dbPort Db port
+  * @param string $dbName Db name
+  * @param string $dbUser Db user
+  * @return array
+  */
     public function dropDatabase(string $dbHost, int $dbPort, string $dbName, string $dbUser): array
     {
         $masterConfig = \Database::getMasterCredentials();
@@ -314,6 +400,18 @@ class TenantClient
         }
     }
 
+ /**
+  * Create tenant user.
+  *
+  * @param string $dbHost Db host
+  * @param int $dbPort Db port
+  * @param string $dbName Db name
+  * @param string $dbUser Db user
+  * @param string $dbPassword Db password
+  * @param string $dbCharset Db charset
+  * @param array $userData User data
+  * @return array
+  */
     public function createTenantUser(string $dbHost, int $dbPort, string $dbName, string $dbUser, string $dbPassword, string $dbCharset, array $userData): array
     {
         try {
@@ -353,6 +451,17 @@ class TenantClient
         }
     }
 
+ /**
+  * Connect to.
+  *
+  * @param string $host Host
+  * @param int $port Port
+  * @param string $user User
+  * @param string $pass Pass
+  * @param string|null $dbname Dbname
+  * @param string $charset Charset
+  * @return PDO
+  */
     public static function connectTo(string $host, int $port, string $user, string $pass, ?string $dbname = null, string $charset = 'utf8mb4'): PDO
     {
         $dsn = "mysql:host={$host};port={$port};charset={$charset}";
@@ -366,6 +475,12 @@ class TenantClient
         ]);
     }
 
+ /**
+  * Find mysql binary.
+  *
+  * @param string $name Nome
+  * @return string
+  */
     private static function findMysqlBinary(string $name): string
     {
         if (PHP_OS_FAMILY === 'Windows') {

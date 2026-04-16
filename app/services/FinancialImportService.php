@@ -19,6 +19,12 @@ class FinancialImportService
     private Financial $financial;
     private PDO $db;
 
+    /**
+     * Construtor da classe FinancialImportService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param Financial $financial Financial
+     */
     public function __construct(PDO $db, Financial $financial)
     {
         $this->db = $db;

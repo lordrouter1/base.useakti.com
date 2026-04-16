@@ -5,15 +5,27 @@ namespace Akti\Controllers;
 use Akti\Models\CalendarEvent;
 use Akti\Utils\Input;
 
+/**
+ * Class CalendarController.
+ */
 class CalendarController extends BaseController {
     private CalendarEvent $model;
 
+    /**
+     * Construtor da classe CalendarController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param CalendarEvent $model Model
+     */
     public function __construct(\PDO $db, CalendarEvent $model)
     {
         $this->db = $db;
         $this->model = $model;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $upcoming = $this->model->getUpcoming($_SESSION['user_id'] ?? 0, 10);
@@ -23,6 +35,9 @@ class CalendarController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Events.
+     */
     public function events()
     {
         $start = Input::get('start', 'string', date('Y-m-01'));
@@ -53,6 +68,9 @@ class CalendarController extends BaseController {
         $this->json($formatted);
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $data = [
@@ -74,6 +92,9 @@ class CalendarController extends BaseController {
         $this->json(['success' => true, 'id' => $id]);
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         $id = Input::post('id', 'int', 0);
@@ -95,6 +116,9 @@ class CalendarController extends BaseController {
         $this->json(['success' => true]);
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $id = Input::get('id', 'int', 0);
@@ -104,6 +128,9 @@ class CalendarController extends BaseController {
         $this->json(['success' => true]);
     }
 
+    /**
+     * Sincroniza dados.
+     */
     public function sync()
     {
         $tenantId = $_SESSION['tenant']['id'] ?? 0;

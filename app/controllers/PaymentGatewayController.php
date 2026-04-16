@@ -21,6 +21,12 @@ use TenantManager;
 class PaymentGatewayController extends BaseController {
     private PaymentGateway $gatewayModel;
 
+    /**
+     * Construtor da classe PaymentGatewayController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param PaymentGateway $gatewayModel Gateway model
+     */
     public function __construct(\PDO $db, PaymentGateway $gatewayModel)
     {
         $this->db = $db;

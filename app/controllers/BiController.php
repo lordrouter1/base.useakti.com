@@ -5,16 +5,28 @@ namespace Akti\Controllers;
 use Akti\Services\BiService;
 use Akti\Utils\Input;
 
+/**
+ * Class BiController.
+ */
 class BiController extends BaseController
 {
     private BiService $biService;
 
+    /**
+     * Construtor da classe BiController.
+     *
+     * @param \PDO|null $db Conexão PDO com o banco de dados
+     */
     public function __construct(?\PDO $db = null)
     {
         parent::__construct($db);
         $this->biService = new BiService($this->db);
     }
 
+    /**
+     * Exibe a página de listagem.
+     * @return void
+     */
     public function index(): void
     {
         $this->requireAuth();
@@ -34,6 +46,10 @@ class BiController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Drill down.
+     * @return void
+     */
     public function drillDown(): void
     {
         $this->requireAuth();
@@ -52,6 +68,10 @@ class BiController extends BaseController
         $this->json(['success' => true, 'data' => $data, 'type' => $type]);
     }
 
+    /**
+     * Exporta dados.
+     * @return void
+     */
     public function exportPdf(): void
     {
         $this->requireAuth();

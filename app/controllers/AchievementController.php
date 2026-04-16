@@ -5,16 +5,27 @@ namespace Akti\Controllers;
 use Akti\Models\Achievement;
 use Akti\Utils\Input;
 
+/**
+ * Class AchievementController.
+ */
 class AchievementController extends BaseController
 {
     private Achievement $achievementModel;
 
+    /**
+     * Construtor da classe AchievementController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         parent::__construct($db);
         $this->achievementModel = new Achievement($db);
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $this->requireAuth();
@@ -26,6 +37,9 @@ class AchievementController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $this->requireAuth();
@@ -36,6 +50,9 @@ class AchievementController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $this->requireAuth();
@@ -61,6 +78,9 @@ class AchievementController extends BaseController
         header('Location: ?page=achievements');
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit()
     {
         $this->requireAuth();
@@ -77,6 +97,9 @@ class AchievementController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         $this->requireAuth();
@@ -96,6 +119,9 @@ class AchievementController extends BaseController
         header('Location: ?page=achievements');
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $this->requireAuth();
@@ -105,6 +131,9 @@ class AchievementController extends BaseController
         header('Location: ?page=achievements');
     }
 
+    /**
+     * Leaderboard.
+     */
     public function leaderboard()
     {
         $this->requireAuth();
@@ -118,6 +147,9 @@ class AchievementController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Award.
+     */
     public function award()
     {
         $this->requireAuth();

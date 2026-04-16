@@ -27,6 +27,12 @@ class PortalAvatarService
     /** @var string Diretório base de upload */
     private const UPLOAD_DIR = 'assets/uploads/portal/avatars/';
 
+    /**
+     * Construtor da classe PortalAvatarService.
+     *
+     * @param PortalAccess $portalAccess Portal access
+     * @param Logger $logger Logger
+     */
     public function __construct(PortalAccess $portalAccess, Logger $logger)
     {
         $this->portalAccess = $portalAccess;

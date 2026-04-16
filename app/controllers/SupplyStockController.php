@@ -8,6 +8,9 @@ use Akti\Models\Logger;
 use Akti\Services\SupplyStockMovementService;
 use Akti\Utils\Input;
 
+/**
+ * Class SupplyStockController.
+ */
 class SupplyStockController extends BaseController
 {
     private SupplyStock $stockModel;
@@ -15,6 +18,15 @@ class SupplyStockController extends BaseController
     private Logger $logger;
     private SupplyStockMovementService $movementService;
 
+    /**
+     * Construtor da classe SupplyStockController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param SupplyStock $stockModel Stock model
+     * @param Supply $supplyModel Supply model
+     * @param Logger $logger Logger
+     * @param SupplyStockMovementService $movementService Movement service
+     */
     public function __construct(
         \PDO $db,
         SupplyStock $stockModel,
@@ -31,6 +43,10 @@ class SupplyStockController extends BaseController
 
     // ──── Página principal ────
 
+    /**
+     * Exibe a página de listagem.
+     * @return void
+     */
     public function index(): void
     {
         $warehouseId = Input::get('warehouse_id', 'int');
@@ -49,6 +65,10 @@ class SupplyStockController extends BaseController
 
     // ──── Entrada ────
 
+    /**
+     * Entry.
+     * @return void
+     */
     public function entry(): void
     {
         $warehouses = $this->stockModel->getWarehouses();
@@ -58,6 +78,10 @@ class SupplyStockController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Store entry.
+     * @return void
+     */
     public function storeEntry(): void
     {
         header('Content-Type: application/json');
@@ -78,6 +102,10 @@ class SupplyStockController extends BaseController
 
     // ──── Saída ────
 
+    /**
+     * .
+     * @return void
+     */
     public function exit(): void
     {
         $warehouses = $this->stockModel->getWarehouses();
@@ -87,6 +115,10 @@ class SupplyStockController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Store exit.
+     * @return void
+     */
     public function storeExit(): void
     {
         header('Content-Type: application/json');
@@ -107,6 +139,10 @@ class SupplyStockController extends BaseController
 
     // ──── Transferência ────
 
+    /**
+     * Transfer.
+     * @return void
+     */
     public function transfer(): void
     {
         $warehouses = $this->stockModel->getWarehouses();
@@ -116,6 +152,10 @@ class SupplyStockController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Store transfer.
+     * @return void
+     */
     public function storeTransfer(): void
     {
         header('Content-Type: application/json');
@@ -137,6 +177,10 @@ class SupplyStockController extends BaseController
 
     // ──── Ajuste ────
 
+    /**
+     * Adjust.
+     * @return void
+     */
     public function adjust(): void
     {
         $warehouses = $this->stockModel->getWarehouses();
@@ -146,6 +190,10 @@ class SupplyStockController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Store adjust.
+     * @return void
+     */
     public function storeAdjust(): void
     {
         header('Content-Type: application/json');
@@ -166,6 +214,10 @@ class SupplyStockController extends BaseController
 
     // ──── Movimentações (listagem paginada via AJAX) ────
 
+    /**
+     * Move registro de posição.
+     * @return void
+     */
     public function movements(): void
     {
         if (Input::get('format') === 'json') {
@@ -180,6 +232,10 @@ class SupplyStockController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return void
+     */
     private function getMovementsJson(): void
     {
         header('Content-Type: application/json');
@@ -208,6 +264,10 @@ class SupplyStockController extends BaseController
 
     // ──── AJAX helpers ────
 
+    /**
+     * Search supplies.
+     * @return void
+     */
     public function searchSupplies(): void
     {
         header('Content-Type: application/json');
@@ -216,6 +276,10 @@ class SupplyStockController extends BaseController
         $this->json(['results' => $results]);
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return void
+     */
     public function getStockInfo(): void
     {
         header('Content-Type: application/json');
@@ -238,6 +302,10 @@ class SupplyStockController extends BaseController
         ]);
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return void
+     */
     public function getBatches(): void
     {
         header('Content-Type: application/json');
@@ -248,6 +316,10 @@ class SupplyStockController extends BaseController
         $this->json(['success' => true, 'batches' => $batches]);
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return void
+     */
     public function getStockItems(): void
     {
         header('Content-Type: application/json');
@@ -274,6 +346,10 @@ class SupplyStockController extends BaseController
 
     // ──── MRP / Reorder (Fase 8) ────
 
+    /**
+     * Reordena registros.
+     * @return void
+     */
     public function reorderSuggestions(): void
     {
         header('Content-Type: application/json');
@@ -283,6 +359,10 @@ class SupplyStockController extends BaseController
 
     // ──── Dashboard KPIs ────
 
+    /**
+     * Obtém dados específicos.
+     * @return void
+     */
     public function getDashboard(): void
     {
         header('Content-Type: application/json');

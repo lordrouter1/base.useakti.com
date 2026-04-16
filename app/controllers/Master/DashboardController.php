@@ -5,8 +5,15 @@ namespace Akti\Controllers\Master;
 use Akti\Models\Master\TenantClient;
 use Akti\Models\Master\AdminLog;
 
+/**
+ * Class DashboardController.
+ */
 class DashboardController extends MasterBaseController
 {
+    /**
+     * Exibe a página de listagem.
+     * @return void
+     */
     public function index(): void
     {
         $this->requireMasterAuth();

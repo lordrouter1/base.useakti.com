@@ -13,6 +13,11 @@ class Transaction
 {
     private $conn;
 
+    /**
+     * Construtor da classe Transaction.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->conn = $db;

@@ -4,15 +4,29 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de tickets de suporte.
+ */
 class Ticket
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe Ticket.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function create(array $data): int
     {
         $data['ticket_number'] = $this->generateTicketNumber($data['tenant_id']);
@@ -38,6 +52,12 @@ class Ticket
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Retorna todos os registros.
+     *
+     * @param int $tenantId ID do tenant
+     * @return array
+     */
     public function readAll(int $tenantId): array
     {
         $stmt = $this->conn->prepare("
@@ -53,6 +73,15 @@ class Ticket
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Read paginated.
+     *
+     * @param int $tenantId ID do tenant
+     * @param int $page Número da página
+     * @param int $perPage Registros por página
+     * @param array $filters Filtros aplicados
+     * @return array
+     */
     public function readPaginated(int $tenantId, int $page = 1, int $perPage = 20, array $filters = []): array
     {
         $where = 't.tenant_id = :tid AND t.deleted_at IS NULL';
@@ -106,6 +135,13 @@ class Ticket
         ];
     }
 
+ /**
+  * Read one.
+  *
+  * @param int $id ID do registro
+  * @param int $tenantId ID do tenant
+  * @return array|null
+  */
     public function readOne(int $id, int $tenantId): ?array
     {
         $stmt = $this->conn->prepare("
@@ -122,6 +158,14 @@ class Ticket
         return $row ?: null;
     }
 
+ /**
+  * Update.
+  *
+  * @param int $id ID do registro
+  * @param int $tenantId ID do tenant
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function update(int $id, int $tenantId, array $data): bool
     {
         $stmt = $this->conn->prepare("
@@ -140,6 +184,14 @@ class Ticket
         ]);
     }
 
+ /**
+  * Update status.
+  *
+  * @param int $id ID do registro
+  * @param int $tenantId ID do tenant
+  * @param string $status Status do registro
+  * @return bool
+  */
     public function updateStatus(int $id, int $tenantId, string $status): bool
     {
         $extra = '';
@@ -152,12 +204,26 @@ class Ticket
         return $stmt->execute([':status' => $status, ':id' => $id, ':tid' => $tenantId]);
     }
 
+ /**
+  * Delete.
+  *
+  * @param int $id ID do registro
+  * @param int $tenantId ID do tenant
+  * @return bool
+  */
     public function delete(int $id, int $tenantId): bool
     {
         $stmt = $this->conn->prepare("UPDATE tickets SET deleted_at = NOW() WHERE id = :id AND tenant_id = :tid");
         return $stmt->execute([':id' => $id, ':tid' => $tenantId]);
     }
 
+ /**
+  * Get messages.
+  *
+  * @param int $ticketId Ticket id
+  * @param int $tenantId ID do tenant
+  * @return array
+  */
     public function getMessages(int $ticketId, int $tenantId): array
     {
         $stmt = $this->conn->prepare("
@@ -172,6 +238,12 @@ class Ticket
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Add message.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function addMessage(array $data): int
     {
         $stmt = $this->conn->prepare("
@@ -195,6 +267,12 @@ class Ticket
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Get categories.
+  *
+  * @param int $tenantId ID do tenant
+  * @return array
+  */
     public function getCategories(int $tenantId): array
     {
         $stmt = $this->conn->prepare("SELECT * FROM ticket_categories WHERE tenant_id = :tid AND is_active = 1 ORDER BY name");
@@ -202,6 +280,12 @@ class Ticket
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get dashboard stats.
+  *
+  * @param int $tenantId ID do tenant
+  * @return array
+  */
     public function getDashboardStats(int $tenantId): array
     {
         $stmt = $this->conn->prepare("
@@ -220,6 +304,12 @@ class Ticket
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
     }
 
+ /**
+  * Generate ticket number.
+  *
+  * @param int $tenantId ID do tenant
+  * @return string
+  */
     private function generateTicketNumber(int $tenantId): string
     {
         $stmt = $this->conn->prepare("SELECT COUNT(*) + 1 FROM tickets WHERE tenant_id = :tid");

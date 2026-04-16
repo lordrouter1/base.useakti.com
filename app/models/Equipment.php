@@ -4,15 +4,29 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de equipamentos/máquinas de produção.
+ */
 class Equipment
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe Equipment.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare("
@@ -37,6 +51,12 @@ class Equipment
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Retorna todos os registros.
+     *
+     * @param int $tenantId ID do tenant
+     * @return array
+     */
     public function readAll(int $tenantId): array
     {
         $stmt = $this->conn->prepare("
@@ -50,6 +70,15 @@ class Equipment
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Read paginated.
+     *
+     * @param int $tenantId ID do tenant
+     * @param int $page Número da página
+     * @param int $perPage Registros por página
+     * @param array $filters Filtros aplicados
+     * @return array
+     */
     public function readPaginated(int $tenantId, int $page = 1, int $perPage = 20, array $filters = []): array
     {
         $where = 'e.tenant_id = :tid AND e.deleted_at IS NULL';
@@ -94,6 +123,13 @@ class Equipment
         ];
     }
 
+ /**
+  * Read one.
+  *
+  * @param int $id ID do registro
+  * @param int $tenantId ID do tenant
+  * @return array|null
+  */
     public function readOne(int $id, int $tenantId): ?array
     {
         $stmt = $this->conn->prepare("
@@ -107,6 +143,14 @@ class Equipment
         return $row ?: null;
     }
 
+ /**
+  * Update.
+  *
+  * @param int $id ID do registro
+  * @param int $tenantId ID do tenant
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function update(int $id, int $tenantId, array $data): bool
     {
         $stmt = $this->conn->prepare("
@@ -131,12 +175,26 @@ class Equipment
         ]);
     }
 
+ /**
+  * Delete.
+  *
+  * @param int $id ID do registro
+  * @param int $tenantId ID do tenant
+  * @return bool
+  */
     public function delete(int $id, int $tenantId): bool
     {
         $stmt = $this->conn->prepare("UPDATE equipment SET deleted_at = NOW() WHERE id = :id AND tenant_id = :tid");
         return $stmt->execute([':id' => $id, ':tid' => $tenantId]);
     }
 
+ /**
+  * Get schedules.
+  *
+  * @param int $equipmentId Equipment id
+  * @param int $tenantId ID do tenant
+  * @return array
+  */
     public function getSchedules(int $equipmentId, int $tenantId): array
     {
         $stmt = $this->conn->prepare("SELECT * FROM maintenance_schedules WHERE equipment_id = :eid AND tenant_id = :tid AND is_active = 1 ORDER BY next_due_at ASC");
@@ -144,6 +202,14 @@ class Equipment
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get logs.
+  *
+  * @param int $equipmentId Equipment id
+  * @param int $tenantId ID do tenant
+  * @param int $limit Limite de registros
+  * @return array
+  */
     public function getLogs(int $equipmentId, int $tenantId, int $limit = 20): array
     {
         $stmt = $this->conn->prepare("
@@ -161,6 +227,12 @@ class Equipment
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Create schedule.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function createSchedule(array $data): int
     {
         $stmt = $this->conn->prepare("
@@ -180,6 +252,12 @@ class Equipment
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Create log.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function createLog(array $data): int
     {
         $stmt = $this->conn->prepare("
@@ -209,6 +287,13 @@ class Equipment
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Get upcoming maintenance.
+  *
+  * @param int $tenantId ID do tenant
+  * @param int $days Days
+  * @return array
+  */
     public function getUpcomingMaintenance(int $tenantId, int $days = 30): array
     {
         $stmt = $this->conn->prepare("
@@ -225,6 +310,12 @@ class Equipment
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get dashboard stats.
+  *
+  * @param int $tenantId ID do tenant
+  * @return array
+  */
     public function getDashboardStats(int $tenantId): array
     {
         $stmt = $this->conn->prepare("

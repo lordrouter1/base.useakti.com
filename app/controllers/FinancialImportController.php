@@ -24,6 +24,12 @@ use Akti\Utils\Input;
 class FinancialImportController extends BaseController {
     private FinancialImportService $importService;
 
+    /**
+     * Construtor da classe FinancialImportController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param FinancialImportService $importService Import service
+     */
     public function __construct(\PDO $db, FinancialImportService $importService)
     {
         if (!ModuleBootloader::isModuleEnabled('financial')) {
@@ -47,6 +53,9 @@ class FinancialImportController extends BaseController {
     // AJAX: Preview de arquivo de importação
     // ═══════════════════════════════════════════
 
+    /**
+     * Interpreta dados.
+     */
     public function parseFile()
     {
         header('Content-Type: application/json');
@@ -96,6 +105,9 @@ class FinancialImportController extends BaseController {
     // AJAX: Importar CSV/Excel mapeado
     // ═══════════════════════════════════════════
 
+    /**
+     * Importa dados.
+     */
     public function importCsv()
     {
         header('Content-Type: application/json');
@@ -195,6 +207,9 @@ class FinancialImportController extends BaseController {
     // AJAX: Importar transações OFX selecionadas
     // ═══════════════════════════════════════════
 
+    /**
+     * Importa dados.
+     */
     public function importOfxSelected()
     {
         header('Content-Type: application/json');
@@ -218,6 +233,9 @@ class FinancialImportController extends BaseController {
     // AJAX: Importar OFX direto (modo legado)
     // ═══════════════════════════════════════════
 
+    /**
+     * Importa dados.
+     */
     public function importOfx()
     {
         header('Content-Type: application/json');

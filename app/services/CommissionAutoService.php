@@ -27,6 +27,11 @@ class CommissionAutoService
 {
     private PDO $db;
 
+    /**
+     * Construtor da classe CommissionAutoService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;

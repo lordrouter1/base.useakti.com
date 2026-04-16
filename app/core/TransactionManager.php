@@ -4,16 +4,28 @@ namespace Akti\Core;
 
 use PDO;
 
+/**
+ * Gerenciador de transações de banco de dados com suporte a savepoints.
+ */
 class TransactionManager
 {
     private PDO $db;
     private int $level = 0;
 
+    /**
+     * Construtor da classe TransactionManager.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;
     }
 
+    /**
+     * Begin.
+     * @return void
+     */
     public function begin(): void
     {
         if ($this->level === 0) {
@@ -24,6 +36,10 @@ class TransactionManager
         $this->level++;
     }
 
+ /**
+  * Commit.
+  * @return void
+  */
     public function commit(): void
     {
         if ($this->level <= 0) {
@@ -37,6 +53,10 @@ class TransactionManager
         }
     }
 
+ /**
+  * Roll back.
+  * @return void
+  */
     public function rollBack(): void
     {
         if ($this->level <= 0) {
@@ -50,11 +70,19 @@ class TransactionManager
         }
     }
 
+ /**
+  * Get level.
+  * @return int
+  */
     public function getLevel(): int
     {
         return $this->level;
     }
 
+ /**
+  * In transaction.
+  * @return bool
+  */
     public function inTransaction(): bool
     {
         return $this->level > 0;

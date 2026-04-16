@@ -15,6 +15,11 @@ class NfeWebhook
     private $table = 'nfe_webhooks';
     private $logsTable = 'nfe_webhook_logs';
 
+    /**
+     * Construtor da classe NfeWebhook.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->conn = $db;

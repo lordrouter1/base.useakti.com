@@ -21,6 +21,11 @@ class CatalogQuoteService
 {
     private PDO $db;
 
+    /**
+     * Construtor da classe CatalogQuoteService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;

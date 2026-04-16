@@ -16,6 +16,12 @@ class SiteBuilderController extends BaseController {
     private SiteBuilder $siteBuilder;
     private int $tenantId;
 
+    /**
+     * Construtor da classe SiteBuilderController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param SiteBuilder $siteBuilder Site builder
+     */
     public function __construct(\PDO $db, SiteBuilder $siteBuilder)
     {
         $this->db = $db;
@@ -23,6 +29,10 @@ class SiteBuilderController extends BaseController {
         $this->tenantId = (int) ($_SESSION['tenant']['id'] ?? 0);
     }
 
+    /**
+     * Require tenant.
+     * @return bool
+     */
     private function requireTenant(): bool
     {
         if ($this->tenantId <= 0) {

@@ -121,6 +121,12 @@ class ModuleBootloader
         'fiscal' => 'fiscal',
     ];
 
+    /**
+     * Verifica uma condição booleana.
+     *
+     * @param string $moduleSlug Module slug
+     * @return bool
+     */
     public static function isModuleEnabled(string $moduleSlug): bool
     {
         $modules = self::getEnabledModules();
@@ -131,6 +137,12 @@ class ModuleBootloader
         return (bool) $modules[$moduleSlug];
     }
 
+    /**
+     * Verifica permissão ou capacidade.
+     *
+     * @param string $page Número da página
+     * @return bool
+     */
     public static function canAccessPage(string $page): bool
     {
         if (!isset(self::PAGE_MODULE_MAP[$page])) {
@@ -141,6 +153,12 @@ class ModuleBootloader
         return self::isModuleEnabled($module);
     }
 
+    /**
+     * Verifica permissão ou capacidade.
+     *
+     * @param string $tab Tab
+     * @return bool
+     */
     public static function canAccessSettingsTab(string $tab): bool
     {
         if (!isset(self::SETTINGS_TAB_MODULE_MAP[$tab])) {
@@ -151,6 +169,13 @@ class ModuleBootloader
         return self::isModuleEnabled($module);
     }
 
+    /**
+     * Sanitiza dados de entrada.
+     *
+     * @param string|null $tab Tab
+     * @param string $fallback Fallback
+     * @return string
+     */
     public static function sanitizeSettingsTab(?string $tab, string $fallback = 'company'): string
     {
         $tab = $tab ?: $fallback;

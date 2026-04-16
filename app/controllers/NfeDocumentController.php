@@ -50,6 +50,13 @@ class NfeDocumentController extends BaseController {
     private NfeDocument $docModel;
     private NfeLog $logModel;
 
+    /**
+     * Construtor da classe NfeDocumentController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param NfeDocument $docModel Doc model
+     * @param NfeLog $logModel Log model
+     */
     public function __construct(\PDO $db, NfeDocument $docModel, NfeLog $logModel)
     {
         if (!ModuleBootloader::isModuleEnabled('nfe')) {

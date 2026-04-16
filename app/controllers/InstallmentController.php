@@ -70,6 +70,14 @@ class InstallmentController extends BaseController {
         return $default;
     }
 
+    /**
+     * Construtor da classe InstallmentController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Installment $installmentModel Installment model
+     * @param InstallmentService $installmentService Installment service
+     * @param TransactionService $transactionService Transaction service
+     */
     public function __construct(
         \PDO $db,
         Installment $installmentModel,
@@ -94,6 +102,9 @@ class InstallmentController extends BaseController {
     // VIEW: Parcelas de um pedido
     // ═══════════════════════════════════════════
 
+    /**
+     * Installments.
+     */
     public function installments()
     {
         $orderId = Input::get('order_id', 'int', 0);
@@ -134,6 +145,9 @@ class InstallmentController extends BaseController {
     // Gerar parcelas para pedido
     // ═══════════════════════════════════════════
 
+    /**
+     * Gera conteúdo ou dados.
+     */
     public function generate()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -167,6 +181,9 @@ class InstallmentController extends BaseController {
     // Registrar pagamento
     // ═══════════════════════════════════════════
 
+    /**
+     * Pay.
+     */
     public function pay()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -219,6 +236,9 @@ class InstallmentController extends BaseController {
     // Confirmar pagamento
     // ═══════════════════════════════════════════
 
+    /**
+     * Confirm.
+     */
     public function confirm()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -245,6 +265,9 @@ class InstallmentController extends BaseController {
     // Estornar/cancelar parcela
     // ═══════════════════════════════════════════
 
+    /**
+     * Cancela operação.
+     */
     public function cancel()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -271,6 +294,9 @@ class InstallmentController extends BaseController {
     // Upload de comprovante
     // ═══════════════════════════════════════════
 
+    /**
+     * Processa upload de arquivo.
+     */
     public function uploadAttachment()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -316,6 +342,9 @@ class InstallmentController extends BaseController {
     // Remover comprovante
     // ═══════════════════════════════════════════
 
+    /**
+     * Remove attachment.
+     */
     public function removeAttachment()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -338,6 +367,9 @@ class InstallmentController extends BaseController {
     // Merge (unificar parcelas)
     // ═══════════════════════════════════════════
 
+    /**
+     * Mescla dados.
+     */
     public function merge()
     {
         header('Content-Type: application/json');
@@ -380,6 +412,9 @@ class InstallmentController extends BaseController {
     // Split (dividir parcela)
     // ═══════════════════════════════════════════
 
+    /**
+     * Split.
+     */
     public function split()
     {
         header('Content-Type: application/json');
@@ -420,6 +455,9 @@ class InstallmentController extends BaseController {
     // AJAX: Lista paginada de parcelas
     // ═══════════════════════════════════════════
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getPaginated()
     {
         header('Content-Type: application/json');
@@ -450,6 +488,9 @@ class InstallmentController extends BaseController {
     // AJAX: Parcelas por pedido (JSON)
     // ═══════════════════════════════════════════
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getJson()
     {
         $orderId = Input::get('order_id', 'int', 0);

@@ -16,6 +16,13 @@ class NfeCancellationService
     private NfeDocument $docModel;
     private NfeLog $logModel;
 
+    /**
+     * Construtor da classe NfeCancellationService.
+     *
+     * @param NfeSefazClient $sefazClient Sefaz client
+     * @param NfeDocument $docModel Doc model
+     * @param NfeLog $logModel Log model
+     */
     public function __construct(NfeSefazClient $sefazClient, NfeDocument $docModel, NfeLog $logModel)
     {
         $this->sefazClient = $sefazClient;

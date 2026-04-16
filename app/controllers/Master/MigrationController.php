@@ -5,6 +5,9 @@ namespace Akti\Controllers\Master;
 use Akti\Models\Master\Migration;
 use Akti\Models\Master\TenantClient;
 
+/**
+ * Class MigrationController.
+ */
 class MigrationController extends MasterBaseController
 {
     private const MASTER_DB = 'akti_master';
@@ -12,6 +15,11 @@ class MigrationController extends MasterBaseController
     private Migration $migrationModel;
     private TenantClient $clientModel;
 
+    /**
+     * Construtor da classe MigrationController.
+     *
+     * @param \PDO|null $db Conexão PDO com o banco de dados
+     */
     public function __construct(?\PDO $db = null)
     {
         parent::__construct($db);
@@ -58,6 +66,10 @@ class MigrationController extends MasterBaseController
         return $this->migrationModel->executeSqlOnDatabase(self::MASTER_DB, $sql);
     }
 
+    /**
+     * Exibe a página de listagem.
+     * @return void
+     */
     public function index(): void
     {
         $this->requireMasterAuth();
@@ -457,6 +469,10 @@ class MigrationController extends MasterBaseController
         $this->redirect('?page=master_migrations&action=results');
     }
 
+ /**
+  * Compare detail.
+  * @return void
+  */
     public function compareDetail(): void
     {
         $this->requireMasterAuth();
@@ -475,6 +491,10 @@ class MigrationController extends MasterBaseController
         }
     }
 
+ /**
+  * Apply.
+  * @return void
+  */
     public function apply(): void
     {
         $this->requireMasterAuth();
@@ -549,6 +569,10 @@ class MigrationController extends MasterBaseController
         $this->redirect('?page=master_migrations&action=results');
     }
 
+ /**
+  * Results.
+  * @return void
+  */
     public function results(): void
     {
         $this->requireMasterAuth();
@@ -625,6 +649,10 @@ class MigrationController extends MasterBaseController
         ]);
     }
 
+ /**
+  * Users.
+  * @return void
+  */
     public function users(): void
     {
         $this->requireMasterAuth();
@@ -635,6 +663,10 @@ class MigrationController extends MasterBaseController
         $this->renderMaster('migrations/users', compact('allUsers', 'tenants'));
     }
 
+ /**
+  * Create user.
+  * @return void
+  */
     public function createUser(): void
     {
         $this->requireMasterAuth();
@@ -693,6 +725,10 @@ class MigrationController extends MasterBaseController
         $this->redirect('?page=master_migrations&action=users');
     }
 
+ /**
+  * Toggle user.
+  * @return void
+  */
     public function toggleUser(): void
     {
         $this->requireMasterAuth();
@@ -716,6 +752,10 @@ class MigrationController extends MasterBaseController
         }
     }
 
+ /**
+  * Db users.
+  * @return void
+  */
     public function dbUsers(): void
     {
         $this->requireMasterAuth();

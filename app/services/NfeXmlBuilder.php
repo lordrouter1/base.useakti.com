@@ -33,6 +33,14 @@ class NfeXmlBuilder
     /** @var array Totais calculados pelo TaxCalculator */
     private array $calculatedTotals = [];
 
+    /**
+     * Construtor da classe NfeXmlBuilder.
+     *
+     * @param array $emitente Emitente
+     * @param array $orderData Order data
+     * @param int $numero Numero
+     * @param int $serie Serie
+     */
     public function __construct(array $emitente, array $orderData, int $numero, int $serie)
     {
         $this->emitente  = $emitente;

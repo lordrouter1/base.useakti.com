@@ -16,6 +16,12 @@ class PipelineAlertService
     private $db;
     private $pipelineModel;
 
+    /**
+     * Construtor da classe PipelineAlertService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param Pipeline $pipelineModel Pipeline model
+     */
     public function __construct(PDO $db, Pipeline $pipelineModel)
     {
         $this->db = $db;

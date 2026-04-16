@@ -12,6 +12,11 @@ class NfeBackupManagementService
 {
     private PDO $db;
 
+    /**
+     * Construtor da classe NfeBackupManagementService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;

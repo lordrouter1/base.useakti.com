@@ -22,6 +22,9 @@
 
 namespace Akti\Utils;
 
+/**
+ * Classe para captura e sanitização de inputs do usuário.
+ */
 class Input
 {
     // ──────────────────────────────────────────────

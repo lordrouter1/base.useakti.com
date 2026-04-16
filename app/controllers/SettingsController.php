@@ -12,12 +12,24 @@ use Akti\Utils\Input;
 use Akti\Services\SettingsService;
 use TenantManager;
 
+/**
+ * Class SettingsController.
+ */
 class SettingsController extends BaseController {
     private CompanySettings $companySettings;
     private PriceTable $priceTable;
     private PreparationStep $preparationStep;
     private SettingsService $settingsService;
 
+    /**
+     * Construtor da classe SettingsController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param CompanySettings $companySettings Company settings
+     * @param PriceTable $priceTable Price table
+     * @param PreparationStep $preparationStep Preparation step
+     * @param SettingsService $settingsService Settings service
+     */
     public function __construct(
         \PDO $db,
         CompanySettings $companySettings,

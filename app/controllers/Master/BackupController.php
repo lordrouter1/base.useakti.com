@@ -5,8 +5,15 @@ namespace Akti\Controllers\Master;
 use Akti\Models\Master\Backup;
 use Akti\Models\Master\AdminUser;
 
+/**
+ * Class BackupController.
+ */
 class BackupController extends MasterBaseController
 {
+    /**
+     * Exibe a página de listagem.
+     * @return void
+     */
     public function index(): void
     {
         $this->requireMasterAuth();
@@ -35,6 +42,12 @@ class BackupController extends MasterBaseController
         ));
     }
 
+    /**
+     * Formata dados para exibição.
+     *
+     * @param int $bytes Bytes
+     * @return string
+     */
     private function formatBytesHelper(int $bytes): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -46,6 +59,10 @@ class BackupController extends MasterBaseController
         return round($bytes, 2) . ' ' . $units[$i];
     }
 
+    /**
+     * Executa um processo.
+     * @return void
+     */
     public function run(): void
     {
         $this->requireMasterAuth();
@@ -61,6 +78,10 @@ class BackupController extends MasterBaseController
         $this->json($result);
     }
 
+ /**
+  * Download.
+  * @return void
+  */
     public function download(): void
     {
         $this->requireMasterAuth();
@@ -103,6 +124,10 @@ class BackupController extends MasterBaseController
         exit;
     }
 
+ /**
+  * Diagnose json.
+  * @return void
+  */
     public function diagnoseJson(): void
     {
         $this->requireMasterAuth();
@@ -111,6 +136,10 @@ class BackupController extends MasterBaseController
         $this->json(['success' => true, 'diagnostic' => $diagnostic]);
     }
 
+ /**
+  * Delete.
+  * @return void
+  */
     public function delete(): void
     {
         $this->requireMasterAuth();

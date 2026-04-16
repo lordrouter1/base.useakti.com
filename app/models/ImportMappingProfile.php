@@ -12,6 +12,11 @@ class ImportMappingProfile
     private $conn;
     private $table = 'import_mapping_profiles';
 
+    /**
+     * Construtor da classe ImportMappingProfile.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->conn = $db;

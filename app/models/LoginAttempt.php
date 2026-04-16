@@ -30,6 +30,11 @@ class LoginAttempt
     const RECAPTCHA_SITE_KEY   = ''; // Preenchido via getenv ou hard-coded
     const RECAPTCHA_SECRET_KEY = '';
 
+    /**
+     * Construtor da classe LoginAttempt.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->conn = $db;
@@ -39,11 +44,19 @@ class LoginAttempt
     // Chaves reCAPTCHA (prioriza variáveis de ambiente)
     // ─────────────────────────────────────────
 
+    /**
+     * Obtém dados específicos.
+     * @return string
+     */
     public static function getSiteKey(): string
     {
         return getenv('AKTI_RECAPTCHA_SITE_KEY') ?: static::RECAPTCHA_SITE_KEY;
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return string
+     */
     public static function getSecretKey(): string
     {
         return getenv('AKTI_RECAPTCHA_SECRET_KEY') ?: static::RECAPTCHA_SECRET_KEY;

@@ -14,6 +14,11 @@ use PDO;
 class PreparationStep {
     private $conn;
 
+    /**
+     * Construtor da classe PreparationStep.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db) {
         $this->conn = $db;
     }

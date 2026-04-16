@@ -20,6 +20,11 @@ class NfeWebhookService
     private PDO $db;
     private NfeWebhook $model;
 
+    /**
+     * Construtor da classe NfeWebhookService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;

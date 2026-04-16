@@ -30,6 +30,11 @@ class HeaderDataService
     /** Chave do cache de dados de header (pedidos/produtos atrasados) */
     private const CACHE_KEY_HEADER = 'header_data';
 
+    /**
+     * Construtor da classe HeaderDataService.
+     *
+     * @param PDO $conn Conn
+     */
     public function __construct(PDO $conn)
     {
         $this->conn = $conn;

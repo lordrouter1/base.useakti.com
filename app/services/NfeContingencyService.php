@@ -42,6 +42,11 @@ class NfeContingencyService
         'TO' => 7,
     ];
 
+    /**
+     * Construtor da classe NfeContingencyService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;

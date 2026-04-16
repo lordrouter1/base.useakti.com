@@ -18,6 +18,11 @@ class NfeReceivedDocument
     private $conn;
     private $table = 'nfe_received_documents';
 
+    /**
+     * Construtor da classe NfeReceivedDocument.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->conn = $db;

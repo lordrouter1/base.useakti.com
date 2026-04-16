@@ -19,6 +19,13 @@ class FinancialReportService
     private Installment $installment;
     private PDO $db;
 
+    /**
+     * Construtor da classe FinancialReportService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param Financial $financial Financial
+     * @param Installment $installment Installment
+     */
     public function __construct(PDO $db, Financial $financial, Installment $installment)
     {
         $this->db = $db;

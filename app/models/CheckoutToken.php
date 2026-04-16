@@ -4,10 +4,18 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de tokens de checkout para pagamento seguro.
+ */
 class CheckoutToken
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe CheckoutToken.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;

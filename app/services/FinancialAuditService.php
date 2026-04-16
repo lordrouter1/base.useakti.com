@@ -33,6 +33,11 @@ class FinancialAuditService
     /** @var bool Flag para indicar se a tabela de auditoria existe */
     private static ?bool $tableExists = null;
 
+    /**
+     * Construtor da classe FinancialAuditService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;

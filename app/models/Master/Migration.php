@@ -5,11 +5,19 @@ namespace Akti\Models\Master;
 use PDO;
 use PDOException;
 
+/**
+ * Model de migrações SQL do sistema.
+ */
 class Migration
 {
     private $db;
     private ?array $migrationLogColumns = null;
 
+    /**
+     * Construtor da classe Migration.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;
@@ -100,6 +108,10 @@ class Migration
     // LISTAGEM DE BANCOS TENANT
     // =========================================================================
 
+    /**
+     * List tenant databases.
+     * @return array
+     */
     public function listTenantDatabases(): array
     {
         $initBase = getenv('AKTI_MASTER_INIT_BASE') ?: 'akti_init_base';
@@ -115,6 +127,10 @@ class Migration
         }));
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return array
+     */
     public function getRegisteredTenants(): array
     {
         $stmt = $this->db->query("
@@ -128,6 +144,12 @@ class Migration
     // COMPARAÇÃO DE SCHEMA
     // =========================================================================
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param string $dbName Db name
+     * @return array
+     */
     public function getSchemaStructure(string $dbName): array
     {
         $creds = \TenantManager::getMasterConfig();
@@ -154,6 +176,12 @@ class Migration
         return $schema;
     }
 
+ /**
+  * Compare schema.
+  *
+  * @param string $targetDb Target db
+  * @return array
+  */
     public function compareSchema(string $targetDb): array
     {
         $initBase = getenv('AKTI_MASTER_INIT_BASE') ?: 'akti_init_base';
@@ -215,6 +243,10 @@ class Migration
         return $diff;
     }
 
+ /**
+  * Compare all tenants.
+  * @return array
+  */
     public function compareAllTenants(): array
     {
         $databases = $this->listTenantDatabases();
@@ -250,6 +282,13 @@ class Migration
     // EXECUÇÃO DE SQL EM BANCOS TENANT
     // =========================================================================
 
+ /**
+  * Execute sql on database.
+  *
+  * @param string $dbName Db name
+  * @param string $sql Sql
+  * @return array
+  */
     public function executeSqlOnDatabase(string $dbName, string $sql): array
     {
         $creds = \TenantManager::getMasterConfig();
@@ -317,6 +356,14 @@ class Migration
         return $results;
     }
 
+ /**
+  * Log migration error.
+  *
+  * @param string $dbName Db name
+  * @param string $sql Sql
+  * @param array $results Results
+  * @return void
+  */
     private function logMigrationError(string $dbName, string $sql, array $results): void
     {
         $logDir = $_SERVER['DOCUMENT_ROOT'] . '/storage/logs';
@@ -340,6 +387,15 @@ class Migration
         file_put_contents($logFile, $entry, FILE_APPEND | LOCK_EX);
     }
 
+ /**
+  * Execute sql on all tenants.
+  *
+  * @param string $sql Sql
+  * @param string $migrationName Migration name
+  * @param int $adminId Admin id
+  * @param array|null $selectedDbs Selected dbs
+  * @return array
+  */
     public function executeSqlOnAllTenants(string $sql, string $migrationName, int $adminId, ?array $selectedDbs = null): array
     {
         $databases = $selectedDbs ?: $this->listTenantDatabases();
@@ -385,12 +441,24 @@ class Migration
         return $overall;
     }
 
+ /**
+  * Execute sql on init base.
+  *
+  * @param string $sql Sql
+  * @return array
+  */
     public function executeSqlOnInitBase(string $sql): array
     {
         $initBase = getenv('AKTI_MASTER_INIT_BASE') ?: 'akti_init_base';
         return $this->executeSqlOnDatabase($initBase, $sql);
     }
 
+ /**
+  * Parse sql statements.
+  *
+  * @param string $sql Sql
+  * @return array
+  */
     private function parseSqlStatements(string $sql): array
     {
         $sql = preg_replace('/--[^\r\n]*/', '', $sql);
@@ -412,6 +480,12 @@ class Migration
     // HISTÓRICO DE MIGRATIONS
     // =========================================================================
 
+ /**
+  * Get migration history.
+  *
+  * @param int $limit Limite de registros
+  * @return array
+  */
     public function getMigrationHistory(int $limit = 50): array
     {
         $stmt = $this->db->prepare("
@@ -516,6 +590,11 @@ class Migration
         $this->insertMigrationLog($dbName, $migrationName, $sqlHash, $result, $sql, $adminId);
     }
 
+ /**
+  * Get migration detail.
+  *
+  * @param int $id ID do registro
+  */
     public function getMigrationDetail(int $id)
     {
         $stmt = $this->db->prepare("
@@ -532,6 +611,12 @@ class Migration
     // GESTÃO DE USUÁRIOS CROSS-TENANT
     // =========================================================================
 
+ /**
+  * Build user select query.
+  *
+  * @param PDO $pdo Pdo
+  * @return string
+  */
     private function buildUserSelectQuery(PDO $pdo): string
     {
         $cols = $pdo->query("SHOW COLUMNS FROM users")->fetchAll(PDO::FETCH_COLUMN);
@@ -571,6 +656,10 @@ class Migration
         return "SELECT " . implode(', ', $fields) . " FROM users u {$join} ORDER BY u.name ASC";
     }
 
+ /**
+  * List all tenant users.
+  * @return array
+  */
     public function listAllTenantUsers(): array
     {
         $tenants = $this->getRegisteredTenants();
@@ -610,6 +699,12 @@ class Migration
         return $allUsers;
     }
 
+ /**
+  * List users from database.
+  *
+  * @param string $dbName Db name
+  * @return array
+  */
     public function listUsersFromDatabase(string $dbName): array
     {
         $creds = \TenantManager::getMasterConfig();
@@ -622,6 +717,13 @@ class Migration
         return $pdo->query($query)->fetchAll();
     }
 
+ /**
+  * Toggle tenant user.
+  *
+  * @param string $dbName Db name
+  * @param int $userId ID do usuário
+  * @return bool
+  */
     public function toggleTenantUser(string $dbName, int $userId): bool
     {
         $creds = \TenantManager::getMasterConfig();
@@ -636,6 +738,12 @@ class Migration
         return true;
     }
 
+ /**
+  * Get table count.
+  *
+  * @param string $dbName Db name
+  * @return int
+  */
     public function getTableCount(string $dbName): int
     {
         $creds = \TenantManager::getMasterConfig();

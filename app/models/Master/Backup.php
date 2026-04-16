@@ -2,8 +2,15 @@
 
 namespace Akti\Models\Master;
 
+/**
+ * Model de backups de banco de dados.
+ */
 class Backup
 {
+    /**
+     * Obtém dados específicos.
+     * @return string
+     */
     private static function getBackupPath(): string
     {
         if (defined('BACKUP_PATH')) return BACKUP_PATH;
@@ -13,12 +20,20 @@ class Backup
         return '/bkp';
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return string
+     */
     private static function getBackupCommand(): string
     {
         if (defined('BACKUP_COMMAND')) return BACKUP_COMMAND;
         return 'sudo /bin/bkp';
     }
 
+    /**
+     * Verifica permissão ou capacidade.
+     * @return bool
+     */
     private static function canExec(): bool
     {
         if (!function_exists('exec')) return false;
@@ -30,6 +45,10 @@ class Backup
         return true;
     }
 
+    /**
+     * Executa um processo.
+     * @return array
+     */
     public static function runBackup(): array
     {
         if (!self::canExec()) {
@@ -49,6 +68,10 @@ class Backup
         ];
     }
 
+    /**
+     * List backups.
+     * @return array
+     */
     public static function listBackups(): array
     {
         $path = self::getBackupPath();
@@ -110,6 +133,12 @@ class Backup
         return ['success' => true, 'files' => $files, 'path' => $path];
     }
 
+ /**
+  * List backups via exec.
+  *
+  * @param string $path Caminho do arquivo
+  * @return array
+  */
     private static function listBackupsViaExec(string $path): array
     {
         $files = [];
@@ -170,6 +199,12 @@ class Backup
         return ['success' => true, 'files' => $files, 'path' => $path, 'method' => 'exec'];
     }
 
+ /**
+  * Get download path.
+  *
+  * @param string $filename Nome do arquivo
+  * @return string|null
+  */
     public static function getDownloadPath(string $filename): ?string
     {
         $filename = basename($filename);
@@ -214,6 +249,12 @@ class Backup
         return null;
     }
 
+ /**
+  * Delete backup.
+  *
+  * @param string $filename Nome do arquivo
+  * @return array
+  */
     public static function deleteBackup(string $filename): array
     {
         $filename = basename($filename);
@@ -257,6 +298,10 @@ class Backup
         return ['success' => false, 'error' => "Sem permissão para excluir '{$filename}'. Verifique permissões da pasta."];
     }
 
+ /**
+  * Diagnose.
+  * @return array
+  */
     public static function diagnose(): array
     {
         $path = self::getBackupPath();
@@ -309,6 +354,12 @@ class Backup
         return $diag;
     }
 
+ /**
+  * Format bytes.
+  *
+  * @param int $bytes Bytes
+  * @return string
+  */
     private static function formatBytes(int $bytes): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];

@@ -6,10 +6,18 @@ use Akti\Models\Master\GitVersion;
 use Akti\Models\Master\Migration;
 use Akti\Models\Master\AdminUser;
 
+/**
+ * Class DeployController.
+ */
 class DeployController extends MasterBaseController
 {
     private Migration $migrationModel;
 
+    /**
+     * Construtor da classe DeployController.
+     *
+     * @param \PDO|null $db Conexão PDO com o banco de dados
+     */
     public function __construct(?\PDO $db = null)
     {
         parent::__construct($db);
@@ -37,6 +45,10 @@ class DeployController extends MasterBaseController
         }
     }
 
+    /**
+     * Exibe a página de listagem.
+     * @return void
+     */
     public function index(): void
     {
         $this->requireMasterAuth();

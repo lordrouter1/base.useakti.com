@@ -14,6 +14,11 @@ class NfeAuditLog
     private $conn;
     private $table = 'nfe_audit_log';
 
+    /**
+     * Construtor da classe NfeAuditLog.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->conn = $db;

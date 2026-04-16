@@ -14,6 +14,10 @@ class ViteAssets
     private static ?array $manifest = null;
     private static bool $loaded = false;
 
+    /**
+     * Carrega dados.
+     * @return void
+     */
     private static function load(): void
     {
         if (self::$loaded) {
@@ -27,12 +31,22 @@ class ViteAssets
         }
     }
 
+    /**
+     * Verifica uma condição booleana.
+     * @return bool
+     */
     public static function isBuilt(): bool
     {
         self::load();
         return self::$manifest !== null;
     }
 
+    /**
+     * Css.
+     *
+     * @param string $name Nome
+     * @return string|null
+     */
     public static function css(string $name): ?string
     {
         self::load();
@@ -52,6 +66,12 @@ class ViteAssets
         return null;
     }
 
+    /**
+     * Js.
+     *
+     * @param string $name Nome
+     * @return string|null
+     */
     public static function js(string $name): ?string
     {
         self::load();
@@ -67,6 +87,14 @@ class ViteAssets
         return null;
     }
 
+    /**
+     * Tag.
+     *
+     * @param string $type Tipo do recurso
+     * @param string $name Nome
+     * @param string $extra Extra
+     * @return string
+     */
     public static function tag(string $type, string $name, string $extra = ''): string
     {
         if ($type === 'css') {

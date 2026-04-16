@@ -16,6 +16,11 @@ use PDO;
 class CategoryGrade {
     private $conn;
 
+    /**
+     * Construtor da classe CategoryGrade.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db) {
         $this->conn = $db;
     }
@@ -93,6 +98,12 @@ class CategoryGrade {
         return false;
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param mixed $categoryId Category id
+     * @param mixed $gradeTypeId Grade type id
+     */
     private function getCategoryGradeId($categoryId, $gradeTypeId) {
         $stmt = $this->conn->prepare("SELECT id FROM category_grades WHERE category_id = :cid AND grade_type_id = :gtid");
         $stmt->bindParam(':cid', $categoryId);
@@ -176,6 +187,11 @@ class CategoryGrade {
             'grades_count' => count($gradesData),
         ]));
     }
+    /**
+     * Gera conteúdo ou dados.
+     *
+     * @param mixed $categoryId Category id
+     */
     public function generateCategoryCombinations($categoryId) {
         $grades = $this->getCategoryGradesWithValues($categoryId);
 

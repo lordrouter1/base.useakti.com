@@ -6,15 +6,27 @@ use PDO;
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 
+/**
+ * Model de fornecedores.
+ */
 class Supplier
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe Supplier.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Retorna todos os registros.
+     * @return array
+     */
     public function readAll(): array
     {
         $stmt = $this->conn->prepare(
@@ -24,6 +36,14 @@ class Supplier
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Read paginated.
+     *
+     * @param int $page Número da página
+     * @param int $perPage Registros por página
+     * @param string $search Termo de busca
+     * @return array
+     */
     public function readPaginated(int $page = 1, int $perPage = 15, string $search = ''): array
     {
         $where = ' WHERE deleted_at IS NULL';
@@ -60,6 +80,12 @@ class Supplier
         ];
     }
 
+ /**
+  * Read one.
+  *
+  * @param int $id ID do registro
+  * @return array|null
+  */
     public function readOne(int $id): ?array
     {
         $stmt = $this->conn->prepare("SELECT * FROM suppliers WHERE id = :id AND deleted_at IS NULL");
@@ -68,6 +94,12 @@ class Supplier
         return $row ?: null;
     }
 
+ /**
+  * Create.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -99,6 +131,13 @@ class Supplier
         return $id;
     }
 
+ /**
+  * Update.
+  *
+  * @param int $id ID do registro
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function update(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -134,6 +173,12 @@ class Supplier
         return $result;
     }
 
+ /**
+  * Delete.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function delete(int $id): bool
     {
         $stmt = $this->conn->prepare("UPDATE suppliers SET deleted_at = NOW() WHERE id = :id");
@@ -142,6 +187,10 @@ class Supplier
         return $result;
     }
 
+ /**
+  * Count all.
+  * @return int
+  */
     public function countAll(): int
     {
         $stmt = $this->conn->prepare("SELECT COUNT(*) FROM suppliers WHERE deleted_at IS NULL");

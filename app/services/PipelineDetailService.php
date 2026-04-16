@@ -25,6 +25,13 @@ class PipelineDetailService
     private $pipelineModel;
     private $stockModel;
 
+    /**
+     * Construtor da classe PipelineDetailService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param Pipeline $pipelineModel Pipeline model
+     * @param Stock $stockModel Stock model
+     */
     public function __construct(PDO $db, Pipeline $pipelineModel, Stock $stockModel)
     {
         $this->db = $db;

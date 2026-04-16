@@ -6,10 +6,18 @@ use PDO;
 use Akti\Core\EventDispatcher;
 use Akti\Core\Event;
 
+/**
+ * Model de insumos/matérias-primas.
+ */
 class Supply
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe Supply.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
@@ -17,6 +25,10 @@ class Supply
 
     // ──── CRUD Insumos ────
 
+    /**
+     * Retorna todos os registros.
+     * @return array
+     */
     public function readAll(): array
     {
         $stmt = $this->conn->prepare(
@@ -30,6 +42,14 @@ class Supply
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Read paginated.
+     *
+     * @param int $page Número da página
+     * @param int $perPage Registros por página
+     * @param array $filters Filtros aplicados
+     * @return array
+     */
     public function readPaginated(int $page = 1, int $perPage = 15, array $filters = []): array
     {
         $where = ' WHERE s.deleted_at IS NULL';
@@ -76,6 +96,12 @@ class Supply
         ];
     }
 
+ /**
+  * Read one.
+  *
+  * @param int $id ID do registro
+  * @return array|null
+  */
     public function readOne(int $id): ?array
     {
         $stmt = $this->conn->prepare(
@@ -89,6 +115,12 @@ class Supply
         return $row ?: null;
     }
 
+ /**
+  * Create.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -121,6 +153,13 @@ class Supply
         return $id;
     }
 
+ /**
+  * Update.
+  *
+  * @param int $id ID do registro
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function update(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -154,6 +193,12 @@ class Supply
         return $result;
     }
 
+ /**
+  * Delete.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function delete(int $id): bool
     {
         $stmt = $this->conn->prepare("UPDATE supplies SET deleted_at = NOW() WHERE id = :id");
@@ -162,6 +207,12 @@ class Supply
         return $result;
     }
 
+ /**
+  * Count all.
+  *
+  * @param array $filters Filtros aplicados
+  * @return int
+  */
     public function countAll(array $filters = []): int
     {
         $where = ' WHERE deleted_at IS NULL';
@@ -180,6 +231,10 @@ class Supply
         return (int) $stmt->fetchColumn();
     }
 
+ /**
+  * Generate next code.
+  * @return string
+  */
     public function generateNextCode(): string
     {
         $stmt = $this->conn->prepare(
@@ -190,6 +245,13 @@ class Supply
         return 'INS-' . str_pad($max + 1, 4, '0', STR_PAD_LEFT);
     }
 
+ /**
+  * Code exists.
+  *
+  * @param string $code Code
+  * @param int|null $excludeId Exclude id
+  * @return bool
+  */
     public function codeExists(string $code, ?int $excludeId = null): bool
     {
         $sql = "SELECT COUNT(*) FROM supplies WHERE code = :code AND deleted_at IS NULL";
@@ -205,6 +267,10 @@ class Supply
 
     // ──── Categorias ────
 
+ /**
+  * Get categories.
+  * @return array
+  */
     public function getCategories(): array
     {
         $stmt = $this->conn->prepare(
@@ -214,6 +280,12 @@ class Supply
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Create category.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function createCategory(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -227,6 +299,13 @@ class Supply
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Update category.
+  *
+  * @param int $id ID do registro
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function updateCategory(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -240,6 +319,12 @@ class Supply
         ]);
     }
 
+ /**
+  * Delete category.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function deleteCategory(int $id): bool
     {
         $check = $this->conn->prepare("SELECT COUNT(*) FROM supplies WHERE category_id = :id AND deleted_at IS NULL");
@@ -253,6 +338,12 @@ class Supply
 
     // ──── Vínculo Fornecedor (Fase 2) ────
 
+ /**
+  * Get suppliers.
+  *
+  * @param int $supplyId Supply id
+  * @return array
+  */
     public function getSuppliers(int $supplyId): array
     {
         $stmt = $this->conn->prepare(
@@ -266,6 +357,12 @@ class Supply
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Link supplier.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function linkSupplier(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -293,6 +390,13 @@ class Supply
         return $id;
     }
 
+ /**
+  * Update supplier link.
+  *
+  * @param int $id ID do registro
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function updateSupplierLink(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -315,12 +419,25 @@ class Supply
         ]);
     }
 
+ /**
+  * Unlink supplier.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function unlinkSupplier(int $id): bool
     {
         $stmt = $this->conn->prepare("DELETE FROM supply_suppliers WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
 
+ /**
+  * Set preferred supplier.
+  *
+  * @param int $supplyId Supply id
+  * @param int $supplierId Supplier id
+  * @return bool
+  */
     public function setPreferredSupplier(int $supplyId, int $supplierId): bool
     {
         $this->conn->beginTransaction();
@@ -340,6 +457,12 @@ class Supply
         }
     }
 
+ /**
+  * Get preferred supplier.
+  *
+  * @param int $supplyId Supply id
+  * @return array|null
+  */
     public function getPreferredSupplier(int $supplyId): ?array
     {
         $stmt = $this->conn->prepare(
@@ -353,6 +476,12 @@ class Supply
         return $row ?: null;
     }
 
+ /**
+  * Get supplier insumos.
+  *
+  * @param int $supplierId Supplier id
+  * @return array
+  */
     public function getSupplierInsumos(int $supplierId): array
     {
         $stmt = $this->conn->prepare(
@@ -368,6 +497,14 @@ class Supply
 
     // ──── Histórico de Preços (Fase 5) ────
 
+ /**
+  * Get price history.
+  *
+  * @param int $supplyId Supply id
+  * @param int|null $supplierId Supplier id
+  * @param int $limit Limite de registros
+  * @return array
+  */
     public function getPriceHistory(int $supplyId, ?int $supplierId = null, int $limit = 50): array
     {
         $sql = "SELECT sph.*, s.company_name AS supplier_name
@@ -389,6 +526,12 @@ class Supply
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Record price history.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function recordPriceHistory(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -407,6 +550,13 @@ class Supply
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Update cost price.
+  *
+  * @param int $supplyId Supply id
+  * @param float $newCost New cost
+  * @return bool
+  */
     public function updateCostPrice(int $supplyId, float $newCost): bool
     {
         $stmt = $this->conn->prepare("UPDATE supplies SET cost_price = :cost WHERE id = :id");
@@ -415,6 +565,12 @@ class Supply
 
     // ──── BOM — Vínculo Insumo ↔ Produto (Fase 6) ────
 
+ /**
+  * Get product supplies.
+  *
+  * @param int $productId ID do produto
+  * @return array
+  */
     public function getProductSupplies(int $productId): array
     {
         $stmt = $this->conn->prepare(
@@ -428,6 +584,12 @@ class Supply
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get supply products.
+  *
+  * @param int $supplyId Supply id
+  * @return array
+  */
     public function getSupplyProducts(int $supplyId): array
     {
         $stmt = $this->conn->prepare(
@@ -441,6 +603,12 @@ class Supply
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Add product supply.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function addProductSupply(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -465,6 +633,13 @@ class Supply
         return $id;
     }
 
+ /**
+  * Update product supply.
+  *
+  * @param int $id ID do registro
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function updateProductSupply(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -485,12 +660,24 @@ class Supply
         ]);
     }
 
+ /**
+  * Remove product supply.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function removeProductSupply(int $id): bool
     {
         $stmt = $this->conn->prepare("DELETE FROM product_supplies WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
 
+ /**
+  * Calculate product cost.
+  *
+  * @param int $productId ID do produto
+  * @return float
+  */
     public function calculateProductCost(int $productId): float
     {
         $stmt = $this->conn->prepare(
@@ -503,6 +690,13 @@ class Supply
         return (float) ($stmt->fetchColumn() ?: 0);
     }
 
+ /**
+  * Estimate consumption.
+  *
+  * @param int $productId ID do produto
+  * @param float $qty Qty
+  * @return array
+  */
     public function estimateConsumption(int $productId, float $qty): array
     {
         $supplies = $this->getProductSupplies($productId);
@@ -534,6 +728,12 @@ class Supply
 
     // ──── Where Used Impact (Fase 7) ────
 
+ /**
+  * Get affected products.
+  *
+  * @param int $supplyId Supply id
+  * @return array
+  */
     public function getAffectedProducts(int $supplyId): array
     {
         $stmt = $this->conn->prepare(
@@ -546,6 +746,13 @@ class Supply
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get where used impact.
+  *
+  * @param int $supplyId Supply id
+  * @param float $newCMP New c m p
+  * @return array
+  */
     public function getWhereUsedImpact(int $supplyId, float $newCMP): array
     {
         $products = $this->getAffectedProducts($supplyId);
@@ -586,6 +793,13 @@ class Supply
 
     // ──── Search para Select2 ────
 
+ /**
+  * Search select2.
+  *
+  * @param string $term Term
+  * @param int $limit Limite de registros
+  * @return array
+  */
     public function searchSelect2(string $term, int $limit = 20): array
     {
         $stmt = $this->conn->prepare(

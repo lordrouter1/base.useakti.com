@@ -14,6 +14,12 @@ class SpedExportService
     private \PDO $db;
     private int $tenantId;
 
+    /**
+     * Construtor da classe SpedExportService.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param int $tenantId ID do tenant
+     */
     public function __construct(\PDO $db, int $tenantId)
     {
         $this->db = $db;

@@ -23,6 +23,13 @@ class PortalAuthService
     private PortalAccess $portalAccess;
     private Logger $logger;
 
+    /**
+     * Construtor da classe PortalAuthService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param PortalAccess $portalAccess Portal access
+     * @param Logger $logger Logger
+     */
     public function __construct(PDO $db, PortalAccess $portalAccess, Logger $logger)
     {
         $this->db = $db;

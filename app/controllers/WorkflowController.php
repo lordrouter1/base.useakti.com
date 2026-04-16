@@ -5,15 +5,27 @@ namespace Akti\Controllers;
 use Akti\Models\WorkflowRule;
 use Akti\Utils\Input;
 
+/**
+ * Class WorkflowController.
+ */
 class WorkflowController extends BaseController {
     private WorkflowRule $model;
 
+    /**
+     * Construtor da classe WorkflowController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param WorkflowRule $model Model
+     */
     public function __construct(\PDO $db, WorkflowRule $model)
     {
         $this->db = $db;
         $this->model = $model;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $rules = $this->model->readAll();
@@ -23,6 +35,9 @@ class WorkflowController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $rule = null;
@@ -34,6 +49,9 @@ class WorkflowController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $data = [
@@ -53,6 +71,9 @@ class WorkflowController extends BaseController {
         header('Location: ?page=workflows');
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit()
     {
         $id = Input::get('id', 'int', 0);
@@ -70,6 +91,9 @@ class WorkflowController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         $id = Input::post('id', 'int', 0);
@@ -88,6 +112,9 @@ class WorkflowController extends BaseController {
         header('Location: ?page=workflows');
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $id = Input::get('id', 'int', 0);
@@ -96,6 +123,9 @@ class WorkflowController extends BaseController {
         header('Location: ?page=workflows');
     }
 
+    /**
+     * Alterna estado de propriedade.
+     */
     public function toggle()
     {
         $id = Input::get('id', 'int', 0);
@@ -104,6 +134,9 @@ class WorkflowController extends BaseController {
         $this->json(['success' => true]);
     }
 
+    /**
+     * Registra informação no log.
+     */
     public function logs()
     {
         $ruleId = Input::get('rule_id', 'int', 0);
@@ -112,6 +145,9 @@ class WorkflowController extends BaseController {
         $this->json(['success' => true, 'data' => $logs]);
     }
 
+    /**
+     * Reordena registros.
+     */
     public function reorder()
     {
         $input = json_decode(file_get_contents('php://input'), true);
@@ -128,6 +164,10 @@ class WorkflowController extends BaseController {
         header('Content-Type: application/json');
         $this->json(['success' => true]);}
 
+    /**
+     * Obtém dados específicos.
+     * @return array
+     */
     private function getAvailableEvents(): array
     {
         return [
@@ -146,6 +186,10 @@ class WorkflowController extends BaseController {
         ];
     }
 
+    /**
+     * Obtém dados específicos.
+     * @return array
+     */
     private function getEventFields(): array
     {
         return [

@@ -25,6 +25,11 @@ class NfeBackupService
     private NfeStorageService $storage;
     private string $basePath;
 
+    /**
+     * Construtor da classe NfeBackupService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;
@@ -222,6 +227,9 @@ class NfeBackupService
         }
 
         // Se a classe AWS S3 Client estiver disponível
+/**
+ * Class Unknown.
+ */
         if (class_exists(\Aws\S3\S3Client::class)) {
             $s3 = new \Aws\S3\S3Client([
                 'version'     => 'latest',

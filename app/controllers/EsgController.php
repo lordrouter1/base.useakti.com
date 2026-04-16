@@ -5,16 +5,27 @@ namespace Akti\Controllers;
 use Akti\Models\EsgMetric;
 use Akti\Utils\Input;
 
+/**
+ * Class EsgController.
+ */
 class EsgController extends BaseController
 {
     private EsgMetric $esgModel;
 
+    /**
+     * Construtor da classe EsgController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         parent::__construct($db);
         $this->esgModel = new EsgMetric($db);
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $this->requireAuth();
@@ -27,6 +38,9 @@ class EsgController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $this->requireAuth();
@@ -37,6 +51,9 @@ class EsgController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $this->requireAuth();
@@ -60,6 +77,9 @@ class EsgController extends BaseController
         header('Location: ?page=esg');
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit()
     {
         $this->requireAuth();
@@ -78,6 +98,9 @@ class EsgController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         $this->requireAuth();
@@ -95,6 +118,9 @@ class EsgController extends BaseController
         header('Location: ?page=esg');
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $this->requireAuth();
@@ -104,6 +130,9 @@ class EsgController extends BaseController
         header('Location: ?page=esg');
     }
 
+    /**
+     * Add record.
+     */
     public function addRecord()
     {
         $this->requireAuth();
@@ -122,6 +151,9 @@ class EsgController extends BaseController
         header('Location: ?page=esg&action=edit&id=' . $metricId);
     }
 
+    /**
+     * Define valor específico.
+     */
     public function setTarget()
     {
         $this->requireAuth();
@@ -139,6 +171,9 @@ class EsgController extends BaseController
         header('Location: ?page=esg&action=edit&id=' . $metricId);
     }
 
+    /**
+     * Dashboard.
+     */
     public function dashboard()
     {
         $this->requireAuth();

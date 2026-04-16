@@ -5,16 +5,27 @@ namespace Akti\Controllers;
 use Akti\Services\ProductionCostService;
 use Akti\Utils\Input;
 
+/**
+ * Class ProductionCostController.
+ */
 class ProductionCostController extends BaseController
 {
     private ProductionCostService $costService;
 
+    /**
+     * Construtor da classe ProductionCostController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         parent::__construct($db);
         $this->costService = new ProductionCostService($db);
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $this->requireAuth();
@@ -26,6 +37,9 @@ class ProductionCostController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Salva dados.
+     */
     public function saveConfig()
     {
         $this->requireAuth();
@@ -42,6 +56,9 @@ class ProductionCostController extends BaseController
         header('Location: ?page=production_costs');
     }
 
+    /**
+     * Calcula valor.
+     */
     public function calculate()
     {
         $this->requireAuth();
@@ -68,6 +85,9 @@ class ProductionCostController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Margin report.
+     */
     public function marginReport()
     {
         $this->requireAuth();

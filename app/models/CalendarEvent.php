@@ -4,15 +4,31 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de eventos do calendário.
+ */
 class CalendarEvent
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe CalendarEvent.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Read by range.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @param int|null $userId ID do usuário
+     * @return array
+     */
     public function readByRange(string $start, string $end, ?int $userId = null): array
     {
         $where = 'WHERE ce.deleted_at IS NULL AND ce.start_date >= :start AND ce.start_date <= :end';
@@ -33,6 +49,12 @@ class CalendarEvent
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Read one.
+  *
+  * @param int $id ID do registro
+  * @return array|null
+  */
     public function readOne(int $id): ?array
     {
         $stmt = $this->conn->prepare("SELECT * FROM calendar_events WHERE id = :id AND deleted_at IS NULL");
@@ -41,6 +63,12 @@ class CalendarEvent
         return $row ?: null;
     }
 
+ /**
+  * Create.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -64,6 +92,13 @@ class CalendarEvent
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Update.
+  *
+  * @param int $id ID do registro
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function update(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -87,12 +122,25 @@ class CalendarEvent
         ]);
     }
 
+ /**
+  * Delete.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function delete(int $id): bool
     {
         $stmt = $this->conn->prepare("UPDATE calendar_events SET deleted_at = NOW() WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
 
+ /**
+  * Get upcoming.
+  *
+  * @param int $userId ID do usuário
+  * @param int $limit Limite de registros
+  * @return array
+  */
     public function getUpcoming(int $userId, int $limit = 10): array
     {
         $stmt = $this->conn->prepare(
@@ -108,6 +156,12 @@ class CalendarEvent
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Sync from orders.
+  *
+  * @param int $tenantId ID do tenant
+  * @return int
+  */
     public function syncFromOrders(int $tenantId): int
     {
         $stmt = $this->conn->prepare(
@@ -121,6 +175,12 @@ class CalendarEvent
         return $stmt->rowCount();
     }
 
+ /**
+  * Sync from installments.
+  *
+  * @param int $tenantId ID do tenant
+  * @return int
+  */
     public function syncFromInstallments(int $tenantId): int
     {
         $stmt = $this->conn->prepare(

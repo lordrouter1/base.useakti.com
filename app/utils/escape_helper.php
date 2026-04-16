@@ -14,17 +14,6 @@
  * @see Akti\Utils\Escape — Classe completa de escape
  * @see PROJECT_RULES.md — Módulo: Sanitização e Validação
  */
-
-/**
- * Escape para contexto HTML (conteúdo de tags).
- * Atalho para Escape::html().
- *
- * Exemplo:
- *   <td><?= e($customer['name']) ?></td>
- *
- * @param  mixed  $value
- * @return string
- */
 function e($value): string
 {
     return \Akti\Utils\Escape::html($value);

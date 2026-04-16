@@ -5,10 +5,18 @@ namespace Akti\Controllers;
 use Akti\Services\AiAssistantService;
 use Akti\Utils\Input;
 
+/**
+ * Class AiAssistantController.
+ */
 class AiAssistantController extends BaseController
 {
     private AiAssistantService $ai;
 
+    /**
+     * Construtor da classe AiAssistantController.
+     *
+     * @param \PDO|null $db Conexão PDO com o banco de dados
+     */
     public function __construct(?\PDO $db = null)
     {
         parent::__construct($db);

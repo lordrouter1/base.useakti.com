@@ -4,8 +4,15 @@ namespace Akti\Controllers\Master;
 
 use Akti\Models\Master\TenantClient;
 
+/**
+ * Class HealthCheckController.
+ */
 class HealthCheckController extends MasterBaseController
 {
+    /**
+     * Exibe a página de listagem.
+     * @return void
+     */
     public function index(): void
     {
         $this->requireMasterAuth();
@@ -47,6 +54,10 @@ class HealthCheckController extends MasterBaseController
         $this->json(['success' => true, 'health' => $health, 'timestamp' => date('Y-m-d H:i:s')]);
     }
 
+    /**
+     * Verifica condição ou estado.
+     * @return array
+     */
     private function checkMasterDb(): array
     {
         try {
@@ -73,6 +84,12 @@ class HealthCheckController extends MasterBaseController
         }
     }
 
+    /**
+     * Verifica condição ou estado.
+     *
+     * @param array $tenants Tenants
+     * @return array
+     */
     private function checkTenantDbs(array $tenants): array
     {
         $results = [];
@@ -113,6 +130,10 @@ class HealthCheckController extends MasterBaseController
         return $results;
     }
 
+    /**
+     * Verifica condição ou estado.
+     * @return array
+     */
     private function checkDiskSpace(): array
     {
         $path = $_SERVER['DOCUMENT_ROOT'] ?: '.';
@@ -135,6 +156,10 @@ class HealthCheckController extends MasterBaseController
         ];
     }
 
+    /**
+     * Verifica condição ou estado.
+     * @return array
+     */
     private function checkPhpInfo(): array
     {
         return [
@@ -157,6 +182,10 @@ class HealthCheckController extends MasterBaseController
         ];
     }
 
+    /**
+     * Verifica condição ou estado.
+     * @return array
+     */
     private function checkNodeApi(): array
     {
         $apiUrl = getenv('AKTI_NODE_API_URL') ?: 'http://localhost:3000';
@@ -188,6 +217,10 @@ class HealthCheckController extends MasterBaseController
         }
     }
 
+    /**
+     * Verifica condição ou estado.
+     * @return array
+     */
     private function checkPendingSql(): array
     {
         $sqlDir = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . '/sql';

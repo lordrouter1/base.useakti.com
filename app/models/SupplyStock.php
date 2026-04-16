@@ -4,10 +4,18 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de estoque de insumos.
+ */
 class SupplyStock
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe SupplyStock.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
@@ -15,6 +23,14 @@ class SupplyStock
 
     // ──── Itens de Estoque ────
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param array $filters Filtros aplicados
+     * @param int $page Número da página
+     * @param int $perPage Registros por página
+     * @return array
+     */
     public function getItems(array $filters = [], int $page = 1, int $perPage = 20): array
     {
         $where = ' WHERE s.deleted_at IS NULL';
@@ -63,6 +79,14 @@ class SupplyStock
         ];
     }
 
+ /**
+  * Get or create item.
+  *
+  * @param int $warehouseId Warehouse id
+  * @param int $supplyId Supply id
+  * @param string|null $batchNumber Batch number
+  * @return array
+  */
     public function getOrCreateItem(int $warehouseId, int $supplyId, ?string $batchNumber = null): array
     {
         $sql = "SELECT * FROM supply_stock_items
@@ -98,6 +122,13 @@ class SupplyStock
         return array_merge(['id' => $id, 'warehouse_id' => $warehouseId, 'supply_id' => $supplyId, 'quantity' => 0, 'batch_number' => $batchNumber]);
     }
 
+ /**
+  * Update quantity.
+  *
+  * @param int $itemId Item id
+  * @param float $newQuantity New quantity
+  * @return bool
+  */
     public function updateQuantity(int $itemId, float $newQuantity): bool
     {
         $stmt = $this->conn->prepare(
@@ -106,6 +137,12 @@ class SupplyStock
         return $stmt->execute([':qty' => $newQuantity, ':id' => $itemId]);
     }
 
+ /**
+  * Get total stock.
+  *
+  * @param int $supplyId Supply id
+  * @return float
+  */
     public function getTotalStock(int $supplyId): float
     {
         $stmt = $this->conn->prepare(
@@ -117,6 +154,12 @@ class SupplyStock
 
     // ──── Dashboard ────
 
+ /**
+  * Get dashboard summary.
+  *
+  * @param int|null $warehouseId Warehouse id
+  * @return array
+  */
     public function getDashboardSummary(?int $warehouseId = null): array
     {
         $where = '';
@@ -153,6 +196,12 @@ class SupplyStock
         ];
     }
 
+ /**
+  * Get low stock items.
+  *
+  * @param int $limit Limite de registros
+  * @return array
+  */
     public function getLowStockItems(int $limit = 20): array
     {
         $stmt = $this->conn->prepare(
@@ -171,6 +220,12 @@ class SupplyStock
 
     // ──── Movimentações ────
 
+ /**
+  * Add movement.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function addMovement(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -192,6 +247,14 @@ class SupplyStock
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Get movements.
+  *
+  * @param array $filters Filtros aplicados
+  * @param int $page Número da página
+  * @param int $perPage Registros por página
+  * @return array
+  */
     public function getMovements(array $filters = [], int $page = 1, int $perPage = 20): array
     {
         $where = ' WHERE 1=1';
@@ -249,6 +312,13 @@ class SupplyStock
 
     // ──── FEFO / Lotes (Fase 4) ────
 
+ /**
+  * Get batches by supply.
+  *
+  * @param int $supplyId Supply id
+  * @param int $warehouseId Warehouse id
+  * @return array
+  */
     public function getBatchesBySupply(int $supplyId, int $warehouseId): array
     {
         $stmt = $this->conn->prepare(
@@ -263,6 +333,13 @@ class SupplyStock
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get expiring batches.
+  *
+  * @param int $days Days
+  * @param int $limit Limite de registros
+  * @return array
+  */
     public function getExpiringBatches(int $days = 30, int $limit = 20): array
     {
         $stmt = $this->conn->prepare(
@@ -282,6 +359,12 @@ class SupplyStock
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get expired batches.
+  *
+  * @param int $limit Limite de registros
+  * @return array
+  */
     public function getExpiredBatches(int $limit = 20): array
     {
         $stmt = $this->conn->prepare(
@@ -300,6 +383,10 @@ class SupplyStock
 
     // ──── MRP / Reorder (Fase 8) ────
 
+ /**
+  * Get reorder items.
+  * @return array
+  */
     public function getReorderItems(): array
     {
         $stmt = $this->conn->prepare(
@@ -321,6 +408,10 @@ class SupplyStock
 
     // ──── Warehouses helper ────
 
+ /**
+  * Get warehouses.
+  * @return array
+  */
     public function getWarehouses(): array
     {
         $stmt = $this->conn->prepare("SELECT * FROM warehouses WHERE is_active = 1 ORDER BY name");

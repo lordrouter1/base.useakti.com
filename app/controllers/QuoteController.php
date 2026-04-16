@@ -6,15 +6,27 @@ use Akti\Models\Quote;
 use Akti\Utils\Input;
 use PDO;
 
+/**
+ * Class QuoteController.
+ */
 class QuoteController extends BaseController {
     private Quote $model;
 
+    /**
+     * Construtor da classe QuoteController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Quote $model Model
+     */
     public function __construct(\PDO $db, Quote $model)
     {
         $this->db = $db;
         $this->model = $model;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $page = Input::get('p', 'int', 1);
@@ -35,6 +47,9 @@ class QuoteController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $customerStmt = $this->db->prepare("SELECT id, name FROM customers WHERE deleted_at IS NULL ORDER BY name");
@@ -47,6 +62,9 @@ class QuoteController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $data = [
@@ -64,6 +82,9 @@ class QuoteController extends BaseController {
         header('Location: ?page=quotes&action=edit&id=' . $id);
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit()
     {
         $id = Input::get('id', 'int', 0);
@@ -85,6 +106,9 @@ class QuoteController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         $id = Input::post('id', 'int', 0);
@@ -105,6 +129,9 @@ class QuoteController extends BaseController {
         header('Location: ?page=quotes&action=edit&id=' . $id);
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $id = Input::get('id', 'int', 0);
@@ -113,6 +140,9 @@ class QuoteController extends BaseController {
         header('Location: ?page=quotes');
     }
 
+    /**
+     * Aprova registro ou operação.
+     */
     public function approve()
     {
         $token = Input::get('token', 'string', '');
@@ -133,6 +163,9 @@ class QuoteController extends BaseController {
         echo 'Orçamento aprovado com sucesso! Entraremos em contato em breve.';
     }
 
+    /**
+     * Converte dados de um formato para outro.
+     */
     public function convertToOrder()
     {
         $id = Input::get('id', 'int', 0);
@@ -189,6 +222,9 @@ class QuoteController extends BaseController {
         }
     }
 
+    /**
+     * Add item.
+     */
     public function addItem()
     {
         $data = [
@@ -206,6 +242,9 @@ class QuoteController extends BaseController {
         $this->json(['success' => true]);
     }
 
+    /**
+     * Remove item.
+     */
     public function removeItem()
     {
         $itemId = Input::get('item_id', 'int', 0);

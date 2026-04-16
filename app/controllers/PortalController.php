@@ -35,6 +35,14 @@ class PortalController extends BaseController
     private Logger $logger;
     private array $company = [];
 
+    /**
+     * Construtor da classe PortalController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param PortalAccess $portalAccess Portal access
+     * @param Logger $logger Logger
+     * @param CompanySettings $companySettings Company settings
+     */
     public function __construct(\PDO $db, PortalAccess $portalAccess, Logger $logger, CompanySettings $companySettings)
     {
         $this->db = $db;

@@ -41,6 +41,15 @@ class FinancialController extends BaseController
     private InstallmentService $installmentService;
     private FinancialReportService $reportService;
 
+    /**
+     * Construtor da classe FinancialController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Financial $financial Financial
+     * @param Installment $installmentModel Installment model
+     * @param InstallmentService $installmentService Installment service
+     * @param FinancialReportService $reportService Report service
+     */
     public function __construct(
         \PDO $db,
         Financial $financial,

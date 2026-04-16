@@ -36,6 +36,14 @@ class ReportExcelService
     private const CLR_ROW_ALT     = 'FFF8F9FA';
     private const CLR_SUMMARY_BG  = 'FFF1F5F9';
 
+    /**
+     * Construtor da classe ReportExcelService.
+     *
+     * @param ReportModel $report Report
+     * @param NfeReportModel $nfeReport Nfe report
+     * @param array $company Company
+     * @param string $responsibleUser Responsible user
+     */
     public function __construct(ReportModel $report, NfeReportModel $nfeReport, array $company, string $responsibleUser)
     {
         $this->report          = $report;
@@ -48,6 +56,13 @@ class ReportExcelService
     // EXCEL — PEDIDOS POR PERÍODO
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportOrdersByPeriod(string $start, string $end): void
     {
         $data = $this->report->getOrdersByPeriod($start, $end);
@@ -108,6 +123,13 @@ class ReportExcelService
     // EXCEL — FATURAMENTO POR CLIENTE
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export revenue by customer.
+  *
+  * @param string $start Start
+  * @param string $end End
+  * @return void
+  */
     public function exportRevenueByCustomer(string $start, string $end): void
     {
         $data = $this->report->getRevenueByCustomer($start, $end);
@@ -164,6 +186,13 @@ class ReportExcelService
     // EXCEL — DRE
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export income statement.
+  *
+  * @param string $start Start
+  * @param string $end End
+  * @return void
+  */
     public function exportIncomeStatement(string $start, string $end): void
     {
         $data = $this->report->getIncomeStatement($start, $end);
@@ -274,6 +303,10 @@ class ReportExcelService
     // EXCEL — PARCELAS PENDENTES
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export open installments.
+  * @return void
+  */
     public function exportOpenInstallments(): void
     {
         $data = $this->report->getOpenInstallments();
@@ -336,6 +369,13 @@ class ReportExcelService
     // EXCEL — AGENDAMENTOS DE CONTATO
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export scheduled contacts.
+  *
+  * @param string $start Start
+  * @param string $end End
+  * @return void
+  */
     public function exportScheduledContacts(string $start, string $end): void
     {
         $data = $this->report->getScheduledContacts($start, $end);
@@ -399,6 +439,10 @@ class ReportExcelService
     // EXCEL — CATÁLOGO DE PRODUTOS
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export product catalog.
+  * @return void
+  */
     public function exportProductCatalog(): void
     {
         $productId  = Input::get('product_id', 'int', null);
@@ -498,6 +542,10 @@ class ReportExcelService
     // EXCEL — ESTOQUE POR ARMAZÉM
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export stock by warehouse.
+  * @return void
+  */
     public function exportStockByWarehouse(): void
     {
         $productId   = Input::get('product_id', 'int', null);
@@ -568,6 +616,13 @@ class ReportExcelService
     // EXCEL — MOVIMENTAÇÕES DE ESTOQUE
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export stock movements.
+  *
+  * @param string $start Start
+  * @param string $end End
+  * @return void
+  */
     public function exportStockMovements(string $start, string $end): void
     {
         $data = $this->report->getStockMovements($start, $end);
@@ -641,6 +696,14 @@ class ReportExcelService
     // EXCEL — COMISSÕES POR PERÍODO
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export commissions report.
+  *
+  * @param string $start Start
+  * @param string $end End
+  * @param int|null $userId ID do usuário
+  * @return void
+  */
     public function exportCommissionsReport(string $start, string $end, ?int $userId = null): void
     {
         $data = $this->report->getCommissionsByPeriod($start, $end, $userId);
@@ -733,6 +796,13 @@ class ReportExcelService
     // EXCEL — NF-e POR PERÍODO
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export nfes by period.
+  *
+  * @param string $start Start
+  * @param string $end End
+  * @return void
+  */
     public function exportNfesByPeriod(string $start, string $end): void
     {
         $statusFilter = Input::get('nfe_status', 'string', '');
@@ -796,6 +866,13 @@ class ReportExcelService
     // EXCEL — RESUMO DE IMPOSTOS
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export tax summary.
+  *
+  * @param string $start Start
+  * @param string $end End
+  * @return void
+  */
     public function exportTaxSummary(string $start, string $end): void
     {
         $data = $this->nfeReport->getTaxSummary($start, $end);
@@ -889,6 +966,13 @@ class ReportExcelService
     // EXCEL — NF-e POR CLIENTE
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export nfes by customer.
+  *
+  * @param string $start Start
+  * @param string $end End
+  * @return void
+  */
     public function exportNfesByCustomer(string $start, string $end): void
     {
         $customerId = Input::get('customer_id', 'int', null);
@@ -948,6 +1032,13 @@ class ReportExcelService
     // EXCEL — RESUMO CFOP
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export cfop summary.
+  *
+  * @param string $start Start
+  * @param string $end End
+  * @return void
+  */
     public function exportCfopSummary(string $start, string $end): void
     {
         $data = $this->nfeReport->getCfopSummary($start, $end);
@@ -1005,6 +1096,13 @@ class ReportExcelService
     // EXCEL — NF-e CANCELADAS
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export cancelled nfes.
+  *
+  * @param string $start Start
+  * @param string $end End
+  * @return void
+  */
     public function exportCancelledNfes(string $start, string $end): void
     {
         $data = $this->nfeReport->getCancelledNfes($start, $end);
@@ -1052,6 +1150,13 @@ class ReportExcelService
     // EXCEL — INUTILIZAÇÕES
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export inutilizacoes.
+  *
+  * @param string $start Start
+  * @param string $end End
+  * @return void
+  */
     public function exportInutilizacoes(string $start, string $end): void
     {
         $data = $this->nfeReport->getInutilizacoes($start, $end);
@@ -1097,6 +1202,13 @@ class ReportExcelService
     // EXCEL — LOGS SEFAZ
     // ═══════════════════════════════════════════════════════════════
 
+ /**
+  * Export sefaz logs.
+  *
+  * @param string $start Start
+  * @param string $end End
+  * @return void
+  */
     public function exportSefazLogs(string $start, string $end): void
     {
         $actionFilter = Input::get('log_action', 'string', '');

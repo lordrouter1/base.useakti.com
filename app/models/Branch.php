@@ -4,15 +4,29 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de filiais/unidades da empresa.
+ */
 class Branch
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe Branch.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare("
@@ -34,6 +48,12 @@ class Branch
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Retorna todos os registros.
+     *
+     * @param int $tenantId ID do tenant
+     * @return array
+     */
     public function readAll(int $tenantId): array
     {
         $stmt = $this->conn->prepare("SELECT * FROM branches WHERE tenant_id = :tid AND deleted_at IS NULL ORDER BY is_headquarters DESC, name ASC");
@@ -41,6 +61,13 @@ class Branch
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Retorna um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @param int $tenantId ID do tenant
+     * @return array|null
+     */
     public function readOne(int $id, int $tenantId): ?array
     {
         $stmt = $this->conn->prepare("SELECT * FROM branches WHERE id = :id AND tenant_id = :tid AND deleted_at IS NULL");
@@ -49,6 +76,14 @@ class Branch
         return $row ?: null;
     }
 
+    /**
+     * Atualiza um registro existente.
+     *
+     * @param int $id ID do registro
+     * @param int $tenantId ID do tenant
+     * @param array $data Dados para processamento
+     * @return bool
+     */
     public function update(int $id, int $tenantId, array $data): bool
     {
         $stmt = $this->conn->prepare("
@@ -70,6 +105,13 @@ class Branch
         ]);
     }
 
+    /**
+     * Remove um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @param int $tenantId ID do tenant
+     * @return bool
+     */
     public function delete(int $id, int $tenantId): bool
     {
         $stmt = $this->conn->prepare("UPDATE branches SET deleted_at = NOW() WHERE id = :id AND tenant_id = :tid");

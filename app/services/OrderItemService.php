@@ -22,6 +22,12 @@ class OrderItemService
     private PDO $db;
     private Order $orderModel;
 
+    /**
+     * Construtor da classe OrderItemService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param Order $orderModel Order model
+     */
     public function __construct(PDO $db, Order $orderModel)
     {
         $this->db = $db;

@@ -4,15 +4,30 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de anexos/arquivos vinculados a registros.
+ */
 class Attachment
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe Attachment.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Read by entity.
+     *
+     * @param string $entityType Entity type
+     * @param int $entityId Entity id
+     * @return array
+     */
     public function readByEntity(string $entityType, int $entityId): array
     {
         $stmt = $this->conn->prepare(
@@ -26,6 +41,12 @@ class Attachment
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Retorna um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @return array|null
+     */
     public function readOne(int $id): ?array
     {
         $stmt = $this->conn->prepare("SELECT * FROM attachments WHERE id = :id");
@@ -34,6 +55,12 @@ class Attachment
         return $row ?: null;
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -55,12 +82,25 @@ class Attachment
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Remove um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @return bool
+     */
     public function delete(int $id): bool
     {
         $stmt = $this->conn->prepare("DELETE FROM attachments WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
 
+    /**
+     * Conta registros com critérios opcionais.
+     *
+     * @param string $entityType Entity type
+     * @param int $entityId Entity id
+     * @return int
+     */
     public function countByEntity(string $entityType, int $entityId): int
     {
         $stmt = $this->conn->prepare(
@@ -70,6 +110,14 @@ class Attachment
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Read paginated.
+     *
+     * @param int $page Número da página
+     * @param int $perPage Registros por página
+     * @param string $entityType Entity type
+     * @return array
+     */
     public function readPaginated(int $page = 1, int $perPage = 20, string $entityType = ''): array
     {
         $where = '';

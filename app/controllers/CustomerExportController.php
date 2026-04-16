@@ -15,11 +15,20 @@ use Akti\Utils\Input;
 class CustomerExportController extends BaseController {
     private CustomerExportService $exportService;
 
+    /**
+     * Construtor da classe CustomerExportController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param CustomerExportService $exportService Export service
+     */
     public function __construct(\PDO $db, CustomerExportService $exportService)
     {
         $this->exportService = $exportService;
     }
 
+    /**
+     * Exporta dados.
+     */
     public function export()
     {
         $filters = $this->captureFilters();
@@ -33,6 +42,10 @@ class CustomerExportController extends BaseController {
         $this->exportService->exportCsv($filters, $ids);
     }
 
+    /**
+     * Capture filters.
+     * @return array
+     */
     private function captureFilters(): array
     {
         return [

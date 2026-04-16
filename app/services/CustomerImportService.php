@@ -30,6 +30,14 @@ class CustomerImportService
     /** @var PDO */
     private $db;
 
+    /**
+     * Construtor da classe CustomerImportService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param Customer $customerModel Customer model
+     * @param ImportBatch $importBatchModel Import batch model
+     * @param Logger $logger Logger
+     */
     public function __construct(PDO $db, Customer $customerModel, ImportBatch $importBatchModel, Logger $logger)
     {
         $this->db = $db;
@@ -501,6 +509,12 @@ class CustomerImportService
     //  Helpers de Parse CSV / Excel
     // ═══════════════════════════════════════════════
 
+ /**
+  * Parse csv file.
+  *
+  * @param string $filePath File path
+  * @return array
+  */
     public function parseCsvFile(string $filePath): array
     {
         $rows = [];
@@ -537,6 +551,12 @@ class CustomerImportService
         return $rows;
     }
 
+ /**
+  * Parse excel file.
+  *
+  * @param string $filePath File path
+  * @return array
+  */
     public function parseExcelFile(string $filePath): array
     {
         $rows = [];
@@ -562,6 +582,12 @@ class CustomerImportService
         return $rows;
     }
 
+ /**
+  * Normalize date for import.
+  *
+  * @param string $dateStr Date str
+  * @return string|null
+  */
     public function normalizeDateForImport(string $dateStr): ?string
     {
         $dateStr = trim($dateStr);
@@ -587,6 +613,12 @@ class CustomerImportService
         return null;
     }
 
+ /**
+  * Normalize uf for import.
+  *
+  * @param string $state State
+  * @return string
+  */
     public function normalizeUfForImport(string $state): string
     {
         $state = trim($state);

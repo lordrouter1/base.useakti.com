@@ -33,6 +33,13 @@ class PipelineService
      */
     private static $stagesBlockedByPaidInstallments = ['contato', 'orcamento', 'venda', 'producao', 'cancelado'];
 
+    /**
+     * Construtor da classe PipelineService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param Pipeline $pipelineModel Pipeline model
+     * @param Stock $stockModel Stock model
+     */
     public function __construct(PDO $db, Pipeline $pipelineModel, Stock $stockModel)
     {
         $this->db = $db;

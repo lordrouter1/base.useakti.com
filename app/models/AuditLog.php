@@ -4,15 +4,29 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de log de auditoria para rastreamento de alterações.
+ */
 class AuditLog
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe AuditLog.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Registra informação no log.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function log(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -35,6 +49,14 @@ class AuditLog
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Read paginated.
+     *
+     * @param int $page Número da página
+     * @param int $perPage Registros por página
+     * @param array $filters Filtros aplicados
+     * @return array
+     */
     public function readPaginated(int $page = 1, int $perPage = 50, array $filters = []): array
     {
         $where = ' WHERE 1=1';
@@ -88,6 +110,13 @@ class AuditLog
         ];
     }
 
+ /**
+  * Read by entity.
+  *
+  * @param string $entityType Entity type
+  * @param int $entityId Entity id
+  * @return array
+  */
     public function readByEntity(string $entityType, int $entityId): array
     {
         $stmt = $this->conn->prepare(
@@ -97,6 +126,12 @@ class AuditLog
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Delete old.
+  *
+  * @param int $daysOld Days old
+  * @return int
+  */
     public function deleteOld(int $daysOld = 365): int
     {
         $stmt = $this->conn->prepare(

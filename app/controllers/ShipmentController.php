@@ -5,16 +5,27 @@ namespace Akti\Controllers;
 use Akti\Models\Shipment;
 use Akti\Utils\Input;
 
+/**
+ * Class ShipmentController.
+ */
 class ShipmentController extends BaseController
 {
     private Shipment $shipmentModel;
 
+    /**
+     * Construtor da classe ShipmentController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         parent::__construct($db);
         $this->shipmentModel = new Shipment($db);
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $this->requireAuth();
@@ -35,6 +46,9 @@ class ShipmentController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $this->requireAuth();
@@ -46,6 +60,9 @@ class ShipmentController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $this->requireAuth();
@@ -71,6 +88,9 @@ class ShipmentController extends BaseController
         header('Location: ?page=shipments&action=view&id=' . $id);
     }
 
+    /**
+     * View.
+     */
     public function view()
     {
         $this->requireAuth();
@@ -88,6 +108,9 @@ class ShipmentController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Add event.
+     */
     public function addEvent()
     {
         $this->requireAuth();
@@ -110,6 +133,9 @@ class ShipmentController extends BaseController
         header('Location: ?page=shipments&action=view&id=' . $shipmentId);
     }
 
+    /**
+     * Carriers.
+     */
     public function carriers()
     {
         $this->requireAuth();
@@ -120,6 +146,9 @@ class ShipmentController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Salva dados.
+     */
     public function saveCarrier()
     {
         $this->requireAuth();
@@ -142,6 +171,9 @@ class ShipmentController extends BaseController
         header('Location: ?page=shipments&action=carriers');
     }
 
+    /**
+     * Dashboard.
+     */
     public function dashboard()
     {
         $this->requireAuth();
@@ -157,6 +189,9 @@ class ShipmentController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $this->requireAuth();

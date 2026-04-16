@@ -16,6 +16,11 @@ abstract class BaseController
     /** @var \PDO */
     protected \PDO $db;
 
+    /**
+     * Construtor da classe BaseController.
+     *
+     * @param \PDO|null $db Conexão PDO com o banco de dados
+     */
     public function __construct(?\PDO $db = null)
     {
         $this->db = $db ?? \Database::getInstance();

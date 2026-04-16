@@ -23,6 +23,14 @@ class CommissionController extends BaseController
     private CommissionService $service;
     private Commission $model;
 
+    /**
+     * Construtor da classe CommissionController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Commission $model Model
+     * @param CommissionEngine $engine Engine
+     * @param CommissionService $service Service
+     */
     public function __construct(\PDO $db, Commission $model, CommissionEngine $engine, CommissionService $service)
     {
         $this->db = $db;
@@ -34,6 +42,9 @@ class CommissionController extends BaseController
     // DASHBOARD (Visão Geral)
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $month = Input::get('month', 'int', (int) date('m'));
@@ -51,6 +62,9 @@ class CommissionController extends BaseController
     // FORMAS DE COMISSÃO (Cadastros)
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Formas.
+     */
     public function formas()
     {
         $formas = $this->service->getAllFormas();
@@ -61,6 +75,9 @@ class CommissionController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Store forma.
+     */
     public function storeForma()
     {
         header('Content-Type: application/json');
@@ -87,6 +104,9 @@ class CommissionController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Update forma.
+     */
     public function updateForma()
     {
         header('Content-Type: application/json');
@@ -113,6 +133,9 @@ class CommissionController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Delete forma.
+     */
     public function deleteForma()
     {
         header('Content-Type: application/json');
@@ -124,6 +147,9 @@ class CommissionController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getFaixas()
     {
         header('Content-Type: application/json');
@@ -135,6 +161,9 @@ class CommissionController extends BaseController
     // REGRAS POR GRUPO
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Grupos.
+     */
     public function grupos()
     {
         $grupoFormas = $this->service->getGrupoFormas();
@@ -145,6 +174,9 @@ class CommissionController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Link grupo.
+     */
     public function linkGrupo()
     {
         header('Content-Type: application/json');
@@ -159,6 +191,9 @@ class CommissionController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Unlink grupo.
+     */
     public function unlinkGrupo()
     {
         header('Content-Type: application/json');
@@ -174,6 +209,9 @@ class CommissionController extends BaseController
     // REGRAS POR USUÁRIO
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Usuarios.
+     */
     public function usuarios()
     {
         $usuarioFormas = $this->service->getUsuarioFormas();
@@ -185,6 +223,9 @@ class CommissionController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Link usuario.
+     */
     public function linkUsuario()
     {
         header('Content-Type: application/json');
@@ -199,6 +240,9 @@ class CommissionController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Unlink usuario.
+     */
     public function unlinkUsuario()
     {
         header('Content-Type: application/json');
@@ -214,6 +258,9 @@ class CommissionController extends BaseController
     // REGRAS POR PRODUTO / CATEGORIA
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Produtos.
+     */
     public function produtos()
     {
         $regras = $this->service->getComissaoProdutos();
@@ -229,6 +276,9 @@ class CommissionController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Salva dados.
+     */
     public function saveProdutoRegra()
     {
         header('Content-Type: application/json');
@@ -250,6 +300,9 @@ class CommissionController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Delete produto regra.
+     */
     public function deleteProdutoRegra()
     {
         header('Content-Type: application/json');
@@ -265,6 +318,9 @@ class CommissionController extends BaseController
     // SIMULADOR
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Simulador.
+     */
     public function simulador()
     {
         $aux = $this->service->getAuxData();
@@ -274,6 +330,9 @@ class CommissionController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Simular calculo.
+     */
     public function simularCalculo()
     {
         header('Content-Type: application/json');
@@ -302,6 +361,9 @@ class CommissionController extends BaseController
     // CÁLCULO REAL (registrar comissão)
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Calcula valor.
+     */
     public function calcular()
     {
         header('Content-Type: application/json');
@@ -322,6 +384,9 @@ class CommissionController extends BaseController
     // HISTÓRICO / RELATÓRIOS
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Historico.
+     */
     public function historico()
     {
         $aux = $this->service->getAuxData();
@@ -331,6 +396,9 @@ class CommissionController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getHistoricoPaginated()
     {
         header('Content-Type: application/json');
@@ -355,6 +423,9 @@ class CommissionController extends BaseController
     // AÇÕES DE STATUS (aprovar, pagar, cancelar)
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Aprovar.
+     */
     public function aprovar()
     {
         header('Content-Type: application/json');
@@ -366,6 +437,9 @@ class CommissionController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Pagar.
+     */
     public function pagar()
     {
         header('Content-Type: application/json');
@@ -377,6 +451,9 @@ class CommissionController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Cancela operação.
+     */
     public function cancelar()
     {
         header('Content-Type: application/json');
@@ -388,6 +465,9 @@ class CommissionController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Aprovar lote.
+     */
     public function aprovarLote()
     {
         header('Content-Type: application/json');
@@ -399,6 +479,9 @@ class CommissionController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Pagar lote.
+     */
     public function pagarLote()
     {
         header('Content-Type: application/json');
@@ -414,6 +497,9 @@ class CommissionController extends BaseController
     // CONFIGURAÇÕES
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Configuracoes.
+     */
     public function configuracoes()
     {
         $config = $this->service->getConfig();
@@ -423,6 +509,9 @@ class CommissionController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Salva dados.
+     */
     public function saveConfig()
     {
         header('Content-Type: application/json');
@@ -475,6 +564,10 @@ class CommissionController extends BaseController
     // HELPERS
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Interpreta dados.
+     * @return array
+     */
     private function parseFaixasFromPost(): array
     {
         $faixas = [];

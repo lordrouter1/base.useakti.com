@@ -4,15 +4,31 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de campanhas de email marketing.
+ */
 class EmailCampaign
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe EmailCampaign.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Read paginated.
+     *
+     * @param int $page Número da página
+     * @param int $perPage Registros por página
+     * @param string $search Termo de busca
+     * @return array
+     */
     public function readPaginated(int $page = 1, int $perPage = 15, string $search = ''): array
     {
         $where = ' WHERE 1=1';
@@ -45,6 +61,12 @@ class EmailCampaign
         ];
     }
 
+ /**
+  * Read one.
+  *
+  * @param int $id ID do registro
+  * @return array|null
+  */
     public function readOne(int $id): ?array
     {
         $stmt = $this->conn->prepare("SELECT * FROM email_campaigns WHERE id = :id");
@@ -53,6 +75,12 @@ class EmailCampaign
         return $row ?: null;
     }
 
+ /**
+  * Create.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -73,6 +101,13 @@ class EmailCampaign
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Update.
+  *
+  * @param int $id ID do registro
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function update(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -92,6 +127,12 @@ class EmailCampaign
         ]);
     }
 
+ /**
+  * Delete.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function delete(int $id): bool
     {
         $stmt = $this->conn->prepare("DELETE FROM email_campaigns WHERE id = :id");
@@ -100,6 +141,10 @@ class EmailCampaign
 
     // ──── Templates ────
 
+ /**
+  * Get templates.
+  * @return array
+  */
     public function getTemplates(): array
     {
         $stmt = $this->conn->prepare("SELECT * FROM email_templates ORDER BY name ASC");
@@ -107,6 +152,12 @@ class EmailCampaign
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get template.
+  *
+  * @param int $id ID do registro
+  * @return array|null
+  */
     public function getTemplate(int $id): ?array
     {
         $stmt = $this->conn->prepare("SELECT * FROM email_templates WHERE id = :id");
@@ -115,6 +166,12 @@ class EmailCampaign
         return $row ?: null;
     }
 
+ /**
+  * Create template.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function createTemplate(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -133,12 +190,25 @@ class EmailCampaign
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Delete template.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function deleteTemplate(int $id): bool
     {
         $stmt = $this->conn->prepare("DELETE FROM email_templates WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
 
+ /**
+  * Update template.
+  *
+  * @param int $id ID do registro
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function updateTemplate(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -159,6 +229,12 @@ class EmailCampaign
 
     // ──── Logs ────
 
+ /**
+  * Get logs.
+  *
+  * @param int $campaignId Campaign id
+  * @return array
+  */
     public function getLogs(int $campaignId): array
     {
         $stmt = $this->conn->prepare(
@@ -168,6 +244,12 @@ class EmailCampaign
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Get stats.
+  *
+  * @param int $campaignId Campaign id
+  * @return array
+  */
     public function getStats(int $campaignId): array
     {
         $stmt = $this->conn->prepare(

@@ -5,16 +5,27 @@ namespace Akti\Controllers;
 use Akti\Models\Ticket;
 use Akti\Utils\Input;
 
+/**
+ * Class TicketController.
+ */
 class TicketController extends BaseController
 {
     private Ticket $ticketModel;
 
+    /**
+     * Construtor da classe TicketController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         parent::__construct($db);
         $this->ticketModel = new Ticket($db);
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $this->requireAuth();
@@ -38,6 +49,9 @@ class TicketController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $this->requireAuth();
@@ -49,6 +63,9 @@ class TicketController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $this->requireAuth();
@@ -75,6 +92,9 @@ class TicketController extends BaseController
         header('Location: ?page=tickets');
     }
 
+    /**
+     * View.
+     */
     public function view()
     {
         $this->requireAuth();
@@ -92,6 +112,9 @@ class TicketController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Add message.
+     */
     public function addMessage()
     {
         $this->requireAuth();
@@ -115,6 +138,9 @@ class TicketController extends BaseController
         header('Location: ?page=tickets&action=view&id=' . $ticketId);
     }
 
+    /**
+     * Update status.
+     */
     public function updateStatus()
     {
         $this->requireAuth();
@@ -126,6 +152,9 @@ class TicketController extends BaseController
         header('Location: ?page=tickets&action=view&id=' . $id);
     }
 
+    /**
+     * Dashboard.
+     */
     public function dashboard()
     {
         $this->requireAuth();
@@ -141,6 +170,9 @@ class TicketController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $this->requireAuth();

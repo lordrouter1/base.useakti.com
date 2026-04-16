@@ -11,6 +11,9 @@ use Akti\Utils\Validator;
 use Akti\Utils\Sanitizer;
 use TenantManager;
 
+/**
+ * Class StockController.
+ */
 class StockController extends BaseController {
 
     private Stock $stockModel;
@@ -18,6 +21,15 @@ class StockController extends BaseController {
     private Logger $logger;
     private StockMovementService $movementService;
 
+    /**
+     * Construtor da classe StockController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Stock $stockModel Stock model
+     * @param Product $productModel Product model
+     * @param Logger $logger Logger
+     * @param StockMovementService $movementService Movement service
+     */
     public function __construct(
         \PDO $db,
         Stock $stockModel,
@@ -38,6 +50,9 @@ class StockController extends BaseController {
     }
 
     // ─── Página principal: visão geral do estoque (com sidebar unificada) ───
+    /**
+     * Exibe a página de listagem.
+     */
     public function index() {
         // ── Dados da Visão Geral (resumo — carregamento leve, tabelas via AJAX) ──
         $warehouseId = Input::get('warehouse_id', 'int');
@@ -73,11 +88,17 @@ class StockController extends BaseController {
     }
 
     // ─── Armazéns: redireciona para a página unificada ───
+    /**
+     * Warehouses.
+     */
     public function warehouses() {
         header('Location: ?page=stock&section=warehouses');
         exit;
     }
 
+    /**
+     * Store warehouse.
+     */
     public function storeWarehouse() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Verificar limite de armazéns do tenant
@@ -115,6 +136,9 @@ class StockController extends BaseController {
         }
     }
 
+ /**
+  * Update warehouse.
+  */
     public function updateWarehouse() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = [
@@ -137,6 +161,9 @@ class StockController extends BaseController {
         }
     }
 
+ /**
+  * Delete warehouse.
+  */
     public function deleteWarehouse() {
         $id = Input::get('id', 'int', 0);
         if ($id) {
@@ -149,6 +176,9 @@ class StockController extends BaseController {
     }
 
     // ─── Movimentações (JSON para AJAX, ou redireciona para página unificada) ───
+ /**
+  * Movements.
+  */
     public function movements() {
         $filters = [
             'warehouse_id' => Input::get('warehouse_id', 'int'),
@@ -172,12 +202,18 @@ class StockController extends BaseController {
     }
 
     // ─── Entrada de Estoque: redireciona para página unificada ───
+ /**
+  * Entry.
+  */
     public function entry() {
         header('Location: ?page=stock&section=entry');
         exit;
     }
 
     // ─── AJAX: Buscar itens de estoque (para filtros dinâmicos + paginação) ───
+ /**
+  * Get stock items.
+  */
     public function getStockItems() {
         header('Content-Type: application/json');
 
@@ -203,6 +239,9 @@ class StockController extends BaseController {
         ]);}
 
     // ─── AJAX: Buscar movimentações (para filtros dinâmicos + paginação) ───
+ /**
+  * Get movements.
+  */
     public function getMovements() {
         header('Content-Type: application/json');
 
@@ -233,6 +272,9 @@ class StockController extends BaseController {
         ]);}
 
     // ─── AJAX: Processar movimentação (entrada/saída/ajuste/transferência) ───
+ /**
+  * Store movement.
+  */
     public function storeMovement() {
         header('Content-Type: application/json');
 
@@ -250,6 +292,9 @@ class StockController extends BaseController {
         $this->json($result);}
 
     // ─── AJAX: Buscar uma movimentação pelo ID ───
+ /**
+  * Get movement.
+  */
     public function getMovement() {
         header('Content-Type: application/json');
         $id = Input::get('id', 'int', 0);
@@ -261,6 +306,9 @@ class StockController extends BaseController {
         $this->json(['success' => true, 'movement' => $movement]);}
 
     // ─── AJAX: Atualizar uma movimentação existente ───
+ /**
+  * Update movement.
+  */
     public function updateMovement() {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -284,6 +332,9 @@ class StockController extends BaseController {
         $this->json($result);}
 
     // ─── AJAX: Excluir uma movimentação ───
+ /**
+  * Delete movement.
+  */
     public function deleteMovement() {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -297,6 +348,9 @@ class StockController extends BaseController {
         $this->json($result);}
 
     // ─── AJAX: Buscar combinações de um produto ───
+ /**
+  * Get product combinations.
+  */
     public function getProductCombinations() {
         header('Content-Type: application/json');
         $productId = Input::get('product_id', 'int', 0);
@@ -306,6 +360,9 @@ class StockController extends BaseController {
         $this->json($combos);}
 
     // ─── AJAX: Atualizar metadados de um item de estoque ───
+ /**
+  * Update item meta.
+  */
     public function updateItemMeta() {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -325,6 +382,9 @@ class StockController extends BaseController {
     }
 
     // ─── AJAX: Buscar estoque atual de um produto em um armazém ───
+ /**
+  * Get product stock.
+  */
     public function getProductStock() {
         header('Content-Type: application/json');
         $warehouseId = Input::get('warehouse_id', 'int', 0);
@@ -340,6 +400,9 @@ class StockController extends BaseController {
         $this->json($result);}
 
     // ─── AJAX: Definir armazém padrão ───
+ /**
+  * Set default.
+  */
     public function setDefault() {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -353,12 +416,18 @@ class StockController extends BaseController {
         $this->json(['success' => true]);}
 
     // ─── AJAX: Buscar armazém padrão ───
+ /**
+  * Get default warehouse.
+  */
     public function getDefaultWarehouse() {
         header('Content-Type: application/json');
         $wh = $this->stockModel->getDefaultWarehouse();
         $this->json(['success' => true, 'warehouse' => $wh]);}
 
     // ─── AJAX: Verificar disponibilidade de estoque de um pedido em um armazém ───
+ /**
+  * Check order stock.
+  */
     public function checkOrderStock() {
         header('Content-Type: application/json');
         $orderId = Input::get('order_id', 'int', 0);

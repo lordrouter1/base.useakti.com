@@ -19,6 +19,9 @@ use Akti\Services\PipelineDetailService;
 use Akti\Utils\Input;
 use Akti\Utils\Sanitizer;
 
+/**
+ * Class PipelineController.
+ */
 class PipelineController extends BaseController {
 
     private Pipeline $pipelineModel;
@@ -28,6 +31,17 @@ class PipelineController extends BaseController {
     private PipelinePaymentService $paymentService;
     private PipelineDetailService $detailService;
 
+    /**
+     * Construtor da classe PipelineController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Pipeline $pipelineModel Pipeline model
+     * @param Stock $stockModel Stock model
+     * @param PipelineService $pipelineService Pipeline service
+     * @param PipelineAlertService $alertService Alert service
+     * @param PipelinePaymentService $paymentService Payment service
+     * @param PipelineDetailService $detailService Detail service
+     */
     public function __construct(
         \PDO $db,
         Pipeline $pipelineModel,
@@ -71,10 +85,6 @@ class PipelineController extends BaseController {
      * Delegado ao PipelineService para lÃ³gica de estoque e regras.
      */
     /**
-     * Etapas bloqueadas quando existem parcelas pagas â€” gerenciado pelo PipelineService.
-     */
-
-    /**
      * Remove a confirmaÃ§Ã£o de orÃ§amento quando o pedido Ã© modificado.
      * Delegado ao PipelineService.
      */
@@ -82,6 +92,9 @@ class PipelineController extends BaseController {
         $this->pipelineService->clearQuoteConfirmation($orderId);
     }
 
+    /**
+     * Move registro de posição.
+     */
     public function move() {
         $orderId = Input::get('id', 'int');
         $newStage = Input::get('stage');

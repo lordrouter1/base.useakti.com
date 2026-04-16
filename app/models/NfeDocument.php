@@ -21,6 +21,11 @@ class NfeDocument
     private $conn;
     private $table = 'nfe_documents';
 
+    /**
+     * Construtor da classe NfeDocument.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->conn = $db;

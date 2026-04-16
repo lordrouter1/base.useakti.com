@@ -27,6 +27,9 @@ class Database {
     private $charset;
     public $conn;
 
+    /**
+     * Construtor da classe Database.
+     */
     public function __construct() {
         $tenantConfig = TenantManager::getTenantConfig();
         $this->host     = $tenantConfig['host'];

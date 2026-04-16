@@ -5,12 +5,21 @@ namespace Akti\Services;
 use Akti\Models\WhatsAppMessage;
 use Akti\Core\Log;
 
+/**
+ * Class WhatsAppService.
+ */
 class WhatsAppService
 {
     private WhatsAppMessage $model;
     private ?array $config = null;
     private int $tenantId;
 
+    /**
+     * Construtor da classe WhatsAppService.
+     *
+     * @param WhatsAppMessage $model Model
+     * @param int $tenantId ID do tenant
+     */
     public function __construct(WhatsAppMessage $model, int $tenantId)
     {
         $this->model = $model;
@@ -18,11 +27,24 @@ class WhatsAppService
         $this->config = $model->getConfig($tenantId);
     }
 
+    /**
+     * Verifica uma condição booleana.
+     * @return bool
+     */
     public function isConfigured(): bool
     {
         return $this->config && !empty($this->config['is_active']) && !empty($this->config['api_url']);
     }
 
+    /**
+     * Envia dados ou notificação.
+     *
+     * @param string $phone Phone
+     * @param string $message Mensagem
+     * @param int|null $customerId ID do cliente
+     * @param int|null $templateId Template id
+     * @return array
+     */
     public function send(string $phone, string $message, ?int $customerId = null, ?int $templateId = null): array
     {
         if (!$this->isConfigured()) {
@@ -56,6 +78,15 @@ class WhatsAppService
         return $result + ['message_id' => $msgId];
     }
 
+    /**
+     * Envia dados ou notificação.
+     *
+     * @param string $eventType Event type
+     * @param string $phone Phone
+     * @param array $variables Variables
+     * @param int|null $customerId ID do cliente
+     * @return array
+     */
     public function sendFromTemplate(string $eventType, string $phone, array $variables, ?int $customerId = null): array
     {
         $templates = $this->model->getTemplates($this->tenantId);
@@ -79,6 +110,13 @@ class WhatsAppService
         return $this->send($phone, $message, $customerId, (int) $template['id']);
     }
 
+ /**
+  * Send via provider.
+  *
+  * @param string $phone Phone
+  * @param string $message Mensagem
+  * @return array
+  */
     private function sendViaProvider(string $phone, string $message): array
     {
         $provider = $this->config['provider'] ?? '';
@@ -104,6 +142,13 @@ class WhatsAppService
         }
     }
 
+ /**
+  * Send evolution api.
+  *
+  * @param string $phone Phone
+  * @param string $message Mensagem
+  * @return array
+  */
     private function sendEvolutionApi(string $phone, string $message): array
     {
         $url = rtrim($this->config['api_url'], '/') . '/message/sendText/' . $this->config['instance_name'];
@@ -125,6 +170,13 @@ class WhatsAppService
         return ['success' => false, 'error' => "HTTP {$response['http_code']}: {$response['body']}"];
     }
 
+ /**
+  * Send z api.
+  *
+  * @param string $phone Phone
+  * @param string $message Mensagem
+  * @return array
+  */
     private function sendZApi(string $phone, string $message): array
     {
         $url = rtrim($this->config['api_url'], '/') . '/send-text';
@@ -142,6 +194,13 @@ class WhatsAppService
         return ['success' => false, 'error' => "HTTP {$response['http_code']}: {$response['body']}"];
     }
 
+ /**
+  * Send meta cloud.
+  *
+  * @param string $phone Phone
+  * @param string $message Mensagem
+  * @return array
+  */
     private function sendMetaCloud(string $phone, string $message): array
     {
         $url = "https://graph.facebook.com/v18.0/{$this->config['phone_number_id']}/messages";
@@ -164,6 +223,14 @@ class WhatsAppService
         return ['success' => false, 'error' => "HTTP {$response['http_code']}: {$response['body']}"];
     }
 
+ /**
+  * Http post.
+  *
+  * @param string $url Url
+  * @param string $payload Payload
+  * @param array $headers Headers
+  * @return array
+  */
     private function httpPost(string $url, string $payload, array $headers): array
     {
         $ch = curl_init($url);

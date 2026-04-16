@@ -21,6 +21,13 @@ class PipelineProductionController extends BaseController
     private Pipeline $pipelineModel;
     private PipelineDetailService $detailService;
 
+    /**
+     * Construtor da classe PipelineProductionController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Pipeline $pipelineModel Pipeline model
+     * @param PipelineDetailService $detailService Detail service
+     */
     public function __construct(\PDO $db, Pipeline $pipelineModel, PipelineDetailService $detailService)
     {
         $this->db = $db;
@@ -28,6 +35,9 @@ class PipelineProductionController extends BaseController
         $this->detailService = $detailService;
     }
 
+    /**
+     * Move registro de posição.
+     */
     public function moveSector()
     {
         header('Content-Type: application/json');
@@ -63,6 +73,9 @@ class PipelineProductionController extends BaseController
         $this->json(['success' => $result]);
     }
 
+    /**
+     * Production board.
+     */
     public function productionBoard()
     {
         $userModel = new User($this->db);
@@ -76,6 +89,9 @@ class PipelineProductionController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getItemLogs()
     {
         header('Content-Type: application/json');
@@ -91,6 +107,9 @@ class PipelineProductionController extends BaseController
         $this->json(['success' => true, 'logs' => $logs]);
     }
 
+    /**
+     * Add item log.
+     */
     public function addItemLog()
     {
         header('Content-Type: application/json');
@@ -148,6 +167,9 @@ class PipelineProductionController extends BaseController
         $this->json(['success' => true, 'log_ids' => $logIds]);
     }
 
+    /**
+     * Delete item log.
+     */
     public function deleteItemLog()
     {
         header('Content-Type: application/json');

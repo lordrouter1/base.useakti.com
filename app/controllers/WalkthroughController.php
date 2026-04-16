@@ -5,9 +5,18 @@ use Akti\Models\Walkthrough;
 use Akti\Models\UserGroup;
 use Akti\Utils\Input;
 
+/**
+ * Class WalkthroughController.
+ */
 class WalkthroughController extends BaseController {
 
     private Walkthrough $walkthroughModel;
+    /**
+     * Construtor da classe WalkthroughController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Walkthrough $walkthroughModel Walkthrough model
+     */
     public function __construct(\PDO $db, Walkthrough $walkthroughModel) {
         $this->db = $db;
         $this->walkthroughModel = $walkthroughModel;

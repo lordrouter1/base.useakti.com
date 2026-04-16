@@ -16,11 +16,20 @@ class ProductImportController extends BaseController
 {
     private ProductImportService $importService;
 
+    /**
+     * Construtor da classe ProductImportController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param ProductImportService $importService Import service
+     */
     public function __construct(\PDO $db, ProductImportService $importService)
     {
         $this->importService = $importService;
     }
 
+    /**
+     * Interpreta dados.
+     */
     public function parseImportFile()
     {
         header('Content-Type: application/json');
@@ -33,6 +42,9 @@ class ProductImportController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Importa dados.
+     */
     public function importProductsMapped()
     {
         header('Content-Type: application/json');
@@ -50,12 +62,18 @@ class ProductImportController extends BaseController
         $this->json($result);
     }
 
+    /**
+     * Gera download de arquivo.
+     */
     public function downloadImportTemplate()
     {
         $this->importService->generateImportTemplate();
         exit;
     }
 
+    /**
+     * Importa dados.
+     */
     public function importProducts()
     {
         header('Content-Type: application/json');

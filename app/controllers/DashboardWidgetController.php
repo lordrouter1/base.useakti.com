@@ -99,6 +99,10 @@ class DashboardWidgetController extends BaseController
 
     // ── Helpers ──
 
+    /**
+     * Require auth.
+     * @return void
+     */
     private function requireAuth(): void
     {
         if (empty($_SESSION['user_id'])) {

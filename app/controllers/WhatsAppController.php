@@ -6,16 +6,27 @@ use Akti\Models\WhatsAppMessage;
 use Akti\Services\WhatsAppService;
 use Akti\Utils\Input;
 
+/**
+ * Class WhatsAppController.
+ */
 class WhatsAppController extends BaseController
 {
     private WhatsAppMessage $model;
 
+    /**
+     * Construtor da classe WhatsAppController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         parent::__construct($db);
         $this->model = new WhatsAppMessage($db);
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $this->requireAuth();
@@ -31,6 +42,9 @@ class WhatsAppController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Salva dados.
+     */
     public function saveConfig()
     {
         $this->requireAuth();
@@ -50,6 +64,9 @@ class WhatsAppController extends BaseController
         header('Location: ?page=whatsapp');
     }
 
+    /**
+     * Salva dados.
+     */
     public function saveTemplate()
     {
         $this->requireAuth();
@@ -71,6 +88,9 @@ class WhatsAppController extends BaseController
         header('Location: ?page=whatsapp');
     }
 
+    /**
+     * Envia dados ou notificação.
+     */
     public function send()
     {
         $this->requireAuth();
@@ -96,6 +116,9 @@ class WhatsAppController extends BaseController
         header('Location: ?page=whatsapp');
     }
 
+    /**
+     * Test connection.
+     */
     public function testConnection()
     {
         $this->requireAuth();

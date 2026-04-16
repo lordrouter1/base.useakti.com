@@ -15,6 +15,13 @@ abstract class MarketplaceConnector
     protected int $tenantId;
     protected array $config;
 
+    /**
+     * Construtor da classe MarketplaceConnector.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param int $tenantId ID do tenant
+     * @param array $config Configurações
+     */
     public function __construct(\PDO $db, int $tenantId, array $config = [])
     {
         $this->db = $db;

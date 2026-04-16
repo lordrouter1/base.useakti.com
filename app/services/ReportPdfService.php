@@ -18,6 +18,14 @@ class ReportPdfService
     private $company;
     private string $responsibleUser;
 
+    /**
+     * Construtor da classe ReportPdfService.
+     *
+     * @param ReportModel $report Report
+     * @param NfeReportModel $nfeReport Nfe report
+     * @param array $company Company
+     * @param string $responsibleUser Responsible user
+     */
     public function __construct(ReportModel $report, NfeReportModel $nfeReport, array $company, string $responsibleUser)
     {
         $this->report          = $report;
@@ -30,6 +38,13 @@ class ReportPdfService
     // PDF — PEDIDOS POR PERÍODO
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportOrdersByPeriod(string $start, string $end): void
     {
         $data = $this->report->getOrdersByPeriod($start, $end);
@@ -79,6 +94,13 @@ class ReportPdfService
     // PDF — FATURAMENTO POR CLIENTE
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportRevenueByCustomer(string $start, string $end): void
     {
         $data = $this->report->getRevenueByCustomer($start, $end);
@@ -125,6 +147,13 @@ class ReportPdfService
     // PDF — DRE (DEMONSTRATIVO DE RESULTADO)
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportIncomeStatement(string $start, string $end): void
     {
         $data = $this->report->getIncomeStatement($start, $end);
@@ -216,6 +245,10 @@ class ReportPdfService
     // PDF — PARCELAS PENDENTES
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     * @return void
+     */
     public function exportOpenInstallments(): void
     {
         $data = $this->report->getOpenInstallments();
@@ -275,6 +308,13 @@ class ReportPdfService
     // PDF — AGENDAMENTOS DE CONTATO (ORÇAMENTO)
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportScheduledContacts(string $start, string $end): void
     {
         $data = $this->report->getScheduledContacts($start, $end);
@@ -334,6 +374,10 @@ class ReportPdfService
     // PDF — CATÁLOGO DE PRODUTOS
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     * @return void
+     */
     public function exportProductCatalog(): void
     {
         $productId  = Input::get('product_id', 'int', null);
@@ -448,6 +492,10 @@ class ReportPdfService
     // PDF — ESTOQUE POR ARMAZÉM
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     * @return void
+     */
     public function exportStockByWarehouse(): void
     {
         $productId   = Input::get('product_id', 'int', null);
@@ -520,6 +568,13 @@ class ReportPdfService
     // PDF — MOVIMENTAÇÕES DE ESTOQUE
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportStockMovements(string $start, string $end): void
     {
         $data = $this->report->getStockMovements($start, $end);
@@ -579,6 +634,14 @@ class ReportPdfService
     // PDF — COMISSÕES POR PERÍODO
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @param int|null $userId ID do usuário
+     * @return void
+     */
     public function exportCommissionsReport(string $start, string $end, ?int $userId = null): void
     {
         $data = $this->report->getCommissionsByPeriod($start, $end, $userId);
@@ -687,6 +750,13 @@ class ReportPdfService
     // PDF — NF-e POR PERÍODO
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportNfesByPeriod(string $start, string $end): void
     {
         $statusFilter = Input::get('nfe_status', 'string', '');
@@ -742,6 +812,13 @@ class ReportPdfService
     // PDF — RESUMO DE IMPOSTOS
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportTaxSummary(string $start, string $end): void
     {
         $data = $this->nfeReport->getTaxSummary($start, $end);
@@ -827,6 +904,13 @@ class ReportPdfService
     // PDF — NF-e POR CLIENTE
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportNfesByCustomer(string $start, string $end): void
     {
         $customerId = Input::get('customer_id', 'int', null);
@@ -878,6 +962,13 @@ class ReportPdfService
     // PDF — RESUMO CFOP
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportCfopSummary(string $start, string $end): void
     {
         $data = $this->nfeReport->getCfopSummary($start, $end);
@@ -925,6 +1016,13 @@ class ReportPdfService
     // PDF — NF-e CANCELADAS
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportCancelledNfes(string $start, string $end): void
     {
         $data = $this->nfeReport->getCancelledNfes($start, $end);
@@ -972,6 +1070,13 @@ class ReportPdfService
     // PDF — INUTILIZAÇÕES
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportInutilizacoes(string $start, string $end): void
     {
         $data = $this->nfeReport->getInutilizacoes($start, $end);
@@ -1010,6 +1115,13 @@ class ReportPdfService
     // PDF — LOGS SEFAZ
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Exporta dados.
+     *
+     * @param string $start Start
+     * @param string $end End
+     * @return void
+     */
     public function exportSefazLogs(string $start, string $end): void
     {
         $actionFilter = Input::get('log_action', 'string', '');

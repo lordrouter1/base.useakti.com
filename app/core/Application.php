@@ -27,6 +27,12 @@ class Application
     /** @var \PDO|null PDO de sessão */
     private $sessionDb;
 
+    /**
+     * Construtor da classe Application.
+     *
+     * @param string $basePath Caminho base da aplicação
+     * @param ContainerInterface $container Container de dependências
+     */
     public function __construct(string $basePath, ContainerInterface $container)
     {
         $this->basePath = $basePath;
@@ -145,6 +151,10 @@ class Application
 
     // ── Helpers internos ──
 
+    /**
+     * Manipula uma ação ou evento.
+     * @return void
+     */
     private function handleKeepalive(): void
     {
         header('Content-Type: application/json');
@@ -159,6 +169,10 @@ class Application
         exit;
     }
 
+    /**
+     * Verifica se o usuário tem permissão de acesso.
+     * @return void
+     */
     private function checkPermissions(): void
     {
         $menuConfig = require 'app/config/menu.php';

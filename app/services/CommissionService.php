@@ -26,6 +26,13 @@ class CommissionService
     private Commission $model;
     private PDO $db;
 
+    /**
+     * Construtor da classe CommissionService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param CommissionEngine $engine Engine
+     * @param Commission $model Model
+     */
     public function __construct(PDO $db, CommissionEngine $engine, Commission $model)
     {
         $this->db = $db;
@@ -37,16 +44,32 @@ class CommissionService
     // FORMAS DE COMISSÃO
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Obtém dados específicos.
+     * @return array
+     */
     public function getAllFormas(): array
     {
         return $this->model->getAllFormas();
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $id ID do registro
+     * @return array|null
+     */
     public function getForma(int $id): ?array
     {
         return $this->model->getForma($id);
     }
 
+    /**
+     * Create forma.
+     *
+     * @param array $data Dados para processamento
+     * @return array
+     */
     public function createForma(array $data): array
     {
         $id = $this->model->createForma($data);
@@ -56,6 +79,13 @@ class CommissionService
         return ['success' => true, 'id' => $id, 'message' => 'Forma de comissão criada com sucesso.'];
     }
 
+    /**
+     * Update forma.
+     *
+     * @param int $id ID do registro
+     * @param array $data Dados para processamento
+     * @return array
+     */
     public function updateForma(int $id, array $data): array
     {
         $ok = $this->model->updateForma($id, $data);
@@ -65,12 +95,24 @@ class CommissionService
         return ['success' => $ok, 'message' => $ok ? 'Forma atualizada com sucesso.' : 'Erro ao atualizar.'];
     }
 
+    /**
+     * Delete forma.
+     *
+     * @param int $id ID do registro
+     * @return array
+     */
     public function deleteForma(int $id): array
     {
         $ok = $this->model->deleteForma($id);
         return ['success' => $ok, 'message' => $ok ? 'Forma removida com sucesso.' : 'Erro ao remover.'];
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $formaId Forma id
+     * @return array
+     */
     public function getFaixas(int $formaId): array
     {
         return $this->model->getFaixas($formaId);
@@ -80,34 +122,72 @@ class CommissionService
     // VÍNCULOS GRUPO / USUÁRIO
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int|null $groupId Group id
+     * @return array
+     */
     public function getGrupoFormas(?int $groupId = null): array
     {
         return $this->model->getGrupoFormas($groupId);
     }
 
+    /**
+     * Link grupo forma.
+     *
+     * @param int $groupId Group id
+     * @param int $formaId Forma id
+     * @return array
+     */
     public function linkGrupoForma(int $groupId, int $formaId): array
     {
         $ok = $this->model->linkGrupoForma($groupId, $formaId);
         return ['success' => $ok, 'message' => $ok ? 'Vínculo criado.' : 'Erro ao criar vínculo.'];
     }
 
+    /**
+     * Unlink grupo forma.
+     *
+     * @param int $id ID do registro
+     * @return array
+     */
     public function unlinkGrupoForma(int $id): array
     {
         $ok = $this->model->unlinkGrupoForma($id);
         return ['success' => $ok, 'message' => $ok ? 'Vínculo removido.' : 'Erro ao remover.'];
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int|null $userId ID do usuário
+     * @return array
+     */
     public function getUsuarioFormas(?int $userId = null): array
     {
         return $this->model->getUsuarioFormas($userId);
     }
 
+    /**
+     * Link usuario forma.
+     *
+     * @param int $userId ID do usuário
+     * @param int $formaId Forma id
+     * @return array
+     */
     public function linkUsuarioForma(int $userId, int $formaId): array
     {
         $ok = $this->model->linkUsuarioForma($userId, $formaId);
         return ['success' => $ok, 'message' => $ok ? 'Vínculo criado.' : 'Erro ao criar vínculo.'];
     }
 
+    /**
+     * Unlink usuario forma.
+     *
+     * @param int $id ID do registro
+     * @return array
+     */
     public function unlinkUsuarioForma(int $id): array
     {
         $ok = $this->model->unlinkUsuarioForma($id);
@@ -118,17 +198,33 @@ class CommissionService
     // REGRAS POR PRODUTO
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Obtém dados específicos.
+     * @return array
+     */
     public function getComissaoProdutos(): array
     {
         return $this->model->getComissaoProdutos();
     }
 
+    /**
+     * Salva dados.
+     *
+     * @param array $data Dados para processamento
+     * @return array
+     */
     public function saveComissaoProduto(array $data): array
     {
         $id = $this->model->saveComissaoProduto($data);
         return ['success' => true, 'id' => $id, 'message' => 'Regra salva com sucesso.'];
     }
 
+    /**
+     * Delete comissao produto.
+     *
+     * @param int $id ID do registro
+     * @return array
+     */
     public function deleteComissaoProduto(int $id): array
     {
         $ok = $this->model->deleteComissaoProduto($id);
@@ -196,16 +292,37 @@ class CommissionService
     // COMISSÕES REGISTRADAS (OPERACIONAL)
     // ═══════════════════════════════════════════════════
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param array $filters Filtros aplicados
+     * @param int $page Número da página
+     * @param int $perPage Registros por página
+     * @return array
+     */
     public function getComissoesRegistradas(array $filters = [], int $page = 1, int $perPage = 25): array
     {
         return $this->model->getComissoesRegistradas($filters, $page, $perPage);
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $id ID do registro
+     * @return array|null
+     */
     public function getComissaoRegistrada(int $id): ?array
     {
         return $this->model->getComissaoRegistrada($id);
     }
 
+    /**
+     * Aprovar comissao.
+     *
+     * @param int $id ID do registro
+     * @param int $approvedBy Approved by
+     * @return array
+     */
     public function aprovarComissao(int $id, int $approvedBy): array
     {
         // Ao aprovar, muda para 'aguardando_pagamento' (novo fluxo)
@@ -213,6 +330,12 @@ class CommissionService
         return ['success' => $ok, 'message' => $ok ? 'Comissão aprovada — aguardando confirmação de pagamento.' : 'Erro ao aprovar.'];
     }
 
+    /**
+     * Pagar comissao.
+     *
+     * @param int $id ID do registro
+     * @return array
+     */
     public function pagarComissao(int $id): array
     {
         $ok = $this->model->updateComissaoStatus($id, 'paga');
@@ -222,6 +345,12 @@ class CommissionService
         return ['success' => $ok, 'message' => $ok ? 'Comissão marcada como paga.' : 'Erro ao atualizar.'];
     }
 
+    /**
+     * Cancela operação.
+     *
+     * @param int $id ID do registro
+     * @return array
+     */
     public function cancelarComissao(int $id): array
     {
         $ok = $this->model->updateComissaoStatus($id, 'cancelada');
@@ -320,6 +449,13 @@ class CommissionService
     // DASHBOARD
     // ═══════════════════════════════════════════════════
 
+ /**
+  * Get dashboard summary.
+  *
+  * @param int|null $month Month
+  * @param int|null $year Year
+  * @return array
+  */
     public function getDashboardSummary(?int $month = null, ?int $year = null): array
     {
         return $this->model->getDashboardSummary($month, $year);
@@ -329,11 +465,21 @@ class CommissionService
     // CONFIGURAÇÕES
     // ═══════════════════════════════════════════════════
 
+ /**
+  * Get config.
+  * @return array
+  */
     public function getConfig(): array
     {
         return $this->model->getConfig();
     }
 
+ /**
+  * Save config.
+  *
+  * @param array $configs Configs
+  * @return array
+  */
     public function saveConfig(array $configs): array
     {
         foreach ($configs as $key => $value) {

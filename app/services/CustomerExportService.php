@@ -19,6 +19,12 @@ class CustomerExportService
     /** @var Logger */
     private $logger;
 
+    /**
+     * Construtor da classe CustomerExportService.
+     *
+     * @param Customer $customerModel Customer model
+     * @param Logger $logger Logger
+     */
     public function __construct(Customer $customerModel, Logger $logger)
     {
         $this->customerModel = $customerModel;

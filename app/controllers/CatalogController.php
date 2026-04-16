@@ -26,6 +26,13 @@ class CatalogController extends BaseController {
     private CatalogCartService $cartService;
     private CatalogQuoteService $quoteService;
 
+    /**
+     * Construtor da classe CatalogController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param CatalogCartService $cartService Cart service
+     * @param CatalogQuoteService $quoteService Quote service
+     */
     public function __construct(\PDO $db, CatalogCartService $cartService, CatalogQuoteService $quoteService) {
         $this->db = $db;
         $this->cartService = $cartService;

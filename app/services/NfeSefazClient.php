@@ -27,6 +27,11 @@ class NfeSefazClient
     /** @var \NFePHP\NFe\Tools|null */
     private $tools = null;
 
+    /**
+     * Construtor da classe NfeSefazClient.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;

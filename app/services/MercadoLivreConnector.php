@@ -14,11 +14,19 @@ class MercadoLivreConnector extends MarketplaceConnector
     private string $baseUrl = 'https://api.mercadolibre.com';
     private ?string $accessToken = null;
 
+    /**
+     * Obtém dados específicos.
+     * @return string
+     */
     public function getName(): string
     {
         return 'mercadolivre';
     }
 
+    /**
+     * Autentica o usuário com credenciais.
+     * @return bool
+     */
     public function authenticate(): bool
     {
         $appId = $this->config['app_id'] ?? '';
@@ -47,6 +55,12 @@ class MercadoLivreConnector extends MarketplaceConnector
         return false;
     }
 
+    /**
+     * Sincroniza dados.
+     *
+     * @param array $productIds Product ids
+     * @return array
+     */
     public function syncProducts(array $productIds = []): array
     {
         $results = ['success' => 0, 'errors' => 0, 'details' => []];
@@ -55,6 +69,12 @@ class MercadoLivreConnector extends MarketplaceConnector
         return $results;
     }
 
+    /**
+     * Importa dados.
+     *
+     * @param string $since Since
+     * @return array
+     */
     public function importOrders(string $since = ''): array
     {
         $results = ['imported' => 0, 'errors' => 0, 'details' => []];
@@ -63,6 +83,13 @@ class MercadoLivreConnector extends MarketplaceConnector
         return $results;
     }
 
+    /**
+     * Update order status.
+     *
+     * @param int $orderId ID do pedido
+     * @param string $status Status do registro
+     * @return bool
+     */
     public function updateOrderStatus(int $orderId, string $status): bool
     {
         // Implementação: PUT /orders/{order_id}/status
@@ -70,6 +97,12 @@ class MercadoLivreConnector extends MarketplaceConnector
         return true;
     }
 
+ /**
+  * Sync stock.
+  *
+  * @param array $productIds Product ids
+  * @return array
+  */
     public function syncStock(array $productIds = []): array
     {
         $results = ['updated' => 0, 'errors' => 0];

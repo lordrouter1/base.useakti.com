@@ -61,11 +61,19 @@ class Router
     // Getters
     // ══════════════════════════════════════════════════════════════
 
+ /**
+  * Get page.
+  * @return string
+  */
     public function getPage(): string
     {
         return $this->page;
     }
 
+ /**
+  * Get action.
+  * @return string
+  */
     public function getAction(): string
     {
         return $this->action;
@@ -295,6 +303,9 @@ class Router
             $type = $param->getType();
             $typeName = $type instanceof \ReflectionNamedType ? $type->getName() : null;
 
+/**
+ * Class Unknown.
+ */
             if ($typeName === 'PDO' || $typeName === \PDO::class) {
                 $args[] = \Database::getInstance();
             } elseif ($param->isDefaultValueAvailable()) {

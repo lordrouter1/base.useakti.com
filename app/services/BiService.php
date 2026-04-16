@@ -7,6 +7,9 @@ use Akti\Models\Financial;
 use Akti\Models\Pipeline;
 use Akti\Models\Customer;
 
+/**
+ * Class BiService.
+ */
 class BiService
 {
     private \PDO $db;
@@ -14,6 +17,11 @@ class BiService
     private Financial $financial;
     private Pipeline $pipeline;
 
+    /**
+     * Construtor da classe BiService.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->db = $db;

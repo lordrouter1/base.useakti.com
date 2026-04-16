@@ -12,6 +12,9 @@ use Akti\Core\Log;
 use Akti\Services\CategoryService;
 use Akti\Utils\Input;
 
+/**
+ * Class CategoryController.
+ */
 class CategoryController extends BaseController {
     
     private Category $categoryModel;
@@ -21,6 +24,18 @@ class CategoryController extends BaseController {
     private CategoryGrade $categoryGradeModel;
     private Logger $logger;
     private CategoryService $categoryService;
+    /**
+     * Construtor da classe CategoryController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Category $categoryModel Category model
+     * @param Subcategory $subcategoryModel Subcategory model
+     * @param ProductionSector $sectorModel Sector model
+     * @param ProductGrade $gradeModel Grade model
+     * @param CategoryGrade $categoryGradeModel Category grade model
+     * @param Logger $logger Logger
+     * @param CategoryService $categoryService Category service
+     */
     public function __construct(
         \PDO $db,
         Category $categoryModel,
@@ -41,6 +56,9 @@ class CategoryController extends BaseController {
         $this->categoryService = $categoryService;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index() {
         $categories = $this->categoryModel->readAllWithCount();
         $subcategories = $this->subcategoryModel->readAll();
@@ -100,6 +118,9 @@ class CategoryController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('name')) {
             $this->categoryModel->name = Input::post('name');
@@ -123,6 +144,9 @@ class CategoryController extends BaseController {
         exit;
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('id')) {
             $id = Input::post('id', 'int');
@@ -146,6 +170,9 @@ class CategoryController extends BaseController {
         exit;
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete() {
         $id = Input::get('id', 'int');
         if ($id) {
@@ -156,6 +183,9 @@ class CategoryController extends BaseController {
         exit;
     }
 
+    /**
+     * Store sub.
+     */
     public function storeSub() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('name') && Input::hasPost('category_id')) {
             $this->subcategoryModel->name = Input::post('name');
@@ -180,6 +210,9 @@ class CategoryController extends BaseController {
         exit;
     }
 
+    /**
+     * Update sub.
+     */
     public function updateSub() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('id')) {
             $id = Input::post('id', 'int');
@@ -203,6 +236,9 @@ class CategoryController extends BaseController {
         exit;
     }
 
+    /**
+     * Delete sub.
+     */
     public function deleteSub() {
         $id = Input::get('id', 'int');
         if ($id) {
@@ -217,6 +253,9 @@ class CategoryController extends BaseController {
     // AJAX: Get inherited grades for a product (by subcategory/category)
     // ─────────────────────────────────────────────────────
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getInheritedGradesAjax() {
         $subcategoryId = Input::get('subcategory_id', 'int');
         $categoryId = Input::get('category_id', 'int');
@@ -231,6 +270,9 @@ class CategoryController extends BaseController {
         ]);}
 
     // AJAX: Toggle combination for category
+    /**
+     * Alterna estado de propriedade.
+     */
     public function toggleCategoryCombinationAjax() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = Input::post('id', 'int');
@@ -242,6 +284,9 @@ class CategoryController extends BaseController {
         $this->json(['success' => false]);}
 
     // AJAX: Toggle combination for subcategory
+    /**
+     * Alterna estado de propriedade.
+     */
     public function toggleSubcategoryCombinationAjax() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = Input::post('id', 'int');
@@ -256,6 +301,9 @@ class CategoryController extends BaseController {
     // AJAX: Get products for export modal
     // ─────────────────────────────────────────────────────
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getProductsForExport() {
         header('Content-Type: application/json');
         $type = Input::get('type', 'enum', '', ['category', 'subcategory']);
@@ -296,6 +344,9 @@ class CategoryController extends BaseController {
     // AJAX: Execute batch export of grades/sectors to products
     // ─────────────────────────────────────────────────────
 
+    /**
+     * Exporta dados.
+     */
     public function exportToProducts() {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -330,6 +381,9 @@ class CategoryController extends BaseController {
     // AJAX: Get inherited sectors for a product (by subcategory/category)
     // ─────────────────────────────────────────────────────
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getInheritedSectorsAjax() {
         header('Content-Type: application/json');
         $subcategoryId = Input::get('subcategory_id', 'int');

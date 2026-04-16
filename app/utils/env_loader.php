@@ -20,17 +20,19 @@
  * @param string $path Absolute path to the .env file
  * @return void
  */
-/**
- * Static registry for env vars loaded from .env file.
- * Uses a class with a static property — immune to global scope issues
- * in Apache worker/thread configurations.
- */
 class AktiEnvRegistry
 {
     /** @var array<string, string> */
     private static array $vars = [];
     private static bool $loaded = false;
 
+    /**
+     * Set.
+     *
+     * @param string $name Nome
+     * @param string $value Valor
+     * @return void
+     */
     public static function set(string $name, string $value): void
     {
         self::$vars[$name] = $value;
@@ -45,12 +47,22 @@ class AktiEnvRegistry
         return self::$vars[$name] ?? false;
     }
 
+    /**
+     * Verifica uma condição booleana.
+     * @return bool
+     */
     public static function isLoaded(): bool
     {
         return self::$loaded;
     }
 }
 
+/**
+ * Akti load env.
+ *
+ * @param string $path Caminho do arquivo
+ * @return void
+ */
 function akti_load_env(string $path): void
 {
     if (!is_file($path) || !is_readable($path)) {

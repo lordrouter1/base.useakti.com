@@ -25,6 +25,12 @@ class SettingsService
     private CompanySettings $companySettings;
     private Logger $logger;
 
+    /**
+     * Construtor da classe SettingsService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param CompanySettings $companySettings Company settings
+     */
     public function __construct(PDO $db, CompanySettings $companySettings)
     {
         $this->db = $db;

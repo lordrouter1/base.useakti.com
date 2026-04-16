@@ -6,16 +6,28 @@ use Akti\Models\Master\Plan;
 use Akti\Models\Master\TenantClient;
 use Akti\Models\Master\AdminLog;
 
+/**
+ * Class PlanController.
+ */
 class PlanController extends MasterBaseController
 {
     private Plan $planModel;
 
+    /**
+     * Construtor da classe PlanController.
+     *
+     * @param \PDO|null $db Conexão PDO com o banco de dados
+     */
     public function __construct(?\PDO $db = null)
     {
         parent::__construct($db);
         $this->planModel = new Plan($this->db);
     }
 
+    /**
+     * Exibe a página de listagem.
+     * @return void
+     */
     public function index(): void
     {
         $this->requireMasterAuth();
@@ -23,12 +35,20 @@ class PlanController extends MasterBaseController
         $this->renderMaster('plans/index', compact('plans'));
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     * @return void
+     */
     public function create(): void
     {
         $this->requireMasterAuth();
         $this->renderMaster('plans/create');
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     * @return void
+     */
     public function store(): void
     {
         $this->requireMasterAuth();
@@ -58,6 +78,10 @@ class PlanController extends MasterBaseController
         $this->redirect('?page=master_plans');
     }
 
+ /**
+  * Edit.
+  * @return void
+  */
     public function edit(): void
     {
         $this->requireMasterAuth();
@@ -73,6 +97,10 @@ class PlanController extends MasterBaseController
         $this->renderMaster('plans/edit', compact('plan'));
     }
 
+ /**
+  * Update.
+  * @return void
+  */
     public function update(): void
     {
         $this->requireMasterAuth();
@@ -114,6 +142,10 @@ class PlanController extends MasterBaseController
         $this->redirect('?page=master_plans');
     }
 
+ /**
+  * Delete.
+  * @return void
+  */
     public function delete(): void
     {
         $this->requireMasterAuth();

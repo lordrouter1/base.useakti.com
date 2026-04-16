@@ -7,19 +7,6 @@
  *
  * @see Akti\Services\PortalLang
  */
-
-/**
- * Retorna tradução do portal (atalho para PortalLang::get).
- *
- * Uso em views:
- *   <?= __p('login_title') ?>
- *   <?= __p('dashboard_greeting', ['name' => 'João']) ?>
- *
- * @param string $key
- * @param array  $params
- * @param string|null $default
- * @return string
- */
 function __p(string $key, array $params = [], ?string $default = null): string
 {
     return \Akti\Services\PortalLang::get($key, $params, $default);

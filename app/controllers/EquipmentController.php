@@ -5,16 +5,27 @@ namespace Akti\Controllers;
 use Akti\Models\Equipment;
 use Akti\Utils\Input;
 
+/**
+ * Class EquipmentController.
+ */
 class EquipmentController extends BaseController
 {
     private Equipment $equipmentModel;
 
+    /**
+     * Construtor da classe EquipmentController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         parent::__construct($db);
         $this->equipmentModel = new Equipment($db);
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $this->requireAuth();
@@ -35,6 +46,9 @@ class EquipmentController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $this->requireAuth();
@@ -45,6 +59,9 @@ class EquipmentController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $this->requireAuth();
@@ -73,6 +90,9 @@ class EquipmentController extends BaseController
         header('Location: ?page=equipment');
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit()
     {
         $this->requireAuth();
@@ -90,6 +110,9 @@ class EquipmentController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         $this->requireAuth();
@@ -112,6 +135,9 @@ class EquipmentController extends BaseController
         header('Location: ?page=equipment');
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $this->requireAuth();
@@ -121,6 +147,9 @@ class EquipmentController extends BaseController
         header('Location: ?page=equipment');
     }
 
+    /**
+     * Agenda tarefa ou evento.
+     */
     public function schedules()
     {
         $this->requireAuth();
@@ -138,6 +167,9 @@ class EquipmentController extends BaseController
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Store schedule.
+     */
     public function storeSchedule()
     {
         $this->requireAuth();
@@ -157,6 +189,9 @@ class EquipmentController extends BaseController
         header('Location: ?page=equipment&action=schedules&id=' . $equipmentId);
     }
 
+    /**
+     * Store log.
+     */
     public function storeLog()
     {
         $this->requireAuth();
@@ -178,6 +213,9 @@ class EquipmentController extends BaseController
         header('Location: ?page=equipment&action=edit&id=' . $equipmentId);
     }
 
+    /**
+     * Dashboard.
+     */
     public function dashboard()
     {
         $this->requireAuth();

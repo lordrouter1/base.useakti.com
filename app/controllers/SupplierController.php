@@ -6,10 +6,20 @@ use Akti\Models\Supplier;
 use Akti\Models\PurchaseOrder;
 use Akti\Utils\Input;
 
+/**
+ * Class SupplierController.
+ */
 class SupplierController extends BaseController {
     private Supplier $supplierModel;
     private PurchaseOrder $purchaseModel;
 
+    /**
+     * Construtor da classe SupplierController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param Supplier $supplierModel Supplier model
+     * @param PurchaseOrder $purchaseModel Purchase model
+     */
     public function __construct(\PDO $db, Supplier $supplierModel, PurchaseOrder $purchaseModel)
     {
         $this->db = $db;
@@ -17,6 +27,9 @@ class SupplierController extends BaseController {
         $this->purchaseModel = $purchaseModel;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         $page = Input::get('p', 'int', 1);
@@ -30,6 +43,9 @@ class SupplierController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create()
     {
         $supplier = null;
@@ -38,6 +54,9 @@ class SupplierController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store()
     {
         $data = [
@@ -72,6 +91,9 @@ class SupplierController extends BaseController {
         header('Location: ?page=suppliers');
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit()
     {
         $id = Input::get('id', 'int', 0);
@@ -87,6 +109,9 @@ class SupplierController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         $id = Input::post('id', 'int', 0);
@@ -115,6 +140,9 @@ class SupplierController extends BaseController {
         header('Location: ?page=suppliers');
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         $id = Input::get('id', 'int', 0);
@@ -125,6 +153,9 @@ class SupplierController extends BaseController {
 
     // ──── Ordens de Compra ────
 
+    /**
+     * Purchases.
+     */
     public function purchases()
     {
         $page = Input::get('p', 'int', 1);
@@ -145,6 +176,9 @@ class SupplierController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Create purchase.
+     */
     public function createPurchase()
     {
         $suppliers = $this->supplierModel->readAll();
@@ -154,6 +188,9 @@ class SupplierController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Store purchase.
+     */
     public function storePurchase()
     {
         $data = [
@@ -171,6 +208,9 @@ class SupplierController extends BaseController {
         header('Location: ?page=suppliers&action=editPurchase&id=' . $id);
     }
 
+    /**
+     * Edit purchase.
+     */
     public function editPurchase()
     {
         $id = Input::get('id', 'int', 0);
@@ -188,6 +228,9 @@ class SupplierController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Receive purchase.
+     */
     public function receivePurchase()
     {
         $id = Input::get('id', 'int', 0);

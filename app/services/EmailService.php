@@ -8,11 +8,19 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use Akti\Services\Contracts\EmailServiceInterface;
 
+/**
+ * Class EmailService.
+ */
 class EmailService implements EmailServiceInterface
 {
     private PDO $db;
     private array $config;
 
+    /**
+     * Construtor da classe EmailService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;
@@ -194,11 +202,23 @@ class EmailService implements EmailServiceInterface
         return str_replace(array_keys($vars), array_values($vars), $content);
     }
 
+ /**
+  * Get tenant company name.
+  *
+  * @param int $tenantId ID do tenant
+  * @return string
+  */
     private function getTenantCompanyName(int $tenantId): string
     {
         return $_SESSION['tenant']['company_name'] ?? 'Empresa';
     }
 
+ /**
+  * Get campaign.
+  *
+  * @param int $campaignId Campaign id
+  * @return array|null
+  */
     private function getCampaign(int $campaignId): ?array
     {
         $stmt = $this->db->prepare("SELECT * FROM email_campaigns WHERE id = :id");
@@ -207,6 +227,12 @@ class EmailService implements EmailServiceInterface
         return $row ?: null;
     }
 
+ /**
+  * Get recipients.
+  *
+  * @param array $campaign Campaign
+  * @return array
+  */
     private function getRecipients(array $campaign): array
     {
         $filters = is_string($campaign['segment_filters'])
@@ -244,6 +270,14 @@ class EmailService implements EmailServiceInterface
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Update campaign status.
+  *
+  * @param int $campaignId Campaign id
+  * @param string $status Status do registro
+  * @param int $totalRecipients Total recipients
+  * @return void
+  */
     private function updateCampaignStatus(int $campaignId, string $status, int $totalRecipients = 0): void
     {
         $stmt = $this->db->prepare(
@@ -256,6 +290,14 @@ class EmailService implements EmailServiceInterface
         ]);
     }
 
+ /**
+  * Finalize campaign.
+  *
+  * @param int $campaignId Campaign id
+  * @param string $status Status do registro
+  * @param int $sentCount Sent count
+  * @return void
+  */
     private function finalizeCampaign(int $campaignId, string $status, int $sentCount): void
     {
         $stmt = $this->db->prepare(
@@ -268,6 +310,16 @@ class EmailService implements EmailServiceInterface
         ]);
     }
 
+ /**
+  * Create log.
+  *
+  * @param int $campaignId Campaign id
+  * @param int $tenantId ID do tenant
+  * @param array $recipient Recipient
+  * @param string $status Status do registro
+  * @param string|null $error Error
+  * @return int
+  */
     private function createLog(int $campaignId, int $tenantId, array $recipient, string $status, ?string $error): int
     {
         $stmt = $this->db->prepare(
@@ -286,6 +338,14 @@ class EmailService implements EmailServiceInterface
         return (int) $this->db->lastInsertId();
     }
 
+ /**
+  * Update log status.
+  *
+  * @param int $logId Log id
+  * @param string $status Status do registro
+  * @param string|null $error Error
+  * @return void
+  */
     private function updateLogStatus(int $logId, string $status, ?string $error): void
     {
         $stmt = $this->db->prepare(
@@ -328,6 +388,10 @@ class EmailService implements EmailServiceInterface
         return $html;
     }
 
+ /**
+  * Get base url.
+  * @return string
+  */
     private function getBaseUrl(): string
     {
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
@@ -335,6 +399,10 @@ class EmailService implements EmailServiceInterface
         return $scheme . '://' . $host . '/';
     }
 
+ /**
+  * Create mailer.
+  * @return PHPMailer
+  */
     private function createMailer(): PHPMailer
     {
         $mail = new PHPMailer(true);

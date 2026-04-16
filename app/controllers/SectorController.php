@@ -6,16 +6,29 @@ use Akti\Models\Logger;
 use Akti\Utils\Input;
 use TenantManager;
 
+/**
+ * Class SectorController.
+ */
 class SectorController extends BaseController {
     
     private ProductionSector $sectorModel;
     private Logger $logger;
+    /**
+     * Construtor da classe SectorController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param ProductionSector $sectorModel Sector model
+     * @param Logger $logger Logger
+     */
     public function __construct(\PDO $db, ProductionSector $sectorModel, Logger $logger) {
         $this->db = $db;
         $this->sectorModel = $sectorModel;
         $this->logger = $logger;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index() {
         $sectors = $this->sectorModel->readAll();
 
@@ -52,6 +65,9 @@ class SectorController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('name')) {
             // Verificar limite de setores do tenant
@@ -71,6 +87,9 @@ class SectorController extends BaseController {
         exit;
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && Input::hasPost('id')) {
             $this->sectorModel->update($_POST);
@@ -80,6 +99,9 @@ class SectorController extends BaseController {
         exit;
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete() {
         $id = Input::get('id', 'int');
         if ($id) {

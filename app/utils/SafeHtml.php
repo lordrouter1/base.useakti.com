@@ -2,6 +2,9 @@
 
 namespace Akti\Utils;
 
+/**
+ * Classe para geração segura de HTML.
+ */
 class SafeHtml
 {
     private const DROP_WITH_CONTENT = [
@@ -21,6 +24,14 @@ class SafeHtml
         'option',
     ];
 
+    /**
+     * Sanitiza dados de entrada.
+     *
+     * @param string $html Html
+     * @param array $allowedTags Allowed tags
+     * @param array $allowedAttributes Allowed attributes
+     * @return string
+     */
     public static function sanitizeFragment(string $html, array $allowedTags, array $allowedAttributes = []): string
     {
         $html = trim($html);
@@ -60,6 +71,14 @@ class SafeHtml
         return trim($output);
     }
 
+    /**
+     * Sanitiza dados de entrada.
+     *
+     * @param \DOMNode $parent Parent
+     * @param array $allowedTags Allowed tags
+     * @param array $allowedAttributes Allowed attributes
+     * @return void
+     */
     private static function sanitizeChildren(\DOMNode $parent, array $allowedTags, array $allowedAttributes): void
     {
         foreach (iterator_to_array($parent->childNodes) as $child) {
@@ -67,6 +86,14 @@ class SafeHtml
         }
     }
 
+    /**
+     * Sanitiza dados de entrada.
+     *
+     * @param \DOMNode $node Node
+     * @param array $allowedTags Allowed tags
+     * @param array $allowedAttributes Allowed attributes
+     * @return void
+     */
     private static function sanitizeNode(\DOMNode $node, array $allowedTags, array $allowedAttributes): void
     {
         $parent = $node->parentNode;
@@ -109,6 +136,13 @@ class SafeHtml
         }
     }
 
+    /**
+     * Sanitiza dados de entrada.
+     *
+     * @param \DOMElement $element Element
+     * @param array $allowedAttributes Allowed attributes
+     * @return void
+     */
     private static function sanitizeAttributes(\DOMElement $element, array $allowedAttributes): void
     {
         $tag = strtolower($element->tagName);
@@ -185,6 +219,12 @@ class SafeHtml
         }
     }
 
+    /**
+     * Unwrap node.
+     *
+     * @param \DOMElement $element Element
+     * @return void
+     */
     private static function unwrapNode(\DOMElement $element): void
     {
         $parent = $element->parentNode;
@@ -199,6 +239,12 @@ class SafeHtml
         $parent->removeChild($element);
     }
 
+    /**
+     * Constrói dados ou estrutura.
+     *
+     * @param array $allowedTags Allowed tags
+     * @return string
+     */
     private static function buildAllowedTagList(array $allowedTags): string
     {
         $allowed = '';
@@ -209,11 +255,23 @@ class SafeHtml
         return $allowed;
     }
 
+    /**
+     * Strip control chars.
+     *
+     * @param string $value Valor
+     * @return string
+     */
     private static function stripControlChars(string $value): string
     {
         return preg_replace('/[\x00-\x1F\x7F]/u', '', $value) ?? '';
     }
 
+    /**
+     * Verifica uma condição booleana.
+     *
+     * @param string $url Url
+     * @return bool
+     */
     private static function isSafeUrl(string $url): bool
     {
         $url = trim($url);

@@ -1628,6 +1628,10 @@ class Financial {
      */
     private static ?bool $hasSoftDelete = null;
 
+ /**
+  * Has soft delete column.
+  * @return bool
+  */
     public function hasSoftDeleteColumn(): bool {
         if (self::$hasSoftDelete !== null) {
             return self::$hasSoftDelete;

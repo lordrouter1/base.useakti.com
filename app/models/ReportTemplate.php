@@ -4,15 +4,29 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de templates de relatórios personalizados.
+ */
 class ReportTemplate
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe ReportTemplate.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Retorna todos os registros.
+     *
+     * @param int|null $userId ID do usuário
+     * @return array
+     */
     public function readAll(?int $userId = null): array
     {
         $where = 'WHERE (is_shared = 1';
@@ -28,6 +42,12 @@ class ReportTemplate
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Read one.
+  *
+  * @param int $id ID do registro
+  * @return array|null
+  */
     public function readOne(int $id): ?array
     {
         $stmt = $this->conn->prepare("SELECT * FROM report_templates WHERE id = :id");
@@ -36,6 +56,12 @@ class ReportTemplate
         return $row ?: null;
     }
 
+ /**
+  * Create.
+  *
+  * @param array $data Dados para processamento
+  * @return int
+  */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -56,6 +82,13 @@ class ReportTemplate
         return (int) $this->conn->lastInsertId();
     }
 
+ /**
+  * Update.
+  *
+  * @param int $id ID do registro
+  * @param array $data Dados para processamento
+  * @return bool
+  */
     public function update(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -76,12 +109,22 @@ class ReportTemplate
         ]);
     }
 
+ /**
+  * Delete.
+  *
+  * @param int $id ID do registro
+  * @return bool
+  */
     public function delete(int $id): bool
     {
         $stmt = $this->conn->prepare("DELETE FROM report_templates WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
 
+ /**
+  * Get available entities.
+  * @return array
+  */
     public function getAvailableEntities(): array
     {
         return [
@@ -159,6 +202,12 @@ class ReportTemplate
         ];
     }
 
+ /**
+  * Execute report.
+  *
+  * @param int $id ID do registro
+  * @return array
+  */
     public function executeReport(int $id): array
     {
         $template = $this->readOne($id);

@@ -27,6 +27,12 @@ class TransactionController extends BaseController
 {
     private TransactionService $transactionService;
 
+    /**
+     * Construtor da classe TransactionController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param TransactionService $transactionService Transaction service
+     */
     public function __construct(\PDO $db, TransactionService $transactionService)
     {
         if (!ModuleBootloader::isModuleEnabled('financial')) {
@@ -45,6 +51,9 @@ class TransactionController extends BaseController
     // Redirecionamento legado (mantém compatibilidade)
     // ═══════════════════════════════════════════
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index()
     {
         header('Location: ?page=financial&action=payments&section=transactions');
@@ -55,6 +64,9 @@ class TransactionController extends BaseController
     // Adicionar transação
     // ═══════════════════════════════════════════
 
+    /**
+     * Add.
+     */
     public function add()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -90,6 +102,9 @@ class TransactionController extends BaseController
     // Remover transação
     // ═══════════════════════════════════════════
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -126,6 +141,9 @@ class TransactionController extends BaseController
     // AJAX: buscar transação por ID
     // ═══════════════════════════════════════════
 
+    /**
+     * Get.
+     */
     public function get()
     {
         header('Content-Type: application/json');
@@ -147,6 +165,9 @@ class TransactionController extends BaseController
     // AJAX: atualizar transação
     // ═══════════════════════════════════════════
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update()
     {
         header('Content-Type: application/json');
@@ -193,6 +214,9 @@ class TransactionController extends BaseController
     // AJAX: lista paginada com filtros
     // ═══════════════════════════════════════════
 
+    /**
+     * Obtém dados específicos.
+     */
     public function getPaginated()
     {
         header('Content-Type: application/json');
@@ -227,6 +251,12 @@ class TransactionController extends BaseController
     // Helpers privados
     // ═══════════════════════════════════════════
 
+    /**
+     * Json response.
+     *
+     * @param array $data Dados para processamento
+     * @return void
+     */
     private function jsonResponse(array $data): void
     {
         $this->json($data);

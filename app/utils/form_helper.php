@@ -8,21 +8,6 @@
  * @see Akti\Core\Security — Classe de segurança CSRF
  * @see PROJECT_RULES.md — Módulo: Segurança — Proteção CSRF
  */
-
-/**
- * Gera o campo hidden do token CSRF para uso em formulários.
- *
- * Exemplo de uso na view:
- *   <form method="POST">
- *       <?= csrf_field() ?>
- *       ...
- *   </form>
- *
- * Saída:
- *   <input type="hidden" name="csrf_token" value="TOKEN_AQUI">
- *
- * @return string HTML do campo hidden com token CSRF
- */
 function csrf_field(): string
 {
     $token = \Akti\Core\Security::generateCsrfToken();

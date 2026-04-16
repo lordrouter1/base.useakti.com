@@ -18,6 +18,9 @@ class NfeStorageService
     private string $basePath;
     private string $tenantDir;
 
+    /**
+     * Construtor da classe NfeStorageService.
+     */
     public function __construct()
     {
         $this->basePath = defined('AKTI_BASE_PATH') ? AKTI_BASE_PATH : __DIR__ . '/../../';

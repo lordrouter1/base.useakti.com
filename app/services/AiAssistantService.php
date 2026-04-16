@@ -15,12 +15,21 @@ class AiAssistantService
     private string $apiUrl;
     private string $model;
 
+    /**
+     * Construtor da classe AiAssistantService.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db)
     {
         $this->db = $db;
         $this->loadConfig();
     }
 
+    /**
+     * Carrega dados.
+     * @return void
+     */
     private function loadConfig(): void
     {
         $stmt = $this->db->prepare("SELECT setting_key, setting_value FROM company_settings WHERE setting_key IN ('ai_api_key','ai_api_url','ai_model')");
@@ -34,6 +43,10 @@ class AiAssistantService
         $this->model  = $config['ai_model'] ?? 'gpt-4o-mini';
     }
 
+    /**
+     * Verifica uma condição booleana.
+     * @return bool
+     */
     public function isConfigured(): bool
     {
         return !empty($this->apiKey);

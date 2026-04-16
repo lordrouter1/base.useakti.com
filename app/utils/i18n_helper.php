@@ -15,15 +15,6 @@
  *   2. $_SESSION['tenant_locale'] (tenant default)
  *   3. 'pt-br' (system default)
  */
-
-/**
- * Translate a key to the current locale.
- *
- * @param  string  $key     Translation key (e.g. 'save', 'customers')
- * @param  array   $replace Placeholders to replace: ['name' => 'John'] replaces :name
- * @param  string  $group   Translation file group (default: 'app')
- * @return string
- */
 function __($key, array $replace = [], string $group = 'app'): string
 {
     static $cache = [];

@@ -4,15 +4,27 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de checklists de controle de qualidade.
+ */
 class QualityChecklist
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe QualityChecklist.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Retorna todos os registros.
+     * @return array
+     */
     public function readAll(): array
     {
         $stmt = $this->conn->prepare("SELECT * FROM quality_checklists WHERE is_active = 1 ORDER BY name ASC");
@@ -20,6 +32,12 @@ class QualityChecklist
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Retorna um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @return array|null
+     */
     public function readOne(int $id): ?array
     {
         $stmt = $this->conn->prepare("SELECT * FROM quality_checklists WHERE id = :id");
@@ -28,6 +46,12 @@ class QualityChecklist
         return $row ?: null;
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -44,6 +68,13 @@ class QualityChecklist
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Atualiza um registro existente.
+     *
+     * @param int $id ID do registro
+     * @param array $data Dados para processamento
+     * @return bool
+     */
     public function update(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -58,6 +89,12 @@ class QualityChecklist
         ]);
     }
 
+    /**
+     * Remove um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @return bool
+     */
     public function delete(int $id): bool
     {
         $stmt = $this->conn->prepare("DELETE FROM quality_checklists WHERE id = :id");
@@ -66,6 +103,12 @@ class QualityChecklist
 
     // ──── Items ────
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $checklistId Checklist id
+     * @return array
+     */
     public function getItems(int $checklistId): array
     {
         $stmt = $this->conn->prepare(
@@ -75,6 +118,12 @@ class QualityChecklist
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Add item.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function addItem(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -91,6 +140,12 @@ class QualityChecklist
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Remove item.
+     *
+     * @param int $itemId Item id
+     * @return bool
+     */
     public function removeItem(int $itemId): bool
     {
         $stmt = $this->conn->prepare("DELETE FROM quality_checklist_items WHERE id = :id");
@@ -99,6 +154,12 @@ class QualityChecklist
 
     // ──── Inspections ────
 
+    /**
+     * Create inspection.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function createInspection(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -117,6 +178,13 @@ class QualityChecklist
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Update inspection.
+     *
+     * @param int $id ID do registro
+     * @param array $data Dados para processamento
+     * @return bool
+     */
     public function updateInspection(int $id, array $data): bool
     {
         $stmt = $this->conn->prepare(
@@ -131,6 +199,12 @@ class QualityChecklist
         ]);
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $orderId ID do pedido
+     * @return array
+     */
     public function getInspections(int $orderId): array
     {
         $stmt = $this->conn->prepare(
@@ -147,6 +221,12 @@ class QualityChecklist
 
     // ──── Non-Conformities ────
 
+    /**
+     * Create non conformity.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function createNonConformity(array $data): int
     {
         $stmt = $this->conn->prepare(
@@ -166,6 +246,12 @@ class QualityChecklist
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param array $filters Filtros aplicados
+     * @return array
+     */
     public function getNonConformities(array $filters = []): array
     {
         $where = ' WHERE 1=1';
@@ -190,6 +276,13 @@ class QualityChecklist
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+ /**
+  * Resolve non conformity.
+  *
+  * @param int $id ID do registro
+  * @param string $correctiveAction Corrective action
+  * @return bool
+  */
     public function resolveNonConformity(int $id, string $correctiveAction): bool
     {
         $stmt = $this->conn->prepare(

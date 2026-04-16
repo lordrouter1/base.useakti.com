@@ -25,6 +25,13 @@ class PortalAdminController extends BaseController
     private PortalAccess $portalAccess;
     private PortalAdminService $service;
 
+    /**
+     * Construtor da classe PortalAdminController.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     * @param PortalAccess $portalAccess Portal access
+     * @param PortalAdminService $service Service
+     */
     public function __construct(\PDO $db, PortalAccess $portalAccess, PortalAdminService $service)
     {
         $this->db = $db;

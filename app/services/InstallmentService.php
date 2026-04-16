@@ -19,6 +19,13 @@ class InstallmentService
     private TransactionService $transactionService;
     private PDO $db;
 
+    /**
+     * Construtor da classe InstallmentService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param Installment $installment Installment
+     * @param TransactionService $transactionService Transaction service
+     */
     public function __construct(PDO $db, Installment $installment, TransactionService $transactionService)
     {
         $this->db = $db;

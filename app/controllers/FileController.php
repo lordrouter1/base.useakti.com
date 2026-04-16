@@ -18,6 +18,11 @@ class FileController extends BaseController
 {
     private FileManager $fileManager;
 
+    /**
+     * Construtor da classe FileController.
+     *
+     * @param \PDO|null $db Conexão PDO com o banco de dados
+     */
     public function __construct(?\PDO $db = null)
     {
         parent::__construct($db);

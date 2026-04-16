@@ -12,10 +12,18 @@ use Akti\Config\TenantManager;
 use Akti\Services\Contracts\CheckoutServiceInterface;
 use PDO;
 
+/**
+ * Class CheckoutService.
+ */
 class CheckoutService implements CheckoutServiceInterface
 {
     private PDO $db;
 
+    /**
+     * Construtor da classe CheckoutService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;

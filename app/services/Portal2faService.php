@@ -13,6 +13,12 @@ class Portal2faService
     private PDO $db;
     private PortalAccess $portalAccess;
 
+    /**
+     * Construtor da classe Portal2faService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param PortalAccess $portalAccess Portal access
+     */
     public function __construct(PDO $db, PortalAccess $portalAccess)
     {
         $this->db = $db;

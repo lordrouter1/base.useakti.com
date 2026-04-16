@@ -31,6 +31,11 @@ class NfeSintegraService
     private NfeCredential $credModel;
     private array $typeCounts = [];
 
+    /**
+     * Construtor da classe NfeSintegraService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;

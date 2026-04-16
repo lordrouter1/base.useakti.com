@@ -39,6 +39,11 @@ class NfeManifestationService
         'nao_realizada'  => ['code' => 210240, 'label' => 'Operação não Realizada',        'status' => 'nao_realizada'],
     ];
 
+    /**
+     * Construtor da classe NfeManifestationService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;

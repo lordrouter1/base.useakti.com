@@ -4,15 +4,33 @@ namespace Akti\Models\Master;
 
 use PDO;
 
+/**
+ * Model de log de ações administrativas do painel master.
+ */
 class AdminLog
 {
     private $db;
 
+    /**
+     * Construtor da classe AdminLog.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->db = $db;
     }
 
+    /**
+     * Registra informação no log.
+     *
+     * @param int $adminId Admin id
+     * @param string $action Action
+     * @param string|null $targetType Target type
+     * @param int|null $targetId Target id
+     * @param string|null $details Details
+     * @return void
+     */
     public function log(int $adminId, string $action, ?string $targetType = null, ?int $targetId = null, ?string $details = null): void
     {
         $stmt = $this->db->prepare("
@@ -29,6 +47,12 @@ class AdminLog
         ]);
     }
 
+    /**
+     * Read recent.
+     *
+     * @param int $limit Limite de registros
+     * @return array
+     */
     public function readRecent(int $limit = 20): array
     {
         $stmt = $this->db->prepare("

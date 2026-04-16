@@ -14,6 +14,11 @@ use PDO;
 class Stock {
     private $conn;
 
+    /**
+     * Construtor da classe Stock.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db) {
         $this->conn = $db;
     }
@@ -31,6 +36,11 @@ class Stock {
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param mixed $onlyActive Only active
+     */
     public function getAllWarehouses($onlyActive = true) {
         $sql = "SELECT w.*, 
                    (SELECT COUNT(*) FROM stock_items si WHERE si.warehouse_id = w.id) as total_items,
@@ -48,6 +58,11 @@ class Stock {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param mixed $id ID do registro
+     */
     public function getWarehouse($id) {
         $stmt = $this->conn->prepare("SELECT * FROM warehouses WHERE id = :id");
         $stmt->bindParam(':id', $id);
@@ -55,6 +70,11 @@ class Stock {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Create warehouse.
+     *
+     * @param mixed $data Dados para processamento
+     */
     public function createWarehouse($data) {
         // Se marcado como padrão, desmarcar os outros
         if (!empty($data['is_default'])) {
@@ -84,6 +104,11 @@ class Stock {
         return false;
     }
 
+    /**
+     * Update warehouse.
+     *
+     * @param mixed $data Dados para processamento
+     */
     public function updateWarehouse($data) {
         // Se marcado como padrão, desmarcar os outros
         if (!empty($data['is_default'])) {
@@ -117,6 +142,11 @@ class Stock {
         return $result;
     }
 
+    /**
+     * Delete warehouse.
+     *
+     * @param mixed $id ID do registro
+     */
     public function deleteWarehouse($id) {
         $stmt = $this->conn->prepare("DELETE FROM warehouses WHERE id = :id");
         $stmt->bindParam(':id', $id);
@@ -216,6 +246,11 @@ class Stock {
         return $stmtGet->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param mixed $id ID do registro
+     */
     public function getStockItem($id) {
         $stmt = $this->conn->prepare("
             SELECT si.*, 
@@ -233,6 +268,13 @@ class Stock {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Update stock item meta.
+     *
+     * @param mixed $id ID do registro
+     * @param mixed $minQuantity Min quantity
+     * @param mixed $locationCode Location code
+     */
     public function updateStockItemMeta($id, $minQuantity, $locationCode) {
         $stmt = $this->conn->prepare("
             UPDATE stock_items SET min_quantity = :min_qty, location_code = :loc WHERE id = :id

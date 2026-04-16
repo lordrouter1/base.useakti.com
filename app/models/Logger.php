@@ -3,14 +3,29 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de logging legado.
+ */
 class Logger {
     private $conn;
     private $table_name = "system_logs";
 
+    /**
+     * Construtor da classe Logger.
+     *
+     * @param \PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(\PDO $db) {
         $this->conn = $db;
     }
 
+    /**
+     * Registra informação no log.
+     *
+     * @param mixed $action Action
+     * @param mixed $details Details
+     * @param mixed $user_id ID do usuário
+     */
     public function log($action, $details = "", $user_id = null) {
         $query = "INSERT INTO " . $this->table_name . " 
                   (user_id, action, details, ip_address, created_at) 

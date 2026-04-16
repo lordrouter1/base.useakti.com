@@ -9,11 +9,19 @@ use Akti\Models\Order;
 use Akti\Services\CheckoutService;
 use Akti\Gateways\GatewayManager;
 
+/**
+ * Class CheckoutController.
+ */
 class CheckoutController extends BaseController
 {
     private CheckoutToken $tokenModel;
     private CheckoutService $checkoutService;
 
+    /**
+     * Construtor da classe CheckoutController.
+     *
+     * @param \PDO|null $db Conexão PDO com o banco de dados
+     */
     public function __construct(?\PDO $db = null)
     {
         parent::__construct($db);

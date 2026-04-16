@@ -15,6 +15,9 @@ use Akti\Utils\Input;
 use Akti\Utils\Validator;
 use TenantManager;
 
+/**
+ * Class UserController.
+ */
 class UserController extends BaseController {
 
     private User $userModel;
@@ -23,6 +26,15 @@ class UserController extends BaseController {
     private LoginAttempt $loginAttempt;
     private AuthService $authService;
 
+    /**
+     * Construtor da classe UserController.
+     *
+     * @param User $userModel User model
+     * @param UserGroup $groupModel Group model
+     * @param LoginAttempt $loginAttempt Login attempt
+     * @param Logger $logger Logger
+     * @param AuthService $authService Auth service
+     */
     public function __construct(
         User $userModel,
         UserGroup $groupModel,
@@ -37,6 +49,9 @@ class UserController extends BaseController {
         $this->authService = $authService;
     }
 
+    /**
+     * Exibe a página de listagem.
+     */
     public function index() {
         $this->checkAdmin();
         
@@ -53,6 +68,9 @@ class UserController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     */
     public function create() {
         $this->checkAdmin();
         $groups = $this->groupModel->readAll();
@@ -61,6 +79,9 @@ class UserController extends BaseController {
         require 'app/views/layout/footer.php';
     }
     
+    /**
+     * Processa e armazena um novo registro.
+     */
     public function store() {
         $this->checkAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -117,6 +138,9 @@ class UserController extends BaseController {
         }
     }
 
+    /**
+     * Exibe o formulário de edição.
+     */
     public function edit() {
         $this->checkAdmin();
         
@@ -140,6 +164,9 @@ class UserController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Atualiza um registro existente.
+     */
     public function update() {
         $this->checkAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -195,6 +222,9 @@ class UserController extends BaseController {
         }
     }
 
+    /**
+     * Remove um registro pelo ID.
+     */
     public function delete() {
         $this->checkAdmin();
         $id = Input::get('id', 'int');
@@ -208,6 +238,9 @@ class UserController extends BaseController {
     }
     
     // Grupos
+    /**
+     * Groups.
+     */
     public function groups() {
         $this->checkAdmin();
         
@@ -233,6 +266,9 @@ class UserController extends BaseController {
         require 'app/views/layout/footer.php';
     }
     
+    /**
+     * Create group.
+     */
     public function createGroup() {
         $this->checkAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -253,6 +289,9 @@ class UserController extends BaseController {
         }
     }
 
+    /**
+     * Update group.
+     */
     public function updateGroup() {
         $this->checkAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -276,6 +315,9 @@ class UserController extends BaseController {
         }
     }
 
+    /**
+     * Delete group.
+     */
     public function deleteGroup() {
         $this->checkAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -289,6 +331,9 @@ class UserController extends BaseController {
         }
     }
 
+    /**
+     * Profile.
+     */
     public function profile() {
         if (!isset($_SESSION['user_id'])) {
              header('Location: ?page=login');
@@ -303,6 +348,9 @@ class UserController extends BaseController {
         require 'app/views/layout/footer.php';
     }
 
+    /**
+     * Update profile.
+     */
     public function updateProfile() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              if (!isset($_SESSION['user_id'])) {
@@ -354,6 +402,9 @@ class UserController extends BaseController {
         }
     }
 
+    /**
+     * Verifica se o usuário é administrador.
+     */
     private function checkAdmin() {
         if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
             header('Location: ?page=home&error=acesso_negado');
@@ -362,6 +413,9 @@ class UserController extends BaseController {
     }
 
     // Login
+    /**
+     * Processa a autenticação do usuário.
+     */
     public function login() {
         if (isset($_SESSION['user_id'])) {
             header('Location: ?');
@@ -408,6 +462,9 @@ class UserController extends BaseController {
         }
     }
 
+    /**
+     * Encerra a sessão do usuário.
+     */
     public function logout() {
         if (isset($_SESSION['user_id'])) {
              $this->logger->log('LOGOUT', 'User logged out', $_SESSION['user_id']);

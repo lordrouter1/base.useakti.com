@@ -18,6 +18,12 @@ class TransactionService
     private Financial $financial;
     private PDO $db;
 
+    /**
+     * Construtor da classe TransactionService.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     * @param Financial $financial Financial
+     */
     public function __construct(PDO $db, Financial $financial)
     {
         $this->db = $db;

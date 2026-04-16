@@ -4,15 +4,29 @@ namespace Akti\Models;
 
 use PDO;
 
+/**
+ * Model de conquistas/gamificação do sistema.
+ */
 class Achievement
 {
     private PDO $conn;
 
+    /**
+     * Construtor da classe Achievement.
+     *
+     * @param PDO $db Conexão PDO com o banco de dados
+     */
     public function __construct(PDO $db)
     {
         $this->conn = $db;
     }
 
+    /**
+     * Cria um novo registro no banco de dados.
+     *
+     * @param array $data Dados para processamento
+     * @return int
+     */
     public function create(array $data): int
     {
         $stmt = $this->conn->prepare("
@@ -32,6 +46,12 @@ class Achievement
         return (int) $this->conn->lastInsertId();
     }
 
+    /**
+     * Retorna todos os registros.
+     *
+     * @param int $tenantId ID do tenant
+     * @return array
+     */
     public function readAll(int $tenantId): array
     {
         $stmt = $this->conn->prepare("SELECT * FROM achievements WHERE tenant_id = :tid AND is_active = 1 ORDER BY name");
@@ -39,6 +59,13 @@ class Achievement
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Retorna um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @param int $tenantId ID do tenant
+     * @return array|null
+     */
     public function readOne(int $id, int $tenantId): ?array
     {
         $stmt = $this->conn->prepare("SELECT * FROM achievements WHERE id = :id AND tenant_id = :tid");
@@ -47,6 +74,14 @@ class Achievement
         return $row ?: null;
     }
 
+    /**
+     * Atualiza um registro existente.
+     *
+     * @param int $id ID do registro
+     * @param int $tenantId ID do tenant
+     * @param array $data Dados para processamento
+     * @return bool
+     */
     public function update(int $id, int $tenantId, array $data): bool
     {
         $stmt = $this->conn->prepare("
@@ -67,12 +102,27 @@ class Achievement
         ]);
     }
 
+    /**
+     * Remove um registro pelo ID.
+     *
+     * @param int $id ID do registro
+     * @param int $tenantId ID do tenant
+     * @return bool
+     */
     public function delete(int $id, int $tenantId): bool
     {
         $stmt = $this->conn->prepare("UPDATE achievements SET is_active = 0 WHERE id = :id AND tenant_id = :tid");
         return $stmt->execute([':id' => $id, ':tid' => $tenantId]);
     }
 
+    /**
+     * Award achievement.
+     *
+     * @param int $userId ID do usuário
+     * @param int $achievementId Achievement id
+     * @param int $tenantId ID do tenant
+     * @return bool
+     */
     public function awardAchievement(int $userId, int $achievementId, int $tenantId): bool
     {
         $stmt = $this->conn->prepare("
@@ -89,6 +139,14 @@ class Achievement
         return $result;
     }
 
+    /**
+     * Add points.
+     *
+     * @param int $userId ID do usuário
+     * @param int $tenantId ID do tenant
+     * @param int $points Points
+     * @return void
+     */
     public function addPoints(int $userId, int $tenantId, int $points): void
     {
         $stmt = $this->conn->prepare("
@@ -99,6 +157,13 @@ class Achievement
         $stmt->execute([':tid' => $tenantId, ':uid' => $userId, ':pts' => $points, ':pts2' => $points, ':pts3' => $points]);
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $tenantId ID do tenant
+     * @param int $limit Limite de registros
+     * @return array
+     */
     public function getLeaderboard(int $tenantId, int $limit = 10): array
     {
         $stmt = $this->conn->prepare("
@@ -115,6 +180,13 @@ class Achievement
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $userId ID do usuário
+     * @param int $tenantId ID do tenant
+     * @return array
+     */
     public function getUserAchievements(int $userId, int $tenantId): array
     {
         $stmt = $this->conn->prepare("
@@ -128,6 +200,13 @@ class Achievement
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Obtém dados específicos.
+     *
+     * @param int $userId ID do usuário
+     * @param int $tenantId ID do tenant
+     * @return array
+     */
     public function getUserScore(int $userId, int $tenantId): array
     {
         $stmt = $this->conn->prepare("
