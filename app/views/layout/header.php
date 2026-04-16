@@ -182,6 +182,13 @@
     if (!function_exists('canShowInMenu')) {
     function canShowInMenu($pageKey, $pageInfo, $isAdmin, $userPermissions) {
         if (!\Akti\Core\ModuleBootloader::canAccessPage($pageKey)) return false;
+
+        // Tenant page permissions (master-controlled whitelist)
+        $tenantPerms = $_SESSION['tenant_page_permissions'] ?? [];
+        if (!empty($tenantPerms) && !in_array($pageKey, $tenantPerms, true)) {
+            return false;
+        }
+
         if (empty($pageInfo['permission'])) return true;
         if ($isAdmin) return true;
         // Use permission_alias if defined (e.g., financial_payments -> financial)

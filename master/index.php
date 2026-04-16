@@ -8,6 +8,7 @@ session_start();
 // Configurações
 require_once __DIR__ . '/app/config/config.php';
 require_once __DIR__ . '/app/config/database.php';
+require_once __DIR__ . '/app/config/csrf.php';
 
 // Models
 require_once __DIR__ . '/app/models/AdminUser.php';
@@ -18,6 +19,9 @@ require_once __DIR__ . '/app/models/Migration.php';
 require_once __DIR__ . '/app/models/GitVersion.php';
 require_once __DIR__ . '/app/models/Backup.php';
 require_once __DIR__ . '/app/models/NginxLog.php';
+require_once __DIR__ . '/app/models/TenantPagePermission.php';
+require_once __DIR__ . '/app/models/MasterTicket.php';
+require_once __DIR__ . '/app/models/MasterLoginAttempt.php';
 
 // Controllers
 require_once __DIR__ . '/app/controllers/AuthController.php';
@@ -28,6 +32,8 @@ require_once __DIR__ . '/app/controllers/MigrationController.php';
 require_once __DIR__ . '/app/controllers/GitController.php';
 require_once __DIR__ . '/app/controllers/BackupController.php';
 require_once __DIR__ . '/app/controllers/LogController.php';
+require_once __DIR__ . '/app/controllers/TenantPermissionController.php';
+require_once __DIR__ . '/app/controllers/TicketMasterController.php';
 
 // Conexão com banco master
 $db = Database::getInstance()->getConnection();
@@ -44,6 +50,14 @@ if (!in_array($page, $publicPages) && !isset($_SESSION['admin_id'])) {
     header('Location: ?page=login');
     exit;
 }
+
+// CSRF check em requisições POST (exceto login)
+if ($page !== 'login') {
+    master_csrf_check();
+}
+
+// Gerar token CSRF para formulários
+master_csrf_token();
 
 // Roteamento por página
 switch ($page) {
@@ -218,6 +232,48 @@ switch ($page) {
                 break;
             case 'download':
                 $controller->download();
+                break;
+            default:
+                $controller->index();
+                break;
+        }
+        break;
+
+    case 'permissions':
+        $controller = new TenantPermissionController($db);
+        switch ($action) {
+            case 'edit':
+                $controller->edit();
+                break;
+            case 'update':
+                $controller->update();
+                break;
+            case 'applyPlan':
+                $controller->applyPlan();
+                break;
+            case 'editPlan':
+                $controller->editPlan();
+                break;
+            case 'updatePlan':
+                $controller->updatePlan();
+                break;
+            default:
+                header('Location: ?page=clients');
+                exit;
+        }
+        break;
+
+    case 'tickets':
+        $controller = new TicketMasterController($db);
+        switch ($action) {
+            case 'view':
+                $controller->view();
+                break;
+            case 'reply':
+                $controller->reply();
+                break;
+            case 'changeStatus':
+                $controller->changeStatus();
                 break;
             default:
                 $controller->index();

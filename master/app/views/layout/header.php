@@ -13,6 +13,9 @@ $adminInitials = strtoupper(substr($adminName, 0, 2));
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $pageTitle ?? 'Akti Master Admin' ?></title>
     <link rel="icon" href="logos/akti-icon-dark.ico" type="image/x-icon">
+    <?php if (function_exists('master_csrf_meta')): ?>
+        <?= master_csrf_meta() ?>
+    <?php endif; ?>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -60,6 +63,13 @@ $adminInitials = strtoupper(substr($adminName, 0, 2));
                     <a href="?page=clients" class="nav-link <?= $currentPage === 'clients' ? 'active' : '' ?>">
                         <i class="fas fa-building"></i>
                         Clientes
+                    </a>
+                </div>
+
+                <div class="nav-item">
+                    <a href="?page=tickets" class="nav-link <?= $currentPage === 'tickets' ? 'active' : '' ?>">
+                        <i class="fas fa-headset"></i>
+                        Tickets
                     </a>
                 </div>
 

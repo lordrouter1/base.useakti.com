@@ -114,6 +114,7 @@ require_once __DIR__ . '/../layout/header.php';
 <div class="row justify-content-center">
     <div class="col-lg-10">
         <form action="?page=clients&action=store" method="POST" class="form-card" id="clientForm">
+            <?= master_csrf_field() ?>
             
             <!-- Informações do Cliente -->
             <div class="form-section">

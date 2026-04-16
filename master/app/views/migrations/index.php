@@ -244,6 +244,7 @@ require_once __DIR__ . '/../layout/header.php';
     <!-- Coluna direita: Aplicar SQL -->
     <div class="col-lg-7">
         <form id="migrationForm" action="?page=migrations&action=apply" method="POST">
+            <?= master_csrf_field() ?>
             <div class="card mb-4">
                 <div class="card-header d-flex align-items-center gap-2">
                     <i class="fas fa-code" style="color: var(--akti-primary);"></i>

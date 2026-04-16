@@ -4,13 +4,15 @@
  */
 $pageTitle = 'Editar Plano';
 $pageSubtitle = 'Atualize os dados do plano: ' . htmlspecialchars($plan['plan_name']);
-$topbarActions = '<a href="?page=plans" class="btn btn-akti-outline"><i class="fas fa-arrow-left me-2"></i>Voltar</a>';
+$topbarActions = '<a href="?page=permissions&action=editPlan&id=' . $plan['id'] . '" class="btn btn-akti-outline me-2"><i class="fas fa-shield-halved me-2"></i>Permissões</a>'
+    . '<a href="?page=plans" class="btn btn-akti-outline"><i class="fas fa-arrow-left me-2"></i>Voltar</a>';
 require_once __DIR__ . '/../layout/header.php';
 ?>
 
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <form action="?page=plans&action=update" method="POST" class="form-card">
+            <?= master_csrf_field() ?>
             <input type="hidden" name="id" value="<?= $plan['id'] ?>">
 
             <!-- Informações do Plano -->

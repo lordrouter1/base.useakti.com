@@ -59,7 +59,9 @@ function toggleClient(id, name, isActive) {
         cancelButtonText: 'Cancelar'
     }).then(function(result) {
         if (result.isConfirmed) {
-            window.location.href = '?page=clients&action=toggleActive&id=' + id;
+            const form = document.getElementById('toggleActiveForm');
+            document.getElementById('toggleActiveId').value = id;
+            form.submit();
         }
     });
 }
@@ -332,6 +334,7 @@ require_once __DIR__ . '/../layout/header.php';
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <form action="?page=clients&action=delete" method="POST" id="deleteClientForm">
+                    <?= master_csrf_field() ?>
                     <input type="hidden" name="id" id="deleteClientId">
                     <div class="modal-body" style="padding:28px;">
                         <!-- Aviso de perigo -->
@@ -409,5 +412,11 @@ require_once __DIR__ . '/../layout/header.php';
         </div>
     </div>
 <?php endif; ?>
+
+<!-- Hidden form for toggleActive POST -->
+<form action="?page=clients&action=toggleActive" method="POST" id="toggleActiveForm" style="display:none;">
+    <?= master_csrf_field() ?>
+    <input type="hidden" name="id" id="toggleActiveId">
+</form>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>

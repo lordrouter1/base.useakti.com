@@ -11,6 +11,7 @@ require_once __DIR__ . '/../layout/header.php';
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <form action="?page=plans&action=store" method="POST" class="form-card">
+            <?= master_csrf_field() ?>
             <!-- Informações do Plano -->
             <div class="form-section">
                 <div class="form-section-title">

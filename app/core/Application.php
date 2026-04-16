@@ -131,6 +131,9 @@ class Application
             exit;
         }
 
+        // Tenant page permission check (master-controlled whitelist)
+        $this->checkTenantPagePermission();
+
         // Permission check via menu.php
         $this->checkPermissions();
 
@@ -167,6 +170,103 @@ class Application
             echo json_encode(['success' => false, 'session_expired' => true]);
         }
         exit;
+    }
+
+    /**
+     * Verifica permissões de página do tenant (whitelist controlada pelo Master).
+     * Páginas sempre permitidas não são bloqueadas.
+     * Se não há restrições para o tenant (array vazio), permite tudo.
+     */
+    private function checkTenantPagePermission(): void
+    {
+        $alwaysAllowed = ['home', 'dashboard', 'profile', 'login', 'logout', 'session', 'notifications'];
+
+        if (in_array($this->page, $alwaysAllowed, true)) {
+            return;
+        }
+
+        $permissions = $this->getTenantPermissionsFromMaster();
+
+        // Sem restrições (vazio) = acesso total (retrocompatível)
+        if (empty($permissions)) {
+            return;
+        }
+
+        // Verificar se a página está na whitelist
+        if (!in_array($this->page, $permissions, true)) {
+            require 'app/views/layout/header.php';
+            echo "<div class='container mt-5'><div class='alert alert-warning'>"
+                . "<i class='fas fa-ban me-2'></i>Página não disponível para o seu plano."
+                . "<br>A página <strong>" . strtoupper(htmlspecialchars($this->page)) . "</strong> não está habilitada para este tenant."
+                . "<br><small class='text-muted'>Entre em contato com o suporte para mais informações.</small>"
+                . "</div></div>";
+            require 'app/views/layout/footer.php';
+            exit;
+        }
+    }
+
+    /**
+     * Obtém as permissões de página do tenant a partir do banco master.
+     * Usa cache em sessão com TTL de 5 minutos para evitar consultas repetidas.
+     *
+     * @return array Lista de page_keys permitidas (vazio = sem restrições)
+     */
+    private function getTenantPermissionsFromMaster(): array
+    {
+        $cacheKey = 'tenant_page_permissions';
+        $cacheTtlKey = 'tenant_page_permissions_ttl';
+        $ttl = 300; // 5 minutos
+
+        // Verificar cache em sessão
+        if (isset($_SESSION[$cacheKey], $_SESSION[$cacheTtlKey])) {
+            if (time() - $_SESSION[$cacheTtlKey] < $ttl) {
+                return $_SESSION[$cacheKey];
+            }
+        }
+
+        try {
+            $masterConfig = \TenantManager::getMasterConfig();
+            $tenantId = $_SESSION['tenant_id'] ?? null;
+
+            if (!$tenantId) {
+                $_SESSION[$cacheKey] = [];
+                $_SESSION[$cacheTtlKey] = time();
+                return [];
+            }
+
+            $dsn = sprintf(
+                'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+                $masterConfig['host'],
+                $masterConfig['port'],
+                $masterConfig['db_name'],
+                $masterConfig['charset']
+            );
+
+            $masterDb = new \PDO($dsn, $masterConfig['username'], $masterConfig['password'], [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_EMULATE_PREPARES => false,
+                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+            ]);
+
+            $stmt = $masterDb->prepare("
+                SELECT page_key FROM tenant_page_permissions
+                WHERE tenant_client_id = :tenant_id
+                ORDER BY page_key
+            ");
+            $stmt->execute(['tenant_id' => $tenantId]);
+            $permissions = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+            $_SESSION[$cacheKey] = $permissions;
+            $_SESSION[$cacheTtlKey] = time();
+
+            return $permissions;
+        } catch (\Exception $e) {
+            // Fail-open: se master indisponível, permitir acesso total
+            error_log('[TenantPagePermission] Failed to fetch permissions from master: ' . $e->getMessage());
+            $_SESSION[$cacheKey] = [];
+            $_SESSION[$cacheTtlKey] = time();
+            return [];
+        }
     }
 
     /**

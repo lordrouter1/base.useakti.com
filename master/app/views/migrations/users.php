@@ -279,6 +279,7 @@ $totalAdmins = count(array_filter($allUsers, fn($u) => $u['is_admin']));
             </div>
             <div class="card-body">
                 <form action="?page=migrations&action=createUser" method="POST">
+                    <?= master_csrf_field() ?>
                     <!-- Banco de destino -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold" for="newUserDb">

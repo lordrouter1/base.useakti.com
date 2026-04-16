@@ -4,7 +4,8 @@
  */
 $pageTitle = 'Editar Cliente';
 $pageSubtitle = 'Atualize os dados de: ' . htmlspecialchars($client['client_name']);
-$topbarActions = '<a href="?page=clients" class="btn btn-akti-outline"><i class="fas fa-arrow-left me-2"></i>Voltar</a>';
+$topbarActions = '<a href="?page=permissions&action=edit&id=' . $client['id'] . '" class="btn btn-akti-outline me-2"><i class="fas fa-shield-halved me-2"></i>Permissões</a>'
+    . '<a href="?page=clients" class="btn btn-akti-outline"><i class="fas fa-arrow-left me-2"></i>Voltar</a>';
 
 // Scripts específicos desta página
 $pageScripts = <<<'SCRIPTS'
@@ -69,6 +70,7 @@ require_once __DIR__ . '/../layout/header.php';
 <div class="row justify-content-center">
     <div class="col-lg-10">
         <form action="?page=clients&action=update" method="POST" class="form-card" id="clientForm">
+            <?= master_csrf_field() ?>
             <input type="hidden" name="id" value="<?= $client['id'] ?>">
 
             <!-- Informações do Cliente -->
@@ -261,6 +263,7 @@ require_once __DIR__ . '/../layout/header.php';
                 </div>
 
                 <form action="?page=clients&action=createTenantUser" method="POST" id="createTenantUserForm">
+                    <?= master_csrf_field() ?>
                     <input type="hidden" name="client_id" value="<?= $client['id'] ?>">
                     <div class="row g-3">
                         <div class="col-md-6">

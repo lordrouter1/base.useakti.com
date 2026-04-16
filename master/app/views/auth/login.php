@@ -285,6 +285,11 @@ unset($_SESSION['login_error']);
             .login-right { padding: 28px 20px; }
         }
     </style>
+<?php
+$showCaptcha = $showCaptcha ?? false;
+$isBlocked = $isBlocked ?? false;
+$blockMinutes = $blockMinutes ?? 0;
+?>
 </head>
 <body>
 
@@ -305,7 +310,12 @@ unset($_SESSION['login_error']);
             <h2>Bem-vindo(a)!</h2>
             <p class="subtitle">Faça login para acessar o painel master.</p>
 
-            <?php if ($loginError): ?>
+            <?php if ($isBlocked): ?>
+                <div class="alert alert-danger alert-login">
+                    <i class="fas fa-ban"></i>
+                    Acesso bloqueado por excesso de tentativas. Tente novamente em <strong><?= (int) $blockMinutes ?></strong> minuto(s).
+                </div>
+            <?php elseif ($loginError): ?>
                 <div class="alert alert-danger alert-login">
                     <i class="fas fa-circle-exclamation"></i>
                     <?= htmlspecialchars($loginError) ?>
@@ -313,6 +323,7 @@ unset($_SESSION['login_error']);
             <?php endif; ?>
 
             <form action="?page=login&action=authenticate" method="POST" autocomplete="off">
+                <?= master_csrf_field() ?>
                 <div class="form-group">
                     <div class="input-field">
                         <i class="fas fa-envelope"></i>
@@ -330,7 +341,13 @@ unset($_SESSION['login_error']);
                     </div>
                 </div>
 
-                <button type="submit" class="btn-login">
+                <?php if ($showCaptcha && !$isBlocked): ?>
+                <div class="form-group">
+                    <div class="g-recaptcha" data-sitekey="<?= htmlspecialchars(defined('RECAPTCHA_SITE_KEY') ? RECAPTCHA_SITE_KEY : '') ?>"></div>
+                </div>
+                <?php endif; ?>
+
+                <button type="submit" class="btn-login" <?= $isBlocked ? 'disabled' : '' ?>>
                     <i class="fas fa-right-to-bracket"></i> ENTRAR
                 </button>
             </form>
@@ -343,6 +360,9 @@ unset($_SESSION['login_error']);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <?php if ($showCaptcha && !$isBlocked): ?>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <?php endif; ?>
     <script>
         function togglePassword() {
             const input = document.getElementById('loginPassword');

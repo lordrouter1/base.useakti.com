@@ -225,7 +225,12 @@ class ClientController
 
     public function toggleActive()
     {
-        $id = (int)($_GET['id'] ?? 0);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=clients');
+            exit;
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
         $client = $this->clientModel->readOne($id);
 
         if ($client) {
