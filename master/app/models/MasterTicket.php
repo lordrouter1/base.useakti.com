@@ -49,9 +49,11 @@ class MasterTicket
                 $sql = "
                     SELECT t.*, 
                            COALESCE(u.name, 'Sistema') as user_name,
-                           COALESCE(u.email, '') as user_email
+                           COALESCE(u.email, '') as user_email,
+                           COALESCE(c.name, '') as customer_name
                     FROM tickets t
-                    LEFT JOIN users u ON t.user_id = u.id
+                    LEFT JOIN users u ON t.created_by = u.id
+                    LEFT JOIN customers c ON t.customer_id = c.id
                     WHERE {$where}
                     ORDER BY t.created_at DESC
                     LIMIT 100
@@ -103,9 +105,11 @@ class MasterTicket
             $stmt = $tenantDb->prepare("
                 SELECT t.*, 
                        COALESCE(u.name, 'Sistema') as user_name,
-                       COALESCE(u.email, '') as user_email
+                       COALESCE(u.email, '') as user_email,
+                       COALESCE(c.name, '') as customer_name
                 FROM tickets t
-                LEFT JOIN users u ON t.user_id = u.id
+                LEFT JOIN users u ON t.created_by = u.id
+                LEFT JOIN customers c ON t.customer_id = c.id
                 WHERE t.id = :id
                 LIMIT 1
             ");
@@ -181,10 +185,11 @@ class MasterTicket
 
             // Inserir mensagem no tenant com prefixo [Suporte Akti]
             $stmt = $tenantDb->prepare("
-                INSERT INTO ticket_messages (ticket_id, user_id, message, created_at)
-                VALUES (:ticket_id, NULL, :message, NOW())
+                INSERT INTO ticket_messages (tenant_id, ticket_id, user_id, message, created_at)
+                VALUES (:tenant_id, :ticket_id, NULL, :message, NOW())
             ");
             $stmt->execute([
+                'tenant_id' => $tenant['id'],
                 'ticket_id' => $ticketId,
                 'message' => '[Suporte Akti - ' . $adminName . '] ' . $message,
             ]);
