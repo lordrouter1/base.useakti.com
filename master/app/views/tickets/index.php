@@ -1,21 +1,22 @@
 <?php
 /**
- * View: Tickets - Listagem centralizada
+ * View: Tickets de Suporte - Listagem centralizada (Master)
  */
 $pageTitle = 'Tickets de Suporte';
-$pageSubtitle = 'Todos os tenants';
+$pageSubtitle = 'Gerenciamento centralizado';
 
 $statusLabels = [
-    'open' => ['label' => 'Aberto', 'color' => 'primary', 'icon' => 'fas fa-envelope-open'],
-    'in_progress' => ['label' => 'Em Andamento', 'color' => 'warning', 'icon' => 'fas fa-spinner'],
-    'resolved' => ['label' => 'Resolvido', 'color' => 'success', 'icon' => 'fas fa-check-circle'],
-    'closed' => ['label' => 'Fechado', 'color' => 'secondary', 'icon' => 'fas fa-times-circle'],
+    'open'             => ['label' => 'Aberto', 'color' => 'primary', 'icon' => 'fas fa-envelope-open'],
+    'in_progress'      => ['label' => 'Em Andamento', 'color' => 'warning', 'icon' => 'fas fa-spinner'],
+    'waiting_customer' => ['label' => 'Aguardando Cliente', 'color' => 'info', 'icon' => 'fas fa-clock'],
+    'resolved'         => ['label' => 'Resolvido', 'color' => 'success', 'icon' => 'fas fa-check-circle'],
+    'closed'           => ['label' => 'Fechado', 'color' => 'secondary', 'icon' => 'fas fa-times-circle'],
 ];
 $priorityLabels = [
     'urgent' => ['label' => 'Urgente', 'color' => 'danger', 'icon' => '🔴'],
-    'high' => ['label' => 'Alta', 'color' => 'warning', 'icon' => '🟡'],
+    'high'   => ['label' => 'Alta', 'color' => 'warning', 'icon' => '🟡'],
     'medium' => ['label' => 'Média', 'color' => 'info', 'icon' => '🔵'],
-    'low' => ['label' => 'Baixa', 'color' => 'success', 'icon' => '🟢'],
+    'low'    => ['label' => 'Baixa', 'color' => 'success', 'icon' => '🟢'],
 ];
 
 require_once __DIR__ . '/../layout/header.php';
@@ -105,7 +106,7 @@ require_once __DIR__ . '/../layout/header.php';
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label small mb-1">Status</label>
                 <select name="status" class="form-select form-select-sm">
                     <option value="">Todos</option>
@@ -114,7 +115,7 @@ require_once __DIR__ . '/../layout/header.php';
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label small mb-1">Prioridade</label>
                 <select name="priority" class="form-select form-select-sm">
                     <option value="">Todas</option>
@@ -124,6 +125,11 @@ require_once __DIR__ . '/../layout/header.php';
                 </select>
             </div>
             <div class="col-md-3">
+                <label class="form-label small mb-1">Buscar</label>
+                <input type="text" name="search" class="form-control form-control-sm"
+                       placeholder="Assunto ou número..." value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
+            </div>
+            <div class="col-md-2">
                 <button type="submit" class="btn btn-akti btn-sm w-100">
                     <i class="fas fa-filter me-1"></i>Filtrar
                 </button>
@@ -138,40 +144,47 @@ require_once __DIR__ . '/../layout/header.php';
         <?php if (empty($tickets)): ?>
             <div class="text-center py-5">
                 <i class="fas fa-inbox text-muted" style="font-size:3rem;"></i>
-                <p class="text-muted mt-3">Nenhum ticket encontrado.</p>
+                <p class="text-muted mt-3">Nenhum ticket de suporte encontrado.</p>
             </div>
         <?php else: ?>
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th style="width:60px;">#</th>
+                        <th style="width:90px;">Número</th>
                         <th>Assunto</th>
                         <th>Tenant</th>
                         <th>Prioridade</th>
                         <th>Status</th>
-                        <th>Criado por</th>
+                        <th>Aberto por</th>
+                        <th>Responsável</th>
                         <th>Data</th>
                         <th style="width:80px;">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($tickets as $ticket): ?>
+                    <?php foreach ($tickets as $t): ?>
                     <?php
-                        $st = $statusLabels[$ticket['status'] ?? ''] ?? ['label' => $ticket['status'] ?? 'N/A', 'color' => 'secondary', 'icon' => 'fas fa-circle'];
-                        $pr = $priorityLabels[$ticket['priority'] ?? 'medium'] ?? ['label' => 'Média', 'color' => 'info', 'icon' => '🔵'];
+                        $st = $statusLabels[$t['status'] ?? ''] ?? ['label' => $t['status'] ?? 'N/A', 'color' => 'secondary', 'icon' => 'fas fa-circle'];
+                        $pr = $priorityLabels[$t['priority'] ?? 'medium'] ?? ['label' => 'Média', 'color' => 'info', 'icon' => '🔵'];
                     ?>
                     <tr>
-                        <td class="fw-bold"><?= $ticket['id'] ?></td>
-                        <td>
-                            <a href="?page=tickets&action=view&tenant_id=<?= $ticket['tenant_client_id'] ?>&ticket_id=<?= $ticket['id'] ?>" 
-                               class="text-decoration-none fw-semibold">
-                                <?= htmlspecialchars(mb_substr($ticket['subject'] ?? $ticket['title'] ?? 'Sem assunto', 0, 60)) ?>
+                        <td class="fw-bold">
+                            <a href="?page=tickets&action=view&id=<?= $t['id'] ?>" class="text-decoration-none">
+                                <?= htmlspecialchars($t['ticket_number'] ?? '') ?>
                             </a>
                         </td>
                         <td>
+                            <a href="?page=tickets&action=view&id=<?= $t['id'] ?>" class="text-decoration-none fw-semibold">
+                                <?= htmlspecialchars(mb_substr($t['subject'] ?? '', 0, 60)) ?>
+                            </a>
+                            <?php if (!empty($t['category'])): ?>
+                                <br><small class="text-muted"><?= htmlspecialchars($t['category']) ?></small>
+                            <?php endif; ?>
+                        </td>
+                        <td>
                             <span class="badge bg-light text-dark" style="font-size:11px;">
-                                <?= htmlspecialchars($ticket['tenant_name'] ?? '') ?>
+                                <?= htmlspecialchars($t['tenant_name'] ?? '') ?>
                             </span>
                         </td>
                         <td>
@@ -185,13 +198,16 @@ require_once __DIR__ . '/../layout/header.php';
                             </span>
                         </td>
                         <td>
-                            <small><?= htmlspecialchars($ticket['user_name'] ?? '') ?></small>
+                            <small><?= htmlspecialchars($t['created_by_name'] ?? '') ?></small>
                         </td>
                         <td>
-                            <small class="text-muted"><?= date('d/m/Y H:i', strtotime($ticket['created_at'])) ?></small>
+                            <small><?= htmlspecialchars($t['assigned_admin_name'] ?? '—') ?></small>
                         </td>
                         <td>
-                            <a href="?page=tickets&action=view&tenant_id=<?= $ticket['tenant_client_id'] ?>&ticket_id=<?= $ticket['id'] ?>" 
+                            <small class="text-muted"><?= date('d/m/Y H:i', strtotime($t['created_at'])) ?></small>
+                        </td>
+                        <td>
+                            <a href="?page=tickets&action=view&id=<?= $t['id'] ?>"
                                class="btn btn-sm btn-outline-primary" title="Ver detalhes">
                                 <i class="fas fa-eye"></i>
                             </a>

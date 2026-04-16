@@ -100,6 +100,12 @@ return [
                 'menu'       => true,
                 'permission' => true,
             ],
+            'suporte' => [
+                'label'      => 'Suporte Akti',
+                'icon'       => 'fas fa-life-ring',
+                'menu'       => true,
+                'permission' => false,
+            ],
         ],
     ],
 

@@ -1,8 +1,8 @@
 <?php
 /**
  * Model: MasterTicket
- * Gerencia tickets de suporte de todos os tenants a partir do painel Master.
- * Realiza queries cross-database conectando-se ao banco de cada tenant.
+ * Gerencia tickets de suporte centralizados no banco akti_master.
+ * Tabelas: support_tickets, support_ticket_messages
  */
 
 class MasterTicket
@@ -15,197 +15,123 @@ class MasterTicket
     }
 
     /**
-     * Lista tickets de todos os tenants ativos com filtros.
+     * Lista tickets de suporte com filtros opcionais.
      *
-     * @param array $filters ['tenant_id' => int, 'status' => string, 'priority' => string]
+     * @param array $filters ['tenant_id' => int, 'status' => string, 'priority' => string, 'search' => string]
      * @return array
      */
-    public function readAllFromAllTenants(array $filters = []): array
+    public function readAll(array $filters = []): array
     {
-        $tenants = $this->getActiveTenantsWithDb();
-        $tickets = [];
+        $where = '1=1';
+        $params = [];
 
-        foreach ($tenants as $tenant) {
-            try {
-                $tenantDb = $this->connectToTenant($tenant);
-                if (!$tenantDb) continue;
-
-                // Verificar se a tabela tickets existe
-                $check = $tenantDb->query("SHOW TABLES LIKE 'tickets'");
-                if ($check->rowCount() === 0) continue;
-
-                $where = '1=1';
-                $params = [];
-
-                if (!empty($filters['status'])) {
-                    $where .= ' AND t.status = :status';
-                    $params['status'] = $filters['status'];
-                }
-                if (!empty($filters['priority'])) {
-                    $where .= ' AND t.priority = :priority';
-                    $params['priority'] = $filters['priority'];
-                }
-
-                $sql = "
-                    SELECT t.*, 
-                           COALESCE(u.name, 'Sistema') as user_name,
-                           COALESCE(u.email, '') as user_email,
-                           COALESCE(c.name, '') as customer_name
-                    FROM tickets t
-                    LEFT JOIN users u ON t.created_by = u.id
-                    LEFT JOIN customers c ON t.customer_id = c.id
-                    WHERE {$where}
-                    ORDER BY t.created_at DESC
-                    LIMIT 100
-                ";
-
-                $stmt = $tenantDb->prepare($sql);
-                $stmt->execute($params);
-                $tenantTickets = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-                foreach ($tenantTickets as &$ticket) {
-                    $ticket['tenant_client_id'] = $tenant['id'];
-                    $ticket['tenant_name'] = $tenant['client_name'];
-                    $ticket['tenant_subdomain'] = $tenant['subdomain'];
-                }
-                unset($ticket);
-
-                $tickets = array_merge($tickets, $tenantTickets);
-            } catch (\Exception $e) {
-                error_log('[MasterTicket] Error reading tickets from tenant ' . $tenant['client_name'] . ': ' . $e->getMessage());
-                continue;
-            }
-        }
-
-        // Filtro por tenant_id (pós-query)
         if (!empty($filters['tenant_id'])) {
-            $tenantId = (int)$filters['tenant_id'];
-            $tickets = array_filter($tickets, fn($t) => (int)$t['tenant_client_id'] === $tenantId);
-            $tickets = array_values($tickets);
+            $where .= ' AND st.tenant_client_id = :tenant_id';
+            $params['tenant_id'] = (int) $filters['tenant_id'];
+        }
+        if (!empty($filters['status'])) {
+            $where .= ' AND st.status = :status';
+            $params['status'] = $filters['status'];
+        }
+        if (!empty($filters['priority'])) {
+            $where .= ' AND st.priority = :priority';
+            $params['priority'] = $filters['priority'];
+        }
+        if (!empty($filters['search'])) {
+            $where .= ' AND (st.subject LIKE :search OR st.ticket_number LIKE :search2)';
+            $params['search'] = '%' . $filters['search'] . '%';
+            $params['search2'] = '%' . $filters['search'] . '%';
         }
 
-        // Ordenar por data mais recente
-        usort($tickets, fn($a, $b) => strtotime($b['created_at']) - strtotime($a['created_at']));
+        $sql = "
+            SELECT st.*,
+                   tc.client_name AS tenant_name,
+                   tc.subdomain AS tenant_subdomain,
+                   au.name AS assigned_admin_name
+            FROM support_tickets st
+            LEFT JOIN tenant_clients tc ON st.tenant_client_id = tc.id
+            LEFT JOIN admin_users au ON st.assigned_admin_id = au.id
+            WHERE {$where}
+            ORDER BY
+                FIELD(st.status, 'open', 'in_progress', 'waiting_customer', 'resolved', 'closed'),
+                FIELD(st.priority, 'urgent', 'high', 'medium', 'low'),
+                st.created_at DESC
+            LIMIT 200
+        ";
 
-        return $tickets;
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**
-     * Lê um ticket específico de um tenant.
+     * Lê um ticket específico por ID.
      */
-    public function readTicketFromTenant(int $tenantClientId, int $ticketId): ?array
+    public function readOne(int $ticketId): ?array
     {
-        $tenant = $this->getTenantById($tenantClientId);
-        if (!$tenant) return null;
-
-        try {
-            $tenantDb = $this->connectToTenant($tenant);
-            if (!$tenantDb) return null;
-
-            $stmt = $tenantDb->prepare("
-                SELECT t.*, 
-                       COALESCE(u.name, 'Sistema') as user_name,
-                       COALESCE(u.email, '') as user_email,
-                       COALESCE(c.name, '') as customer_name
-                FROM tickets t
-                LEFT JOIN users u ON t.created_by = u.id
-                LEFT JOIN customers c ON t.customer_id = c.id
-                WHERE t.id = :id
-                LIMIT 1
-            ");
-            $stmt->execute(['id' => $ticketId]);
-            $ticket = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-            if ($ticket) {
-                $ticket['tenant_client_id'] = $tenant['id'];
-                $ticket['tenant_name'] = $tenant['client_name'];
-                $ticket['tenant_subdomain'] = $tenant['subdomain'];
-            }
-
-            return $ticket ?: null;
-        } catch (\Exception $e) {
-            error_log('[MasterTicket] Error reading ticket: ' . $e->getMessage());
-            return null;
-        }
+        $stmt = $this->db->prepare("
+            SELECT st.*,
+                   tc.client_name AS tenant_name,
+                   tc.subdomain AS tenant_subdomain,
+                   au.name AS assigned_admin_name
+            FROM support_tickets st
+            LEFT JOIN tenant_clients tc ON st.tenant_client_id = tc.id
+            LEFT JOIN admin_users au ON st.assigned_admin_id = au.id
+            WHERE st.id = :id
+            LIMIT 1
+        ");
+        $stmt->execute(['id' => $ticketId]);
+        $ticket = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $ticket ?: null;
     }
 
     /**
      * Obtém as mensagens de um ticket.
      */
-    public function getTicketMessages(int $tenantClientId, int $ticketId): array
+    public function getMessages(int $ticketId): array
     {
-        $tenant = $this->getTenantById($tenantClientId);
-        if (!$tenant) return [];
-
-        try {
-            $tenantDb = $this->connectToTenant($tenant);
-            if (!$tenantDb) return [];
-
-            // Verificar se tabela ticket_messages existe
-            $check = $tenantDb->query("SHOW TABLES LIKE 'ticket_messages'");
-            if ($check->rowCount() === 0) return [];
-
-            $stmt = $tenantDb->prepare("
-                SELECT tm.*, 
-                       COALESCE(u.name, 'Sistema') as user_name
-                FROM ticket_messages tm
-                LEFT JOIN users u ON tm.user_id = u.id
-                WHERE tm.ticket_id = :ticket_id
-                ORDER BY tm.created_at ASC
-            ");
-            $stmt->execute(['ticket_id' => $ticketId]);
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            error_log('[MasterTicket] Error reading messages: ' . $e->getMessage());
-            return [];
-        }
+        $stmt = $this->db->prepare("
+            SELECT * FROM support_ticket_messages
+            WHERE support_ticket_id = :ticket_id
+            ORDER BY created_at ASC
+        ");
+        $stmt->execute(['ticket_id' => $ticketId]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**
-     * Responde a um ticket (insere mensagem no banco do tenant + log no master).
+     * Adiciona uma resposta de admin a um ticket.
      */
-    public function replyToTicket(int $adminId, int $tenantClientId, int $ticketId, string $message): bool
+    public function addAdminReply(int $adminId, string $adminName, int $ticketId, string $message, bool $isInternalNote = false): bool
     {
-        $tenant = $this->getTenantById($tenantClientId);
-        if (!$tenant) return false;
-
         try {
-            $tenantDb = $this->connectToTenant($tenant);
-            if (!$tenantDb) return false;
+            $this->db->beginTransaction();
 
-            // Verificar se tabela ticket_messages existe
-            $check = $tenantDb->query("SHOW TABLES LIKE 'ticket_messages'");
-            if ($check->rowCount() === 0) return false;
-
-            // Buscar nome do admin
-            $adminStmt = $this->db->prepare("SELECT name FROM admin_users WHERE id = :id");
-            $adminStmt->execute(['id' => $adminId]);
-            $admin = $adminStmt->fetch(\PDO::FETCH_ASSOC);
-            $adminName = $admin ? $admin['name'] : 'Suporte Akti';
-
-            // Inserir mensagem no tenant com prefixo [Suporte Akti]
-            $stmt = $tenantDb->prepare("
-                INSERT INTO ticket_messages (tenant_id, ticket_id, user_id, message, created_at)
-                VALUES (:tenant_id, :ticket_id, NULL, :message, NOW())
+            $stmt = $this->db->prepare("
+                INSERT INTO support_ticket_messages
+                    (support_ticket_id, sender_type, sender_id, sender_name, message, is_internal_note)
+                VALUES
+                    (:ticket_id, 'admin', :sender_id, :sender_name, :message, :is_internal)
             ");
             $stmt->execute([
-                'tenant_id' => $tenant['id'],
-                'ticket_id' => $ticketId,
-                'message' => '[Suporte Akti - ' . $adminName . '] ' . $message,
+                'ticket_id'   => $ticketId,
+                'sender_id'   => $adminId,
+                'sender_name' => $adminName,
+                'message'     => $message,
+                'is_internal' => $isInternalNote ? 1 : 0,
             ]);
 
-            // Atualizar status do ticket para in_progress se estava open
-            $tenantDb->prepare("
-                UPDATE tickets SET status = 'in_progress', updated_at = NOW()
+            // Se era open, mover para in_progress
+            $this->db->prepare("
+                UPDATE support_tickets SET status = 'in_progress', updated_at = NOW()
                 WHERE id = :id AND status = 'open'
             ")->execute(['id' => $ticketId]);
 
-            // Log no master
-            $this->logReply($adminId, $tenantClientId, $ticketId, $message, 'reply');
-
+            $this->db->commit();
             return true;
         } catch (\Exception $e) {
-            error_log('[MasterTicket] Error replying to ticket: ' . $e->getMessage());
+            $this->db->rollBack();
+            error_log('[MasterTicket] Error adding reply: ' . $e->getMessage());
             return false;
         }
     }
@@ -213,169 +139,188 @@ class MasterTicket
     /**
      * Altera o status de um ticket.
      */
-    public function changeTicketStatus(int $adminId, int $tenantClientId, int $ticketId, string $newStatus): bool
+    public function changeStatus(int $ticketId, string $newStatus): bool
     {
-        $validStatuses = ['open', 'in_progress', 'resolved', 'closed'];
-        if (!in_array($newStatus, $validStatuses, true)) return false;
-
-        $tenant = $this->getTenantById($tenantClientId);
-        if (!$tenant) return false;
-
-        try {
-            $tenantDb = $this->connectToTenant($tenant);
-            if (!$tenantDb) return false;
-
-            // Obter status atual
-            $stmt = $tenantDb->prepare("SELECT status FROM tickets WHERE id = :id");
-            $stmt->execute(['id' => $ticketId]);
-            $current = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $oldStatus = $current ? $current['status'] : 'unknown';
-
-            // Atualizar
-            $stmt = $tenantDb->prepare("
-                UPDATE tickets SET status = :status, updated_at = NOW() WHERE id = :id
-            ");
-            $stmt->execute(['status' => $newStatus, 'id' => $ticketId]);
-
-            // Log no master
-            $this->logReply($adminId, $tenantClientId, $ticketId,
-                "Status alterado de {$oldStatus} para {$newStatus}", 'status_change',
-                $oldStatus, $newStatus);
-
-            return true;
-        } catch (\Exception $e) {
-            error_log('[MasterTicket] Error changing status: ' . $e->getMessage());
+        $validStatuses = ['open', 'in_progress', 'waiting_customer', 'resolved', 'closed'];
+        if (!in_array($newStatus, $validStatuses, true)) {
             return false;
         }
+
+        $extra = '';
+        if ($newStatus === 'resolved') {
+            $extra = ', resolved_at = NOW()';
+        } elseif ($newStatus === 'closed') {
+            $extra = ', closed_at = NOW()';
+        }
+
+        $stmt = $this->db->prepare("
+            UPDATE support_tickets
+            SET status = :status{$extra}, updated_at = NOW()
+            WHERE id = :id
+        ");
+        return $stmt->execute(['status' => $newStatus, 'id' => $ticketId]);
     }
 
     /**
-     * Retorna estatísticas globais consolidadas de tickets.
+     * Atribui um admin a um ticket.
+     */
+    public function assignAdmin(int $ticketId, ?int $adminId): bool
+    {
+        $stmt = $this->db->prepare("
+            UPDATE support_tickets
+            SET assigned_admin_id = :admin_id, updated_at = NOW()
+            WHERE id = :id
+        ");
+        return $stmt->execute(['admin_id' => $adminId, 'id' => $ticketId]);
+    }
+
+    /**
+     * Estatísticas globais de tickets de suporte.
      */
     public function getGlobalStats(): array
     {
-        $stats = [
-            'total' => 0,
-            'open' => 0,
-            'in_progress' => 0,
-            'resolved' => 0,
-            'closed' => 0,
-            'urgent' => 0,
+        $stmt = $this->db->query("
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) AS open_count,
+                SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_count,
+                SUM(CASE WHEN status = 'waiting_customer' THEN 1 ELSE 0 END) AS waiting_count,
+                SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) AS resolved_count,
+                SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) AS closed_count,
+                SUM(CASE WHEN priority = 'urgent' AND status IN ('open','in_progress') THEN 1 ELSE 0 END) AS urgent_count
+            FROM support_tickets
+        ");
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return [
+            'total'       => (int) ($row['total'] ?? 0),
+            'open'        => (int) ($row['open_count'] ?? 0),
+            'in_progress' => (int) ($row['in_progress_count'] ?? 0),
+            'waiting'     => (int) ($row['waiting_count'] ?? 0),
+            'resolved'    => (int) ($row['resolved_count'] ?? 0),
+            'closed'      => (int) ($row['closed_count'] ?? 0),
+            'urgent'      => (int) ($row['urgent_count'] ?? 0),
         ];
+    }
 
-        $tenants = $this->getActiveTenantsWithDb();
+    /**
+     * Lista tickets de um tenant específico (para uso pelo tenant app).
+     */
+    public function readByTenant(int $tenantClientId, array $filters = []): array
+    {
+        $where = 'st.tenant_client_id = :tenant_id';
+        $params = ['tenant_id' => $tenantClientId];
 
-        foreach ($tenants as $tenant) {
-            try {
-                $tenantDb = $this->connectToTenant($tenant);
-                if (!$tenantDb) continue;
-
-                $check = $tenantDb->query("SHOW TABLES LIKE 'tickets'");
-                if ($check->rowCount() === 0) continue;
-
-                $stmt = $tenantDb->query("
-                    SELECT 
-                        COUNT(*) as total,
-                        SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open_count,
-                        SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_count,
-                        SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved_count,
-                        SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as closed_count,
-                        SUM(CASE WHEN priority = 'urgent' AND status IN ('open','in_progress') THEN 1 ELSE 0 END) as urgent_count
-                    FROM tickets
-                ");
-                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-                $stats['total'] += (int)($row['total'] ?? 0);
-                $stats['open'] += (int)($row['open_count'] ?? 0);
-                $stats['in_progress'] += (int)($row['in_progress_count'] ?? 0);
-                $stats['resolved'] += (int)($row['resolved_count'] ?? 0);
-                $stats['closed'] += (int)($row['closed_count'] ?? 0);
-                $stats['urgent'] += (int)($row['urgent_count'] ?? 0);
-            } catch (\Exception $e) {
-                error_log('[MasterTicket] Error getting stats from tenant ' . $tenant['client_name'] . ': ' . $e->getMessage());
-                continue;
-            }
+        if (!empty($filters['status'])) {
+            $where .= ' AND st.status = :status';
+            $params['status'] = $filters['status'];
         }
 
-        return $stats;
-    }
-
-    /**
-     * Registra uma resposta/ação no log do master.
-     */
-    private function logReply(int $adminId, int $tenantClientId, int $ticketId, string $message,
-                              string $actionType = 'reply', ?string $oldStatus = null, ?string $newStatus = null): void
-    {
         $stmt = $this->db->prepare("
-            INSERT INTO master_ticket_replies (admin_id, tenant_client_id, ticket_id, message, action_type, old_status, new_status)
-            VALUES (:admin_id, :tenant_client_id, :ticket_id, :message, :action_type, :old_status, :new_status)
+            SELECT st.*
+            FROM support_tickets st
+            WHERE {$where}
+            ORDER BY st.created_at DESC
+            LIMIT 50
         ");
-        $stmt->execute([
-            'admin_id' => $adminId,
-            'tenant_client_id' => $tenantClientId,
-            'ticket_id' => $ticketId,
-            'message' => $message,
-            'action_type' => $actionType,
-            'old_status' => $oldStatus,
-            'new_status' => $newStatus,
-        ]);
-    }
-
-    // ── Helpers de conexão ──
-
-    /**
-     * Retorna todos os tenants ativos com dados de conexão.
-     */
-    private function getActiveTenantsWithDb(): array
-    {
-        $stmt = $this->db->query("
-            SELECT id, client_name, subdomain, db_host, db_port, db_name, db_user, db_password, db_charset
-            FROM tenant_clients
-            WHERE is_active = 1
-            ORDER BY client_name
-        ");
+        $stmt->execute($params);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**
-     * Retorna um tenant por ID.
+     * Cria um ticket de suporte (chamado pelo tenant).
      */
-    private function getTenantById(int $id): ?array
+    public function createTicket(array $data): ?int
     {
+        // Gerar ticket_number
+        $stmt = $this->db->query("SELECT MAX(id) AS max_id FROM support_tickets");
+        $maxId = (int) ($stmt->fetch(\PDO::FETCH_ASSOC)['max_id'] ?? 0);
+        $ticketNumber = 'SUP-' . str_pad($maxId + 1, 5, '0', STR_PAD_LEFT);
+
         $stmt = $this->db->prepare("
-            SELECT id, client_name, subdomain, db_host, db_port, db_name, db_user, db_password, db_charset
-            FROM tenant_clients
-            WHERE id = :id
-            LIMIT 1
+            INSERT INTO support_tickets
+                (tenant_client_id, ticket_number, subject, description, priority, category,
+                 created_by_user_id, created_by_name, created_by_email)
+            VALUES
+                (:tenant_id, :ticket_number, :subject, :description, :priority, :category,
+                 :user_id, :user_name, :user_email)
         ");
-        $stmt->execute(['id' => $id]);
-        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return $result ?: null;
+
+        $success = $stmt->execute([
+            'tenant_id'     => (int) $data['tenant_client_id'],
+            'ticket_number' => $ticketNumber,
+            'subject'       => $data['subject'],
+            'description'   => $data['description'],
+            'priority'      => $data['priority'] ?? 'medium',
+            'category'      => $data['category'] ?? null,
+            'user_id'       => $data['user_id'] ?? null,
+            'user_name'     => $data['user_name'],
+            'user_email'    => $data['user_email'] ?? null,
+        ]);
+
+        if ($success) {
+            $ticketId = (int) $this->db->lastInsertId();
+
+            // Inserir a descrição como primeira mensagem
+            $this->db->prepare("
+                INSERT INTO support_ticket_messages
+                    (support_ticket_id, sender_type, sender_id, sender_name, message)
+                VALUES
+                    (:ticket_id, 'tenant', :sender_id, :sender_name, :message)
+            ")->execute([
+                'ticket_id'   => $ticketId,
+                'sender_id'   => $data['user_id'] ?? null,
+                'sender_name' => $data['user_name'],
+                'message'     => $data['description'],
+            ]);
+
+            return $ticketId;
+        }
+
+        return null;
     }
 
     /**
-     * Cria conexão PDO para o banco de um tenant.
+     * Adiciona mensagem do tenant a um ticket existente.
      */
-    private function connectToTenant(array $tenant): ?\PDO
+    public function addTenantMessage(int $ticketId, int $tenantClientId, ?int $userId, string $userName, string $message): bool
     {
-        try {
-            $dsn = sprintf(
-                'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-                $tenant['db_host'],
-                $tenant['db_port'] ?: 3306,
-                $tenant['db_name'],
-                $tenant['db_charset'] ?: 'utf8mb4'
-            );
-
-            return new \PDO($dsn, $tenant['db_user'], $tenant['db_password'], [
-                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-                \PDO::ATTR_EMULATE_PREPARES => false,
-                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-                \PDO::ATTR_TIMEOUT => 5,
-            ]);
-        } catch (\Exception $e) {
-            error_log('[MasterTicket] Cannot connect to tenant ' . $tenant['db_name'] . ': ' . $e->getMessage());
-            return null;
+        // Verificar que o ticket pertence ao tenant
+        $stmt = $this->db->prepare("
+            SELECT id FROM support_tickets WHERE id = :id AND tenant_client_id = :tenant_id
+        ");
+        $stmt->execute(['id' => $ticketId, 'tenant_id' => $tenantClientId]);
+        if (!$stmt->fetch()) {
+            return false;
         }
+
+        $this->db->prepare("
+            INSERT INTO support_ticket_messages
+                (support_ticket_id, sender_type, sender_id, sender_name, message)
+            VALUES
+                (:ticket_id, 'tenant', :sender_id, :sender_name, :message)
+        ")->execute([
+            'ticket_id'   => $ticketId,
+            'sender_id'   => $userId,
+            'sender_name' => $userName,
+            'message'     => $message,
+        ]);
+
+        // Se status é waiting_customer, mover para open
+        $this->db->prepare("
+            UPDATE support_tickets SET status = 'open', updated_at = NOW()
+            WHERE id = :id AND status = 'waiting_customer'
+        ")->execute(['id' => $ticketId]);
+
+        return true;
+    }
+
+    /**
+     * Lista admin users disponíveis para atribuição.
+     */
+    public function getAdminUsers(): array
+    {
+        $stmt = $this->db->query("SELECT id, name, email FROM admin_users ORDER BY name");
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 }

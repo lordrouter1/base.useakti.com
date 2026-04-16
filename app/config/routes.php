@@ -1412,4 +1412,17 @@ return [
         ],
     ],
 
+    // ─── Suporte ao Plataforma (Central) ───
+    'suporte' => [
+        'controller'     => 'SupportController',
+        'default_action' => 'index',
+        'public'         => false,
+        'actions'        => [
+            'create'     => 'create',
+            'store'      => 'store',
+            'view'       => 'view',
+            'addMessage' => 'addMessage',
+        ],
+    ],
+
 ];

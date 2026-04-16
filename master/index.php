@@ -275,6 +275,9 @@ switch ($page) {
             case 'changeStatus':
                 $controller->changeStatus();
                 break;
+            case 'assign':
+                $controller->assign();
+                break;
             default:
                 $controller->index();
                 break;

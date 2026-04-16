@@ -1,7 +1,8 @@
 <?php
 /**
  * Controller: TicketMasterController
- * Gerencia tickets de suporte de todos os tenants no painel Master.
+ * Gerencia tickets de suporte centralizados no painel Master.
+ * Utiliza tabelas support_tickets / support_ticket_messages no banco akti_master.
  */
 
 class TicketMasterController
@@ -33,48 +34,41 @@ class TicketMasterController
         if (!empty($_GET['priority'])) {
             $filters['priority'] = $_GET['priority'];
         }
+        if (!empty($_GET['search'])) {
+            $filters['search'] = $_GET['search'];
+        }
 
         $stats = $this->ticketModel->getGlobalStats();
-        $tickets = $this->ticketModel->readAllFromAllTenants($filters);
+        $tickets = $this->ticketModel->readAll($filters);
         $clients = $this->clientModel->readAll();
+        $admins = $this->ticketModel->getAdminUsers();
 
         require_once __DIR__ . '/../views/tickets/index.php';
     }
 
     /**
      * Detalhe de um ticket com mensagens e formulário de resposta.
-     * GET ?page=tickets&action=view&tenant_id=X&ticket_id=Y
+     * GET ?page=tickets&action=view&id=X
      */
     public function view(): void
     {
-        $tenantClientId = (int)($_GET['tenant_id'] ?? 0);
-        $ticketId = (int)($_GET['ticket_id'] ?? 0);
+        $ticketId = (int)($_GET['id'] ?? 0);
 
-        if (!$tenantClientId || !$ticketId) {
+        if (!$ticketId) {
             $_SESSION['error'] = 'Parâmetros inválidos.';
             header('Location: ?page=tickets');
             exit;
         }
 
-        $ticket = $this->ticketModel->readTicketFromTenant($tenantClientId, $ticketId);
+        $ticket = $this->ticketModel->readOne($ticketId);
         if (!$ticket) {
             $_SESSION['error'] = 'Ticket não encontrado.';
             header('Location: ?page=tickets');
             exit;
         }
 
-        $messages = $this->ticketModel->getTicketMessages($tenantClientId, $ticketId);
-
-        // Buscar log de respostas do master
-        $stmt = $this->db->prepare("
-            SELECT mtr.*, au.name as admin_name
-            FROM master_ticket_replies mtr
-            LEFT JOIN admin_users au ON mtr.admin_id = au.id
-            WHERE mtr.tenant_client_id = :tenant_id AND mtr.ticket_id = :ticket_id
-            ORDER BY mtr.created_at ASC
-        ");
-        $stmt->execute(['tenant_id' => $tenantClientId, 'ticket_id' => $ticketId]);
-        $masterReplies = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $messages = $this->ticketModel->getMessages($ticketId);
+        $admins = $this->ticketModel->getAdminUsers();
 
         require_once __DIR__ . '/../views/tickets/view.php';
     }
@@ -90,27 +84,33 @@ class TicketMasterController
             exit;
         }
 
-        $tenantClientId = (int)($_POST['tenant_client_id'] ?? 0);
         $ticketId = (int)($_POST['ticket_id'] ?? 0);
         $message = trim($_POST['message'] ?? '');
+        $isInternal = !empty($_POST['is_internal_note']);
         $adminId = (int)$_SESSION['admin_id'];
 
-        if (!$tenantClientId || !$ticketId || $message === '') {
+        if (!$ticketId || $message === '') {
             $_SESSION['error'] = 'Preencha todos os campos.';
-            header('Location: ?page=tickets&action=view&tenant_id=' . $tenantClientId . '&ticket_id=' . $ticketId);
+            header('Location: ?page=tickets&action=view&id=' . $ticketId);
             exit;
         }
 
-        $success = $this->ticketModel->replyToTicket($adminId, $tenantClientId, $ticketId, $message);
+        // Buscar nome do admin
+        $adminStmt = $this->db->prepare("SELECT name FROM admin_users WHERE id = :id");
+        $adminStmt->execute(['id' => $adminId]);
+        $admin = $adminStmt->fetch(\PDO::FETCH_ASSOC);
+        $adminName = $admin ? $admin['name'] : 'Suporte Akti';
+
+        $success = $this->ticketModel->addAdminReply($adminId, $adminName, $ticketId, $message, $isInternal);
 
         if ($success) {
-            $this->logAction('ticket_reply', 'ticket', $ticketId, "Respondeu ticket #{$ticketId} do tenant #{$tenantClientId}");
-            $_SESSION['success'] = 'Resposta enviada com sucesso.';
+            $this->logAction('ticket_reply', 'support_ticket', $ticketId, "Respondeu ticket de suporte #{$ticketId}");
+            $_SESSION['success'] = $isInternal ? 'Nota interna adicionada.' : 'Resposta enviada com sucesso.';
         } else {
-            $_SESSION['error'] = 'Erro ao enviar resposta. Verifique se o tenant possui a tabela de mensagens.';
+            $_SESSION['error'] = 'Erro ao enviar resposta.';
         }
 
-        header('Location: ?page=tickets&action=view&tenant_id=' . $tenantClientId . '&ticket_id=' . $ticketId);
+        header('Location: ?page=tickets&action=view&id=' . $ticketId);
         exit;
     }
 
@@ -125,27 +125,58 @@ class TicketMasterController
             exit;
         }
 
-        $tenantClientId = (int)($_POST['tenant_client_id'] ?? 0);
         $ticketId = (int)($_POST['ticket_id'] ?? 0);
         $newStatus = $_POST['new_status'] ?? '';
-        $adminId = (int)$_SESSION['admin_id'];
 
-        if (!$tenantClientId || !$ticketId || !$newStatus) {
+        if (!$ticketId || !$newStatus) {
             $_SESSION['error'] = 'Parâmetros inválidos.';
             header('Location: ?page=tickets');
             exit;
         }
 
-        $success = $this->ticketModel->changeTicketStatus($adminId, $tenantClientId, $ticketId, $newStatus);
+        $success = $this->ticketModel->changeStatus($ticketId, $newStatus);
 
         if ($success) {
-            $this->logAction('ticket_status_change', 'ticket', $ticketId, "Alterou status do ticket #{$ticketId} para {$newStatus}");
+            $this->logAction('ticket_status_change', 'support_ticket', $ticketId, "Alterou status para {$newStatus}");
             $_SESSION['success'] = 'Status alterado com sucesso.';
         } else {
             $_SESSION['error'] = 'Erro ao alterar status.';
         }
 
-        header('Location: ?page=tickets&action=view&tenant_id=' . $tenantClientId . '&ticket_id=' . $ticketId);
+        header('Location: ?page=tickets&action=view&id=' . $ticketId);
+        exit;
+    }
+
+    /**
+     * Atribuir admin a um ticket.
+     * POST ?page=tickets&action=assign
+     */
+    public function assign(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ?page=tickets');
+            exit;
+        }
+
+        $ticketId = (int)($_POST['ticket_id'] ?? 0);
+        $assignedAdminId = ($_POST['assigned_admin_id'] ?? '') !== '' ? (int)$_POST['assigned_admin_id'] : null;
+
+        if (!$ticketId) {
+            $_SESSION['error'] = 'Parâmetros inválidos.';
+            header('Location: ?page=tickets');
+            exit;
+        }
+
+        $success = $this->ticketModel->assignAdmin($ticketId, $assignedAdminId);
+
+        if ($success) {
+            $this->logAction('ticket_assign', 'support_ticket', $ticketId, "Atribuiu admin #{$assignedAdminId} ao ticket");
+            $_SESSION['success'] = 'Responsável atualizado.';
+        } else {
+            $_SESSION['error'] = 'Erro ao atribuir responsável.';
+        }
+
+        header('Location: ?page=tickets&action=view&id=' . $ticketId);
         exit;
     }
 

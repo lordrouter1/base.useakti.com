@@ -1,22 +1,23 @@
 <?php
 /**
- * View: Tickets - Detalhe + Chat
+ * View: Ticket de Suporte - Detalhe + Chat (Master)
  */
-$pageTitle = 'Ticket #' . $ticket['id'];
-$pageSubtitle = htmlspecialchars($ticket['tenant_name'] ?? '') . ' — ' . htmlspecialchars($ticket['subject'] ?? $ticket['title'] ?? 'Sem assunto');
+$pageTitle = htmlspecialchars($ticket['ticket_number'] ?? 'Ticket #' . $ticket['id']);
+$pageSubtitle = htmlspecialchars($ticket['tenant_name'] ?? '') . ' — ' . htmlspecialchars($ticket['subject'] ?? '');
 $topbarActions = '<a href="?page=tickets" class="btn btn-akti-outline"><i class="fas fa-arrow-left me-2"></i>Voltar</a>';
 
 $statusLabels = [
-    'open' => ['label' => 'Aberto', 'color' => 'primary', 'icon' => 'fas fa-envelope-open'],
-    'in_progress' => ['label' => 'Em Andamento', 'color' => 'warning', 'icon' => 'fas fa-spinner'],
-    'resolved' => ['label' => 'Resolvido', 'color' => 'success', 'icon' => 'fas fa-check-circle'],
-    'closed' => ['label' => 'Fechado', 'color' => 'secondary', 'icon' => 'fas fa-times-circle'],
+    'open'             => ['label' => 'Aberto', 'color' => 'primary', 'icon' => 'fas fa-envelope-open'],
+    'in_progress'      => ['label' => 'Em Andamento', 'color' => 'warning', 'icon' => 'fas fa-spinner'],
+    'waiting_customer' => ['label' => 'Aguardando Cliente', 'color' => 'info', 'icon' => 'fas fa-clock'],
+    'resolved'         => ['label' => 'Resolvido', 'color' => 'success', 'icon' => 'fas fa-check-circle'],
+    'closed'           => ['label' => 'Fechado', 'color' => 'secondary', 'icon' => 'fas fa-times-circle'],
 ];
 $priorityLabels = [
     'urgent' => ['label' => 'Urgente', 'color' => 'danger'],
-    'high' => ['label' => 'Alta', 'color' => 'warning'],
+    'high'   => ['label' => 'Alta', 'color' => 'warning'],
     'medium' => ['label' => 'Média', 'color' => 'info'],
-    'low' => ['label' => 'Baixa', 'color' => 'success'],
+    'low'    => ['label' => 'Baixa', 'color' => 'success'],
 ];
 
 $st = $statusLabels[$ticket['status'] ?? ''] ?? ['label' => $ticket['status'] ?? 'N/A', 'color' => 'secondary', 'icon' => 'fas fa-circle'];
@@ -25,10 +26,9 @@ $pr = $priorityLabels[$ticket['priority'] ?? 'medium'] ?? ['label' => 'Média', 
 $pageScripts = <<<'SCRIPTS'
 <script>
 $(document).ready(function() {
-    // Confirm status change
     $('#statusForm').on('submit', function(e) {
         const newStatus = $('#newStatus').val();
-        const labels = {open:'Aberto', in_progress:'Em Andamento', resolved:'Resolvido', closed:'Fechado'};
+        const labels = {open:'Aberto', in_progress:'Em Andamento', waiting_customer:'Aguardando Cliente', resolved:'Resolvido', closed:'Fechado'};
         e.preventDefault();
         Swal.fire({
             title: 'Alterar status?',
@@ -38,17 +38,12 @@ $(document).ready(function() {
             confirmButtonText: 'Sim, alterar',
             cancelButtonText: 'Cancelar'
         }).then((result) => {
-            if (result.isConfirmed) {
-                e.target.submit();
-            }
+            if (result.isConfirmed) { e.target.submit(); }
         });
     });
 
-    // Scroll to bottom of messages
     const msgContainer = document.getElementById('messagesContainer');
-    if (msgContainer) {
-        msgContainer.scrollTop = msgContainer.scrollHeight;
-    }
+    if (msgContainer) { msgContainer.scrollTop = msgContainer.scrollHeight; }
 });
 </script>
 SCRIPTS;
@@ -82,8 +77,8 @@ require_once __DIR__ . '/../layout/header.php';
             <div class="card-body">
                 <table class="table table-sm table-borderless mb-0">
                     <tr>
-                        <td class="text-muted" style="width:100px;">ID</td>
-                        <td class="fw-bold">#<?= $ticket['id'] ?></td>
+                        <td class="text-muted" style="width:110px;">Número</td>
+                        <td class="fw-bold"><?= htmlspecialchars($ticket['ticket_number'] ?? '#' . $ticket['id']) ?></td>
                     </tr>
                     <tr>
                         <td class="text-muted">Tenant</td>
@@ -94,13 +89,15 @@ require_once __DIR__ . '/../layout/header.php';
                         </td>
                     </tr>
                     <tr>
-                        <td class="text-muted">Criado por</td>
-                        <td><?= htmlspecialchars($ticket['user_name'] ?? 'Sistema') ?></td>
+                        <td class="text-muted">Aberto por</td>
+                        <td><?= htmlspecialchars($ticket['created_by_name'] ?? 'Sistema') ?></td>
                     </tr>
+                    <?php if (!empty($ticket['created_by_email'])): ?>
                     <tr>
                         <td class="text-muted">E-mail</td>
-                        <td><small><?= htmlspecialchars($ticket['user_email'] ?? '') ?></small></td>
+                        <td><small><?= htmlspecialchars($ticket['created_by_email']) ?></small></td>
                     </tr>
+                    <?php endif; ?>
                     <tr>
                         <td class="text-muted">Prioridade</td>
                         <td><span class="badge bg-<?= $pr['color'] ?>"><?= $pr['label'] ?></span></td>
@@ -109,6 +106,12 @@ require_once __DIR__ . '/../layout/header.php';
                         <td class="text-muted">Status</td>
                         <td><span class="badge bg-<?= $st['color'] ?>"><i class="<?= $st['icon'] ?> me-1"></i><?= $st['label'] ?></span></td>
                     </tr>
+                    <?php if (!empty($ticket['category'])): ?>
+                    <tr>
+                        <td class="text-muted">Categoria</td>
+                        <td><small><?= htmlspecialchars($ticket['category']) ?></small></td>
+                    </tr>
+                    <?php endif; ?>
                     <tr>
                         <td class="text-muted">Criado em</td>
                         <td><small><?= date('d/m/Y H:i', strtotime($ticket['created_at'])) ?></small></td>
@@ -119,18 +122,10 @@ require_once __DIR__ . '/../layout/header.php';
                         <td><small><?= date('d/m/Y H:i', strtotime($ticket['updated_at'])) ?></small></td>
                     </tr>
                     <?php endif; ?>
-                    <?php if (!empty($ticket['source'])): ?>
                     <tr>
-                        <td class="text-muted">Fonte</td>
-                        <td><small><?= htmlspecialchars($ticket['source']) ?></small></td>
+                        <td class="text-muted">Responsável</td>
+                        <td><small><?= htmlspecialchars($ticket['assigned_admin_name'] ?? 'Não atribuído') ?></small></td>
                     </tr>
-                    <?php endif; ?>
-                    <?php if (!empty($ticket['category'])): ?>
-                    <tr>
-                        <td class="text-muted">Categoria</td>
-                        <td><small><?= htmlspecialchars($ticket['category']) ?></small></td>
-                    </tr>
-                    <?php endif; ?>
                 </table>
             </div>
         </div>
@@ -143,7 +138,6 @@ require_once __DIR__ . '/../layout/header.php';
             <div class="card-body">
                 <form id="statusForm" action="?page=tickets&action=changeStatus" method="POST">
                     <?= master_csrf_field() ?>
-                    <input type="hidden" name="tenant_client_id" value="<?= $ticket['tenant_client_id'] ?>">
                     <input type="hidden" name="ticket_id" value="<?= $ticket['id'] ?>">
                     <div class="mb-2">
                         <select name="new_status" id="newStatus" class="form-select form-select-sm">
@@ -161,43 +155,43 @@ require_once __DIR__ . '/../layout/header.php';
             </div>
         </div>
 
-        <!-- Master Reply Log -->
-        <?php if (!empty($masterReplies)): ?>
+        <!-- Assign Admin -->
         <div class="card border-0 mt-3" style="border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.06);">
             <div class="card-header bg-transparent border-0 pb-0">
-                <h6 class="mb-0"><i class="fas fa-history text-akti me-2"></i>Log de Ações</h6>
+                <h6 class="mb-0"><i class="fas fa-user-shield text-akti me-2"></i>Atribuir Responsável</h6>
             </div>
-            <div class="card-body p-2" style="max-height:300px; overflow-y:auto;">
-                <?php foreach ($masterReplies as $reply): ?>
-                <div class="border-bottom py-2 px-2">
-                    <div class="d-flex justify-content-between">
-                        <small class="fw-semibold"><?= htmlspecialchars($reply['admin_name'] ?? 'Admin') ?></small>
-                        <small class="text-muted"><?= date('d/m H:i', strtotime($reply['created_at'])) ?></small>
+            <div class="card-body">
+                <form action="?page=tickets&action=assign" method="POST">
+                    <?= master_csrf_field() ?>
+                    <input type="hidden" name="ticket_id" value="<?= $ticket['id'] ?>">
+                    <div class="mb-2">
+                        <select name="assigned_admin_id" class="form-select form-select-sm">
+                            <option value="">Nenhum</option>
+                            <?php foreach ($admins as $admin): ?>
+                                <option value="<?= $admin['id'] ?>" <?= ($ticket['assigned_admin_id'] ?? '') == $admin['id'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($admin['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                    <small class="text-muted">
-                        <?php if ($reply['action_type'] === 'status_change'): ?>
-                            <i class="fas fa-exchange-alt me-1"></i><?= htmlspecialchars($reply['message']) ?>
-                        <?php else: ?>
-                            <i class="fas fa-reply me-1"></i><?= htmlspecialchars(mb_substr($reply['message'], 0, 100)) ?>
-                        <?php endif; ?>
-                    </small>
-                </div>
-                <?php endforeach; ?>
+                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="fas fa-user-check me-1"></i>Atribuir
+                    </button>
+                </form>
             </div>
         </div>
-        <?php endif; ?>
     </div>
 
     <!-- Messages + Reply -->
     <div class="col-lg-8">
         <!-- Ticket Description -->
-        <?php if (!empty($ticket['description'] ?? $ticket['message'] ?? '')): ?>
+        <?php if (!empty($ticket['description'])): ?>
         <div class="card border-0 mb-3" style="border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.06);">
             <div class="card-header bg-transparent border-0 pb-0">
                 <h6 class="mb-0"><i class="fas fa-align-left text-akti me-2"></i>Descrição</h6>
             </div>
             <div class="card-body">
-                <p class="mb-0"><?= nl2br(htmlspecialchars($ticket['description'] ?? $ticket['message'] ?? '')) ?></p>
+                <p class="mb-0"><?= nl2br(htmlspecialchars($ticket['description'])) ?></p>
             </div>
         </div>
         <?php endif; ?>
@@ -215,18 +209,18 @@ require_once __DIR__ . '/../layout/header.php';
                     </div>
                 <?php else: ?>
                     <?php foreach ($messages as $msg): ?>
-                    <?php 
-                        $isSupport = $msg['user_id'] === null || str_starts_with($msg['message'] ?? '', '[Suporte Akti');
-                    ?>
-                    <div class="d-flex mb-3 <?= $isSupport ? 'justify-content-end' : 'justify-content-start' ?>">
-                        <div class="p-3 rounded-3" style="max-width:80%; <?= $isSupport 
-                            ? 'background:linear-gradient(135deg, #667eea, #764ba2); color:#fff;' 
+                    <?php $isAdmin = ($msg['sender_type'] ?? '') === 'admin'; ?>
+                    <div class="d-flex mb-3 <?= $isAdmin ? 'justify-content-end' : 'justify-content-start' ?>">
+                        <div class="p-3 rounded-3" style="max-width:80%; <?= $isAdmin
+                            ? 'background:linear-gradient(135deg, #667eea, #764ba2); color:#fff;'
                             : 'background:#f1f3f5; color:#333;' ?>">
                             <div class="d-flex justify-content-between mb-1">
-                                <small class="fw-bold <?= $isSupport ? 'text-white-50' : 'text-muted' ?>">
-                                    <?= htmlspecialchars($msg['user_name'] ?? ($isSupport ? 'Suporte Akti' : 'Usuário')) ?>
+                                <small class="fw-bold <?= $isAdmin ? 'text-white-50' : 'text-muted' ?>">
+                                    <?= htmlspecialchars($msg['sender_name'] ?? 'Usuário') ?>
+                                    <?php if ($isAdmin): ?><span class="badge bg-light text-dark ms-1" style="font-size:9px;">Admin</span><?php endif; ?>
+                                    <?php if (!empty($msg['is_internal_note'])): ?><span class="badge bg-warning text-dark ms-1" style="font-size:9px;">Nota Interna</span><?php endif; ?>
                                 </small>
-                                <small class="<?= $isSupport ? 'text-white-50' : 'text-muted' ?> ms-3">
+                                <small class="<?= $isAdmin ? 'text-white-50' : 'text-muted' ?> ms-3">
                                     <?= date('d/m H:i', strtotime($msg['created_at'])) ?>
                                 </small>
                             </div>
@@ -248,15 +242,20 @@ require_once __DIR__ . '/../layout/header.php';
             <div class="card-body">
                 <form action="?page=tickets&action=reply" method="POST">
                     <?= master_csrf_field() ?>
-                    <input type="hidden" name="tenant_client_id" value="<?= $ticket['tenant_client_id'] ?>">
                     <input type="hidden" name="ticket_id" value="<?= $ticket['id'] ?>">
                     <div class="mb-3">
-                        <textarea name="message" class="form-control" rows="4" 
+                        <textarea name="message" class="form-control" rows="4"
                                   placeholder="Digite sua resposta..." required></textarea>
                     </div>
-                    <div class="d-flex justify-content-end">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_internal_note" value="1" id="internalNote">
+                            <label class="form-check-label small text-muted" for="internalNote">
+                                <i class="fas fa-lock me-1"></i>Nota interna (não visível para o tenant)
+                            </label>
+                        </div>
                         <button type="submit" class="btn btn-akti px-4">
-                            <i class="fas fa-paper-plane me-2"></i>Enviar Resposta
+                            <i class="fas fa-paper-plane me-2"></i>Enviar
                         </button>
                     </div>
                 </form>
