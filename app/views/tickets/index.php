@@ -37,7 +37,7 @@ $priorityFilter = $_GET['priority'] ?? '';
                 <div class="col-md-2">
                     <select name="status" class="form-select form-select-sm">
                         <option value="">Status</option>
-                        <?php foreach (['open' => 'Aberto', 'in_progress' => 'Em Andamento', 'resolved' => 'Resolvido', 'closed' => 'Fechado'] as $k => $v): ?>
+                        <?php foreach (['open' => 'Aberto', 'in_progress' => 'Em Andamento', 'waiting_customer' => 'Aguardando Cliente', 'waiting_internal' => 'Aguardando Interno', 'resolved' => 'Resolvido', 'closed' => 'Fechado'] as $k => $v): ?>
                         <option value="<?= $k ?>" <?= $statusFilter === $k ? 'selected' : '' ?>><?= $v ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -91,8 +91,8 @@ $priorityFilter = $_GET['priority'] ?? '';
                             </td>
                             <td>
                                 <?php
-                                $statusColors = ['open' => 'primary', 'in_progress' => 'info', 'resolved' => 'success', 'closed' => 'secondary'];
-                                $statusLabels = ['open' => 'Aberto', 'in_progress' => 'Em Andamento', 'resolved' => 'Resolvido', 'closed' => 'Fechado'];
+                                $statusColors = ['open' => 'primary', 'in_progress' => 'info', 'waiting_customer' => 'warning', 'waiting_internal' => 'dark', 'resolved' => 'success', 'closed' => 'secondary'];
+                                $statusLabels = ['open' => 'Aberto', 'in_progress' => 'Em Andamento', 'waiting_customer' => 'Aguardando Cliente', 'waiting_internal' => 'Aguardando Interno', 'resolved' => 'Resolvido', 'closed' => 'Fechado'];
                                 $sColor = $statusColors[$t['status']] ?? 'secondary';
                                 $sLabel = $statusLabels[$t['status']] ?? $t['status'];
                                 ?>

@@ -70,15 +70,16 @@ class TicketController extends BaseController
     {
         $this->requireAuth();
         $tenantId = $this->getTenantId();
+        $slaHours = Input::post('sla_hours', 'int', 48);
         $data = [
-            'tenant_id'   => $tenantId,
-            'ticket_number' => $this->ticketModel->generateTicketNumber($tenantId),
-            'category_id' => Input::post('category_id', 'int', 0) ?: null,
-            'requester_id' => $_SESSION['user_id'] ?? 0,
-            'subject'     => Input::post('subject', 'string', ''),
-            'description' => Input::post('description', 'string', ''),
-            'priority'    => Input::post('priority', 'string', 'medium'),
-            'sla_hours'   => Input::post('sla_hours', 'int', 48),
+            'tenant_id'          => $tenantId,
+            'category_id'        => Input::post('category_id', 'int', 0) ?: null,
+            'created_by'         => $_SESSION['user_id'] ?? 0,
+            'subject'            => Input::post('subject', 'string', ''),
+            'description'        => Input::post('description', 'string', ''),
+            'priority'           => Input::post('priority', 'string', 'medium'),
+            'sla_response_due'   => date('Y-m-d H:i:s', strtotime('+24 hours')),
+            'sla_resolution_due' => date('Y-m-d H:i:s', strtotime('+' . $slaHours . ' hours')),
         ];
 
         if (empty($data['subject'])) {
@@ -99,13 +100,14 @@ class TicketController extends BaseController
     {
         $this->requireAuth();
         $id = Input::get('id', 'int', 0);
-        $ticket = $this->ticketModel->readOne($id);
+        $tenantId = $this->getTenantId();
+        $ticket = $this->ticketModel->readOne($id, $tenantId);
         if (!$ticket) {
             $_SESSION['flash_error'] = 'Ticket não encontrado.';
             header('Location: ?page=tickets');
             return;
         }
-        $messages = $this->ticketModel->getMessages($id);
+        $messages = $this->ticketModel->getMessages($id, $tenantId);
 
         require 'app/views/layout/header.php';
         require 'app/views/tickets/view.php';
@@ -128,10 +130,11 @@ class TicketController extends BaseController
         }
 
         $this->ticketModel->addMessage([
-            'ticket_id' => $ticketId,
-            'user_id'   => $_SESSION['user_id'] ?? 0,
-            'message'   => $message,
-            'is_internal' => Input::post('is_internal', 'int', 0),
+            'tenant_id'       => $this->getTenantId(),
+            'ticket_id'       => $ticketId,
+            'user_id'         => $_SESSION['user_id'] ?? 0,
+            'message'         => $message,
+            'is_internal_note' => Input::post('is_internal', 'int', 0),
         ]);
 
         $_SESSION['flash_success'] = 'Mensagem adicionada.';
@@ -147,7 +150,7 @@ class TicketController extends BaseController
         $id = Input::post('id', 'int', 0);
         $status = Input::post('status', 'string', '');
 
-        $this->ticketModel->updateStatus($id, $status);
+        $this->ticketModel->updateStatus($id, $this->getTenantId(), $status);
         $_SESSION['flash_success'] = 'Status atualizado.';
         header('Location: ?page=tickets&action=view&id=' . $id);
     }
@@ -177,7 +180,7 @@ class TicketController extends BaseController
     {
         $this->requireAuth();
         $id = Input::get('id', 'int', 0);
-        $this->ticketModel->delete($id);
+        $this->ticketModel->delete($id, $this->getTenantId());
         $_SESSION['flash_success'] = 'Ticket removido.';
         header('Location: ?page=tickets');
     }

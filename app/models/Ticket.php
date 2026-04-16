@@ -61,11 +61,12 @@ class Ticket
     public function readAll(int $tenantId): array
     {
         $stmt = $this->conn->prepare("
-            SELECT t.*, tc.name AS category_name, c.name AS customer_name, u.name AS assigned_name
+            SELECT t.*, tc.name AS category_name, c.name AS customer_name, u.name AS assigned_name, cb.name AS requester_name
             FROM tickets t
             LEFT JOIN ticket_categories tc ON t.category_id = tc.id
             LEFT JOIN customers c ON t.customer_id = c.id
             LEFT JOIN users u ON t.assigned_to = u.id
+            LEFT JOIN users cb ON t.created_by = cb.id
             WHERE t.tenant_id = :tid AND t.deleted_at IS NULL
             ORDER BY t.created_at DESC
         ");
@@ -111,11 +112,12 @@ class Ticket
 
         $offset = ($page - 1) * $perPage;
         $stmt = $this->conn->prepare("
-            SELECT t.*, tc.name AS category_name, c.name AS customer_name, u.name AS assigned_name
+            SELECT t.*, tc.name AS category_name, c.name AS customer_name, u.name AS assigned_name, cb.name AS requester_name
             FROM tickets t
             LEFT JOIN ticket_categories tc ON t.category_id = tc.id
             LEFT JOIN customers c ON t.customer_id = c.id
             LEFT JOIN users u ON t.assigned_to = u.id
+            LEFT JOIN users cb ON t.created_by = cb.id
             WHERE {$where}
             ORDER BY FIELD(t.priority,'urgent','high','medium','low'), t.created_at DESC
             LIMIT :lim OFFSET :off
@@ -145,7 +147,7 @@ class Ticket
     public function readOne(int $id, int $tenantId): ?array
     {
         $stmt = $this->conn->prepare("
-            SELECT t.*, tc.name AS category_name, c.name AS customer_name, u.name AS assigned_name, cb.name AS created_by_name
+            SELECT t.*, tc.name AS category_name, tc.sla_resolution_hours, c.name AS customer_name, u.name AS assigned_name, cb.name AS requester_name
             FROM tickets t
             LEFT JOIN ticket_categories tc ON t.category_id = tc.id
             LEFT JOIN customers c ON t.customer_id = c.id
@@ -291,11 +293,11 @@ class Ticket
         $stmt = $this->conn->prepare("
             SELECT
                 COUNT(*) AS total,
-                SUM(status = 'open') AS open_count,
-                SUM(status = 'in_progress') AS in_progress_count,
-                SUM(status = 'resolved') AS resolved_count,
-                SUM(status = 'closed') AS closed_count,
-                SUM(priority = 'urgent' AND status NOT IN ('resolved','closed')) AS urgent_count,
+                SUM(status = 'open') AS `open`,
+                SUM(status = 'in_progress') AS in_progress,
+                SUM(status = 'resolved') AS resolved,
+                SUM(status = 'closed') AS closed,
+                SUM(priority = 'urgent' AND status NOT IN ('resolved','closed')) AS urgent,
                 SUM(sla_resolution_due < NOW() AND status NOT IN ('resolved','closed')) AS sla_breached
             FROM tickets
             WHERE tenant_id = :tid AND deleted_at IS NULL

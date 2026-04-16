@@ -3,8 +3,8 @@
  * Tickets — Visualização e mensagens
  * Variáveis: $ticket, $messages
  */
-$statusColors = ['open' => 'primary', 'in_progress' => 'info', 'resolved' => 'success', 'closed' => 'secondary'];
-$statusLabels = ['open' => 'Aberto', 'in_progress' => 'Em Andamento', 'resolved' => 'Resolvido', 'closed' => 'Fechado'];
+$statusColors = ['open' => 'primary', 'in_progress' => 'info', 'waiting_customer' => 'warning', 'waiting_internal' => 'dark', 'resolved' => 'success', 'closed' => 'secondary'];
+$statusLabels = ['open' => 'Aberto', 'in_progress' => 'Em Andamento', 'waiting_customer' => 'Aguardando Cliente', 'waiting_internal' => 'Aguardando Interno', 'resolved' => 'Resolvido', 'closed' => 'Fechado'];
 $priorityColors = ['low' => 'success', 'medium' => 'warning', 'high' => 'danger', 'urgent' => 'dark'];
 $priorityLabels = ['low' => 'Baixa', 'medium' => 'Média', 'high' => 'Alta', 'urgent' => 'Urgente'];
 ?>
@@ -40,12 +40,12 @@ $priorityLabels = ['low' => 'Baixa', 'medium' => 'Média', 'high' => 'Alta', 'ur
                         <p class="text-muted">Nenhuma mensagem ainda.</p>
                     <?php else: ?>
                         <?php foreach ($messages as $msg): ?>
-                        <div class="border-start border-3 <?= $msg['is_internal'] ? 'border-warning' : 'border-primary' ?> ps-3 mb-3">
+                        <div class="border-start border-3 <?= ($msg['is_internal_note'] ?? 0) ? 'border-warning' : 'border-primary' ?> ps-3 mb-3">
                             <div class="d-flex justify-content-between">
                                 <strong><?= e($msg['user_name'] ?? 'Sistema') ?></strong>
                                 <small class="text-muted"><?= e(date('d/m/Y H:i', strtotime($msg['created_at']))) ?></small>
                             </div>
-                            <?php if ($msg['is_internal']): ?><span class="badge bg-warning text-dark mb-1">Nota interna</span><?php endif; ?>
+                            <?php if ($msg['is_internal_note'] ?? 0): ?><span class="badge bg-warning text-dark mb-1">Nota interna</span><?php endif; ?>
                             <p class="mb-0"><?= nl2br(e($msg['message'])) ?></p>
                         </div>
                         <?php endforeach; ?>
@@ -95,7 +95,9 @@ $priorityLabels = ['low' => 'Baixa', 'medium' => 'Média', 'high' => 'Alta', 'ur
                     <p class="mb-1"><strong>Solicitante:</strong> <?= e($ticket['requester_name'] ?? '-') ?></p>
                     <p class="mb-1"><strong>Responsável:</strong> <?= e($ticket['assigned_name'] ?? 'Não atribuído') ?></p>
                     <p class="mb-1"><strong>Categoria:</strong> <?= e($ticket['category_name'] ?? '-') ?></p>
-                    <p class="mb-1"><strong>SLA:</strong> <?= (int) ($ticket['sla_hours'] ?? 0) ?>h</p>
+                    <?php if (!empty($ticket['sla_resolution_due'])): ?>
+                    <p class="mb-1"><strong>SLA Resolução:</strong> <?= e(date('d/m/Y H:i', strtotime($ticket['sla_resolution_due']))) ?></p>
+                    <?php endif; ?>
                     <?php if (!empty($ticket['first_response_at'])): ?>
                     <p class="mb-1"><strong>1ª Resposta:</strong> <?= e(date('d/m/Y H:i', strtotime($ticket['first_response_at']))) ?></p>
                     <?php endif; ?>
