@@ -38,7 +38,7 @@ class SupplyDashboardController extends BaseController
         $data['filters'] = $filters;
 
         // Lista de produtos para filtro
-        $stmt = $this->db->query("SELECT id, name FROM products WHERE active = 1 ORDER BY name");
+        $stmt = $this->db->query("SELECT id, name FROM products ORDER BY name");
         $data['products'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         $pageTitle = 'Dashboard de Eficiência';
@@ -55,7 +55,7 @@ class SupplyDashboardController extends BaseController
         $productId = Input::get('product_id') ? (int) Input::get('product_id') : null;
         $pending = $this->consumptionModel->getPendingReports($productId);
 
-        $stmt = $this->db->query("SELECT id, name FROM products WHERE active = 1 ORDER BY name");
+        $stmt = $this->db->query("SELECT id, name FROM products ORDER BY name");
         $products = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         $pageTitle = 'Apontamento de Consumo';
