@@ -49,7 +49,31 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 -- Remover índice único antigo e criar novo incluindo variation_id
--- (Verificação de existência do índice antigo)
+-- É necessário dropar as FKs que dependem do índice antes de removê-lo
+
+-- Drop FK fk_product_supplies_product (se existir)
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'product_supplies' AND CONSTRAINT_NAME = 'fk_product_supplies_product' AND CONSTRAINT_TYPE = 'FOREIGN KEY') > 0,
+    'ALTER TABLE `product_supplies` DROP FOREIGN KEY `fk_product_supplies_product`',
+    'SELECT 1'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Drop FK fk_product_supplies_supply (se existir)
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'product_supplies' AND CONSTRAINT_NAME = 'fk_product_supplies_supply' AND CONSTRAINT_TYPE = 'FOREIGN KEY') > 0,
+    'ALTER TABLE `product_supplies` DROP FOREIGN KEY `fk_product_supplies_supply`',
+    'SELECT 1'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Agora é seguro remover o índice antigo
 SET @sql = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'product_supplies' AND INDEX_NAME = 'uq_product_supply') > 0,
@@ -60,10 +84,32 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- Criar novo índice único incluindo variation_id
 SET @sql = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'product_supplies' AND INDEX_NAME = 'idx_product_variation_supply') = 0,
     'ALTER TABLE `product_supplies` ADD UNIQUE INDEX `idx_product_variation_supply` (`product_id`, `variation_id`, `supply_id`)',
+    'SELECT 1'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Re-criar as FKs
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'product_supplies' AND CONSTRAINT_NAME = 'fk_product_supplies_product' AND CONSTRAINT_TYPE = 'FOREIGN KEY') = 0,
+    'ALTER TABLE `product_supplies` ADD CONSTRAINT `fk_product_supplies_product` FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE ON UPDATE CASCADE',
+    'SELECT 1'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'product_supplies' AND CONSTRAINT_NAME = 'fk_product_supplies_supply' AND CONSTRAINT_TYPE = 'FOREIGN KEY') = 0,
+    'ALTER TABLE `product_supplies` ADD CONSTRAINT `fk_product_supplies_supply` FOREIGN KEY (`supply_id`) REFERENCES `supplies`(`id`) ON DELETE CASCADE ON UPDATE CASCADE',
     'SELECT 1'
 ));
 PREPARE stmt FROM @sql;
